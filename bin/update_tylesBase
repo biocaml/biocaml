@@ -1,0 +1,3 @@
+#!/bin/sh
+
+rsync -av --progress --delete --exclude=.svn --exclude=.DS_Store ~/Docs/Software/tylesBase/ ~/Docs/Software/BioCaml/lib/tylesBase

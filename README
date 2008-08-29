@@ -1,0 +1,30 @@
+BioCaml - The OCaml Bioinformatics Library
+==========================================
+
+BioCaml aims to be a high-performance user-friendly library for
+Bioinformatics. Current features include:
+
+o Support for several standard data formats
+  - SGR
+  - WIG
+  - FASTA
+  - BED
+  - GFF (version 2 and 3)
+  - UCSC track files
+  - ELAND
+  - BPMAP
+  - CEL
+
+Support includes not just parsing and printing, but also various
+operations dependent on the specific data type represented.
+
+o Classification of items into bins and histograms with polymorphic
+  bin types.
+
+o Basic math and statistics routines
+
+Coming soon:
+o Peak finding algorithms
+o Efficient querying of annotations
+o Efficient computations for sets of integer intervals
+o ... and more!
