@@ -27,3 +27,8 @@ module IntMap = IntMap
 module StringMap = StringMap
 module IntSet = IntSet
 module StringSet = StringSet
+
+module Show = Show
+module SmallCheck = SmallCheck
+
+module About = About

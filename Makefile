@@ -18,7 +18,7 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),-I $(call lib_inc,$(lib))) $(patsubst %,-I src
 .PHONY: all doc clean
 
 all:
-	make -C lib/tylesBase all
+	make -C lib/tylesBase all; cp -f lib/tylesBase/_build/src/tylesBase.cm* lib/
 	cd src; ocamlbuild bioCaml.cma
 	cd src; ocamlbuild bioCaml.cmxa
 
@@ -30,6 +30,6 @@ doc/html/%: src/%/*.mli
 doc: doc/html/base doc/html/bioCaml
 
 clean:
-	make -C lib/tylesBase clean
+	make -C lib/tylesBase clean; rm -f lib/tylesBase.cm*
 	cd src; ocamlbuild -clean
 	rm -rf doc/html

@@ -30,7 +30,7 @@ let _ = dispatch begin function
 
   | After_rules ->
 
-      ocaml_lib ~extern:true ~dir:"../../lib/tylesBase/_build/src" "tylesBase";
+      ocaml_lib ~extern:true ~dir:"../../lib" "tylesBase";
       
       (* Add pa_openin.cmo to the ocaml pre-processor when use_opening is set *)
       flag ["ocaml"; "pp"; "use_openin"] (A"pa_openin.cmo");
