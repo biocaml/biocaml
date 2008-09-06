@@ -1,2 +1,3 @@
-<src> : include
+<tylesBase> : include
+
 <**/*.{ml,mli,byte,native}> : pkg_extlib

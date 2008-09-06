@@ -19,7 +19,7 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),-I $(call lib_inc,$(lib))) $(patsubst %,-I src
 
 all:
 	make -C lib/tylesBase all
-	cp -f lib/tylesBase/_build/src/tylesBase.{a,o,cm*} lib/
+	cp -f lib/tylesBase/src/_build/tylesBase.{a,o,cm*} lib/
 	cd src; ocamlbuild bioCaml.cma
 	cd src; ocamlbuild bioCaml.cmxa
 

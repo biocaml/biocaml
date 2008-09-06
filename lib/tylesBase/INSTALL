@@ -18,15 +18,13 @@ Let <tylesBase> refer to the source directory.
 
    make all
 
-   This will generate the files tylesBase.cm{i,a,xa}. These will be
-   under the _build/src directory, and you can link to them there.
+   This will generate the files tylesBase.cm* files under src/_build.
 
 4. To make the documentation, type
 
    make doc
 
-   This produces documentation in html format. The root is
-   doc/html/index.html.
+   This produces documentation in html format under doc/html.
 
 5. If needed, you can delete all automatically generated files by
    typing

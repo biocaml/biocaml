@@ -16,8 +16,8 @@ tylesBase.ml
 - Packs all the modules.
 - Cannot use -pack option because we need to change the names of
   modules named with a "2".
-- Also I don't know if you could extend Pervasives with -pack, which
-  is also done.
+- Also it is not possible to include values and types within a pack,
+  which is needed.
 
 Usage
 =====
@@ -26,8 +26,9 @@ Usage
 - Do not use modules directly, i.e. do not use List2, use
   TylesBase.List. Ideally, we will be able to make this impossible.
 
-Contact
-=======
-Ashish Agarwal
-agarwal1975@gmail.com
-http://homes.gersteinlab.org/people/ashish
+Mirroring TylesBase
+===================
+- An application named mirror_tylesBase.native is provided in the app
+  directory. This can be used to copy tylesBase to a subdirectory of
+  the other projects in which you are using it. Execute it without any
+  arguments for directions.
