@@ -15,7 +15,10 @@ get_deps = $(patsubst $(1)/%,%,$(shell ocamldsort -I $(1) -byte $(1)/*.ml))
 
 INCLUDE=$(foreach lib,$(LIB_PKGS),-I $(call lib_inc,$(lib))) $(patsubst %,-I src/_build/%,$(DIRS)) -I src/_build
 
-.PHONY: all doc clean
+.PHONY: all doc clean install
+
+install: all
+	cp -f src/_build/bioCaml.{a,o,cm*} lib/ # this is a hack, install using findlib
 
 all:
 	make -C lib/tylesBase all
@@ -35,3 +38,5 @@ clean:
 	rm -f lib/*.{a,o,so,cm*}
 	cd src; ocamlbuild -clean
 	rm -rf doc/html
+	rm -f notes/*.{bbl,log,dvi,blg,pdf,aux}
+	rm -f notes/*/*.{bbl,log,dvi,blg,pdf,aux}
