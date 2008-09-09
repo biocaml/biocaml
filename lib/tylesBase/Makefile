@@ -13,6 +13,9 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),$(call lib_inc,$(lib))) $(patsubst %,-I _build
 
 .PHONY: tylesBase all doc clean
 
+install: all
+	cp -f src/_build/tylesBase.{a,o,cm*} lib/ # this is a hack, install using findlib
+
 all: tylesBase app/mirror_tylesBase.native
 
 tylesBase:
@@ -34,3 +37,4 @@ clean:
 	cd src; ocamlbuild -clean
 	rm -rf doc/html
 	rm -rf src/app/*.native src/app/*.byte
+	rm -f lib/*.{a,o,so,cm*}

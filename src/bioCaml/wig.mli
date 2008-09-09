@@ -1,9 +1,9 @@
 (** WIG data.
     
-    Internal representation of coordinates always assumes the first position on a chromosome is numbered 0. Also, integer ranges are always closed; the range [\[0, 10\]] is the set of integers from 0 to 10 inclusive of 0 and 10. WIG data can be in three formats, bed, variable step, or fixed step, and unfortunately each has different conventions as follows:
-    - Bed format requires half-open intervals [\[low, high)]. Thus 1 is subtracted from the high value when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI", 0, 9, 3.14)].
-    - Variable step format numbers the first position 1. Thus 1 is subtracted from the low value when parsing. The line ["1 3.14"] is parsed to [(0, 3.14)].
-    - Fixed step format numbers the first position 1. Thus 1 is subtracted from the start coordinate given in header lines. The header line ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 0, 100, 30)].
+    Internal representation of coordinates always assumes the first position on a chromosome is numbered 0. Also, integer ranges are always closed; the range [\[0, 10\]] is the set of integers from 0 to 10 inclusive of 0 and 10. WIG data can be in three formats, bed, variable-step, or fixed-step, and unfortunately each has different conventions as follows:
+    - Bed format requires half-open intervals [\[low, high\)]. Thus 1 is subtracted from the high value when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI", 0, 9, 3.14)].
+    - Variable-step format numbers the first position 1. Thus 1 is subtracted from the low value when parsing. The line ["1 3.14"] is parsed to [(0, 3.14)].
+    - Fixed-step format numbers the first position 1. Thus 1 is subtracted from the start coordinate given in header lines. The header line ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 0, 100, 30)].
     
     The inverse is done for printing routines. You are freed from these details if you always use this module to parse and print.
     
@@ -16,29 +16,40 @@ type pt = string * int * int * float
 type t
     (** Type of WIG data. Can be thought of as a collection of [pt]'s. Coordinates of data points are not allowed to overlap, for each chromosome. *)
     
+type format = Bed | VariableStep | FixedStep
+    (** The three formats in which WIG data can be specified. *)
+
 exception Bad of string
   
-val of_bed_list : pt list -> t
-  (** Construct WIG data from given [pt]'s. Raise [Bad] if any errors. *)
-  
-val to_bed_list : t -> pt list
+val of_list : ?sort:bool -> pt list -> t
+  (** Construct WIG data from given [pt]'s. Default value of [sort] is true, which means input will be sorted before constructing [t]. For efficiency, if input already sorted, by chromosome and then by coordinates, you should set [sort] to false to avoid unnecessarily sorting. Raise [Bad] if valid data set cannot be constructed, or if [sort = false] but data not already sorted. *)
+
+val to_list : t -> pt list
   (** Extract data as a flat list. Guaranteed to be in order by chromosome name, and then coordinate. *)
   
 val iter : (pt -> unit) -> t -> unit
 val fold : ('a -> pt -> 'a) -> 'a -> t -> 'a
-  (** [iter] and [fold] will be more efficient than converting to list and using list's iter or fold when internal representation is fixed or variable step. *)
 
+val to_file : ?fmt:format -> t -> string -> unit
+  (** [to_file ~fmt t file] prints [t] to [file]. Printing is in most efficient format possible by default. Optional [fmt] argument forces printing in a specific format. Requesting [VariableStep] or [FixedStep] may raise [Failure] if given data cannot be represented in those formats. *)
+
+val to_channel : ?fmt:format -> t -> out_channel -> unit
+  (** Like [to_file] but print to channel. *)
+
+val compact : t -> t
+  (** Compact data to most memory efficient format possible. *)
+
+val to_format : format -> t -> t option
+  (** [to_format fmt t] converts internal representation of [t] to format [fmt] if possible, or returns None otherwise. *)
   
+
 module B : sig
   type datum = string * int * int * float
-      (** chromosome name, low and high values of coordinate range, data value *)
-      
+    (** chromosome, lo, hi, value. *)
+  
   type s
       (** Representation of bed formatted WIG data that supports efficient appending. *)
       
-  val datum_of_string : string -> datum
-    (** Raise [Bad] if any errors. E.g. ["chrI 0 10 3.14"] is parsed to [("chrI", 0, 9, 3.14)]. *)
-    
   val empty : s
     (** The empty data set. *)
     
@@ -46,14 +57,18 @@ module B : sig
     (** Return the data set with the single given data point. *)
     
   val append_datum : s -> datum -> s
-    (** [append_datum s l] appends [l] to the end of [s]. Raise [Bad] if [l] cannot be added. *)
-
+    (** [append_datum s x] appends [x] to the end of [s]. Raise [Bad] if [x] cannot be added or is ill-formed. *)
+    
   val complete : s -> t
+    
+  val datum_of_string : string -> datum
+    (** Raise [Bad] if any errors. E.g. ["chrI 0 10 3.14"] is parsed to [("chrI", 0, 9, 3.14)]. *)
     
   val datum_to_string : datum -> string
     (** E.g. [("chrI", 0, 9, 3.14)] is converted to ["chrI\t0\t10\t3.14"]. *)
+    
 end
-  
+
 module V : sig
   type header = string * int
       (** Header line provides a chromosome name and span. *)
@@ -62,7 +77,7 @@ module V : sig
       (** Each data line provides a low coordinate and data value. *)
 
   type s
-      (** Type of WIG data in variable step format. *)
+      (** Type of WIG data in variable-step format. *)
 
   val header_of_string : string -> header
     (** Raise [Bad] if any errors. *)
@@ -77,7 +92,7 @@ module V : sig
     (** Make data set ready for adding data under given header. Raise [Bad] if this cannot be done. *)
     
   val append_datum : s -> datum -> s
-    (** Append given data point. Raise [Bad] if this cannot be done. *)
+    (** Append given data point. Raise [Bad] if this cannot be done or if given datum is ill-formed. *)
 
   val complete : s -> t
     (** Raise [Bad] if it does not make sense to be done adding data. This is possible for example if a new header was just set but no datum were appened. *)
@@ -97,7 +112,7 @@ module F : sig
       (** Each data line provides just a float data value. *)
       
   type s
-      (** Type of WIG data in fixed step format. *)
+      (** Type of WIG data in fixed-step format. *)
 
   val header_of_string : string -> header
     (** Raise [Bad] if any errors. E.g. ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 0, 100, 30)]. *)
