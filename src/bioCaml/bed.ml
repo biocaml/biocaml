@@ -55,6 +55,14 @@ let to_line (chr,lo,hi) =
      string_of_int (hi + 1); (* +1 makes half-open intervals as required *)
     ]
     
+let to_channel t cout =
+  let f chr (lo,hi) = fprintf cout "%s\n" (to_line (chr,lo,hi)) in
+  let g chr l = List.iter (f chr) l in
+  StringMap.iter g t
+
+let to_file t file =
+  try_finally (to_channel t) close_out (open_out_safe file)
+
 
 type s = (int * int) list StringMap.t
     

@@ -19,6 +19,9 @@ val to_lists : t -> (string * (int * int) list) list
   
 val of_line : string -> pt  
 
+val to_file : t -> string -> unit
+val to_channel : t -> out_channel -> unit
+
 
 (** {6 Dynamic Data Set Construction} *)
   

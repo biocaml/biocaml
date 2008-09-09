@@ -26,7 +26,7 @@ app/%.native:
 	cd src; ocamlbuild $@
 	cp -f src/_build/$@ src/app
 
-doc/html/%: src/%/*.mli
+doc/html/tylesBase: src/tylesBase/*.mli src/tylesBase/stringMap.ml src/tylesBase/intMap.ml src/tylesBase/stringSet.ml src/tylesBase/intSet.ml 
 	rm -rf $@
 	mkdir -p $@
 	ocamldoc $(INCLUDE) -d $@ -no-stop -html $^

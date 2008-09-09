@@ -52,6 +52,9 @@ module TrackLine : sig
   val to_list : t -> (string * string) list
     (** Return list of attribute=value pairs. *)
 
+  val of_list : (string * string) list -> t
+    (** [of_list l] sets [a] to [x] for every [(a,x)] pair in [l]. Raise [Bad] if any invalid values given. If attribute [a] given more than once, last will apply. *)
+    
 end
 
 (** Browser lines configure the overall display of the Genome Browser when your file is uploaded. *)
@@ -96,6 +99,9 @@ exception Bad of string
   
 val of_file : string -> t
   (** Parse given file. Raise [Bad] if there are any parse errors. *)
+
+val to_file : t -> string -> unit
+  (** [to_file t file] prints [t] to [file]. *)
   
 val to_list : t -> block list
 val of_list : block list -> t

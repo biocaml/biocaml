@@ -215,6 +215,8 @@ module TrackLine = struct
     let ans = Map.add x y t in
     validate ans;
     ans
+
+  let of_list l = List.fold_left (fun t (a,x) -> set t a x) empty l
       
   let to_string t =
     (* if there is a type attribute print it first *)
@@ -370,6 +372,18 @@ type block =
         
 type t = block list
 let to_list t = t
+
+let to_channel t cout = 
+  let print_block = function
+    | B x -> fprintf cout "%s\n" (BrowserLines.to_string x)
+    | T x -> fprintf cout "%s\n" (TrackLine.to_string x)
+    | C x -> fprintf cout "%s\n" (Comments.to_string x)
+    | Wig x -> Wig.to_channel x cout
+    | Bed x -> Bed.to_channel x cout
+  in
+  List.iter print_block t
+
+let to_file t file = try_finally (to_channel t) close_out (open_out_safe file)        
 
 let validate t =
   let t = List.filter (function C _ -> false | _ -> true) t in
