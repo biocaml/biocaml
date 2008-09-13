@@ -28,7 +28,7 @@ Usage
 
 Mirroring TylesBase
 ===================
-- An application named mirror_tylesBase.native is provided in the app
-  directory. This can be used to copy tylesBase to a subdirectory of
+- bin/mirror_tylesBase.native will be available after doing "make
+  install". This can be used to copy tylesBase to a subdirectory of
   the other projects in which you are using it. Execute it without any
   arguments for directions.

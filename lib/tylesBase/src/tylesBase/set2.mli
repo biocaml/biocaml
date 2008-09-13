@@ -139,6 +139,9 @@ sig
   val to_list : t -> elt list
     (** Return elements of given set, in increasing order. Synonym for {!elements}. *)
 
+  val unions: t list -> t
+    (** Set union. *)
+
 end
   (** Output signature of the functor {!Set.Make}. *)
 

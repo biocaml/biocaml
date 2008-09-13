@@ -110,6 +110,11 @@ val takewhile : ('a -> bool) -> 'a list -> 'a list
 val dropwhile : ('a -> bool) -> 'a list -> 'a list
   (** [dropwhile f xs] returns the list [xs] with the first
       elements satisfying the predicate [f] dropped. *)
+
+val transpose : 'a list list -> 'a list list
+  (** [transpose xss] transposes the rows and columns of its argument.
+      Each list in [xss] must have the same length, otherwise the behavior
+      is undefined. *)
   
 val interleave : 'a list -> 'a list -> 'a list
 val to_string : ('a -> string) -> 'a list -> string

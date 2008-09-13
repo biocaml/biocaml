@@ -49,6 +49,13 @@ let npartition eq l =
             else loop (l::prefix) ll
     in loop [] ll
   in map rev (fold_left insertl [] l)
+
+let rec transpose xss = match xss with 
+  | [] -> []      
+  (* if the first list is empty, we (currently) expect them all to
+     be, in which case the tranpose is [] *)
+  | []::_ -> [] 
+  | (x::xs) :: xss' -> (x :: List.map List.hd xss') :: transpose (xs :: List.map List.tl xss')
     
 let interleave al1 al2 =
   let rec iter ans al1 al2 =

@@ -14,8 +14,7 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),$(call lib_inc,$(lib))) $(patsubst %,-I _build
 .PHONY: tylesBase all doc clean
 
 install: all
-	cp -f src/_build/app/*.native bin/
-	chmod 744 bin/*.native
+	cp -f src/_build/app/*.native bin/; chmod 744 bin/*.native
 	cp -f src/_build/tylesBase.{a,o,cm*} lib/ # this is a hack, install using findlib
 
 all: tylesBase app/mirror_tylesBase.native
