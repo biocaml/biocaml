@@ -5,9 +5,8 @@ exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
 type strand = Sense | Antisense | Unknown | Unstranded
-type feature = Feature of string | Cds of int      
 type attribute = TagValue of string * string | Something of string
-type row = {chr:string; strand:strand; pos:Range.t; feature:feature; source:string; score : float option; attributes : attribute list}
+type row = {chr:string; source:string; feature:string; pos:Range.t; score : float option; strand:strand; phase:int option; attributes : attribute list}
 type 'a t = 'a list
 
 let to_list t = t
@@ -15,21 +14,14 @@ let to_list t = t
 module Parser = struct
   let chr s = s
   let source s = s
+  let feat s = s
 
-  let feat s phase =
-    match s with
-      | "CDS"->
-          let k = 
-            try int_of_string phase
-            with Failure msg -> failwith (sprintf "%s: invalid phase %s" msg phase)
-          in
-          if k >= 0 && k <= 2
-          then Cds k
-          else failwith (sprintf "invalid phase %d" k)
-      | _ ->
-          if phase = "."
-          then Feature s
-          else failwith (sprintf "phase must be \".\" for feature %s" s)
+  let phase s =
+    if s = "." then
+      None
+    else
+      try Some (int_of_string s)
+      with Failure msg -> failwith (sprintf "%s: invalid phase %s" msg s)
 
   let interval s1 s2 =
     let lo =
@@ -86,7 +78,8 @@ module Parser = struct
                strand = strand (nth 6);
                pos = interval (nth 3) (nth 4);
                source = source (nth 1);
-	       feature = feat (nth 2) (nth 7);
+	       feature = feat (nth 2);
+               phase = phase (nth 7);
 	       score = score (nth 5);
 	       attributes = attributes3 (nth 8)
 	      }
@@ -96,14 +89,14 @@ module Parser = struct
 end
 
 let of_file p file =
-  let f s =
+  let f ans s =
     match Parser.row s with
-      | None -> None
-      | Some row -> p row
+      | None -> ans
+      | Some row -> match p row with None -> ans | Some x -> x::ans
   in
-  try Lines.of_file f file
+  try List.rev (Lines.fold_file f [] file)
   with Lines.Error(pos,msg) -> raise_bad (Msg.err ~pos msg)
-
+    
 let fold_file f init file =
   let g accum line =
     match Parser.row line with

@@ -5,26 +5,6 @@ open Printf
 exception Error of (Pos.t * string)
 let raise_error p m = raise (Error(p,m))
 
-let copy_file ?first ?last in_file out_file =
-  if in_file = out_file then
-    failwith "in_file and out_file must be different"
-  else
-    let cin = open_in in_file in
-    let sin = Stream.lines_of_channel cin in
-    let cout = open_out_safe out_file in
-      
-    (* skip past initial first-1 lines *)
-    let first = max 1 (match first with None -> 1 | Some x -> x) in
-    let pred k _ = k < (first - 1) in
-    let _ = Stream.skip_whilei pred sin in
-      
-    let pred k _ = match last with None -> true | Some x -> k < x in
-    let sin = Stream.keep_whilei pred sin in
-    let f s = output_string cout (s ^ "\n") in
-    Stream.iter f sin;
-    close_in cin;
-    close_out cout
-
 let fold_stream' ?(file="") ?(strict=true) f init cstr =
   let lines = Stream.lines_of_chars cstr in
   let f accum s =
@@ -57,23 +37,26 @@ let fold_file ?(strict=true) f init file =
   try try_finally (fold_channel' ~file ~strict f init) close_in (open_in file)
   with Error (p,m) -> raise_error (Pos.set_file p file) m
 
-      
-let of_stream f (cstr : char Stream.t) =
+let of_stream ?(strict=true) f (cstr : char Stream.t) =
   let lines = Stream.lines_of_chars cstr in
-  let g l s =  match f s with None -> l | Some v -> v::l in
-  try List.rev (Stream.fold g [] lines)
-  with Failure m -> raise_error (Pos.l (Stream.count lines)) m
+  let g ans s =
+    try (f s)::ans
+    with Failure m ->
+      if strict
+      then raise_error (Pos.l (Stream.count lines)) m
+      else ans
+  in List.rev (Stream.fold g [] lines)
+  
+let of_channel ?(strict=true) f cin =
+  try_finally (of_stream ~strict f) ignore (Stream.of_channel cin)
+    
+let of_string ?(strict=true) f s = 
+  try_finally (of_stream ~strict f) ignore (Stream.of_string s) 
 
-let of_channel f cin =
-  try_finally (of_stream f) ignore (Stream.of_channel cin)
-    
-let of_string f s = 
-  try_finally (of_stream f) ignore (Stream.of_string s) 
-    
-let of_file f file =
-  try try_finally (of_channel f) close_in (open_in file)
+let of_file ?(strict=true) f file =
+  try try_finally (of_channel ~strict f) close_in (open_in file)
   with Error (p,m) -> raise_error (Pos.set_file p file) m
-    
+
 
 let to_channel f cout l =
   let g a = output_string cout (f a); output_char cout '\n' in
@@ -93,3 +76,29 @@ let to_string f l =
   in loop l; Buffer.contents ans
 
 let to_stream f l = Stream.of_string (to_string f l)
+
+
+let copy_channel ?(first=1) ?last cin cout =
+  let first = max 1 first in
+  let line_num = ref 1 in
+  try
+    while true do
+      let after_first = first <= !line_num in
+      let before_last = match last with None -> true | Some last -> !line_num <= last in
+      if not (before_last) then raise End_of_file;
+      let c = input_char cin in
+      if c = '\n' then incr line_num;
+      if after_first && before_last then output_char cout c;
+    done;
+    assert false
+  with
+      End_of_file -> ()
+        
+let copy_file ?(first=1) ?last in_file out_file =
+  let copy (cin,cout) =
+    match last with 
+      | None -> copy_channel ~first cin cout
+      | Some last -> copy_channel ~first ~last cin cout
+  in
+  let close (cin,cout) = close_in cin; close_out cout in
+  try_finally copy close (open_in in_file, open_out_safe out_file)

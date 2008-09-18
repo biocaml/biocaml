@@ -9,10 +9,6 @@ type strand =
     | Unknown (** strand is relevant but unknown *)
     | Unstranded (** strand is irrelevant *)
         
-type feature =
-    | Feature of string (** string represents type of feature, can be anything except CDS *)
-    | Cds of int (** CDS feature with phase 0, 1, or 2 *)
-        
 type attribute =
     | TagValue of string * string (** name and value of an attribute *)
     | Something of string  (** attributes not in tag-value format *)
@@ -20,11 +16,12 @@ type attribute =
 (** Type of information on a row. This particular type represents all information provided in GFF files, but note that type ['a t] allows alternative types of annotation information to be retained. *)
 type row = {
   chr : string;    (** chromosome name *)
-  strand : strand; (** strand *)
-  pos : Range.t; (** position *)
-  feature : feature; (** the feature type *)
   source : string; (** where annotation came from, e.g. a database or algorithm *)
+  feature : string; (** the feature type *)
+  pos : Range.t; (** position *)
   score : float option; (** possible score, semantics not defined *)
+  strand : strand; (** strand *)
+  phase: int option ; (** phase, should be 0,1, or 2 if feature = "CDS" or None otherwise but this is not checked *)
   attributes : attribute list; (** the attributes *)
 }
     

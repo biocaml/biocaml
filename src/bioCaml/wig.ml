@@ -172,7 +172,6 @@ let fold f init t =
   iter (fun pt -> ans := f !ans pt) t;
   !ans
     
-
 (* BED format *)
 module B = struct
   type datum = string * int * int * float
@@ -224,7 +223,7 @@ module B = struct
   let complete s = 
     let ans = B (StringMap.map List.rev s) in
     compact ans
-      
+
 end
 
 (* variable-step format *)
@@ -401,7 +400,6 @@ module F = struct
     sprintf "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d" chr start step span
 
   let datum_to_string = string_of_float
-
 end
   
 let rec of_list ?(sort=false) l =
@@ -448,7 +446,114 @@ let to_channel ?fmt t cout =
 let to_file ?fmt t file =
   let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in
   try_finally f close_out (open_out_safe file)
-    
+
+type line_type = BLine | VHeaderLine | VLine | FHeaderLine | FLine
+
+let line_type s =
+  try ignore (B.datum_of_string s); Some BLine with Bad _ ->
+  try ignore (V.header_of_string s); Some VHeaderLine with Bad _ ->
+  try ignore (V.datum_of_string s); Some VLine with Bad _ ->
+  try ignore (F.header_of_string s); Some FHeaderLine with Bad _ ->
+  try ignore (F.datum_of_string s); Some FLine with Bad _ ->
+  None
+
+module Parser = struct
+  type state = Start | InB of B.s | InV of V.s | InF of F.s
+    (* states of the finite-state-machine parser *)
+
+  exception Errors of (line_type * string) list
+    (* indicates a list of possible errors for why a parse failed,
+       each message is associated with the line_type that the parse was attempted on *)
+
+  let errors_to_string (msgs : (line_type * string) list) : string =
+    let line_type (lt:line_type) : string =
+      let s = match lt with
+        | BLine -> "bed"
+        | VLine -> "variable step"
+        | VHeaderLine -> "variable step header"
+        | FLine -> "fixed step"
+        | FHeaderLine -> "fixed step header"
+      in sprintf ("- bad %s line: ") s
+    in
+
+    let error_to_string (lt,msg) = (line_type lt) ^ msg in
+    let msgs = List.map error_to_string msgs in
+    let msgs = "parse failed for one of the following reasons:"::msgs in
+    String.concat "\n" msgs
+
+  (* [add_line st line] adds [line] to [st] and returns the new state, raise [Errors] if any errors *)
+  let add_line (st:state) (line:string) : state = 
+    let msgs = ref [] in
+    let raise_errors () = raise (Errors (List.rev !msgs)) in
+    match st with
+      | Start -> (
+          try InB (B.singleton (B.datum_of_string line)) with Bad m ->
+          try msgs := (BLine,m)::!msgs; InV (V.empty (V.header_of_string line)) with Bad m ->
+          try msgs := (VHeaderLine,m)::!msgs; InF (F.empty (F.header_of_string line)) with Bad m ->
+          msgs := (FHeaderLine,m)::!msgs; 
+          raise_errors()
+        )
+      | InB s -> (
+          try InB (B.append_datum s (B.datum_of_string line)) with Bad m ->
+          msgs := (BLine,m)::!msgs;
+          raise_errors()
+        )
+      | InV s -> (
+          try InV (V.append_datum s (V.datum_of_string line)) with Bad m ->
+          try msgs := (VLine,m)::!msgs; InV (V.set_header s (V.header_of_string line)) with Bad m ->
+          msgs := (VHeaderLine,m)::!msgs;
+          raise_errors()
+        )
+      | InF s -> (
+          try InF (F.append_datum s (F.datum_of_string line)) with Bad m ->
+          try msgs := (FLine,m)::!msgs; InF (F.set_header s (F.header_of_string line)) with Bad m ->
+          msgs := (FHeaderLine,m)::!msgs;
+          raise_errors()
+        )
+
+  let of_channel cin =
+    let line_num = ref 0 in
+    let ans = ref Start in
+    try
+      while true do
+        incr line_num;
+        ans := add_line !ans (input_line cin)
+      done;
+      assert false
+    with
+      | End_of_file -> (
+          match !ans with
+            | Start -> raise_bad "no data"
+            | InB s -> B.complete s
+            | InV s -> V.complete s
+            | InF s -> F.complete s
+        )
+      | Errors msgs -> raise_bad (Msg.err ~pos:(Pos.l !line_num) (errors_to_string msgs))
+      | Bad _ -> assert false (* all Bad should have been caught by add_line *)
+
+  let of_stream (strm : char Stream.t) =
+    let lines = Stream.lines_of_chars strm in
+    try
+      let ans = Stream.fold add_line Start lines in
+      match ans with
+        | Start -> raise_bad "no data"
+        | InB s -> B.complete s
+        | InV s -> V.complete s
+        | InF s -> F.complete s
+    with
+      | Errors msgs -> raise_bad (Msg.err ~pos:(Pos.l (Stream.count lines)) (errors_to_string msgs))
+      | Bad _ -> assert false (* all Bad should have been caught by add_line *)
+       
+end
+
+let of_channel = Parser.of_channel
+let of_stream = Parser.of_stream
+let of_file file = try_finally of_channel close_in (open_in file)
+
+module TrackParser = struct
+  
+end
+
 
 (* Don't think I need this anymore. ***********
 let first_item t : pt option =

@@ -14,6 +14,7 @@ module String = String2
 module Option = Option2
 
 module Int = Int
+module MMap = MMap
 module Msg = Msg
 module Pos = Pos
 module Test = Test

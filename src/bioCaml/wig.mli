@@ -42,6 +42,16 @@ val compact : t -> t
 val to_format : format -> t -> t option
   (** [to_format fmt t] converts internal representation of [t] to format [fmt] if possible, or returns None otherwise. *)
   
+val of_channel : in_channel -> t
+val of_file : string -> t
+
+(**/**)
+
+type line_type = BLine | VHeaderLine | VLine | FHeaderLine | FLine
+    (** Types of lines that could possibly be in a WIG file. *)  
+
+val line_type : string -> line_type option
+  (** Return the [line_type] of the given line, or None if it is not a recognized WIG line. *)
 
 module B : sig
   type datum = string * int * int * float
@@ -66,9 +76,9 @@ module B : sig
     
   val datum_to_string : datum -> string
     (** E.g. [("chrI", 0, 9, 3.14)] is converted to ["chrI\t0\t10\t3.14"]. *)
-    
-end
 
+end
+  
 module V : sig
   type header = string * int
       (** Header line provides a chromosome name and span. *)

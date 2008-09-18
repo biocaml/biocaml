@@ -1,4 +1,4 @@
-(** Track files in UCSC Genome Browser format. The following documentation assumes knowledge of concepts explained on the UCSC Genome Browser's website. Fundamentally, a track file contains a sequence of data sets, called tracks. Various data formats are supported: WIG, BED, etc. In addition, information affecting how the data will be displayed in the genome browser and comment lines can be provided. *)
+(** Track files in UCSC Genome Browser format. The following documentation assumes knowledge of concepts explained on the UCSC Genome Browser's website. Basically, a track file is one of several types of data (WIG, GFF, etc.), possibly preceded by comments, browser lines, and a track line. This module allows only a single data track within a file, although the UCSC specifies that multiple tracks may be provided together. *)
 
 (** Track lines define display attributes. They can be thought of as lists of attribute-value pairs. For forward compatibility, this module allows arbitrary attributes to be set. However, the following lists known attributes and specifies restrictions on their values: 
     - [name] - a string less than or equal to 15 characters; only alphanumeric characters or spaces; enclosed in double quotes if there are spaces
@@ -85,27 +85,30 @@ module BrowserLines : sig
 end
   
 (** A block of information. *)
-type block =
-    | B of BrowserLines.t (** one or more browser lines *)
+type 'a block =
+    | B of BrowserLines.t (** sequence of browser lines *)
     | T of TrackLine.t    (** a track line *)
     | C of Comments.t     (** one or more comment lines or blank lines *)
-    | Wig of Wig.t        (** WIG data section *)
-    | Bed of Bed.t        (** BED data section *)
+    | D of 'a             (** data section *)
          
-type t
-    (** Type of an annotation track file. Can be thought of as a list of blocks with certain restrictions on the order in which blocks occur. *)      
-    
-exception Bad of string
-  
-val of_file : string -> t
-  (** Parse given file. Raise [Bad] if there are any parse errors. *)
+type 'a t
+    (** Type of an annotation track file containing data of type ['a]. Can be thought of as a list of blocks with certain restrictions on the order in which blocks occur. *)
 
-val to_file : t -> string -> unit
-  (** [to_file t file] prints [t] to [file]. *)
-  
-val to_list : t -> block list
-val of_list : block list -> t
+exception Error of Pos.t * Msg.Tree.t
 
-val map : (block -> block) -> t -> t
-val map_wig : (Wig.t -> Wig.t) -> t -> t
-val map_bed : (Bed.t -> Bed.t) -> t -> t
+type 'a parser_result =
+    | Result of 'a * Msg.Tree.t
+    | Error of Msg.Tree.t
+        (** Return type for external parsers, passed to [make_parser], parsing data of type ['a]. [Result(a,msgs)] indicates that the parser successfully parsed [a] and stopped parsing due to [msgs]. This does not necessarily indicate complete success. If the parse cannot continue with some other parser, then [msgs] should be included in the list of possible errors. [Error msgs] indicates that the parser definitely failed. *)
+
+val make_parser : ('a t -> string Stream.t -> 'a parser_result) -> (string Stream.t -> 'a t)
+  (** [make_parser data_parser] returns a parser for track files containing data of type [a']. It parses the initial lines of the channel, which contain comments, browser lines, or a track line. At the first line deemed to be not any of these, it hands off control to [data_parser], which should be a function that parses data of type ['a]. It will be called as [data_parser t strm], where
+      - [t] will be the track parsed thus far, which will not contain a [D] block. This allows [data_parser] to use the information parsed thus far.
+      - [strm] is the stream being parsed.
+  *)
+  
+val make_printer : ('a -> out_channel -> unit) -> ('a t -> out_channel -> unit)
+  (** [make_printer data_printer] returns a printer given a method for printing the data block. *)
+  
+val to_list : 'a t -> 'a block list
+val of_list : 'a block list -> 'a t
