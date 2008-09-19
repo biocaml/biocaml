@@ -28,4 +28,3 @@ module type S = sig
 end
   
 module Make (Ord1 : ORDERED) (Ord2 : ORDERED) : S with type Fst.key = Ord1.t and type Snd.key = Ord2.t
-  

@@ -26,15 +26,13 @@ tylesBase:
 app/%.native:
 	cd src; ocamlbuild $@
 
-doc/html/tylesBase: src/tylesBase/*.mli src/tylesBase/stringMap.ml src/tylesBase/intMap.ml src/tylesBase/stringSet.ml src/tylesBase/intSet.ml 
-	rm -rf $@
-	mkdir -p $@
-	ocamldoc $(INCLUDE) -d $@ -no-stop -html $^
-
-doc: doc/html/tylesBase
+doc:
+	cd src; ocamlbuild tylesBase.docdir/index.html; rm -f tylesBase.docdir
+	rm -rf doc/html/tylesBase; mkdir -p doc/html/tylesBase
+	cp -fR src/_build/tylesBase.docdir/* doc/html/tylesBase
 
 clean:
 	cd src; ocamlbuild -clean
-	rm -rf doc/html
+	rm -rf doc/html/*
 	rm -rf bin/*.native bin/*.byte
 	rm -f lib/*.{a,o,so,cm*}
