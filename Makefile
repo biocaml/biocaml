@@ -18,11 +18,11 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),-I $(call lib_inc,$(lib))) $(patsubst %,-I src
 .PHONY: all doc clean install
 
 install: all
-	cp -f src/_build/bioCaml.{a,o,cm*} lib/ # this is a hack, install using findlib
+	cd src/_build; cp -f bioCaml.a bioCaml.o bioCaml.cm* ../../lib/ # this is a hack, install using findlib
 
 all:
 	make -C lib/tylesBase all
-	cp -f lib/tylesBase/src/_build/tylesBase.{a,o,cm*} lib/
+	cd lib/tylesBase/src/_build; cp -f tylesBase.a tylesBase.o tylesBase.cm* ../../../
 	cd src; ocamlbuild bioCaml.cma
 	cd src; ocamlbuild bioCaml.cmxa
 
@@ -33,10 +33,11 @@ doc/html/%:
 
 doc: doc/html/base doc/html/bioCaml
 
+AUTO_TEX_SUFFIXES=bbl log dvi blg pdf aux
 clean:
 	make -C lib/tylesBase clean; echo ""
 	rm -f lib/*.{a,o,so,cm*}
 	cd src; ocamlbuild -clean
 	rm -rf doc/html/*
-	rm -f notes/*.{bbl,log,dvi,blg,pdf,aux}
-	rm -f notes/*/*.{bbl,log,dvi,blg,pdf,aux}
+	rm -f $(wildcard $(patsubst %,notes/*.%,$(AUTO_TEX_SUFFIXES)))
+	rm -f $(wildcard $(patsubst %,notes/*/*.%,$(AUTO_TEX_SUFFIXES)))
