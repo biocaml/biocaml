@@ -26,10 +26,10 @@ all:
 	cd src; ocamlbuild bioCaml.cma
 	cd src; ocamlbuild bioCaml.cmxa
 
-doc/html/%: src/%/*.mli
-	rm -rf $@
-	mkdir -p $@
-	ocamldoc $(INCLUDE) -d $@ -no-stop -html $^
+doc/html/%:
+	cd src; ocamlbuild $*.docdir/index.html; rm -f $*.docdir
+	rm -rf doc/html/$*; mkdir -p doc/html/$*
+	cp -fR src/_build/$*.docdir/* doc/html/$*
 
 doc: doc/html/base doc/html/bioCaml
 
@@ -37,6 +37,6 @@ clean:
 	make -C lib/tylesBase clean; echo ""
 	rm -f lib/*.{a,o,so,cm*}
 	cd src; ocamlbuild -clean
-	rm -rf doc/html
+	rm -rf doc/html/*
 	rm -f notes/*.{bbl,log,dvi,blg,pdf,aux}
 	rm -f notes/*/*.{bbl,log,dvi,blg,pdf,aux}
