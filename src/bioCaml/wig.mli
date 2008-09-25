@@ -41,22 +41,18 @@ val compact : t -> t
 
 val to_format : format -> t -> t option
   (** [to_format fmt t] converts internal representation of [t] to format [fmt] if possible, or returns None otherwise. *)
-  
+
+(*  
 val of_channel : in_channel -> t
 val of_file : string -> t
+*)
 
 (**/**)
 
-type line_type = BLine | VHeaderLine | VLine | FHeaderLine | FLine
-    (** Types of lines that could possibly be in a WIG file. *)  
-
-val line_type : string -> line_type option
-  (** Return the [line_type] of the given line, or None if it is not a recognized WIG line. *)
-
 module B : sig
-  type datum = string * int * int * float
-    (** chromosome, lo, hi, value. *)
-  
+  type datum
+      (** chromosome, lo, hi, value. *)
+      
   type s
       (** Representation of bed formatted WIG data that supports efficient appending. *)
       
@@ -76,33 +72,40 @@ module B : sig
     
   val datum_to_string : datum -> string
     (** E.g. [("chrI", 0, 9, 3.14)] is converted to ["chrI\t0\t10\t3.14"]. *)
-
 end
-  
+
 module V : sig
-  type header = string * int
+  type header
       (** Header line provides a chromosome name and span. *)
 
-  type datum = int * float
+  type datum
       (** Each data line provides a low coordinate and data value. *)
 
+  type section
+      (** Data for one chromosome. *)
+      
   type s
       (** Type of WIG data in variable-step format. *)
-
+      
+  val get_span : s -> int option
+    (** Return the span, or None if [s] is empty. *)
+    
   val header_of_string : string -> header
     (** Raise [Bad] if any errors. *)
     
   val datum_of_string : string -> datum
     (** Raise [Bad] if any errors. E.g. ["1 3.14"] is parsed to [(0, 3.14)]. *)
     
-  val empty : header -> s
-    (** Return empty data set, ready to have data added under given header. *)
+  val empty : s
+    (** Empty data set. *)
+
+  val empty_section : header -> section
     
-  val set_header : s -> header -> s
-    (** Make data set ready for adding data under given header. Raise [Bad] if this cannot be done. *)
-    
-  val append_datum : s -> datum -> s
-    (** Append given data point. Raise [Bad] if this cannot be done or if given datum is ill-formed. *)
+  val append_datum : section -> datum -> section
+    (** Append given data point. Raise [Bad] if this cannot be done. *)
+
+  val append_section : s -> section -> s
+    (** Append section. Raise [Bad] if this cannot be done. *)
 
   val complete : s -> t
     (** Raise [Bad] if it does not make sense to be done adding data. This is possible for example if a new header was just set but no datum were appened. *)
@@ -115,30 +118,37 @@ module V : sig
 end
 
 module F : sig
-  type header = string * int * int * int
+  type header
       (** Header line provides a chromosome name, start coordinate, step size, and span. *)
       
-  type datum = float
+  type datum
       (** Each data line provides just a float data value. *)
+      
+  type section
+      (** Data for one chromosome. *)
       
   type s
       (** Type of WIG data in fixed-step format. *)
 
+  val get_span : s -> int option
+      
   val header_of_string : string -> header
     (** Raise [Bad] if any errors. E.g. ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 0, 100, 30)]. *)
     
   val datum_of_string : string -> datum
     (** Raise [Bad] if any errors. *)
     
-  val empty : header -> s
-    (** Return empty data set, ready to have data added under given header. *)
-    
-  val set_header : s -> header -> s
-    (** Make data set ready for adding data under given header. Raise [Bad] if this cannot be done. *)
-    
-  val append_datum : s -> datum -> s
+  val empty : s
+    (** Empty data set. *)
+
+  val empty_section : header -> section
+        
+  val append_datum : section -> datum -> section
     (** Append given data point. Raise [Bad] if this cannot be done. *)
     
+  val append_section : s -> section -> s
+    (** Append section. Raise [Bad] if this cannot be done. *)
+
   val complete : s -> t
     (** Raise [Bad] if it does not make sense to be done adding data. This is possible for example if a new header was just set but no datum were appened. *)
     

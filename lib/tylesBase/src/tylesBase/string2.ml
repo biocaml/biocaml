@@ -34,7 +34,7 @@ let stripr ?(chars=" \t\r\n") s =
     sub s p (!l - p + 1)
       
 let strip_final_cr s =
-  let l = String.length s - 1 in
-    if l > 0 && s.[l] = '\r'
-    then String.sub s 0 l
+  let l = String.length s in
+    if l > 0 && s.[l-1] = '\r'
+    then String.sub s 0 (l-1)
     else s

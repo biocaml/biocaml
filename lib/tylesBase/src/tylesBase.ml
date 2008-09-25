@@ -17,6 +17,7 @@ module Int = Int
 module MMap = MMap
 module Msg = Msg
 module Pos = Pos
+module SparseArray = SparseArray
 module Test = Test
 module ArrayPrint = ArrayPrint
 

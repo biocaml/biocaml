@@ -11,6 +11,7 @@ module type S = sig
   val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
   val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
   val empty : 'a t
+  val singleton : key -> 'a -> 'a t
   val add: key -> 'a -> 'a t -> 'a t
   val remove: key -> 'a t -> 'a t
   val of_array : (key * 'a) array -> 'a t
@@ -26,11 +27,14 @@ module type S = sig
   val find: key -> 'a t -> 'a
   val mem: key -> 'a t -> bool
   val first : 'a t -> key * 'a
+  val intersect : 'a t -> 'b t -> ('a * 'b) t
+    (* val union : 'a t -> 'b t -> ('a option, 'b option) t *)
 end
 
 module Make (Ord:OrderedType) = struct
   include (Map.Make(Ord) : Map.S with type key = Ord.t)
 
+  let singleton k x = add k x empty
   let size t = fold (fun _ _ ans -> ans + 1) t 0
 
   let of_array a = Array.fold_left (fun ans (k,a) -> add k a ans) empty a
@@ -47,9 +51,9 @@ module Make (Ord:OrderedType) = struct
       then add k1 (f k1 a b) ans
       else failwith "domains contain different keys"
     in
-      List.fold_left f empty mn
+    List.fold_left f empty mn
 
-  let map2 f m n = map2i (fun _ a b -> f a b) m n      
+  let map2 f m n = map2i (fun _ a b -> f a b) m n
 
   let first m =
     let ans = ref None in
@@ -58,5 +62,12 @@ module Make (Ord:OrderedType) = struct
       raise Not_found
     with 
         Exit -> match !ans with None -> raise Not_found | Some kx -> kx
-      
+
+  let intersect m1 m2 = 
+    let f m2 k1 elem acc = 
+      if mem k1 m2 then acc else remove k1 acc
+    in
+    let m1 = fold (f m2) m1 m1 in
+    let m2 = fold (f m1) m2 m2 in
+    map2 (fun a b -> a,b) m1 m2
 end

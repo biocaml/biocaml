@@ -5,6 +5,9 @@ val ( @ ) : 'a list -> 'a list -> 'a list
   
 val identity : 'a -> 'a
   (** The identity function. *)
+
+val const : 'a -> 'b -> 'a
+  (** The constant function *)
   
 val (<<-) : ('b -> 'c) -> ('a -> 'b) -> ('a -> 'c)
   (** Function composition in normal direction as used in mathematics, [(f <<- g) x = f(g x)]. *)

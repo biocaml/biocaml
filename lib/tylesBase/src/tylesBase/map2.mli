@@ -55,6 +55,9 @@ sig
   
   val empty: 'a t
     (** The empty map. *)
+
+  val singleton : key -> 'a -> 'a t
+    (** [singleton k x] returns a map containing the single binding [(k,x)]. *) 
     
   val add: key -> 'a -> 'a t -> 'a t
     (** [add x y m] returns a map containing the same bindings as
@@ -122,7 +125,11 @@ sig
     
   val first : 'a t -> key * 'a
     (** Return the minimum key and its associated value, or [Not_found] if map is empty. *)
-    
+
+  val intersect : 'a t -> 'b t -> ('a * 'b) t
+    (** [intersect m1 m2] finds the set of keys that is the intersect of the set of
+        keys from m1 and m2, and returns a map with that set of keys, with the value
+        as a tuple of the values of m1 and m2. *)
 end
   (** Output signature of the functor {!Map.Make}. *)
   

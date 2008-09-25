@@ -1,6 +1,6 @@
 open TylesBase
-open Printf
 open Tuple
+open Printf
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
@@ -8,7 +8,8 @@ let raise_bad msg = raise (Bad msg)
 (** String conversions. *)
 let stoi (s:string) : int = try int_of_string s with Failure _ -> raise_bad (sprintf "%s is not an int" s)
 let stof (s:string) : float = try float_of_string s with Failure _ -> raise_bad (sprintf "%s is not a float" s)
-  
+let ftos (x:float) : string = string_of_float x
+
 (** split on whitespace *)
 let split_ws = Str.split (Str.regexp "[ \t\r]+")
 
@@ -22,7 +23,7 @@ let split_eq (s:string) : string * string =
 
 type bt = (int * int * float) list StringMap.t
     (* list items are (lo,hi,x) triples *)
-    
+
 type vt = {vspan:int; vdata : (int * float) list StringMap.t}
     (* list items are (lo,x) pairs, range is [lo, lo + vspan - 1] *)
     
@@ -36,7 +37,9 @@ type ft = {fspan:int; fdata : (int * int * float list) StringMap.t}
 type t = B of bt | V of vt | F of ft
 type pt = string * int * int * float
 type format = Bed | VariableStep | FixedStep
-  
+
+let empty_data_set = B (StringMap.empty)
+
 let get_format = function B _ -> Bed | V _ -> VariableStep | F _ -> FixedStep
 
 (* compact variable-step to fixed-step if possible *)
@@ -171,8 +174,7 @@ let fold f init t =
   let ans = ref init in
   iter (fun pt -> ans := f !ans pt) t;
   !ans
-    
-(* BED format *)
+
 module B = struct
   type datum = string * int * int * float
 
@@ -203,7 +205,7 @@ module B = struct
           
   let empty = StringMap.empty
 
-  let append_datum s ((chr,lo2,hi2,x2) as d) =
+  let append_datum s ((chr,lo2,hi2,x2) as d : datum) =
     validate_datum d;
     try
       let l = StringMap.find chr s in
@@ -215,27 +217,26 @@ module B = struct
     with
         Not_found -> StringMap.add chr [(lo2,hi2,x2)] s
           
-  let singleton = append_datum empty
+  let singleton x = append_datum empty x
     
   let datum_to_string (chr,lo,hi,x) =
-    String.concat "\t" [chr; string_of_int lo; string_of_int (hi+1); string_of_float x]
-      
+    String.concat "\t" [chr; string_of_int lo; string_of_int (hi+1); ftos x]
+
   let complete s = 
     let ans = B (StringMap.map List.rev s) in
     compact ans
-
 end
 
-(* variable-step format *)
 module V = struct
   type header = string * int (* header gives chromosome name and span >= 1 *)
   type datum = int * float  (* data point is a low coordinate >= 0 and a value *)
-          
-  type s = {
-    spanv : int;
-    datav : datum list StringMap.t; (* list items stored in descending order by coordinate *)
-    curr_chrv : string (* current chromosome under which datum should be added *)
-  }
+  type section = header * (datum list) (* list items stored in descending order by coordinate. *)
+ 
+  type s = section StringMap.t 
+      (* Invariants: 
+         - each chromosome key maps to a section for the same chromosome
+         - all sections have same span
+      *)
 
   let header_of_string (s:string) : header =
     let sl = split_ws s in
@@ -256,7 +257,7 @@ module V = struct
           chr,span
       | n -> raise_bad (sprintf "expecting exactly 3 space separated fields but found %d" n)
           
-  let datum_of_string s =
+  let datum_of_string (s:string) : datum =
     let sl = split_ws s in
     let nth = List.nth sl in
     match List.length sl with
@@ -267,59 +268,64 @@ module V = struct
           lo,x
       | n -> raise_bad (sprintf "expecting exactly 2 columns but found %d" n)
           
-  (** Start a data set with first header. *)
-  let empty (chr,span) = {spanv=span; curr_chrv=chr; datav = StringMap.add chr [] StringMap.empty}
-    
-  let set_header s (chr,span) =
-    if span <> s.spanv then raise_bad (sprintf "previously span = %d, cannot change to %d" s.spanv span);
-    let f chr' l = 
-      if chr = chr' then
-        raise_bad (sprintf "data section for chromosome %s previously provided" chr)
-      else if List.length l = 0 then
-        raise_bad (sprintf "no data provided for chromosome %s" chr')
-    in
-    StringMap.iter f s.datav;
-    {spanv=span; curr_chrv=chr; datav = StringMap.add chr [] s.datav}
-      
-  let append_datum s (lo2,x2) =
-    if lo2 < 0 then raise_bad (sprintf "start coordinate %d must be >= 0" lo2);
-    try
-      let l = StringMap.find s.curr_chrv s.datav in
-      match l with
-        | [] -> {s with datav = StringMap.add s.curr_chrv [(lo2,x2)] s.datav}
-        | (lo1,_)::_ ->
-            let hi1 = lo1 + s.spanv - 1 in
-            let hi2 = lo2 + s.spanv - 1 in
-            if hi1 >= lo2 then raise_bad (sprintf "based on span %d, we have range [%d, %d] followed by [%d, %d] which is not allowed" s.spanv lo1 hi1 lo2 hi2);
-            {s with datav = StringMap.add s.curr_chrv ((lo2,x2)::l) s.datav}
-    with
-        Not_found -> failwith (Msg.bug (sprintf "given StringMap should have had entry for chromosome %s" s.curr_chrv))
-          
-  let complete s =
-    try
-      let l = StringMap.find s.curr_chrv s.datav in
-      if List.length l = 0 then raise_bad (sprintf "no data provided for chromosome %s" s.curr_chrv);
-      let ans = V {vspan = s.spanv; vdata = StringMap.map List.rev s.datav} in
-      compact ans
-    with
-        Not_found -> failwith (Msg.bug (sprintf "given StringMap should have had entry for chromosome %s" s.curr_chrv))
-          
-  let header_to_string (chr,span) = sprintf "variableStep\tchrom=%s\tspan=%d" chr span
-  let datum_to_string (lo,x) = sprintf "%d\t%f" (lo+1) x
+  let empty = StringMap.empty
 
+  let empty_section hdr = hdr,[]
+    
+  let append_datum (((_,span) as hdr, l) : section) ((lo2,x2) as d) =
+    if List.length l = 0 then
+      hdr, [d]
+    else
+      let lo1,_ = List.hd l in
+      let hi1 = lo1 + span - 1 in
+      let hi2 = lo2 + span - 1 in
+      if hi1 >= lo2 then raise_bad (sprintf "based on span %d, we have range [%d, %d] followed by [%d, %d] which is not allowed" span lo1 hi1 lo2 hi2);
+      hdr, d::l
+
+  let get_span s =
+    try
+      let _,((_,span),_) = StringMap.first s in
+      Some span
+    with 
+        Not_found -> None
+          
+  let append_section s ((((chr,span), l) as sect) : section) =
+    if List.length l = 0 then
+      raise_bad (sprintf "no data provided for chromosome %s" chr)
+    else (
+      match get_span s with
+        | None -> () (* no errors to check *)
+        | Some span' ->
+            if span <> span' then
+              raise_bad (sprintf "previously span = %d, cannot change to %d" span' span)
+            else if StringMap.mem chr s then
+              raise_bad (sprintf "data section for chromosome %s previously provided" chr)
+            else ()
+    );
+    StringMap.add chr sect s
+                
+  let complete s =
+    match get_span s with
+      | None -> empty_data_set
+      | Some span ->
+          let ans = V {vspan = span; vdata = StringMap.map (List.rev <<- snd) s} in
+          compact ans
+    
+  let header_to_string (chr,span) = sprintf "variableStep\tchrom=%s\tspan=%d" chr span
+  let datum_to_string (lo,x) = sprintf "%d\t%s" (lo+1) (ftos x)
 end
-  
-(* fixed-step format *)  
+
 module F = struct
   type header = string * int * int * int (* header gives chromosome, start, step, and span *)
   type datum = float (* a data point is just a float *)
+  type section = header * (datum list)
 
-  type s = {
-    spanf:int;
-    dataf : (int * int * datum list) StringMap.t; (* list items in reverse *)
-    curr_chrf : string
-  }
-
+  type s = section StringMap.t
+      (* Invariants: 
+         - each chromosome key maps to a section for the same chromosome
+         - all sections have same span
+      *)
+      
   let header_of_string s =
     let sl = split_ws s in
     let nth = List.nth sl in
@@ -354,54 +360,62 @@ module F = struct
       | n -> raise_bad (sprintf "expecting exactly 5 space separated fields but found %d" n)
           
   let datum_of_string = stof
+
+  let empty = StringMap.empty
+
+  let empty_section hdr = hdr,[]
     
-  (** Start a data set with first header. *)
-  let empty (chr,start,step,span) = 
-    {spanf=span; curr_chrf=chr; dataf = StringMap.add chr (start,step,[]) StringMap.empty}
+  let append_datum (((_,start,step,span) as hdr, l) : section) x2 =
+    match List.length l with
+      | 0 -> hdr, [x2]
+      | n ->
+          let i1 = n - 1 in
+          let i2 = i1 + 1 in
+          let lo1 = start + i1*step in
+          let hi1 = lo1 + span - 1 in
+          let lo2 = start + i2*step in
+          let hi2 = lo2 + span - 1 in
+          if hi1 >= lo2 then
+            raise_bad (sprintf "based on start %d, step %d, span %d, we have range [%d, %d] on datum %d followed by [%d, %d] on datum %d which is not allowed" start step span lo1 hi1 i1 lo2 hi2 i2)
+          else
+            hdr, x2::l
 
-  let set_header s (chr,start,step,span) =
-    if span <> s.spanf then raise_bad (sprintf "previously span = %d, cannot change to %d" s.spanf span);
-    let f chr' (_,_,l) =
-      if chr = chr' then
-        raise_bad (sprintf "data section for chromosome %s previously provided" chr)
-      else if List.length l = 0 then
-        raise_bad (sprintf "no data provided for chromosome %s" chr')
-    in
-    StringMap.iter f s.dataf;
-    {spanf=span; curr_chrf=chr; dataf = StringMap.add chr (start,step,[]) s.dataf}
-      
-  let append_datum s x2 =
+  let get_span s =
     try
-      let start,step,xl = StringMap.find s.curr_chrf s.dataf in
-      match List.length xl with
-        | 0 -> {s with dataf = StringMap.add s.curr_chrf (start,step,[x2]) s.dataf}
-        | n ->
-            let i1 = n - 1 in
-            let i2 = i1 + 1 in
-            let lo1 = start + i1*step in
-            let hi1 = lo1 + s.spanf - 1 in
-            let lo2 = start + i2*step in
-            let hi2 = lo2 + s.spanf - 1 in
-            if hi1 >= lo2 then raise_bad (sprintf "based on start %d, step %d, span %d, we have range [%d, %d] on datum %d followed by [%d, %d] on datum %d which is not allowed" start step s.spanf lo1 hi1 i1 lo2 hi2 i2);
-            {s with dataf = StringMap.add s.curr_chrf (start,step,x2::xl) s.dataf}
+      let _,((_,_,_,span),_) = StringMap.first s in
+      Some span
     with
-        Not_found -> failwith (Msg.bug (sprintf "given StringMap should have had entry for chromosome %s" s.curr_chrf))
+        Not_found -> None
+
+  let append_section s ((((chr,_,_,span), l) as sect) : section) =
+    if List.length l = 0 then
+      raise_bad (sprintf "no data provided for chromosome %s" chr)
+    else (
+      match get_span s with
+        | None -> () (* no errors to check *)
+        | Some span' ->
+            if span <> span' then
+              raise_bad (sprintf "previously span = %d, cannot change to %d" span' span)
+            else if StringMap.mem chr s then
+              raise_bad (sprintf "data section for chromosome %s previously provided" chr)
+            else ()
+    );
+    StringMap.add chr sect s
           
-  let complete s =
-    try
-      let _,_,l = StringMap.find s.curr_chrf s.dataf in
-      if List.length l = 0 then raise_bad (sprintf "no data provided for chromosome %s" s.curr_chrf);
-      let ans = F {fspan = s.spanf; fdata = StringMap.map (fun (a,b,l) -> a, b, List.rev l) s.dataf} in
-      compact ans
-    with
-        Not_found -> failwith (Msg.bug (sprintf "given StringMap should have had entry for chromosome %s" s.curr_chrf))
-
   let header_to_string (chr,start,step,span) = 
-    sprintf "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d" chr start step span
-
-  let datum_to_string = string_of_float
+    sprintf "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d" chr (start+1) step span
+      
+  let datum_to_string = ftos
+    
+  let complete s =
+    match get_span s with
+      | None -> empty_data_set
+      | Some span ->
+          let f ((_,start,step,_), l) = (start, step, List.rev l) in
+          let ans = F {fspan = span; fdata = StringMap.map f s} in
+          compact ans
 end
-  
+
 let rec of_list ?(sort=false) l =
   if not sort then
     (compact <<- B.complete <<- (List.fold_left B.append_datum B.empty)) l
@@ -416,22 +430,22 @@ let rec of_list ?(sort=false) l =
 let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t)
   
 let to_channel ?fmt t cout =
+  let p s = output_string cout s; output_char cout '\n' in
   let print_as_is = function
     | B bt ->
-        let f chr (lo,hi,x) = fprintf cout "%s\t%d\t%d\t%f\n" chr lo (hi+1) x in
+        let f chr (lo,hi,x) = (p <<- B.datum_to_string) (chr,lo,hi,x) in
         let g chr l = List.iter (f chr) l in
         StringMap.iter g bt
     | V vt ->
-        let f (lo,x) = fprintf cout "%d\t%f\n" (lo+1) x in
         let g chr l =
-          fprintf cout "variableStep\tchrom=%s\tspan=%d\n" chr vt.vspan;
-          List.iter f l
+          (p <<- V.header_to_string) (chr,vt.vspan);
+          List.iter (p <<- V.datum_to_string) l
         in
         StringMap.iter g vt.vdata
     | F ft ->
         let g chr (start,step,l) =
-          fprintf cout "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d\n" chr (start+1) step ft.fspan;
-          List.iter (fprintf cout "%f\n") l
+          (p <<- F.header_to_string) (chr,start,step,ft.fspan);
+          List.iter (p <<- F.datum_to_string) l
         in
         StringMap.iter g ft.fdata
   in
@@ -447,6 +461,8 @@ let to_file ?fmt t file =
   let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in
   try_finally f close_out (open_out_safe file)
 
+
+(***** Old Parser, not working. ****
 type line_type = BLine | VHeaderLine | VLine | FHeaderLine | FLine
 
 let line_type s =
@@ -550,10 +566,7 @@ let of_channel = Parser.of_channel
 let of_stream = Parser.of_stream
 let of_file file = try_finally of_channel close_in (open_in file)
 
-module TrackParser = struct
-  
-end
-
+******************)
 
 (* Don't think I need this anymore. ***********
 let first_item t : pt option =

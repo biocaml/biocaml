@@ -1,10 +1,9 @@
-About
 Bar
 Bed
 Bpmap
 Cel
 ChrName
-Comments
+CommentLines
 Fasta
 Gff
 Histogram
@@ -13,4 +12,5 @@ Range
 Seq
 Sgr
 StrandName
+Track
 Wig

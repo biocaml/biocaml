@@ -11,14 +11,15 @@ get_deps = $(patsubst $(1)/%,%,$(shell ocamldsort -I $(1) -byte $(1)/*.ml))
 
 INCLUDE=$(foreach lib,$(LIB_PKGS),$(call lib_inc,$(lib))) $(patsubst %,-I _build/%,$(DIRS)) -I _build
 
-.PHONY: tylesBase all doc clean
-
+.PHONY: install
 install: all
 	cp -f src/_build/app/*.native bin/; chmod 744 bin/*.native
 	cp -f src/_build/tylesBase.{a,o,cm*} lib/ # this is a hack, install using findlib
 
+.PHONY: all
 all: tylesBase app/mirror_tylesBase.native
 
+.PHONY: tylesBase
 tylesBase:
 	cd src; ocamlbuild tylesBase.cma
 	cd src; ocamlbuild tylesBase.cmxa
@@ -26,13 +27,18 @@ tylesBase:
 app/%.native:
 	cd src; ocamlbuild $@
 
+.PHONY: doc
 doc:
 	cd src; ocamlbuild tylesBase.docdir/index.html; rm -f tylesBase.docdir
 	rm -rf doc/html/tylesBase; mkdir -p doc/html/tylesBase
 	cp -fR src/_build/tylesBase.docdir/* doc/html/tylesBase
 
+.PHONY: clean
 clean:
 	cd src; ocamlbuild -clean
-	rm -rf doc/html/*
 	rm -rf bin/*.native bin/*.byte
 	rm -f lib/*.{a,o,so,cm*}
+
+.PHONY: cclean
+cclean: clean
+	rm -rf doc/html/*

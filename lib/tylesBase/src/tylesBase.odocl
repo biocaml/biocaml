@@ -12,6 +12,7 @@ Int
 MMap
 Msg
 Pos
+SparseArray
 Test
 ArrayPrint
 Fn

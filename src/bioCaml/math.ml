@@ -61,7 +61,7 @@ let variance a =
   let a = map f a in
   (fold_left (+.) 0. a) /. (float_of_int (n - 1))
     
-let rms = sqrt <<- mean <<- (map (fun v -> v *. v))
+let rms = sqrt <<- mean <<- (map (fun x -> x *. x))
   
 let stdv = sqrt <<- variance
   

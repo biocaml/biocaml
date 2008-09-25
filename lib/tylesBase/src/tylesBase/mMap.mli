@@ -23,8 +23,20 @@ module type S = sig
   val to_lists : 'a t -> (Fst.key * (Snd.key * 'a) list) list
     (** Return the map as a nested association list. Items in each list will be in ascending order by their respective keys. *)
     
-  val map : ('a -> 'b) -> 'a t -> 'b t
   val mapi : (Fst.key -> Snd.key -> 'a -> 'b) -> 'a t -> 'b t
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val iter : (Fst.key -> Snd.key -> 'a -> unit) -> 'a t -> unit
+  val fold : (Fst.key -> Snd.key -> 'a -> 'b -> 'a) -> 'a -> 'b t -> 'a
+  val size : 'a t -> int
+  val find : Fst.key -> Snd.key -> 'a t -> 'a
+  val foldinner : Fst.key -> (Snd.key -> 'a -> 'b -> 'a) -> 'a -> 'b t -> 'a
+  val mem : Fst.key -> Snd.key -> 'a t -> bool
+  val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
+  val empty : 'a t
+  val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
+  val remove : Fst.key -> Snd.key -> 'a t -> 'a t
+  val intersect : 'a t -> 'b t -> ('a * 'b) t
 end
   
 module Make (Ord1 : ORDERED) (Ord2 : ORDERED) : S with type Fst.key = Ord1.t and type Snd.key = Ord2.t

@@ -5,13 +5,16 @@ open Printf
 module TrackLine = struct
   module Map = StringMap
   type t = string Map.t
+
   exception Bad of string
+
   let raise_bad msg = raise (Bad msg)
   let get t attr = try Some (Map.find attr t) with Not_found -> None
   let empty = Map.empty
   let to_list t = Map.fold (fun x y ans -> (x,y)::ans) t []
   let unset t attr = Map.remove attr t
-  let find t attr = Map.find attr t    
+  let find t attr = Map.find attr t
+  let mem t a x = try x = find t a with Not_found -> false
 
   (* error messages *) 
   let err attr value msg = sprintf "%s=%s is invalid: %s" attr value msg    
@@ -59,7 +62,7 @@ module TrackLine = struct
           let err = err "description" y in
           if String.length y > 60 then raise_bad (err (too_long 60));
           if not (quote_enclosed y) then raise_bad (err quotes_reqd)
-    
+            
   let validate_visibility t =     
     match get t "visibility" with
       | None -> ()
@@ -97,7 +100,7 @@ module TrackLine = struct
     match get t "priority" with
       | None -> ()
       | Some y -> if not (is_int y) then raise_bad (err "priority" y "must be an integer")
-    
+            
   let validate_autoScale t =    
     match get t "autoScale" with
       | None -> ()
@@ -210,14 +213,22 @@ module TrackLine = struct
     ]
       
   let validate t = List.iter (fun f -> f t) validators
-      
+    
   let set t x y =
     let ans = Map.add x y t in
     validate ans;
     ans
 
   let of_list l = List.fold_left (fun t (a,x) -> set t a x) empty l
-      
+
+  let valid_name s =
+    let s = if String.starts_with s "\"" then String.lchop s else s in
+    let s = if String.ends_with s "\"" then String.rchop s else s in
+    let f c l = if Char.is_alpha_num c then c::l else l in
+    let cl = String.fold_right f s [] in
+    let cl = List.take 15 cl in
+    String.implode cl
+
   let to_string t =
     (* if there is a type attribute print it first *)
     let t, ans =
@@ -263,7 +274,7 @@ module TrackLine = struct
       | NotInQuote -> List.rev ((finish curr)::ans)
       | InQuote -> raise_bad "unmatched quote"
       | InSpaces -> List.rev (""::ans)
-                  
+          
   let split_on_equal (s:string) : string * string =
     let sl = String.nsplit s "=" in
     match List.length sl with
@@ -306,14 +317,14 @@ module BrowserLines = struct
       raise_bad (sprintf "start %d not less than end %d" lo hi)
     else
       [Position (chr,lo,hi)]
-    
+        
   let mode_helper s = (* split string on spaces *)
     if String.exists' ((=) '\n') s then raise_bad "newline characters not allowed in browser lines";
     let sl = Str.split (Str.regexp "[ \t\r]+") s in
     if List.length sl > 1 && List.exists ((=) "all") sl 
     then raise_bad "cannot include \"all\" keyword within list of track names"
     else sl
-        
+      
   let hide s = [Mode (Hide, mode_helper s)]
   let dense s = [Mode (Dense, mode_helper s)]
   let pack s = [Mode (Pack, mode_helper s)]
@@ -359,33 +370,39 @@ module BrowserLines = struct
     String.concat "\n" (List.map line_to_string t)
 
 end
-  
-type 'a block =
+
+type block =
     | B of BrowserLines.t
     | T of TrackLine.t
-    | C of Comments.t
-    | D of 'a
+    | C of CommentLines.t
+    | Wig of Wig.t
+    | Bed of Bed.t
         
-type 'a t = 'a block list
+type t = block list
 
-exception Error of Pos.t * Msg.Tree.t
-let raise_error pos msgs = raise(Error(pos,msgs))
+exception Bad of string
+let raise_bad msg = raise (Bad msg)
 
 let to_list t = t
-  
-let make_printer data_printer t cout = 
+
+let to_channel t cout =
+  let print_string s = output_string cout s; output_char cout '\n' in
   let print_block = function
-    | B x -> fprintf cout "%s\n" (BrowserLines.to_string x)
-    | T x -> fprintf cout "%s\n" (TrackLine.to_string x)
-    | C x -> fprintf cout "%s\n" (Comments.to_string x)
-    | D x -> data_printer x cout
+    | B x -> print_string (BrowserLines.to_string x)
+    | T x -> print_string (TrackLine.to_string x)
+    | C x -> print_string (CommentLines.to_string x)
+    | Wig x -> Wig.to_channel x cout
+    | Bed x -> Bed.to_channel x cout
   in
   List.iter print_block t
 
+let to_file t file =
+  try_finally (to_channel t) close_out (open_out_safe file)
+    
 let validate t =
   let t = List.filter (function C _ -> false | _ -> true) t in
 
-  let is_data = function | B _ | T _ | C _ -> false | D _ -> true in
+  let is_data = function | B _ | T _ | C _ -> false | Wig _ | Bed _ -> true in
   
   let rec browser_lines_first t =
     let rec loop non_b_seen = function
@@ -415,297 +432,23 @@ let validate t =
       | (0|1),1 -> ()
       | n,m -> if n <> m then raise_bad "when providing multiple tracks, exactly one track line must precede each data section"
   in
+
+  let rec wig_track_type t =
+    match t with
+      | [] -> ()
+      | (T trk)::(Wig _)::t ->
+          if not (TrackLine.mem trk "type" "wiggle_0") then
+            raise_bad "track type preceding WIG data must set type=wiggle_0"
+          else
+            wig_track_type t
+      | (Wig _)::_
+      | _::(Wig _)::_ -> raise_bad "WIG data requires preceding track line"
+      | _::t -> wig_track_type t
+  in
   browser_lines_first t;
   track_then_data t;
-  num_track_data t
+  num_track_data t;
+  wig_track_type t
     
 let of_list bl = validate bl; bl
 
-(** states of the finite state machine parser *)
-type state =
-    | StartFile             (** need to start parsing file *)
-    | InB of BrowserLines.t (** parsing browser lines *)
-    | StartTrack            (** need to start parsing first track *)
-    | AfterT of TrackLine.t * Comments.t option
-                            (** last block parsed was a track line, possibly followed by comments *)
-    | Finished              (** finished parsing, i.e. reached end-of-file *)
-  
-type 'a parser_result = Result of 'a * Msg.Tree.t | Error of Msg.Tree.t
-
-let errB m = Msg.Tree.T ("bad browser line: " ^ m, [])
-let errC m = Msg.Tree.T ("bad comment line: " ^ m, [])
-let errT m = Msg.Tree.T ("bad track line: " ^ m, [])
-
-let make_parser data_parser strm =
-  let parse_next (ans : 'a t) (st:state) : 'a t * state =
-    let msgs = ref (Msg.Tree.T("parse failed for one of the following reasons",[])) in
-    match Stream.peek lines with
-      | Some l -> (
-          match st with
-            | StartFile -> (
-                try 
-                  let ans = (C (Comments.of_string l))::ans in
-                  Stream.junk lines; ans,st
-                with Comments.Bad m ->
-                try 
-                  msgs := Msg.Tree.add_child !msgs (errC m);
-                  let st = InB (BrowserLines.of_string l) in
-                  Stream.junk lines; ans,st
-                with BrowserLines.Bad m ->
-                try 
-                  msgs := Msg.Tree.add_child !msgs (errB m);
-                  let st = AfterT (TrackLine.of_string l, None) in
-                  Stream.junk lines; ans,st
-                with TrackLine.Bad m ->
-                  msgs := Msg.Tree.add_child !msgs (errT m);
-                  let pos = Pos.l (Stream.count lines) in
-                  let update_msgs sub_msgs =
-                    let sub_msgs = Msg.Tree.T("bad data",sub_msgs) in
-                    msgs := Msg.Tree.add_child !msgs sub_msgs
-                  in
-                  match data_parser lines with
-                    | Result (dat,sub_msgs) ->
-                        if Stream.is_empty lines then
-                          (D dat)::ans, Finished
-                        else
-                          (update_msgs sub_msgs; raise_error pos !msgs)
-                    | Error sub_msgs ->
-                        (update_msgs sub_msgs; raise_error pos !msgs)
-              )
-            | InB b -> (
-                try
-                  let st = InB (BrowserLines.concat b (BrowserLines.of_string l)) in
-                  Stream.junk lines;
-                  ans,st
-                with BrowserLines.Bad m ->
-                try
-                  msgs := (errB m)::!msgs;
-                  let st = AfterT (TrackLine.of_string l, None) in
-                  let ans = (B b)::ans in
-                  Stream.junk lines;
-                  ans,st
-                with TrackLine.Bad m ->
-                try
-                  msgs := (errT m)::!msgs;
-                  let ans = (C (Comments.of_string l))::(B b)::ans in
-                  let st = StartTrack in
-                  Stream.junk lines;
-                  ans,st
-                with Comments.Bad m ->
-                try
-                  msgs := (errC m)::!msgs;
-                  let ans = (data_parser lines)::ans in
-                  let st = AfterData in
-                  ans,st
-                with Error (_,msgs') ->
-                  let pos = Pos.l (Stream.count lines) in
-                  let top_msg = "parse error for one of the following reasons" in
-                  let sub_msgs = List.rev (msgs'::(List.map Msg.Tree.leaf !msgs)) in
-                  raise (Error(pos, Msg.Tree.T(top_msg, sub_msgs)))
-              )
-            | StartTrack -> (
-                try
-                  ignore (BrowserLines.of_string l);
-                  bline_err()
-              )
-
-
-
-
-
-exception Eof of int * block list * state (* raised at end-of-file with line number, block list in reverse, and state *) 
-let end_InB ans b = (B b)::ans
-let end_AfterT ans (trk,c) = match c with None -> (T trk)::ans | Some c -> (C c)::(T trk)::ans
-let end_InWigB ans dat = (Wig (Wig.B.complete dat))::ans
-let end_InWigV ans dat = (Wig (Wig.V.complete dat))::ans
-let end_InWigF ans dat = (Wig (Wig.F.complete dat))::ans
-let end_InBed ans dat = (Bed (Bed.complete dat))::ans
-
-let parse (cin:in_channel) : t =
-  let rec loop line_num (ans : block list) (st:state) : unit =
-    let loop = loop (line_num + 1) in
-    let raise_error msg = raise (Error(line_num, msg)) in
-    let bline_err ()  = raise_error "browser lines must occur at beginning of file without intervening comments" in
-    let mix_wig_err () = raise_error "cannot mix WIG format types" in
-
-    let raise_errorl (l : string) (msgs : string list ref) =
-      let msgs = List.map (fun s -> "- " ^ s) (List.rev !msgs) in
-      let msg = String.concat "\n" (l::msgs) in
-      raise_error msg
-    in
-     
-    let do_StartFile l =
-      let msgs = ref [] in
-      let ans,st =
-        try (C (Comments.of_string l))::ans, st with Comments.Bad m ->
-        try msgs := m::!msgs; ans, InB (BrowserLines.of_string l) with BrowserLines.Bad m ->
-        try msgs := m::!msgs; ans, AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; ans, InWigB (Wig.B.singleton (Wig.B.datum_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InWigV (Wig.V.empty (Wig.V.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InWigF (Wig.F.empty (Wig.F.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InBed (Bed.singleton (Bed.of_line l)) with Bed.Bad m ->
-        msgs := m::!msgs; raise_errorl ("unrecognized line " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_InB b l =
-      let msgs = ref [] in
-      let ans,st =
-        try ans, InB (BrowserLines.concat b (BrowserLines.of_string l)) with BrowserLines.Bad m ->
-        try msgs := m::!msgs; end_InB ans b, AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::(end_InB ans b), StartTrack1 with Comments.Bad m ->
-        try msgs := m::!msgs; end_InB ans b, InWigB (Wig.B.singleton (Wig.B.datum_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; end_InB ans b, InWigV (Wig.V.empty (Wig.V.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; end_InB ans b, InWigF (Wig.F.empty (Wig.F.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; end_InB ans b, InBed (Bed.singleton (Bed.of_line l)) with Bed.Bad m ->
-        msgs := m::!msgs;
-        raise_errorl ("unrecognized line " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_StartTrack1 l =
-      let msgs = ref [] in
-      let ans,st =
-        try ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        try ans, InWigB (Wig.B.singleton (Wig.B.datum_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InWigV (Wig.V.empty (Wig.V.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InWigF (Wig.F.empty (Wig.F.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InBed (Bed.singleton (Bed.of_line l)) with Bed.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::ans, st with Comments.Bad m ->
-        try msgs := m::!msgs; ans, AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        msgs := m::!msgs; raise_errorl ("unrecognized line " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_StartTrack2 l =
-      let msgs = ref [] in
-      let ans,st =      
-        try ans, AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::ans, st with Comments.Bad m ->
-        try msgs := m::!msgs; ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        raise_errorl ("expecting track or comment line: " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_AfterT (trk,c) l =
-      let msgs = ref [] in
-      let ans,st =
-        try ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        try ignore (TrackLine.of_string l); raise_error "multiple track lines not allowed" with TrackLine.Bad _ ->
-        try
-          let c' = Comments.of_string l in
-          let c = match c with None -> Some c' | Some c -> Some (Comments.concat c c') in
-          ans, AfterT (trk,c)
-        with Comments.Bad m ->
-          msgs := m::!msgs;
-          let is_wiggle = try TrackLine.find trk "type" = "wiggle_0" with Not_found -> false in
-          if is_wiggle then
-            try end_AfterT ans (trk,c), InWigB (Wig.B.singleton (Wig.B.datum_of_string l)) with Wig.Bad m ->
-            try msgs := m::!msgs; end_AfterT ans (trk,c), InWigV (Wig.V.empty (Wig.V.header_of_string l)) with Wig.Bad m ->
-            try msgs := m::!msgs; end_AfterT ans (trk,c), InWigF (Wig.F.empty (Wig.F.header_of_string l)) with Wig.Bad m ->
-            try msgs := m::!msgs; ignore (Bed.of_line l); raise_error "BED data not allowed after track line with type=wiggle_0" with Bed.Bad _ ->
-            raise_errorl ("expecting comment or WIG line: " ^ l) msgs
-          else
-            try end_AfterT ans (trk,c), InBed (Bed.singleton (Bed.of_line l)) with Bed.Bad m ->
-            try msgs := m::!msgs; ignore (any_wig_line l); raise_error "track line before WIG data must set type=wiggle_0" with Wig.Bad _ ->
-            raise_errorl ("expecting comment or non-WIG data line: " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_InWigB dat l = 
-      let msgs = ref [] in
-      let ans,st =
-        try ans, InWigB (Wig.B.append_datum dat (Wig.B.datum_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; end_InWigB ans dat, AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::(end_InWigB ans dat), StartTrack2 with Comments.Bad m ->
-        try msgs := m::!msgs; ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        try any_wig_line l; mix_wig_err() with Wig.Bad _ ->
-        try ignore (Bed.of_line l); raise_error "found BED data while parsing WIG data" with Bed.Bad _ ->
-        raise_errorl ("expecting bed formatted WIG data, track or comment line: " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_InWigV dat l = 
-      let msgs = ref [] in
-      let ans,st =
-        try ans, InWigV (Wig.V.append_datum dat (Wig.V.datum_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InWigV (Wig.V.set_header dat (Wig.V.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; (end_InWigV ans dat), AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::(end_InWigV ans dat), StartTrack2 with Comments.Bad m ->
-        try msgs := m::!msgs; ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        try any_wig_line l; mix_wig_err() with Wig.Bad m ->
-        try ignore (Bed.of_line l); raise_error "found BED data while parsing WIG data" with Bed.Bad _ ->
-        raise_errorl ("expecting variable-step formatted WIG data, track or comment line: " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_InWigF dat l = 
-      let msgs = ref [] in
-      let ans,st =
-        try ans, InWigF (Wig.F.append_datum dat (Wig.F.datum_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; ans, InWigF (Wig.F.set_header dat (Wig.F.header_of_string l)) with Wig.Bad m ->
-        try msgs := m::!msgs; (end_InWigF ans dat), AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::(end_InWigF ans dat), StartTrack2 with Comments.Bad m ->
-        try msgs := m::!msgs; ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        try any_wig_line l; mix_wig_err() with Wig.Bad m ->
-        try ignore (Bed.of_line l); raise_error "found BED data while parsing WIG data" with Bed.Bad _ ->
-        raise_errorl ("expecting fixed-step formatted WIG data, track or comment line: " ^ l) msgs
-      in loop ans st
-    in
-
-    let do_InBed dat l =
-      let msgs = ref [] in
-      let ans,st =
-        try ans, InBed (Bed.append dat (Bed.of_line l)) with Bed.Bad m ->
-        try msgs := m::!msgs; end_InBed ans dat, AfterT (TrackLine.of_string l, None) with TrackLine.Bad m ->
-        try msgs := m::!msgs; (C (Comments.of_string l))::(end_InBed ans dat), StartTrack2 with Comments.Bad m ->
-        try msgs := m::!msgs; ignore (BrowserLines.of_string l); bline_err() with BrowserLines.Bad _ ->
-        try any_wig_line l; raise_error "found WIG data while parsing BED data" with Wig.Bad _ ->
-        raise_errorl ("expecting BED data, track or comment line: " ^ l) msgs
-      in loop ans st
-    in
-    
-    let l = try input_line cin with End_of_file -> raise (Eof(line_num,ans,st)) in
-    match st with
-      | StartFile -> do_StartFile l
-      | InB x -> do_InB x l
-      | StartTrack1 -> do_StartTrack1 l
-      | StartTrack2 -> do_StartTrack2 l
-      | AfterT (x,c) -> do_AfterT (x,c) l
-      | InWigB x -> do_InWigB x l
-      | InWigV x -> do_InWigV x l
-      | InWigF x -> do_InWigF x l
-      | InBed x -> do_InBed x l
-  in (* end loop *)
-  
-  try loop 1 [] StartFile; assert false with Eof(line_num,ans,st) ->
-    let raise_error msg = raise (Error(line_num, msg)) in
-    let make ans =
-      let rec reverse ans_fwd ans_rev = (* reverse list and concat comments *)
-        match ans_rev with
-          | [] -> ans_fwd
-          | b::[] -> b::ans_fwd
-          | (C x)::(C y)::ans_rev -> reverse ans_fwd ((C (Comments.concat y x))::ans_rev)
-          | b::ans_rev -> reverse (b::ans_fwd) ans_rev
-      in
-      let ans = reverse [] ans in
-      validate ans;
-      ans
-    in
-    match st with
-      | StartFile -> raise_error "no data"
-      | InB _ -> raise_error "expecting track line or data after browser lines"
-      | StartTrack1 -> raise_error "expecting data after browser lines"
-      | StartTrack2 -> make ans
-      | AfterT _ -> raise_error "expecting data after track line"
-      | InWigB dat -> make (end_InWigB ans dat)
-      | InWigV dat -> make (end_InWigV ans dat)
-      | InWigF dat -> make (end_InWigF ans dat)
-      | InBed dat -> make (end_InBed ans dat)
-          
-let of_file file =
-  let f cin =
-    try parse cin
-    with Error (k,msg) -> raise_bad (Msg.err ~pos:(Pos.fl file k) msg)
-  in
-  try_finally f close_in (open_in file)

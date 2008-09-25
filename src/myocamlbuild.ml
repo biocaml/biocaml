@@ -34,6 +34,8 @@ let _ = dispatch begin function
       flag ["ocaml"; "link"; "library"; "byte"] (A"../../lib/tylesBase.cma");
       flag ["ocaml"; "link"; "library"; "native"] (A"../../lib/tylesBase.cmx");
       
+      flag ["ocaml"; "parser"; "menhir"] (A"--explain");
+
       (* Add pa_openin.cmo to the ocaml pre-processor when use_opening is set *)
       flag ["ocaml"; "pp"; "use_openin"] (A"pa_openin.cmo");
       

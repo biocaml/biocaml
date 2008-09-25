@@ -49,11 +49,17 @@ module TrackLine : sig
   val find : t -> string -> string
     (** [find t a] returns the value of attribute [a], or raises [Not_found] if no such attribute. *)
     
+  val mem : t -> string -> string -> bool
+    (** [mem t a x] returns true if [a] is assigned value [x] in [t]. *)
+    
   val to_list : t -> (string * string) list
     (** Return list of attribute=value pairs. *)
 
   val of_list : (string * string) list -> t
     (** [of_list l] sets [a] to [x] for every [(a,x)] pair in [l]. Raise [Bad] if any invalid values given. If attribute [a] given more than once, last will apply. *)
+
+  val valid_name : string -> string
+    (** [valid_name s] returns [s] if it is a valid name, or otherwise returns some minimal modification of it that is valid. *)
     
 end
 
@@ -85,30 +91,18 @@ module BrowserLines : sig
 end
   
 (** A block of information. *)
-type 'a block =
+type block =
     | B of BrowserLines.t (** sequence of browser lines *)
     | T of TrackLine.t    (** a track line *)
-    | C of Comments.t     (** one or more comment lines or blank lines *)
-    | D of 'a             (** data section *)
+    | C of CommentLines.t     (** one or more comment lines or blank lines *)
+    | Wig of Wig.t        (** WIG data section *)
+    | Bed of Bed.t        (** WIG data section *)
          
-type 'a t
-    (** Type of an annotation track file containing data of type ['a]. Can be thought of as a list of blocks with certain restrictions on the order in which blocks occur. *)
+type t
+    (** Type of a track file. Can be thought of as a list of blocks with certain restrictions on the order in which blocks occur. *)
 
-exception Error of Pos.t * Msg.Tree.t
+exception Bad of string
 
-type 'a parser_result =
-    | Result of 'a * Msg.Tree.t
-    | Error of Msg.Tree.t
-        (** Return type for external parsers, passed to [make_parser], parsing data of type ['a]. [Result(a,msgs)] indicates that the parser successfully parsed [a] and stopped parsing due to [msgs]. This does not necessarily indicate complete success. If the parse cannot continue with some other parser, then [msgs] should be included in the list of possible errors. [Error msgs] indicates that the parser definitely failed. *)
-
-val make_parser : ('a t -> string Stream.t -> 'a parser_result) -> (string Stream.t -> 'a t)
-  (** [make_parser data_parser] returns a parser for track files containing data of type [a']. It parses the initial lines of the channel, which contain comments, browser lines, or a track line. At the first line deemed to be not any of these, it hands off control to [data_parser], which should be a function that parses data of type ['a]. It will be called as [data_parser t strm], where
-      - [t] will be the track parsed thus far, which will not contain a [D] block. This allows [data_parser] to use the information parsed thus far.
-      - [strm] is the stream being parsed.
-  *)
-  
-val make_printer : ('a -> out_channel -> unit) -> ('a t -> out_channel -> unit)
-  (** [make_printer data_printer] returns a printer given a method for printing the data block. *)
-  
-val to_list : 'a t -> 'a block list
-val of_list : 'a block list -> 'a t
+val to_file : t -> string -> unit
+val to_list : t -> block list
+val of_list : block list -> t

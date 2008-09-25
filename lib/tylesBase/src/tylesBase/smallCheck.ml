@@ -1,3 +1,5 @@
+open Pervasives2
+
 type 'a t = {fld : 'b . int -> ('b -> 'a -> 'b) -> 'b -> 'b}
 type 'a series = unit -> 'a t
 type 'a tester = int -> ('a * exn) option
@@ -16,7 +18,7 @@ let bools       = pure false ++ pure true
 let pairs a b   = pure (fun x y -> (x,y)) %% a %% b
 let options a   = pure None ++ pure (fun x -> Some x) %% a
 let ints        = fun () -> {fld = fun n f b -> List.fold_left f b (enumFromTo (-n) n)}
-let floats      = fun () -> {fld = fun n f b -> List.fold_left f b (List.map float_of_int (enumFromTo (-n) n))}
+let floats      = fun () -> {fld = fun n f b -> List.fold_left f b (List.map float (enumFromTo (-n) n))}
 let rec lists a = fun () -> ( pure [] ++ pure (fun x xs -> x::xs) %% a %% lists a ) ()
 
 exception Counterexample_found
@@ -25,3 +27,7 @@ let forAll sa p n =
   let curr = ref None in
   let test () a = curr := Some a ; if not (p a) then raise Counterexample_found else () in
     try fold sa n () test ; None with e -> match !curr with Some c -> Some (c,e) | _ -> assert false
+
+let run tests name depth = 
+  let test = List.assoc name tests in
+    test depth
