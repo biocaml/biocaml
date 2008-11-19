@@ -19,7 +19,16 @@ let of_idx_array idxa default =
   
 let of_list2 ll = map of_list (of_list ll)
 let to_list2 aa = to_list (map to_list aa)
-  
+
+let to_filtered_list pred a = 
+  let length = Array.length a in
+  let ans = ref [] in
+  for i = 0 to (length - 1) do
+    let x = a.(i) in
+    if pred x then ans := x::!ans;
+  done;
+  List.rev !ans
+
 let for_alli f a =
   let len = length a in
   let rec helper i =

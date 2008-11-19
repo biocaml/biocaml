@@ -1,4 +1,6 @@
-open TylesBase
+module String = String2
+module List = List2
+module Array = Array2
 open Printf
 
 type t = {lo:int; hi:int}

@@ -20,6 +20,8 @@ module Pos = Pos
 module SparseArray = SparseArray
 module Test = Test
 module ArrayPrint = ArrayPrint
+module RedBlack = RedBlack
+module Range = Range
 
 module Fn = Fn
 module Tuple = Tuple
@@ -36,3 +38,4 @@ module Show = Show
 module SmallCheck = SmallCheck
 
 module About = About
+

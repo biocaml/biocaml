@@ -1,8 +1,9 @@
 open TylesBase
 open Printf
 
-type elt = int
 type t = Range.t list (* retained in canonical form *)
+exception Bad of string
+let raise_bad msg = raise (Bad msg)
 
 let size t = List.fold_left (fun ans v -> ans + Range.size v) 0 t
 
@@ -43,8 +44,11 @@ let to_canonical (vl : Range.t list) : Range.t list =
     assert(is_canonical ans);
     ans
     
-let of_interval_list = to_canonical
-let to_interval_list t = t
+let of_range_list l = 
+  try to_canonical (List.map Range.make l)
+  with Range.Bad m -> raise_bad m
+    
+let to_range_list t = List.map (fun x -> x.Range.lo, x.Range.hi) t
 
 let to_list t = List.flatten (List.map Range.to_list t)
   
@@ -101,6 +105,9 @@ let diff s t =
 
 module Test = struct
   let test vl1 vl2 =
+    let vl1 = List.map Range.make vl1 in
+    let vl2 = List.map Range.make vl2 in
+    
     let make_int_set (l : Range.t list) : IntSet.t =
       List.fold_left (fun s v -> IntSet.union s (IntSet.of_list (Range.to_list v))) IntSet.empty l
     in

@@ -6,7 +6,9 @@ module type ORDERED = sig
 end
 
 module type S = sig
-  module Fst : Map2.S (** First (outer) map. *)
+  module Fst : Map2.S (** First 
+
+(outer) map. *)
   module Snd : Map2.S (** Second (inner) map. *)
 
   type 'a t = 'a Snd.t Fst.t (** Type of map of maps. *)

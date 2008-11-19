@@ -121,6 +121,10 @@ val of_list : 'a list -> 'a array
 val of_list2 : 'a list list -> 'a array array
 val to_list2 : 'a array array -> 'a list list
   
+val to_filtered_list : ('a -> bool) -> 'a array -> 'a list
+  (** [to_filtered_list pred a] efficiently turns an array [a] into a list filtered
+      by predicate [pred] *)
+
 val zip : 'a array -> 'b array -> ('a * 'b) array
   (** [zip a b] pairs up values in [a] and [b]. Order of elements is preserved. Raise {!Different_array_size} if [a] and [b] do not have the same length. *)
   

@@ -18,7 +18,7 @@ type row = {
   chr : string;    (** chromosome name *)
   source : string; (** where annotation came from, e.g. a database or algorithm *)
   feature : string; (** the feature type *)
-  pos : Range.t; (** position *)
+  pos : (int * int); (** position *)
   score : float option; (** possible score, semantics not defined *)
   strand : strand; (** strand *)
   phase: int option ; (** phase, should be 0,1, or 2 if feature = "CDS" or None otherwise but this is not checked *)

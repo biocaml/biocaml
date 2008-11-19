@@ -6,7 +6,7 @@ let raise_bad msg = raise (Bad msg)
 
 type strand = Sense | Antisense | Unknown | Unstranded
 type attribute = TagValue of string * string | Something of string
-type row = {chr:string; source:string; feature:string; pos:Range.t; score : float option; strand:strand; phase:int option; attributes : attribute list}
+type row = {chr:string; source:string; feature:string; pos:(int*int); score : float option; strand:strand; phase:int option; attributes : attribute list}
 type 'a t = 'a list
 
 let to_list t = t
@@ -32,7 +32,7 @@ module Parser = struct
       try int_of_string s2
       with Failure msg -> failwith (sprintf "%s: invalid end coordinate %s" msg s2)
     in
-    try Range.make lo hi
+    try ignore (Range.make lo hi); lo,hi
     with Range.Bad msg -> failwith msg
       
   let score (s:string) : float option =
