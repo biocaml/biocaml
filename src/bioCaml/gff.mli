@@ -1,4 +1,8 @@
-(** GFF files. *)
+(** GFF files. Parser silently skips comment lines, blank lines, and pragmas.
+
+    Versions 2 and 3 are supported. The only difference is the delimiter used for tag-value pairs in the attribute list: [3] uses an equal sign, and [2] uses a space. Version [3] also has additional requirements, e.g. the [feature] must be a sequence ontology term, but these are not checked. *)
+
+open TylesBase
 
 exception Bad of string
   (** Raised if there are any parse errrors. *)
@@ -13,11 +17,11 @@ type attribute =
     | TagValue of string * string (** name and value of an attribute *)
     | Something of string  (** attributes not in tag-value format *)
         
-(** Type of information on a row. This particular type represents all information provided in GFF files, but note that type ['a t] allows alternative types of annotation information to be retained. *)
+(** Type of information on a row. *)
 type row = {
   chr : string;    (** chromosome name *)
   source : string; (** where annotation came from, e.g. a database or algorithm *)
-  feature : string; (** the feature type *)
+  feature : string; (** the feature type, e.g. exon or gene *)
   pos : (int * int); (** position *)
   score : float option; (** possible score, semantics not defined *)
   strand : strand; (** strand *)
@@ -25,25 +29,36 @@ type row = {
   attributes : attribute list; (** the attributes *)
 }
     
-type 'a t
-    (** The type representing a GFF file. Can be thought of as a collection of annotations of type ['a]. *)
+type t
+    (** The type representing a GFF file. *)
     
-val of_file : (row -> 'a option) -> string -> 'a t
-  (** [of_file f file] parses [file] using [f] to convert each row into the desired type of information. Function [f] should return None to omit the row entirely. *)
-
-val fold_file : ('a -> row -> 'a) -> 'a -> string -> 'a
-  (** [fold_file f init file] accumulates the result of applying [f] to each row of [file]. This is useful for large files because it avoids loading the entire file first. *)
+val of_file : ?version:int -> ?strict:bool -> string -> t
+  (** [of_file file] parses [file]. If [strict=true], the default, [Bad] is raise on any errors. If [strict=false], errors are silently skipped. Default [version] is 3, but you can also specify 2. *)
   
-val to_list : 'a t -> 'a list
+val fold : ('a -> row -> 'a) -> 'a -> t -> 'a
+val iter : (row -> unit) -> t -> unit
 
-(*
-val of_array : annt array -> t
-  (** [of_array] behaves similarly to [of_file]. *)
+val fold_file : ?version:int -> ?strict:bool -> ('a -> row -> 'a) -> 'a -> string -> 'a
+  (** [fold_file f init file] accumulates the result of applying [f] to each row of [file]. Optional arguments [version] and [strict] are as in [of_file]. *)
+  
+val iter_file : ?version:int -> ?strict:bool -> (row -> unit) -> string -> unit
 
-val file_to_array : string -> annt array
-  (** [file_to_array file] returns the contents of [file] as a plain array of annotations. *)
+val to_list : t -> row list
 
+val to_map : t -> row list StringMap.t
+  (** Partitions annotations by chromosome. *)
 
-val get_attr : annt -> string -> string
-  (** [get_attr annt attr] returns the value of [attr] in attribute list of [annt]. Raise [Failure] if [attr] does not occur exactly once in attribute list. *)
-*)
+val map_of_file : ?version:int -> ?strict:bool -> string -> row list StringMap.t
+
+val get_attribute : row -> string -> string
+  (** [get_attribute r x] returns the value of the attribute named [x] in row [r]. *)
+
+val has_attribute : row -> string -> bool
+  (** [has_attribute r x] returns true if attribute [x] is defined in [r]. *)
+
+val set_attribute : string -> string -> row -> row
+  (** [set_attribute x y r] sets attribute [x] to value [y] in [r]. Any previous value of [x] is overwritten. *)
+
+val row_to_string : ?version:int -> row -> string
+val to_channel : ?version:int -> t -> out_channel -> unit
+val to_file : ?version:int -> t -> string -> unit

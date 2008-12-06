@@ -1,25 +1,32 @@
 open TylesBase
 open Printf
 
-type 'hdr t =
-    {
-      parse_header : string -> (string * 'hdr);
-      data : (string * Seq.t) list (* string is raw unparsed header *)
-    }
+type 'hdr t = ('hdr * Seq.t) StringMap.t
+    (* key is name of sequence *)
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
-let headers t = List.map (t.parse_header <<- fst) t.data
-let raw_headers t = List.map fst t.data
+let fold f t init =
+  let f name (hdr,seq) ans = f name hdr seq ans in
+  StringMap.fold f t init
+
+let iter f t =
+  let f name (hdr,seq) = f name hdr seq in
+  StringMap.iter f t
+
+let headers t = 
+  let f k (a,_) ans = (k,a)::ans in
+  List.rev (StringMap.fold f t [])
+    
 let names t = List.map fst (headers t)
 
-let get_seq t n =
-  let rec loop dat =
-    match dat with
-      | [] -> failwith (sprintf "Fasta.get_seq: no sequence named %s" n)
-      | (hdr,seq)::dat -> if fst (t.parse_header hdr) = n then seq else loop dat
-  in loop t.data
+let get_header_seq t x =
+  try StringMap.find x t
+  with Not_found -> failwith (sprintf "sequence %s not found" x)
+
+let get_header t x = fst (get_header_seq t x)
+let get_seq t x = snd (get_header_seq t x)
 
 module Parser = struct
   let is_header s = 
@@ -27,10 +34,11 @@ module Parser = struct
     then s.[0] = '>'
     else false
 
-  let header s =
+  (* return the name and header info *)
+  let header parse_header s =
     assert (String.length s > 0);
     assert (s.[0] = '>');
-    String.lchop s
+    parse_header (String.lchop s)
       
   (* lines should point to beginning of sequence specification,
    * returned buffer will contain valid nucleic acid sequence *)
@@ -51,39 +59,34 @@ module Parser = struct
     ans
         
   (** next non-empty line should be header line *)
-  let section lines : (string * Seq.t) =
+  let section parse_header lines : (string * 'a * Seq.t) =
     Stream.skip_while (String.for_all Char.is_space) lines;
-    let hdr = header (Stream.next lines) in
+    let name,hdr = header parse_header (Stream.next lines) in
     let seq = sequence lines in
-      (hdr, Seq.of_buffer_unsafe seq) (* ok to use unsafe because [sequence] returns valid buffer *)
+      (name, hdr, Seq.of_buffer_unsafe seq) (* ok to use unsafe because [sequence] returns valid buffer *)
 
-  let fasta file_name cin : (string * Seq.t) list =
+  let fasta parse_header file_name cin : 'a t =
     let lines = Stream.lines_of_channel cin in
     let lines = Stream.map String.strip_final_cr lines in
     let err msg = Msg.err ~pos:(Pos.fl file_name (Stream.count lines)) msg in
     let rec loop lines ans =
-      if Stream.is_empty lines
-      then ans
-      else let sect = section lines in loop lines (sect::ans)
+      if Stream.is_empty lines then
+        ans
+      else
+        let name,hdr,seq = section parse_header lines in
+        let ans =
+          if StringMap.mem name ans then
+            failwith (sprintf "sequence %s previously inserted" name)
+          else
+            StringMap.add name (hdr,seq) ans
+        in
+        loop lines ans
     in 
-      try List.rev (loop lines [])
-      with Failure m | Bad m -> raise_bad (err m)
+    try loop lines StringMap.empty
+    with Failure m | Bad m -> raise_bad (err m)
 end
 
-let of_file_exn' parse_header file =
-  let data = try_finally (Parser.fasta file) close_in (open_in file) in
-  let names = List.map parse_header (List.map fst data) in
-  let err = Msg.err ~pos:(Pos.f file) in
-    if List.length names <> List.length (List.unique names)
-    then failwith (err "sequence names not unique")
-    else {parse_header = parse_header; data = data}
-
 let of_file' parse_header file =
-  try Some (of_file_exn' parse_header file)
-  with Bad _ -> None
+  try_finally (Parser.fasta parse_header file) close_in (open_in file)
 
-let of_file_exn file = of_file_exn' (fun s -> (s,"")) file
-
-let of_file file =
-  try Some (of_file_exn file)
-  with Bad _ -> None
+let of_file file = of_file' (fun s -> (s,"")) file

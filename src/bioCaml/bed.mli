@@ -8,6 +8,12 @@ type t
     
 exception Bad of string
   
+val of_file : string -> t
+  (** Parse given file. Raise [Bad] if any errors. *)
+  
+val of_channel : in_channel -> t
+  (** Parse given channel. Raise [Bad] if any errors. *)
+
 val of_list: pt list -> t
   (** Construct data set from given [pt]'s. Data can be in any order, but [Bad] will be raised if data is ill-formed. *)
   

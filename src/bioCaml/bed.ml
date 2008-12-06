@@ -84,4 +84,14 @@ let append s (chr,lo,hi) =
           
 let singleton = append empty
 
-let complete s =StringMap.map List.rev s
+let complete s = StringMap.map List.rev s
+
+let of_channel cin =
+  let f ans line =
+    try append ans (of_line line)
+    with Bad msg -> failwith msg
+  in
+  Lines.fold_channel f empty cin
+
+let of_file file =
+  try_finally of_channel close_in (open_in file)

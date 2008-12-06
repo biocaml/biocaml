@@ -7,10 +7,87 @@ let raise_bad msg = raise (Bad msg)
 type strand = Sense | Antisense | Unknown | Unstranded
 type attribute = TagValue of string * string | Something of string
 type row = {chr:string; source:string; feature:string; pos:(int*int); score : float option; strand:strand; phase:int option; attributes : attribute list}
-type 'a t = 'a list
-
+type t = row list
+let fold = List.fold_left
+let iter = List.iter
 let to_list t = t
 
+let get_attribute row attr_name =
+  let is_attr_name = function TagValue (tg,_) -> attr_name = tg | Something _ -> false in
+  let attrs = List.filter is_attr_name row.attributes in
+  match List.length attrs with
+    | 1 -> (
+        match List.nth attrs 0 with
+          | TagValue (_,v) -> v
+          | Something _ -> assert false
+      )
+    | 0 -> failwith (sprintf "attribute %s not found" attr_name)
+    | n -> failwith (sprintf "attribute %s occurs %d times" attr_name n)
+
+let has_attribute row attr_name =
+  let pred = function TagValue (x,_) -> x = attr_name | Something _ -> false in
+  List.exists pred row.attributes
+
+let set_attribute x y r =
+  let got_set = ref false in
+  let f attr = match attr with
+    | TagValue (x',_) -> 
+        if x' = x 
+        then (got_set := true; TagValue(x,y))
+        else attr
+    | Something _ -> attr
+  in
+  let attributes = List.map f r.attributes in
+  if !got_set then
+    {r with attributes=attributes}
+  else
+    {r with attributes = attributes @ [TagValue(x,y)]}
+  
+
+type version = Two | Three
+
+let make_version (x:int) : version =
+  match x with
+    | 2 -> Two
+    | 3 -> Three
+    | _ -> failwith (sprintf "invalid version: %d" x)
+
+
+let row_to_string ?(version=3) r =
+  let ver = make_version version in
+  let sep = match ver with Two -> " " | Three -> "=" in
+  let attribute = function
+    | TagValue (tg,vl) -> sprintf "%s%s%s" tg sep vl
+    | Something x -> x
+  in
+  let attributes l = String.concat ";" (List.map attribute l) in
+  let strand = function
+    | Sense -> "+"
+    | Antisense -> "-"
+    | Unstranded -> "."
+    | Unknown -> "?"
+  in
+  let score = function None -> "." | Some x -> string_of_float x in
+  let phase = function None -> "." | Some x -> string_of_int x in
+  String.concat "\t" [
+    r.chr;
+    r.source;
+    r.feature;
+    string_of_int (fst r.pos);
+    string_of_int (snd r.pos);
+    score r.score;
+    strand r.strand;
+    phase r.phase;
+    attributes r.attributes
+  ]
+
+let to_channel ?(version=3) t cout =
+  let f r = output_string cout (row_to_string r); output_char cout '\n' in
+  List.iter f t
+    
+let to_file ?(version=3) t file =
+  try_finally (to_channel ~version t) close_out (open_out_safe file)
+    
 module Parser = struct
   let chr s = s
   let source s = s
@@ -50,10 +127,10 @@ module Parser = struct
       | "?" -> Unknown
       | _ -> failwith (sprintf "invalid strand %s" s)
 	  
-  (* attribute list in version 3 format *)
-  let attributes3 (s:string) : attribute list =
-    let attribute3 (s:string) : attribute =
-      let sl = String.nsplit s "=" in
+  let attributes (ver:version) (s:string) : attribute list =
+    let sep = match ver with Two -> " " | Three -> "=" in
+    let attribute (s:string) : attribute =
+      let sl = String.nsplit s sep in
       match List.length sl with
         | 0 | 1 -> Something s
         | 2 ->
@@ -62,50 +139,80 @@ module Parser = struct
 	    TagValue (tg,vl)
         | _ -> failwith (sprintf "invalid tag-value pair %s" s)
     in
-    List.map attribute3 (List.map String.strip (String.nsplit s ";"))
+    let ans = List.map attribute (List.map String.strip (String.nsplit s ";")) in
+    let tags = List.filter_map (function TagValue (x,_) -> Some x | Something _ -> None) ans in
+    try failwith (sprintf "multiply defined attribute %s" (List.first_repeat tags))
+    with Not_found -> ans
 	
-  let row (s:string) : row option =
+  let row (ver:version) (s:string) : row option =
     let s = String.strip s in
-    if String.length s > 2 && s.[0] = '#' && s.[1] = '#' then
+    if String.length s > 0 && s.[0] = '#' then
+      None
+    else if String.for_all Char.is_space s then
       None
     else
       let sl = String.nsplit s "\t" in
       let nth = List.nth sl in
       Some (
         match List.length sl with
-          | 9 ->
-              {chr = chr (nth 0);
-               strand = strand (nth 6);
-               pos = interval (nth 3) (nth 4);
-               source = source (nth 1);
-	       feature = feat (nth 2);
-               phase = phase (nth 7);
-	       score = score (nth 5);
-	       attributes = attributes3 (nth 8)
-	      }
+          | 9 -> {
+              chr = chr (nth 0);
+              strand = strand (nth 6);
+              pos = interval (nth 3) (nth 4);
+              source = source (nth 1);
+	      feature = feat (nth 2);
+              phase = phase (nth 7);
+	      score = score (nth 5);
+	      attributes = attributes ver (nth 8)
+	    }
           | k -> failwith (sprintf "expecting 9 columns but found %d" k)
       )
         
 end
 
-let of_file p file =
+let of_file ?(version=3) ?(strict=true) file =
+  let ver = make_version version in
   let f ans s =
-    match Parser.row s with
+    match Parser.row ver s with
       | None -> ans
-      | Some row -> match p row with None -> ans | Some x -> x::ans
+      | Some x -> x::ans
   in
-  try List.rev (Lines.fold_file f [] file)
+  try List.rev (Lines.fold_file ~strict f [] file)
   with Lines.Error(pos,msg) -> raise_bad (Msg.err ~pos msg)
     
-let fold_file f init file =
+let fold_file ?(version=3) ?(strict=true) f init file =
+  let ver = make_version version in
   let g accum line =
-    match Parser.row line with
+    match Parser.row ver line with
       | None -> accum
-      | Some v -> f accum v
+      | Some x -> f accum x
   in
-  try Lines.fold_file ~strict:false g init file
+  try Lines.fold_file ~strict g init file
   with Lines.Error(pos,msg) -> raise_bad (Msg.err ~pos msg)
 
+let iter_file ?(version=3) ?(strict=true) f file =
+  let f _ r = f r in
+  fold_file ~version ~strict f () file
+
+let to_map t =
+  let append _ (prev : row list option) r : row list =
+    match prev with
+      | None -> [r]
+      | Some prev -> r::prev
+  in
+  let f ans r = StringMap.add_with append r.chr r ans in
+  let ans = List.fold_left f StringMap.empty t in
+  StringMap.map List.rev ans
+
+let map_of_file ?(version=3) ?(strict=true) file =
+  let append _ (prev : row list option) r : row list =
+    match prev with
+      | None -> [r]
+      | Some prev -> r::prev
+  in
+  let f ans r = StringMap.add_with append r.chr r ans in
+  let ans = fold_file ~version ~strict f StringMap.empty file in
+  StringMap.map List.rev ans
 
 
 (* ************************
@@ -146,18 +253,6 @@ module Annt = struct
     then try Option.get a.phase with Option.No_value -> raise (Invalid_argument "BUG: no phase for annotation of type CDS")
     else raise (Failure "phase available only for annotations of type CDS")
 
-  let get_attr a attr_name =
-    let is_attr_name = function TagValue (tg,_) -> attr_name = tg | Something _ -> false in
-    let attrs = List.filter is_attr_name a.attrs in
-    let l = List.length attrs in
-      if l = 1 then
-        (match List.nth attrs 0 with
-          | TagValue (_,v) -> v
-          | Something _ -> raise (Invalid_argument "Impossible to get here") )
-      else if l = 0 then
-        raise (Failure ("attribute " ^ attr_name ^ " not found in annotation"))
-      else
-        raise (Failure ("attribute " ^ attr_name ^ " occurs more than once in annotation"))          
 
   let syntactic_equal a b =
     (a.chr = b.chr)

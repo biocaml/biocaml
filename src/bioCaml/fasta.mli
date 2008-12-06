@@ -5,26 +5,28 @@ type 'a t
 
 exception Bad of string
 
-val of_file_exn : string -> string t
+val of_file : string -> string t
   (** Parse given file. Entire header is treated as the name, and header information taken to be the empty string. Use {!of_file'} to customize header parsing. Raise [Bad] if there are any parse errors. *)
   
-val of_file : string -> string t option
-  (** Like [of_file_exn], but return None in case of parse error. *)
-
-val of_file' : (string -> (string * 'a)) -> string -> 'a t option
+val of_file' : (string -> (string * 'a)) -> string -> 'a t
   (** [of_file' parse_header file] parses [file], using [parse_header] to parse a header into the sequence name and any additional header information as specified for the specific FASTA file being parsed. The string passed to [parse_header] will not include the initial ">". Raise [Bad] if there are any parse errors. *)
 
-val of_file_exn' : (string -> (string * 'a)) -> string -> 'a t
-  (** Like [of_file'], but return None in case of parse error. *)
+val fold : (string -> 'a -> Seq.t -> 'b -> 'b) -> 'a t -> 'b -> 'b
+  (** [fold f t init] folds over the sequences in [t]. Function [f] is passed the sequence name, the header information, and the sequence. *)
 
+val iter : (string -> 'a -> Seq.t -> unit) -> 'a t -> unit
+  
 val names : 'a t -> string list
   (** Return names of all sequences in given file. *)
 
 val headers : 'a t -> (string * 'a) list
   (** Return name and header information for all sequences in given file. *)
 
-val raw_headers : 'a t -> string list
-  (** Return raw unparsed headers for all sequences in given file. Mostly for debugging purposes. *)
-
 val get_seq : 'a t -> string -> Seq.t
-  (** [get_seq t n] returns the sequence named [n] in [t]. Raise [Failure] if no such sequence. *)
+  (** [get_seq t x] returns the sequence named [x] in [t]. Raise [Failure] if no such sequence. *)
+
+val get_header : 'a t -> string -> 'a
+  (** [get_header t x] returns the header for the sequence named [x] in [t]. Raise [Failure] if no such sequence. *)
+
+val get_header_seq : 'a t -> string -> ('a * Seq.t)
+  (** [get_header_seq t x] returns the header and sequence for the sequence named [x] in [t]. Raise [Failure] if no such sequence. *)
