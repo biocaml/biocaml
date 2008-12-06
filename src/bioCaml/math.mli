@@ -60,6 +60,8 @@ val histogram : ?cmp:('a -> 'a -> int) -> 'a array -> (('a * int) array)
 val prediction_values : int -> int -> int -> int -> (float * float * float * float)
   (** [prediction_values tp tn fp fn] takes 4 arguments: the number of true-positives [tp], true-negatives [tn], false-positives [fp], and false-negatives [fn]. It returns a quadruple of 4 measures of predictions accuracy: sensitivity, specificity, positive prediction accuracy, and negative prediction accuracy. *)
 
+val pearson : float array -> float array -> float
+  (** [pearson arr1 arr2] computes the Pearson product-moment correlation coefficient of two float arrays. See wikipedia for the formula. NB: everything is divided by n, not by n - 1. *)
 
 (** {6 Matrix Operations} *)
   

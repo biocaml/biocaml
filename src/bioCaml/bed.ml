@@ -28,7 +28,7 @@ let of_list l =
   let ans = List.fold_left (fun t (chr,l) -> StringMap.add chr l t) StringMap.empty ll in
   validate ans;
   ans      
-    
+
 let to_lists t = List.rev ((StringMap.fold (fun chr l ans -> (chr,l)::ans) t) [])
 
 let to_list t =

@@ -137,6 +137,15 @@ let prediction_values tp tn fp fn =
   let pos_prediction_accuracy = tp /. (tp +. fp) in
   let neg_prediction_accuracy = tn /. (tn +. fn) in
   sensitivity, specificity, pos_prediction_accuracy, neg_prediction_accuracy
+
+let pearson (a1:float array) (a2:float array) = 
+  let a1avg,a2avg = (mean a1),(mean a2) in
+  let a1sd,a2sd = (stdv a1),(stdv a2) in
+  let a1,a2 = (Array.to_list a1), (Array.to_list a2) in
+  let f acc e1 e2 = 
+    (((e1 -. a1avg) /. a1sd) *. ((e2 -. a2avg) /. a2sd)) +. acc 
+  in
+  (List.fold_left2 f 0. a1 a2) /. (float_of_int (List.length a1))
     
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = mapi Tuple.Pr.make a in
@@ -190,3 +199,4 @@ let find_min_window ?(init_direction="fwd") a pred i =
     match ans with
       | None -> [||]
       | Some ans -> sub a ans.Range.lo (ans.Range.hi - ans.Range.lo + 1)
+
