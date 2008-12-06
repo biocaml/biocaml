@@ -147,6 +147,54 @@ let pearson (a1:float array) (a2:float array) =
   in
   (List.fold_left2 f 0. a1 a2) /. (float_of_int (List.length a1))
     
+let rank (arr:float array) = 
+  let newarr = Array.copy arr in
+  let newarr = Array.mapi (fun idx a -> (a, idx)) newarr in
+  let _ = Array.sort (fun (a,_) (b,_) -> Pervasives.compare a b) newarr in
+  if Array.unique (fun (a,_) (b,_) -> Pervasives.compare a b) newarr 
+  then 
+    let newarr = Array.mapi (fun i (a,idx) -> (i + 1,idx)) newarr in
+    (Array.sort (fun (_,a) (_,b) -> Pervasives.compare a b) newarr; 
+    Array.map (fun (i,idx) -> float_of_int i) newarr)
+  else 
+    let len = Array.length newarr in
+    let ranker a = 
+      let putter count idx = 
+        let r = 
+          if count = 1 then (float_of_int idx) else
+            let hi = float_of_int idx in
+            let lo = float_of_int (idx - count + 1) in
+            (hi +. lo) /. 2.
+        in
+        let rec putter_aux r count idx = 
+          if count = 0 then ()
+          else 
+            let (_,prev) = a.(idx - 1) in
+            a.(idx - 1) <- (r, prev); putter_aux r (count - 1) (idx - 1)
+        in
+        putter_aux r count idx
+      in
+      let rec ranker_aux count idx =
+        if idx >= len then putter count idx
+        else 
+          match count with
+            | 0 -> ranker_aux 1 1
+            | n -> 
+                let (m,_),(n,_) = a.(idx),a.(idx - 1) in
+                if m = n 
+                then ranker_aux (count + 1) (idx + 1)
+                else (putter count idx; ranker_aux 1 (idx + 1))
+      in
+      ranker_aux 0 0; newarr
+    in
+    let ranked_arr = ranker newarr in
+    (Array.sort (fun (_,a) (_,b) -> Pervasives.compare a b) ranked_arr;
+    Array.map (fun (i,idx) -> i) newarr)
+
+let spearman (arr1:float array) (arr2: float array) = 
+  let arr1,arr2 = rank arr1, rank arr2 in
+  pearson arr1 arr2
+
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = mapi Tuple.Pr.make a in
   sort (fun a b -> cmp (snd a) (snd b)) a;

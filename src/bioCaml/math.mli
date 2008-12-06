@@ -63,6 +63,12 @@ val prediction_values : int -> int -> int -> int -> (float * float * float * flo
 val pearson : float array -> float array -> float
   (** [pearson arr1 arr2] computes the Pearson product-moment correlation coefficient of two float arrays. See wikipedia for the formula. NB: everything is divided by n, not by n - 1. *)
 
+val rank : float array -> float array
+  (** [rank arr] returns an array of ranked values, where ties are given the mean of what the rank would otherwise be. For example, [rank [|2.;1.;2.|]] returns [|2.5.;1.;2.5|]. *)
+
+val spearman : float array -> float array -> float
+  (** [spearman arr1 arr2] computes the Spearman rank correlation coefficient of two float arrays. See wikipedia for the formula. Essentially, it ranks the two arrays using [rank], and then applies the [pearson] function. *)
+
 (** {6 Matrix Operations} *)
   
 val row : 'a array array -> int -> 'a array
