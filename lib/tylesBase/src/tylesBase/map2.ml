@@ -10,14 +10,17 @@ module type S = sig
   val size : 'a t -> int
   val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
   val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+  val keys : 'a t -> key list
   val empty : 'a t
   val singleton : key -> 'a -> 'a t
   val add: key -> 'a -> 'a t -> 'a t
+  val add_with : (key -> 'a option -> 'b -> 'a) -> key -> 'b -> 'a t -> 'a t
   val remove: key -> 'a t -> 'a t
   val of_array : (key * 'a) array -> 'a t
   val of_list : (key * 'a) list -> 'a t
   val to_array : 'a t -> (key * 'a) array
   val to_list : 'a t -> (key * 'a) list
+  val intersect : 'a t -> 'b t -> ('a * 'b) t
   val iter: (key -> 'a -> unit) -> 'a t -> unit
   val map: ('a -> 'b) -> 'a t -> 'b t
   val map2: ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
@@ -27,8 +30,6 @@ module type S = sig
   val find: key -> 'a t -> 'a
   val mem: key -> 'a t -> bool
   val first : 'a t -> key * 'a
-  val intersect : 'a t -> 'b t -> ('a * 'b) t
-    (* val union : 'a t -> 'b t -> ('a option, 'b option) t *)
 end
 
 module Make (Ord:OrderedType) = struct
@@ -36,6 +37,7 @@ module Make (Ord:OrderedType) = struct
 
   let singleton k x = add k x empty
   let size t = fold (fun _ _ ans -> ans + 1) t 0
+  let keys t = List.rev (fold (fun k _ ans -> k::ans) t [])
 
   let of_array a = Array.fold_left (fun ans (k,a) -> add k a ans) empty a
   let of_list l = List.fold_left (fun ans (k,a) -> add k a ans) empty l
@@ -62,6 +64,10 @@ module Make (Ord:OrderedType) = struct
       raise Not_found
     with 
         Exit -> match !ans with None -> raise Not_found | Some kx -> kx
+
+  let add_with f x y m =
+    let y' = try Some (find x m) with Not_found -> None in
+    add x (f x y' y) m
 
   let intersect m1 m2 = 
     let f m2 k1 elem acc = 

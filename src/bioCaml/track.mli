@@ -103,6 +103,7 @@ type t
 
 exception Bad of string
 
-val to_file : t -> string -> unit
+val to_channel : ?wig_fmt:Wig.format -> t -> out_channel -> unit
+val to_file : ?wig_fmt:Wig.format -> t -> string -> unit
 val to_list : t -> block list
 val of_list : block list -> t

@@ -50,6 +50,9 @@ sig
         equal data.  [cmp] is the equality predicate used to compare
         the data associated with the keys. *)
 
+  val keys : 'a t -> key list
+    (** The keys of the map, in order. *)
+ 
 
   (** {6 Constructors and Modifiers} *)
   
@@ -63,6 +66,9 @@ sig
     (** [add x y m] returns a map containing the same bindings as
         [m], plus a binding of [x] to [y]. If [x] was already bound
         in [m], its previous binding disappears. *)
+
+  val add_with : (key -> 'a option -> 'b -> 'a) -> key -> 'b -> 'a t -> 'a t
+    (** [add_with f x y m] binds [x] to [(f x y' y)] where [y'] is the previous binding of [x] if any. *)
     
   val remove: key -> 'a t -> 'a t
     (** [remove x m] returns a map containing the same bindings as
@@ -78,6 +84,11 @@ sig
   val to_array : 'a t -> (key * 'a) array
   val to_list : 'a t -> (key * 'a) list
     (** Returned array/list has the (key,value) pairs in given map. Items will be in ascending order by key. *)
+
+  val intersect : 'a t -> 'b t -> ('a * 'b) t
+    (** [intersect m1 m2] finds the set of keys that is the intersection of the set of
+        keys from m1 and m2, and returns a map with that set of keys, with the value
+        as a pair of the values of m1 and m2. *)
 
     
   (** {6 Iterators} *)
@@ -126,10 +137,6 @@ sig
   val first : 'a t -> key * 'a
     (** Return the minimum key and its associated value, or [Not_found] if map is empty. *)
 
-  val intersect : 'a t -> 'b t -> ('a * 'b) t
-    (** [intersect m1 m2] finds the set of keys that is the intersect of the set of
-        keys from m1 and m2, and returns a map with that set of keys, with the value
-        as a tuple of the values of m1 and m2. *)
 end
   (** Output signature of the functor {!Map.Make}. *)
   

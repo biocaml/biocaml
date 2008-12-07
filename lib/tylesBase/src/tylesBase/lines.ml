@@ -1,6 +1,5 @@
 module Stream = Stream2
 open Pervasives2
-open Printf
 
 exception Error of (Pos.t * string)
 let raise_error p m = raise (Error(p,m))
@@ -12,12 +11,7 @@ let fold_stream' ?(file="") ?(strict=true) f init cstr =
     with Failure msg ->
       let n = Stream.count lines in
       let pos = if file = "" then Pos.l n else Pos.fl file n in
-      if strict then
-        raise_error pos msg 
-      else
-        (print_string (Msg.err ~pos msg); 
-         print_char '\n';
-         accum)
+      if strict then raise_error pos msg else accum
   in
   Stream.fold f init lines
     

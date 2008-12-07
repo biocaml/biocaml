@@ -385,20 +385,22 @@ let raise_bad msg = raise (Bad msg)
 
 let to_list t = t
 
-let to_channel t cout =
+let to_channel ?wig_fmt t cout =
+  let wig_to_channel x = match wig_fmt with None -> Wig.to_channel x | Some fmt -> Wig.to_channel ~fmt x in
   let print_string s = output_string cout s; output_char cout '\n' in
   let print_block = function
     | B x -> print_string (BrowserLines.to_string x)
     | T x -> print_string (TrackLine.to_string x)
     | C x -> print_string (CommentLines.to_string x)
-    | Wig x -> Wig.to_channel x cout
+    | Wig x -> wig_to_channel x cout
     | Bed x -> Bed.to_channel x cout
   in
   List.iter print_block t
 
-let to_file t file =
+let to_file ?wig_fmt t file =
+  let to_channel t = match wig_fmt with None -> to_channel t | Some wig_fmt -> to_channel ~wig_fmt t in
   try_finally (to_channel t) close_out (open_out_safe file)
-    
+   
 let validate t =
   let t = List.filter (function C _ -> false | _ -> true) t in
 

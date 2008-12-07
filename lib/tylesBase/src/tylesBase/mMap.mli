@@ -6,9 +6,7 @@ module type ORDERED = sig
 end
 
 module type S = sig
-  module Fst : Map2.S (** First 
-
-(outer) map. *)
+  module Fst : Map2.S (** First (outer) map. *)
   module Snd : Map2.S (** Second (inner) map. *)
 
   type 'a t = 'a Snd.t Fst.t (** Type of map of maps. *)
@@ -25,6 +23,7 @@ module type S = sig
   val to_lists : 'a t -> (Fst.key * (Snd.key * 'a) list) list
     (** Return the map as a nested association list. Items in each list will be in ascending order by their respective keys. *)
     
+  val keys : 'a t -> (Fst.key * Snd.key) list
   val mapi : (Fst.key -> Snd.key -> 'a -> 'b) -> 'a t -> 'b t
   val map : ('a -> 'b) -> 'a t -> 'b t
   val iter : (Fst.key -> Snd.key -> 'a -> unit) -> 'a t -> unit
@@ -34,6 +33,7 @@ module type S = sig
   val foldinner : Fst.key -> (Snd.key -> 'a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val mem : Fst.key -> Snd.key -> 'a t -> bool
   val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
+  val add_with : (Fst.key -> Snd.key -> 'a option -> 'b -> 'a) -> Fst.key -> Snd.key -> 'b -> 'a t -> 'a t
   val empty : 'a t
   val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t

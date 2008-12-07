@@ -19,6 +19,7 @@ module type S = sig
   val of_lists : (Fst.key * (Snd.key * 'a) list) list -> 'a t
   val to_lists : 'a t -> (Fst.key * (Snd.key * 'a) list) list
 
+  val keys : 'a t -> (Fst.key * Snd.key) list
   val mapi : (Fst.key -> Snd.key -> 'a -> 'b) -> 'a t -> 'b t
   val map : ('a -> 'b) -> 'a t -> 'b t
   val iter : (Fst.key -> Snd.key -> 'a -> unit) -> 'a t -> unit
@@ -28,6 +29,7 @@ module type S = sig
   val foldinner : Fst.key -> (Snd.key -> 'a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val mem : Fst.key -> Snd.key -> 'a t -> bool
   val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
+  val add_with : (Fst.key -> Snd.key -> 'a option -> 'b -> 'a) -> Fst.key -> Snd.key -> 'b -> 'a t -> 'a t
   val empty : 'a t
   val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
@@ -69,6 +71,7 @@ module Make (Ord1 : ORDERED) (Ord2 : ORDERED) = struct
       Fst.fold (fun k1 m2 a -> Snd.fold (g k1) m2 a) t a
  
   let size t = fold (fun _ _ ans _ -> ans + 1) 0 t
+  let keys t = List.rev (fold (fun k1 k2 ans _ -> (k1,k2)::ans) [] t)
 
   let find k1 k2 t = Snd.find k2 (Fst.find k1 t)
 
@@ -92,6 +95,10 @@ module Make (Ord1 : ORDERED) (Ord2 : ORDERED) = struct
     in
     let m2 = Snd.add k2 elem m2 in
     Fst.add k1 m2 t
+
+  let add_with f k1 k2 elem t =
+    let y' = try Some (find k1 k2 t) with Not_found -> None in
+    add k1 k2 (f k1 k2 y' elem) t
 
   let map2i f m n = 
     if size m <> size n then failwith "domains not equal in size";
