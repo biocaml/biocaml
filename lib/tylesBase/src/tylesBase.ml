@@ -24,6 +24,7 @@ module ArrayPrint = ArrayPrint
 module RedBlack = RedBlack
 module Range = Range
 module RSet = RSet
+module Table = Table
 
 module Fn = Fn
 module Tuple = Tuple

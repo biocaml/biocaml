@@ -31,6 +31,7 @@ let _ = dispatch begin function
   | After_rules ->
 
       ocaml_lib ~extern:true ~dir:"../../lib" "tylesBase";
+      flag ["ocaml"; "doc"] (S[A"-I";A"../../lib"]);
       flag ["ocaml"; "link"; "library"; "byte"] (A"../../lib/tylesBase.cma");
       flag ["ocaml"; "link"; "library"; "native"] (A"../../lib/tylesBase.cmx");
       

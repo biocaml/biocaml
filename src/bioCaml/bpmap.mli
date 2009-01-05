@@ -36,11 +36,8 @@ val row_list : t -> row list
 
 (** {6 I/O} *)
 
-val of_file : string -> t option
-  (** [of_file file] parses [file] if possible. *)
-  
-val of_file_exn : string -> t
-  (** [of_file_exn file] parses [file]. Raise [Bad] if there is a parse error. *)
+val of_file : string -> t
+  (** [of_file file] parses [file]. Raise [Bad] if there is a parse error. *)
   
 val row_to_string : row -> string
   (** String representation of row in same format as required by specification. *)

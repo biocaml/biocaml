@@ -17,19 +17,31 @@ let fold_stream' ?(file="") ?(strict=true) f init cstr =
     
 let fold_stream ?(strict=true) f init cstr =
   fold_stream' ~strict f init cstr
+
+let iter_stream ?(strict=true) f cstr =
+  fold_stream ~strict (fun _ x -> f x) () cstr
     
 let fold_channel' ?(file="") ?(strict=true) f init cin =
-  try_finally (fold_stream' ~file ~strict f init) ignore (Stream.of_channel cin)
+  fold_stream' ~file ~strict f init (Stream.of_channel cin)
     
 let fold_channel ?(strict=true) f init cin =
-  try_finally (fold_stream ~strict f init) ignore (Stream.of_channel cin)
+  fold_stream ~strict f init (Stream.of_channel cin)
+    
+let iter_channel ?(strict=true) f cin =
+  fold_channel ~strict (fun _ x -> f x) () cin
     
 let fold_string ?(strict=true) f init s = 
-  try_finally (fold_stream ~strict f init) ignore (Stream.of_string s) 
+  fold_stream ~strict f init (Stream.of_string s) 
     
+let iter_string ?(strict=true) f s =
+  fold_string (fun _ x -> f x) () s
+
 let fold_file ?(strict=true) f init file =
   try try_finally (fold_channel' ~file ~strict f init) close_in (open_in file)
   with Error (p,m) -> raise_error (Pos.set_file p file) m
+
+let iter_file ?(strict=true) f file =
+  fold_file ~strict (fun _ x -> f x) () file
 
 let of_stream ?(strict=true) f (cstr : char Stream.t) =
   let lines = Stream.lines_of_chars cstr in
@@ -42,10 +54,10 @@ let of_stream ?(strict=true) f (cstr : char Stream.t) =
   in List.rev (Stream.fold g [] lines)
   
 let of_channel ?(strict=true) f cin =
-  try_finally (of_stream ~strict f) ignore (Stream.of_channel cin)
+  of_stream ~strict f (Stream.of_channel cin)
     
 let of_string ?(strict=true) f s = 
-  try_finally (of_stream ~strict f) ignore (Stream.of_string s) 
+  of_stream ~strict f (Stream.of_string s) 
 
 let of_file ?(strict=true) f file =
   try try_finally (of_channel ~strict f) close_in (open_in file)

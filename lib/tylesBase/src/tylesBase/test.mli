@@ -1,7 +1,7 @@
-(** Testing programs. Only simple operations provided. More robust solutions available elsewhere for comprehensive testing. *)
+(** Testing programs. Only simple operations provided. More robust solutions available elsewhere for comprehensive testing. Output messages always printed to [stderr]. *)
 
 val time : ('a -> 'b) -> 'a -> 'b
-  (** [time f a] returns [f a] and additionally prints out a message stating number of CPU seconds required to evaluate [f a]. *)
+  (** [time f a] returns [f a] and additionally prints a message stating number of CPU seconds required to evaluate [f a]. *)
   
 val sf : string -> ('a -> 'b) -> 'a -> 'b
   (** [sf msg f a] returns [f a] but also prints [started msg] and [finished msg] before and after executing [f]. *)

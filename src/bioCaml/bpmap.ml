@@ -63,8 +63,7 @@ module Parser = struct
 
 end
   
-let of_file_exn = Parser.bpmap
-let of_file file = try Some (of_file_exn file) with Bad _ -> None
+let of_file = Parser.bpmap
 
 let row_to_string r =
   let (pmx,pmy) = r.pmcoord in

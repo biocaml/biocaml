@@ -130,20 +130,22 @@ module Parser = struct
   let attributes (ver:version) (s:string) : attribute list =
     let sep = match ver with Two -> " " | Three -> "=" in
     let attribute (s:string) : attribute =
-      let sl = String.nsplit s sep in
-      match List.length sl with
-        | 0 | 1 -> Something s
-        | 2 ->
-            let tg = String.strip (List.nth sl 0) in
-            let vl = String.strip (List.nth sl 1) in
-	    TagValue (tg,vl)
-        | _ -> failwith (sprintf "invalid tag-value pair %s" s)
+      try
+        let tg,vl = String.split s sep in
+        let tg = String.strip tg in
+        let vl = String.strip vl in
+	TagValue (tg,vl)
+      with
+          ExtString.Invalid_string -> Something s
     in
     let ans = List.map attribute (List.map String.strip (String.nsplit s ";")) in
+(*
     let tags = List.filter_map (function TagValue (x,_) -> Some x | Something _ -> None) ans in
     try failwith (sprintf "multiply defined attribute %s" (List.first_repeat tags))
     with Not_found -> ans
-	
+*)
+    ans
+
   let row (ver:version) (s:string) : row option =
     let s = String.strip s in
     if String.length s > 0 && s.[0] = '#' then
@@ -153,20 +155,21 @@ module Parser = struct
     else
       let sl = String.nsplit s "\t" in
       let nth = List.nth sl in
-      Some (
-        match List.length sl with
-          | 9 -> {
-              chr = chr (nth 0);
-              strand = strand (nth 6);
-              pos = interval (nth 3) (nth 4);
-              source = source (nth 1);
-	      feature = feat (nth 2);
-              phase = phase (nth 7);
-	      score = score (nth 5);
-	      attributes = attributes ver (nth 8)
-	    }
-          | k -> failwith (sprintf "expecting 9 columns but found %d" k)
-      )
+      let attributes_str = match List.length sl with
+        | 9 -> nth 8
+        | 8 -> ""
+        | k -> failwith (sprintf "expecting 9 columns but found %d" k)
+      in
+      Some {
+        chr = chr (nth 0);
+        strand = strand (nth 6);
+        pos = interval (nth 3) (nth 4);
+        source = source (nth 1);
+	feature = feat (nth 2);
+        phase = phase (nth 7);
+	score = score (nth 5);
+	attributes = attributes ver attributes_str
+      }
         
 end
 

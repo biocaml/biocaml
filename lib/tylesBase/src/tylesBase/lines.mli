@@ -9,6 +9,9 @@ exception Error of (Pos.t * string)
 val fold_file : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a
   (** [fold_file ~strict f init file] accumulates the result of applying [f] to each line of [file]. Function [f] should raise [Failure] to indicate an error for the given line. If [strict] is true, the default, this will be caught and re-raised as [Error (p,m)], where [p] gives the position of the error. If [strict] is false, the exception is ignored and parsing continues. *)
 
+val iter_file : ?strict:bool -> (string -> unit) -> string -> unit
+  (** Like [fold] but function [f] is evaluated only for its side-effect. *)
+
 val of_file : ?strict:bool -> (string -> 'a) -> string -> 'a list
   (** [of_file ~strict f file] reads all lines from [file], parsing each with [f]. See [fold_file] for additional details. *)
 
@@ -24,7 +27,8 @@ val copy_file : ?first:int -> ?last:int -> string -> string -> unit
 (** {8 Channel Operations} 
     Like file operations above but input and output are channels. *)
   
-val fold_channel : ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a 
+val fold_channel : ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
+val iter_channel : ?strict:bool -> (string -> unit) -> in_channel -> unit
 val of_channel : ?strict:bool -> (string -> 'a) -> in_channel -> 'a list
 val to_channel : ('a -> string) -> out_channel -> 'a list -> unit
 val copy_channel : ?first:int -> ?last:int -> in_channel -> out_channel -> unit
@@ -33,7 +37,8 @@ val copy_channel : ?first:int -> ?last:int -> in_channel -> out_channel -> unit
 (** {8 Stream Operations}
     Like file operations above but input and output are character streams. *)
 
-val fold_stream : ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a 
+val fold_stream : ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
+val iter_stream : ?strict:bool -> (string -> unit) -> char Stream.t -> unit
 val of_stream : ?strict:bool -> (string -> 'a) -> char Stream.t -> 'a list
 val to_stream : ('a -> string) -> 'a list -> char Stream.t
   (** Like [to_file] but print output to alternative destinations. *)
@@ -42,6 +47,7 @@ val to_stream : ('a -> string) -> 'a list -> char Stream.t
 (** {8 String Operations}
     Like file operations above but input and output are strings. *)
 
-val fold_string : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a 
+val fold_string : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a
+val iter_string : ?strict:bool -> (string -> unit) -> string -> unit 
 val of_string : ?strict:bool -> (string -> 'a) -> string -> 'a list
 val to_string : ('a -> string) -> 'a list -> string

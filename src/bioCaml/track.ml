@@ -51,18 +51,22 @@ module TrackLine = struct
       | None -> ()
       | Some y ->
           let err = err "name" y in
-          if String.length y > 15 then raise_bad (err (too_long 15));
-          if not (good_chars y) then raise_bad (err illegal_chars);
           if not (quote_enclosed y) then raise_bad (err quotes_reqd)
+            (*;
+              if String.length y > 15 then raise_bad (err (too_long 15));
+              if not (good_chars y) then raise_bad (err illegal_chars)
+            *)
 
   let validate_description t =    
     match get t "description" with
       | None -> ()
       | Some y ->
           let err = err "description" y in
-          if String.length y > 60 then raise_bad (err (too_long 60));
           if not (quote_enclosed y) then raise_bad (err quotes_reqd)
-            
+            (*;
+              if String.length y > 60 then raise_bad (err (too_long 60))
+            *)
+                        
   let validate_visibility t =     
     match get t "visibility" with
       | None -> ()

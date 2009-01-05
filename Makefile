@@ -39,6 +39,12 @@ doc/module_dependencies.eps: doc
 	cd src/_build; ocamlfind ocamldoc -load base/color.odoc -load base/rSet.odoc -load base/romanNum.odoc -load base/browserLinesHelper.odoc -load base/trackLineHelper.odoc -load base/tracksHelper.odoc -load base/wigHelper.odoc -load base/wigLexer.odoc -load base/wigParser.odoc  -load bioCaml/about.odoc -load bioCaml/bar.odoc -load bioCaml/bed.odoc -load bioCaml/bpmap.odoc -load bioCaml/cel.odoc -load bioCaml/chrName.odoc -load bioCaml/commentLines.odoc -load bioCaml/fasta.odoc -load bioCaml/gff.odoc -load bioCaml/histogram.odoc -load bioCaml/math.odoc -load bioCaml/range.odoc -load bioCaml/seq.odoc -load bioCaml/sgr.odoc -load bioCaml/strandName.odoc -load bioCaml/wig.odoc -dot-types -dot-include-all
 	cd src/_build; dot -O -Teps ocamldoc.out; mv ocamldoc.out.eps ../../doc/module_dependencies.eps
 
+# delete compiled documentation
+.PHONY: dclean
+dclean:
+	rm -rf doc/html/*
+
+# delete compiled code
 .PHONY: clean
 AUTO_TEX_SUFFIXES=bbl log dvi blg pdf aux
 clean:
@@ -46,8 +52,8 @@ clean:
 	cd lib; rm -f *.a *.o *.so *.cm*
 	cd src; ocamlbuild -clean
 
+# delete all automatically generated files
 .PHONY: cclean
-cclean: clean
-	rm -rf doc/html/*
+cclean: dclean clean
 	rm -f $(wildcard $(patsubst %,notes/*.%,$(AUTO_TEX_SUFFIXES)))
 	rm -f $(wildcard $(patsubst %,notes/*/*.%,$(AUTO_TEX_SUFFIXES)))

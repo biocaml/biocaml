@@ -36,22 +36,36 @@ end
   
 let data bpmap cels =
   let cels = List.map Tbl.of_cel1 cels in
-    
   let f ans r =
     let datl = List.map (fun cel -> Tbl.find cel r.Bpmap.pmcoord, Tbl.find cel r.Bpmap.mmcoord) cels in
-      (r.Bpmap.probe,datl)::ans
+    (r.Bpmap.probe,datl)::ans
   in
-    Bpmap.fold f [] bpmap
-
+  Bpmap.fold f [] bpmap
+    
 let pm_mm bpmap cels =
   let cels = List.map Tbl.of_cel2 cels in
-    
   let f ans r =
     let datl = List.map (fun cel -> (Tbl.find cel r.Bpmap.pmcoord) -. (Tbl.find cel r.Bpmap.mmcoord)) cels in
-      (r.Bpmap.probe,datl)::ans
+    (r.Bpmap.probe,datl)::ans
   in
-    Bpmap.fold f [] bpmap
+  Bpmap.fold f [] bpmap
+    
+let pm bpmap cels =
+  let cels = List.map Tbl.of_cel2 cels in
+  let f ans r =
+    let datl = List.map (fun cel -> Tbl.find cel r.Bpmap.pmcoord) cels in
+    (r.Bpmap.probe,datl)::ans
+  in
+  Bpmap.fold f [] bpmap
 
+let mm bpmap cels =
+  let cels = List.map Tbl.of_cel2 cels in
+  let f ans r =
+    let datl = List.map (fun cel -> Tbl.find cel r.Bpmap.mmcoord) cels in
+    (r.Bpmap.probe,datl)::ans
+  in
+  Bpmap.fold f [] bpmap
+    
 module Parser = struct
   (** parse string of form "\[sss\]" *)
   let section_name s =
