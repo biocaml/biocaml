@@ -2,6 +2,8 @@ open TylesBase
 open Printf
 open Array
 
+exception ValueError of string
+
 let row m i =
   if i < length m then copy m.(i)
   else failwith (sprintf "invalid row index %d" i)
@@ -64,7 +66,7 @@ let variance a =
 let rms = sqrt <<- mean <<- (map (fun x -> x *. x))
   
 let stdv = sqrt <<- variance
-  
+
 let median a =
   let n = length a in
   assert (n > 0);
@@ -96,7 +98,7 @@ let mad a =
   let med = median a in
   let a = map (fun v -> abs_float (v -. med)) a in
   median a
-    
+
 let quantile_normalization aa =
   assert (is_rectangular aa);
   if length aa = 0 || length aa.(0) = 0 || length aa.(0) = 1 then
@@ -145,55 +147,133 @@ let pearson (a1:float array) (a2:float array) =
   let f acc e1 e2 = 
     (((e1 -. a1avg) /. a1sd) *. ((e2 -. a2avg) /. a2sd)) +. acc 
   in
-  (List.fold_left2 f 0. a1 a2) /. (float_of_int (List.length a1))
+  (List.fold_left2 f 0. a1 a2) /. (float_of_int ((List.length a1) - 1))
     
-let rank (arr:float array) = 
-  let newarr = Array.copy arr in
-  let newarr = Array.mapi (fun idx a -> (a, idx)) newarr in
-  let _ = Array.sort (fun (a,_) (b,_) -> Pervasives.compare a b) newarr in
-  if Array.unique (fun (a,_) (b,_) -> Pervasives.compare a b) newarr 
-  then 
-    let newarr = Array.mapi (fun i (a,idx) -> (i + 1,idx)) newarr in
-    (Array.sort (fun (_,a) (_,b) -> Pervasives.compare a b) newarr; 
-    Array.map (fun (i,idx) -> float_of_int i) newarr)
-  else 
-    let len = Array.length newarr in
-    let ranker a = 
-      let putter count idx = 
-        let r = 
-          if count = 1 then (float_of_int idx) else
-            let hi = float_of_int idx in
-            let lo = float_of_int (idx - count + 1) in
-            (hi +. lo) /. 2.
-        in
-        let rec putter_aux r count idx = 
-          if count = 0 then ()
-          else 
-            let (_,prev) = a.(idx - 1) in
-            a.(idx - 1) <- (r, prev); putter_aux r (count - 1) (idx - 1)
-        in
-        putter_aux r count idx
-      in
-      let rec ranker_aux count idx =
-        if idx >= len then putter count idx
-        else 
-          match count with
-            | 0 -> ranker_aux 1 1
-            | n -> 
-                let (m,_),(n,_) = a.(idx),a.(idx - 1) in
-                if m = n 
-                then ranker_aux (count + 1) (idx + 1)
-                else (putter count idx; ranker_aux 1 (idx + 1))
-      in
-      ranker_aux 0 0; newarr
-    in
-    let ranked_arr = ranker newarr in
-    (Array.sort (fun (_,a) (_,b) -> Pervasives.compare a b) ranked_arr;
-    Array.map (fun (i,idx) -> i) newarr)
+let rank arr =
+  let arr = Array.copy arr in
+  let arr = Array.mapi (fun i a -> a,i) arr in
+  Array.sort (fun (a,_) (b,_) -> Pervasives.compare a b) arr;
+  let g prev il ans = 
+    let count = List.length il in
+    let n = count + (List.length ans) in
+    let hi = float_of_int n in
+    let lo = float_of_int (n - count + 1) in
+    let rank = (hi +. lo) /. 2. in
+    (List.map (fun i -> rank,i) il) @ ans
+  in
+  let f (prev, il, ans) (x,i) =   (* prev is the value that was equal *)
+    let count = List.length il in (* il is list of original indices in reverse for items that were equal *)
+    if count = 0 then             (* ans is list of ranks and original index pairs in reverse *)  
+      x, [i], ans               
+    else if x = prev then
+      x, i::il, ans
+    else
+      x, [i], g prev il ans
+  in
+  let prev,il,ans = Array.fold_left f (0.,[],[]) arr in
+  let ans = g prev il ans in
+  let ans = List.sort ~cmp:(fun (_,a) (_,b) -> Pervasives.compare a b) ans in
+  Array.of_list (List.map fst ans)
 
 let spearman (arr1:float array) (arr2: float array) = 
   let arr1,arr2 = rank arr1, rank arr2 in
   pearson arr1 arr2
+
+let cnd x = 
+(* Modified from C++ code by David Koppstein. Found from
+   www.sitmo.com/doc/Calculating_the_Cumulative_Normal_Distribution *)
+  let b1,b2,b3,b4,b5,p,c = 
+    0.319381530, -0.356563782, 1.781477937, -1.821255978, 
+    1.330274429, 0.2316419, 0.39894228 in
+  if x >= 0. then
+    let t = 1. /. (1. +. (p *. x)) in
+    (1. -. (c *. (exp (-.x *. x /. 2.)) *. t *. 
+      (t *. (t *. (t *. ((t *. b5) +. b4) +. b3) +. b2) +. b1 )))
+    else 
+      let t = 1. /. (1. -. p *. x) in
+      c *. (exp (-.x *. x /. 2.)) *. t *.
+        (t *. (t *. (t *. ((t *. b5) +. b4) +. b3) +. b2) +. b1 )
+    
+let ltqnorm p =
+(* 
+   Modified from python code by David Koppstein. Original comments follow below. 
+   First version was written in perl, by Peter J. Acklam, 2000-07-19. 
+   Second version was ported to python, by Dan Field, 2004-05-03. 
+*)
+    if (p <= 0.) || (p >= 1.) then
+      raise (ValueError ("Argument to ltqnorm " ^ (string_of_float p) ^ 
+        " must be in open interval (0,1)"))
+    else
+      (* Coefficients in rational approximations. *)
+      let a = 
+        [|-3.969683028665376e+01; 2.209460984245205e+02; 
+        -2.759285104469687e+02; 1.383577518672690e+02; 
+        -3.066479806614716e+01; 2.506628277459239e+00|] in
+      let b = 
+        [|-5.447609879822406e+01; 1.615858368580409e+02; 
+        -1.556989798598866e+02; 6.680131188771972e+01; 
+        -1.328068155288572e+01|] in
+      let c = 
+        [|-7.784894002430293e-03; -3.223964580411365e-01; 
+        -2.400758277161838e+00; -2.549732539343734e+00; 
+        4.374664141464968e+00; 2.938163982698783e+00|] in
+      let d = 
+        [|7.784695709041462e-03; 3.224671290700398e-01; 
+        2.445134137142996e+00; 3.754408661907416e+00|] in
+
+      (* Define break-points. *)
+      let plow  = 0.02425 in
+      let phigh = 1. -. plow in
+      let f q = 
+        (((((c.(0)*.q+.c.(1))*.q+.c.(2))*.q+.c.(3))*.q+.c.(4))*.q+.c.(5)) /.
+          ((((d.(0)*.q+.d.(1))*.q+.d.(2))*.q+.d.(3))*.q+.1.)
+      in
+
+    (* Rational approximation for lower region: *)
+    if p < plow then
+      let q  = sqrt ((-2.) *. (log p)) in
+      f q
+
+    (* Rational approximation for upper region: *)
+    else if phigh < p then
+      let q = sqrt ((-2.) *. (log (1. -. p))) in
+      f q
+
+    (* Rational approximation for central region: *)
+    else 
+      let q = p -. 0.5 in
+      let r = q *. q in
+    (((((a.(0)*.r+.a.(1))*.r+.a.(2))*.r+.a.(3))*.r+.a.(4))*.r+.a.(5))*.q /. 
+      (((((b.(0)*.r+.b.(1))*.r+.b.(2))*.r+.b.(3))*.r+.b.(4))*.r+.1.)
+
+let wilcoxon_rank_sum_to_z arr1 arr2 = 
+  let l1,l2 = (Array.length arr1),(Array.length arr2) in
+  let ranked = rank (Array.append arr1 arr2) in
+  let arr1 = Array.sub ranked 0 l1 in
+  let l1,l2 = (float_of_int l1), (float_of_int l2) in
+  let sum1 = 
+    let f acc elem = elem +. acc in
+    Array.fold_left f 0. arr1
+  in
+  let expectation = (l1 *. (l1 +. l2 +. 1.)) /. 2. in
+  let var = (l1 *. l2 *. ((l1 +. l2 +. 1.) /. 12.)) in
+  (sum1 -. expectation) /. (sqrt var)
+  
+let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 = 
+  let l1,l2 = (Array.length arr1),(Array.length arr2) in
+  let ranked = rank (Array.append arr1 arr2) in
+  let arr1 = Array.sub ranked 0 l1 in
+  let l1,l2 = (float_of_int l1), (float_of_int l2) in
+  let sum1 = 
+    let f acc elem = elem +. acc in
+    Array.fold_left f 0. arr1
+  in
+  let expectation = (l1 *. (l1 +. l2 +. 1.)) /. 2. in
+  let var = (l1 *. l2 *. ((l1 +. l2 +. 1.) /. 12.)) in
+  let z = abs_float ((sum1 -. expectation) /. (sqrt var)) in
+  (* here we assume this is a two-tailed distribution *)
+  let threshold = abs_float (ltqnorm (1. -. (alpha /. 2.))) in
+  if z < threshold then true else false
 
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = mapi Tuple.Pr.make a in
@@ -248,3 +328,11 @@ let find_min_window ?(init_direction="fwd") a pred i =
       | None -> [||]
       | Some ans -> sub a ans.Range.lo (ans.Range.hi - ans.Range.lo + 1)
 
+let factorial n =
+  if n < 2 then 1 else
+    let rec aux acc n = if n < 2 then acc else aux (n * acc) (n - 1) in
+    aux 1 n
+
+let epsilon f init fin = 
+  let rec aux acc n = if n = fin then acc else aux (acc +. (f n fin)) (n + 1) in
+  aux 0. init

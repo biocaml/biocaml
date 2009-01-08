@@ -29,12 +29,15 @@ module type S = sig
   val foldinner : Fst.key -> (Snd.key -> 'a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val mem : Fst.key -> Snd.key -> 'a t -> bool
   val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
+  val filter : (Fst.key -> Snd.key -> 'a -> bool) -> 'a t -> 'a t
   val add_with : (Fst.key -> Snd.key -> 'a option -> 'b -> 'a) -> Fst.key -> Snd.key -> 'b -> 'a t -> 'a t
   val empty : 'a t
   val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val remove : Fst.key -> Snd.key -> 'a t -> 'a t
   val intersect : 'a t -> 'b t -> ('a * 'b) t
+  val subtract : 'a t -> 'a t -> 'a t
+  val split : (Fst.key -> Snd.key -> 'a -> bool) -> 'a t -> 'a t * 'a t
  end
 
 module Make (Ord1 : ORDERED) (Ord2 : ORDERED) = struct
@@ -96,6 +99,10 @@ module Make (Ord1 : ORDERED) (Ord2 : ORDERED) = struct
     let m2 = Snd.add k2 elem m2 in
     Fst.add k1 m2 t
 
+  let filter pred t = 
+    let f k1 k2 acc v = if pred k1 k2 v then add k1 k2 v acc else acc in
+    fold f empty t
+
   let add_with f k1 k2 elem t =
     let y' = try Some (find k1 k2 t) with Not_found -> None in
     add k1 k2 (f k1 k2 y' elem) t
@@ -127,4 +134,15 @@ module Make (Ord1 : ORDERED) (Ord2 : ORDERED) = struct
     let m2 = fold (f m1) m2 m2 in
     map2 (fun a b -> a,b) m1 m2
 
+  let subtract m1 m2 = 
+    let f k1 k2 acc elem = 
+      try let _ = find k1 k2 m2 in acc
+      with Not_found -> add k1 k2 elem acc
+    in fold f empty m1
+
+  let split pred t = 
+    let trues = filter pred t in
+    let falses = 
+      filter (fun k1 k2 elem -> if pred k1 k2 elem then false else true) t in
+    (trues,falses)
 end

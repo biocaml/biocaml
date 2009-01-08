@@ -69,6 +69,24 @@ val rank : float array -> float array
 val spearman : float array -> float array -> float
   (** [spearman arr1 arr2] computes the Spearman rank correlation coefficient of two float arrays. See wikipedia for the formula. Essentially, it ranks the two arrays using [rank], and then applies the [pearson] function. *)
 
+
+val ltqnorm : float -> float
+  (** Lower tail quantile for standard normal distribution function.
+
+   This function returns an approximation of the inverse cumulative
+   standard normal distribution function.  I.e., [ltqnorm p] returns
+   an approximation to the X satisfying p = Pr{Z <= X} where Z is a
+   random variable from the standard normal distribution.
+   
+   The algorithm uses a minimax approximation by rational functions
+   and the result has a relative error whose absolute value is less
+   than 1.15e-9. *)
+
+val wilcoxon_rank_sum_to_z : float array -> float array -> float
+
+val wilcoxon_rank_sum : ?alpha:float -> float array -> float array -> bool
+(** [wilcoxon_rank_sum ~alpha=(float) arr1 arr2] performs the Wilcoxon rank sum test on two arrays with an optional argument alpha, set to 0.05 by default. If the null hypothesis is rejected -- that is, there is no significant difference between the two arrays, wilcoxon_rank_sum returns false. NB: this is for two-tailed distributions. *)
+
 (** {6 Matrix Operations} *)
   
 val row : 'a array array -> int -> 'a array
@@ -93,4 +111,9 @@ val find_min_window : ?init_direction:string -> 'a array -> (int -> int -> bool)
   (** [find_min_window a pred i] finds the minimum sized window within [a] centered around index [i] that satisfies [pred]. Function [pred] is passed the window's start and end indices. Successively larger windows are created starting from \[i, i\] and the first one to satisfy [pred] is returned. An empty array is returned if the maximum window size, i.e. all of [a], is reached and [pred] still fails. Raise [Failure] if [i] is not a valid index for [a].
       
       The first window tried is \[i, i\], by default the second is \[i, i+1\], the third \[i-1, i+1\], the fourth \[i-1, i+2\], and so on. The optional [init_direction] must be either "fwd" or "rev". If "fwd", which is the default, the window size is initially increased in the forward direction. If "rev", the second window tried will be \[i-1, i\]. If the array's boundary is reached on either side, the size continues to be increased by incrementing on the opposing side. *)
+
+val factorial : int -> int
+(** Self-explanatory. *)
   
+val epsilon : (int -> int -> float) -> int -> int -> float
+(** [epsilon f init fin] applies [f n fin] to all numbers from [init] to [fin] and adds them up. *)

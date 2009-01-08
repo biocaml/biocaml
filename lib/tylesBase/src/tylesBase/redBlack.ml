@@ -49,6 +49,30 @@ module Make (Ord : OrderedType) = struct
   let empty = Leaf
 
   exception NotInTree
+(*
+  let rec remove x t = 
+    match t with
+      | Leaf -> Leaf (* not found *)
+      | Node (color,x',l,r) ->
+          let cmp = compare x x' in
+          if cmp > 0 then Node(color,x',l,remove x r) else
+            if cmp < 0 then Node(color,x',remove x l,r) else
+              match (l,r) with
+                | (_, Leaf) -> l
+                | (Leaf, _) -> r
+                | _ -> let (nx, nr) = remove_first r in
+                  Node {value=nx; left=l; r=nr}
+  and
+      (* remove_first n  is (x, n') where x is the lowest value in
+         n, and n' is n with x removed. Requires: n is not Leaf *)
+      remove_first n =
+    match n with
+        Leaf -> raise (Failure "remove_first precondition")
+      | Node {value=x; left=Leaf; right=r} -> (x,r)
+      | Node {value=x; left=l; right=r} ->
+          let (nx,nl) = remove_first l in
+          (nx, Node{value=nx, left=nl, right=r}) 
+*)
 
   let rec within (cmp:'a -> elt -> int) (elem:'a) (tree:t) = 
     match tree with 

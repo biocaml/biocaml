@@ -33,12 +33,17 @@ module type S = sig
   val foldinner : Fst.key -> (Snd.key -> 'a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val mem : Fst.key -> Snd.key -> 'a t -> bool
   val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
+  val filter : (Fst.key -> Snd.key -> 'a -> bool) -> 'a t -> 'a t
   val add_with : (Fst.key -> Snd.key -> 'a option -> 'b -> 'a) -> Fst.key -> Snd.key -> 'b -> 'a t -> 'a t
   val empty : 'a t
   val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val remove : Fst.key -> Snd.key -> 'a t -> 'a t
   val intersect : 'a t -> 'b t -> ('a * 'b) t
+  val subtract : 'a t -> 'a t -> 'a t
+    (** [subtract m1 m2] returns an MMap that contains all of the keys and elements unique to m1, i.e. performs a "set subtraction." NB: [subtract] does not check for equality of the elements. If a pair of keys from m1 return an element in m2, even if the elements are different, this set of keys and element will not be added to the new MMap. *)
+  val split : (Fst.key -> Snd.key -> 'a -> bool) -> 'a t -> 'a t * 'a t
+    (** [split pred t] returns a tuple of MMaps. The first element in the tuple is the MMap containing all elements for which [pred k1 k2 elem] returns true, the second for all elements for which it returns false. *)
 end
   
 module Make (Ord1 : ORDERED) (Ord2 : ORDERED) : S with type Fst.key = Ord1.t and type Snd.key = Ord2.t
