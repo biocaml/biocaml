@@ -94,3 +94,11 @@ let is_sorted ?(cmp = Pervasives.compare) l =
       | [] | _::[] -> true
       | x::y::l -> if cmp x y <= 0 then loop (y::l) else false
   in loop l
+
+let fold_lefti (f : 'a -> int -> 'b -> 'a) (a : 'a) (l : 'b list) = 
+  let rec fli_aux f a i l = 
+    match l with 
+      | [] -> a
+      | h::t -> fli_aux f (f a i h) (i + 1)  t
+  in
+    fli_aux f a 0 l

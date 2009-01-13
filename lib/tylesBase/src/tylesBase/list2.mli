@@ -156,6 +156,9 @@ val fold_left : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
   (** [List.fold_left f a [b1; ...; bn]] is
       [f (... (f (f a b1) b2) ...) bn]. *)
   
+val fold_lefti : ('a -> int -> 'b -> 'a) -> 'a -> 'b list -> 'a
+(** [fold_lefti f a l] will call (f (f .... (f a 0 e0) 1 e1) ... en) on a list l where e0 ... en are elements of that list. *)
+
 val fold_right : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   (** [List.fold_right f [a1; ...; an] b] is
       [f a1 (f a2 (... (f an b) ...))].  Not tail-recursive. *)

@@ -25,6 +25,8 @@ module RedBlack = RedBlack
 module Range = Range
 module RSet = RSet
 module Table = Table
+module Monster = Monster
+module IntervalTree = IntervalTree
 
 module Fn = Fn
 module Tuple = Tuple

@@ -117,3 +117,6 @@ val factorial : int -> int
   
 val epsilon : (int -> int -> float) -> int -> int -> float
 (** [epsilon f init fin] applies [f n fin] to all numbers from [init] to [fin] and adds them up. *)
+
+val shuffle : 'a array -> 'a array
+(** [shuffle arr] takes an array and randomly shuffles it. *)

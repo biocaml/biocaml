@@ -209,8 +209,16 @@ val unique : ('a -> 'a -> int) -> 'a array -> bool
   
 val is_rectangular : 'a array array -> bool
   (** [is_rectangular a] returns true if length of every a.(i) is the same. *)
-  
-  
+
+val binary_search : ( 'a -> 'a -> int) -> 'a -> 'a array -> int
+(** [binary_search cmp elem arr] takes an array that 
+    has previously been sorted by the comparison function [cmp] and searches for 
+    the element [elem] using this comparison function using a binary search. If 
+    [elem] is found based on the comparison function, the index of the found item
+    is returned. If [elem] is not found in [arr], [-index - 1] is returned, where 
+    index is the index to which it should be added. *)
+
+
 (** {6 Searching} *)
   
 val findi : ('a -> bool) -> 'a array -> int
@@ -288,3 +296,4 @@ val fast_sort : ('a -> 'a -> int) -> 'a array -> unit
   
 external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get"
 external unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set"
+

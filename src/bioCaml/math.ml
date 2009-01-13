@@ -336,3 +336,10 @@ let factorial n =
 let epsilon f init fin = 
   let rec aux acc n = if n = fin then acc else aux (acc +. (f n fin)) (n + 1) in
   aux 0. init
+
+let shuffle result = 
+  let result = Array.copy result in
+  for i = Array.length result - 1 downto 0 do
+    let other = Random.int (i + 1) and tmp = result.(i) in
+    result.(i) <- result.(other); result.(other) <- tmp
+  done; result

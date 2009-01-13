@@ -88,7 +88,16 @@ val blit : 'a t -> int -> 'a t -> int -> int -> unit
   
 val compact : 'a t -> unit
   (** [compact darr] ensures that the space allocated by the array is minimal.*)
-  
+
+val binary_search : ('a -> 'a -> int) -> 'a -> 'a t -> int
+(** [binary_search cmp elem arr] takes an array that 
+    has previously been sorted by the comparison function [cmp] and searches for 
+    the element [elem] using this comparison function using a binary search. If 
+    [elem] is found based on the comparison function, the index of the found item
+    is returned. If [elem] is not found in [arr], [-index - 1] is returned, where 
+    index is the index to which it should be added. *)
+
+
 (** {6 Array copy and conversion} *)
   
 val to_list : 'a t -> 'a list

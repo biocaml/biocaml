@@ -12,6 +12,8 @@ val fold_file : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a
 val iter_file : ?strict:bool -> (string -> unit) -> string -> unit
   (** Like [fold] but function [f] is evaluated only for its side-effect. *)
 
+val map_file : (string -> string) -> string -> string -> unit
+
 val of_file : ?strict:bool -> (string -> 'a) -> string -> 'a list
   (** [of_file ~strict f file] reads all lines from [file], parsing each with [f]. See [fold_file] for additional details. *)
 

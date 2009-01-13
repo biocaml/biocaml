@@ -40,6 +40,42 @@ let fold_file ?(strict=true) f init file =
   try try_finally (fold_channel' ~file ~strict f init) close_in (open_in file)
   with Error (p,m) -> raise_error (Pos.set_file p file) m
 
+let fold_file2 ?(strict=true) f init file1 file2 = 
+  let ic1 = open_in file1 in
+  let ic2 = open_in file2 in
+  let acc = ref init in
+  let line_num1 = ref 0 in
+  let line_num2 = ref 0 in
+  try
+    while true do
+      incr line_num1;
+      let line1 = input_line ic1 in
+      try
+        incr line_num2;
+        let line2 = input_line ic2 in
+        acc := f !acc line1 line2
+      with End_of_file -> raise_error (Pos.fl file2 !line_num2) "second file contains fewer lines than first"
+    done;
+  with End_of_file -> (
+    try 
+      ignore (input_line ic2);
+      raise_error (Pos.fl file1 !line_num1) "first file contains fewer lines than second"
+    with End_of_file -> ()
+  );
+    close_in ic1;
+    close_in ic2;
+    !acc
+
+let map_file f infile outfile = 
+  let ic = open_in infile in
+  let oc = open_out outfile in
+  try 
+    while true do 
+      Printf.fprintf oc "%s\n" (f (input_line ic))
+    done; 
+    assert false
+  with End_of_file -> close_in ic; close_out oc; ()
+
 let iter_file ?(strict=true) f file =
   fold_file ~strict (fun _ x -> f x) () file
 
@@ -108,3 +144,4 @@ let copy_file ?(first=1) ?last in_file out_file =
   in
   let close (cin,cout) = close_in cin; close_out cout in
   try_finally copy close (open_in in_file, open_out_safe out_file)
+
