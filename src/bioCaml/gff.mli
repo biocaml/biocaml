@@ -51,14 +51,23 @@ val to_map : t -> row list StringMap.t
 val map_of_file : ?version:int -> ?strict:bool -> string -> row list StringMap.t
 
 val get_attribute : row -> string -> string
-  (** [get_attribute r x] returns the value of the attribute named [x] in row [r]. *)
+  (** [get_attribute r x] returns the value of attribute [x]. Enclosing quotes if any are stripped off. Raise [Failure] if [x] is not defined exactly once. *)
 
+val get_attributel : row -> string -> string list
+  (** [get_attributel r x] returns the values of the attribute named [x] in row [r]. A list is returned in case the same attribute is multiply defined. An empty list indicates that the requested attribute is undefined. See also [get_attribute]. *)
+  
 val has_attribute : row -> string -> bool
   (** [has_attribute r x] returns true if attribute [x] is defined in [r]. *)
 
-val set_attribute : string -> string -> row -> row
-  (** [set_attribute x y r] sets attribute [x] to value [y] in [r]. Any previous value of [x] is overwritten. *)
+val add_attribute : string -> string -> row -> row
+  (** [add_attribute x y r] adds attribute [x] with value [y] in [r]. Any previous value of [x] is left unaltered. Use [delete_attribute] first if desired. See also [set_attribute]. *)
 
+val set_attribute : string -> string -> row -> row
+  (** [set_attribute x y r] sets attribute [x] to [y] in [r], deleting any previous values. *)
+  
+val delete_attribute : string -> row -> row
+  (** [delete_attribute x r] deletes all occurrences of attribute [x] in [r]. *)
+  
 val row_to_string : ?version:int -> row -> string
 val to_channel : ?version:int -> t -> out_channel -> unit
 val to_file : ?version:int -> t -> string -> unit

@@ -12,38 +12,42 @@ let fold = List.fold_left
 let iter = List.iter
 let to_list t = t
 
+let get_attributel row attr_name =
+  let strip_quotes s =
+    let n = String.length s in
+    if n >= 2 && s.[0] = '"' && s.[n-1] = '"'
+    then String.slice ~first:1 ~last:(n-1) s
+    else s
+  in
+  let f attr = match attr with
+    | TagValue (x,y) -> if x = attr_name then Some (strip_quotes y) else None
+    | Something _ -> None
+  in
+  List.filter_map f row.attributes
+    
 let get_attribute row attr_name =
-  let is_attr_name = function TagValue (tg,_) -> attr_name = tg | Something _ -> false in
-  let attrs = List.filter is_attr_name row.attributes in
-  match List.length attrs with
-    | 1 -> (
-        match List.nth attrs 0 with
-          | TagValue (_,v) -> v
-          | Something _ -> assert false
-      )
-    | 0 -> failwith (sprintf "attribute %s not found" attr_name)
-    | n -> failwith (sprintf "attribute %s occurs %d times" attr_name n)
-
+  match get_attributel row attr_name with
+    | [] -> failwith (sprintf "attribute %s undefined" attr_name)
+    | x::[] -> x
+    | _ -> failwith (sprintf "attribute %s multiply defined" attr_name)
+        
 let has_attribute row attr_name =
   let pred = function TagValue (x,_) -> x = attr_name | Something _ -> false in
   List.exists pred row.attributes
 
-let set_attribute x y r =
-  let got_set = ref false in
-  let f attr = match attr with
-    | TagValue (x',_) -> 
-        if x' = x 
-        then (got_set := true; TagValue(x,y))
-        else attr
-    | Something _ -> attr
-  in
-  let attributes = List.map f r.attributes in
-  if !got_set then
-    {r with attributes=attributes}
-  else
-    {r with attributes = attributes @ [TagValue(x,y)]}
+let add_attribute x y r =
+  {r with attributes = r.attributes @ [TagValue(x,y)]}
   
+let delete_attribute x r =
+  let pred attr = match attr with
+    | TagValue (x',_) -> x <> x'
+    | Something _ -> true
+  in
+  {r with attributes = List.filter pred r.attributes}
 
+let set_attribute x y r =
+  add_attribute x y (delete_attribute x r)
+    
 type version = Two | Three
 
 let make_version (x:int) : version =
@@ -51,7 +55,6 @@ let make_version (x:int) : version =
     | 2 -> Two
     | 3 -> Three
     | _ -> failwith (sprintf "invalid version: %d" x)
-
 
 let row_to_string ?(version=3) r =
   let ver = make_version version in
@@ -138,14 +141,8 @@ module Parser = struct
       with
           ExtString.Invalid_string -> Something s
     in
-    let ans = List.map attribute (List.map String.strip (String.nsplit s ";")) in
-(*
-    let tags = List.filter_map (function TagValue (x,_) -> Some x | Something _ -> None) ans in
-    try failwith (sprintf "multiply defined attribute %s" (List.first_repeat tags))
-    with Not_found -> ans
-*)
-    ans
-
+    List.map attribute (List.map String.strip (String.nsplit s ";"))
+      
   let row (ver:version) (s:string) : row option =
     let s = String.strip s in
     if String.length s > 0 && s.[0] = '#' then
@@ -198,102 +195,21 @@ let iter_file ?(version=3) ?(strict=true) f file =
   fold_file ~version ~strict f () file
 
 let to_map t =
-  let append _ (prev : row list option) r : row list =
+  let append r (prev : row list option) : row list =
     match prev with
       | None -> [r]
       | Some prev -> r::prev
   in
-  let f ans r = StringMap.add_with append r.chr r ans in
+  let f ans r = StringMap.add_with r.chr (append r) ans in
   let ans = List.fold_left f StringMap.empty t in
   StringMap.map List.rev ans
 
 let map_of_file ?(version=3) ?(strict=true) file =
-  let append _ (prev : row list option) r : row list =
+  let append r (prev : row list option) : row list =
     match prev with
       | None -> [r]
       | Some prev -> r::prev
   in
-  let f ans r = StringMap.add_with append r.chr r ans in
+  let f ans r = StringMap.add_with r.chr (append r) ans in
   let ans = fold_file ~version ~strict f StringMap.empty file in
   StringMap.map List.rev ans
-
-
-(* ************************
-module Attr = struct
-  (* return number of attr's in list with given tag *)
-  let num_tags (tg:string) (attrs: attr list) : int =
-    let incr = function 
-      | TagValue (tg',_) -> if tg' = tg then 1 else 0 
-      | Something _ -> 0
-    in
-    List.fold_left (fun sum a -> incr a + sum) 0 attrs
-      
-  let syntactic_equal a b =
-    match a,b with
-      | (TagValue (a1,a2), TagValue (b1,b2)) -> a1 = b1 && a2 = b2
-      | (Something a, Something b) -> a = b
-      | (TagValue _, Something _)
-      | (Something _, TagValue _) -> false
-end
-  
-module Strand = struct
-  let syntactic_equal a b =
-    match a,b with (Sense,Sense) | (Antisense,Antisense) | (Unknown,Unknown) | (Unstranded,Unstranded) -> true | _ -> false
-end
-
-module Annt = struct
-  let interval a = Range.make a.start a.finish
-  let start a = a.start
-  let finish a = a.finish
-  let strand a = a.strand
-  let chr a = a.chr
-  let source a = a.source
-  let typ a = a.typ
-  let score a = a.score
-  let attrs a = a.attrs
-  let phase a =
-    if a.typ = "CDS"
-    then try Option.get a.phase with Option.No_value -> raise (Invalid_argument "BUG: no phase for annotation of type CDS")
-    else raise (Failure "phase available only for annotations of type CDS")
-
-
-  let syntactic_equal a b =
-    (a.chr = b.chr)
-    && (a.source = b.source)
-    && (a.typ = b.typ)
-    && (a.start = b.start)
-    && (a.finish = b.finish)
-    && (a.score = b.score)
-    && (Strand.syntactic_equal a.strand b.strand)
-    && (a.phase = b.phase)
-    && (List.length a.attrs = List.length b.attrs && List.for_all2 Attr.syntactic_equal a.attrs b.attrs)
-
-  (** Return None if given annotation is well-formed, or Some "msg" if not, where msg explains the error. For internal use only, annotations produced by constructors should be well-formed. *)
-  let is_ok (a:annt) : string option =
-    if a.start > a.finish then
-      Some "start coordinate cannot be greater than finish coordinate"
-    else if a.typ = "CDS" then
-      match a.phase with
-        | None -> Some "CDS annotations must be provided with a phase"
-        | Some p ->
-            if p = 0 || p = 1 || p = 2
-            then None
-            else Some ("invalid phase " ^ (string_of_int p))
-    else
-      None
-end
-
-module Tree = KeyTree.Make(struct
-  type node = annt
-  type key = string
-  let compare_keys = String.compare
-  let key_to_string s = s
-  let key_of_node node =
-    match Attr.num_tags "ID" node.attrs with
-      | 1 -> Some (Annt.get_attr node "ID")
-      | 0 -> None
-      | _ -> raise (Failure "attribute ID occurs more than once in annotation")
-end)
-type t = Tree.t
-
-****************** *)

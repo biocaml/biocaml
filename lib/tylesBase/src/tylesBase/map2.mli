@@ -67,8 +67,8 @@ sig
         [m], plus a binding of [x] to [y]. If [x] was already bound
         in [m], its previous binding disappears. *)
 
-  val add_with : (key -> 'a option -> 'b -> 'a) -> key -> 'b -> 'a t -> 'a t
-    (** [add_with f x y m] binds [x] to [(f x y' y)] where [y'] is the previous binding of [x] if any. *)
+  val add_with : key -> ('a option -> 'a) -> 'a t -> 'a t
+    (** [add_with x f m] binds [x] to [(f y')] where [y'] is the previous binding of [x] if any. *)
     
   val remove: key -> 'a t -> 'a t
     (** [remove x m] returns a map containing the same bindings as

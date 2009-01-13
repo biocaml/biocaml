@@ -86,6 +86,9 @@ val blit : string -> int -> string -> int -> int -> unit
 val concat : string -> string list -> string
   (** [String.concat sep sl] concatenates the list of strings [sl],
       inserting the separator string [sep] between each. *)
+
+val rev : string -> string
+  (** Return the string in reverse. *)
   
 val escaped : string -> string
   (** Return a copy of the argument, with special characters

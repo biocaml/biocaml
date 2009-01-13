@@ -34,7 +34,7 @@ module type S = sig
   val mem : Fst.key -> Snd.key -> 'a t -> bool
   val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
   val filter : (Fst.key -> Snd.key -> 'a -> bool) -> 'a t -> 'a t
-  val add_with : (Fst.key -> Snd.key -> 'a option -> 'b -> 'a) -> Fst.key -> Snd.key -> 'b -> 'a t -> 'a t
+  val add_with : Fst.key -> Snd.key -> ('a option -> 'a) -> 'a t -> 'a t
   val empty : 'a t
   val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t

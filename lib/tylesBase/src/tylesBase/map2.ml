@@ -14,7 +14,7 @@ module type S = sig
   val empty : 'a t
   val singleton : key -> 'a -> 'a t
   val add: key -> 'a -> 'a t -> 'a t
-  val add_with : (key -> 'a option -> 'b -> 'a) -> key -> 'b -> 'a t -> 'a t
+  val add_with : key -> ('a option -> 'a) -> 'a t -> 'a t
   val remove: key -> 'a t -> 'a t
   val of_array : (key * 'a) array -> 'a t
   val of_list : (key * 'a) list -> 'a t
@@ -65,9 +65,9 @@ module Make (Ord:OrderedType) = struct
     with 
         Exit -> match !ans with None -> raise Not_found | Some kx -> kx
 
-  let add_with f x y m =
+  let add_with x f m =
     let y' = try Some (find x m) with Not_found -> None in
-    add x (f x y' y) m
+    add x (f y') m
 
   let intersect m1 m2 = 
     let f m2 k1 elem acc = 

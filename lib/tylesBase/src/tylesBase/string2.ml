@@ -38,3 +38,13 @@ let strip_final_cr s =
     if l > 0 && s.[l-1] = '\r'
     then String.sub s 0 (l-1)
     else s
+
+let rev s =
+  let n = String.length s in
+  let ans = String.create n in
+  let j = ref (n-1) in
+  for i = 0 to n - 1 do
+    ans.[i] <- s.[!j];
+    decr j
+  done;
+  ans

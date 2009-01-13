@@ -33,12 +33,18 @@ doc:
 	rm -rf doc/html/tylesBase; mkdir -p doc/html/tylesBase
 	cp -fR src/_build/tylesBase.docdir/* doc/html/tylesBase
 
+# delete compiled documentation
+.PHONY: dclean
+dclean:
+	rm -rf doc/html/*
+
+# delete compiled code
 .PHONY: clean
 clean:
 	cd src; ocamlbuild -clean
 	rm -rf bin/*.native bin/*.byte
 	rm -f lib/*.{a,o,so,cm*}
 
+# delete all automatically generated files
 .PHONY: cclean
-cclean: clean
-	rm -rf doc/html/*
+cclean: clean dclean

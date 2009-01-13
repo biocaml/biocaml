@@ -1,4 +1,3 @@
-
 module List = List2
 module Map = Map2
 
@@ -30,7 +29,7 @@ module type S = sig
   val mem : Fst.key -> Snd.key -> 'a t -> bool
   val add : Fst.key -> Snd.key -> 'a -> 'a t -> 'a t
   val filter : (Fst.key -> Snd.key -> 'a -> bool) -> 'a t -> 'a t
-  val add_with : (Fst.key -> Snd.key -> 'a option -> 'b -> 'a) -> Fst.key -> Snd.key -> 'b -> 'a t -> 'a t
+  val add_with : Fst.key -> Snd.key -> ('a option -> 'a) -> 'a t -> 'a t
   val empty : 'a t
   val map2i : (Fst.key -> Snd.key -> 'a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
   val map2 : ('a -> 'b -> 'c) -> 'a t -> 'b t -> 'c t
@@ -103,9 +102,9 @@ module Make (Ord1 : ORDERED) (Ord2 : ORDERED) = struct
     let f k1 k2 acc v = if pred k1 k2 v then add k1 k2 v acc else acc in
     fold f empty t
 
-  let add_with f k1 k2 elem t =
+  let add_with k1 k2 f t =
     let y' = try Some (find k1 k2 t) with Not_found -> None in
-    add k1 k2 (f k1 k2 y' elem) t
+    add k1 k2 (f y') t
 
   let map2i f m n = 
     if size m <> size n then failwith "domains not equal in size";
