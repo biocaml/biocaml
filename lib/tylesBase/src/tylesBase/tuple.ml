@@ -7,6 +7,8 @@ module Pr = struct
   let map2 f (a,b) = (a, f b)
   let curry f a b = f(a,b)
   let uncurry f (a,b) = f a b
+  let cmp1 (a1,_) (a2,_) = compare a1 a2
+  let cmp2 (_,b1) (_,b2) = compare b1 b2
 end
 
 module Tr = struct
@@ -23,6 +25,9 @@ module Tr = struct
   let map3 f (a,b,c) = (a, b, f c)
   let curry f a b c = f(a, b, c)
   let uncurry f (a,b,c) = f a b c
+  let cmp1 (a1,_,_) (a2,_,_) = compare a1 a2
+  let cmp2 (_,b1,_) (_,b2,_) = compare b1 b2
+  let cmp3 (_,_,c1) (_,_,c2) = compare c1 c2
 end
 
 module Fr = struct
@@ -47,4 +52,8 @@ module Fr = struct
   let map4 f (a,b,c,d) = (a, b, c, f d)
   let curry f a b c d = f(a,b,c,d)
   let uncurry f (a,b,c,d) = f a b c d
+  let cmp1 (a1,_,_,_) (a2,_,_,_) = compare a1 a2
+  let cmp2 (_,b1,_,_) (_,b2,_,_) = compare b1 b2
+  let cmp3 (_,_,c1,_) (_,_,c2,_) = compare c1 c2
+  let cmp4 (_,_,_,d1) (_,_,_,d2) = compare d1 d2
 end

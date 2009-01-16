@@ -126,25 +126,3 @@ module Test = struct
     is_good IntSet.diff diff "diff"
       
 end
-
-
-
-  
-(*
-  type interval = t
-  module Set = struct
-  module S = Reins.AVLSet.MonoSet
-  (struct
-  type t = interval
-
-  let compare v1 v2 =
-  let precedes v1 v2 = is_before v1 v2 || proper_subset v2 v1 in
-  if precedes v1 v2 then -1
-  else if v1 = v2 then 0
-  else (assert (precedes v2 v1); 1)
-  
-  let to_string = to_string
-  end)
-  include S
-  end
-*)

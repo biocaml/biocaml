@@ -14,7 +14,7 @@ val of_range_list : range list -> t
   (** Construct the set of integers representing the union of integers in all given ranges. *)
 
 val to_range_list : t -> range list
-  (** Return set of integers as a minimal list of non-overlapping range, in ascending order by their coordinates. Number of intervals in answer is the minimum needed to represent given set. *)
+  (** Return set of integers as a minimal list of non-overlapping ranges in ascending order by their coordinates. *)
   
 val to_list : t -> int list
   (** Return set of integers as a list. Elements will be in ascending order. *)

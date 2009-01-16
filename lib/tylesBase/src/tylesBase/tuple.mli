@@ -8,6 +8,7 @@
     - [mapn] apply a function to the [n]th item of a tuple
     - [curry] convert a function taking a tuple into curried form
     - [uncurry] convert a curried function into one taking a tuple
+    - [cmpn] a comparison function that considers just the [n]th item
 *)
 
 (** Pairs *)
@@ -20,6 +21,8 @@ module Pr : sig
   val map2 : ('b -> 'c) -> ('a * 'b) -> ('a * 'c)
   val curry : ('a * 'b -> 'c) -> 'a -> 'b -> 'c
   val uncurry : ('a -> 'b -> 'c) -> 'a * 'b -> 'c
+  val cmp1 : ('a * 'b) -> ('a * 'b) -> int
+  val cmp2 : ('a * 'b) -> ('a * 'b) -> int
 end
   
 (** Triples *)
@@ -37,6 +40,9 @@ module Tr : sig
   val map3 : ('c -> 'd) -> ('a * 'b * 'c) -> ('a * 'b * 'd)
   val curry : ('a * 'b * 'c -> 'd) -> 'a -> 'b -> 'c -> 'd
   val uncurry : ('a -> 'b -> 'c -> 'd) -> 'a * 'b * 'c -> 'd
+  val cmp1 : ('a * 'b * 'c) -> ('a * 'b * 'c) -> int
+  val cmp2 : ('a * 'b * 'c) -> ('a * 'b * 'c) -> int
+  val cmp3 : ('a * 'b * 'c) -> ('a * 'b * 'c) -> int
 end
 
 (** Quadruples *)
@@ -62,4 +68,8 @@ module Fr : sig
   val map4 : ('d -> 'e) -> ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'e)
   val curry : ('a * 'b * 'c * 'd -> 'e) -> 'a -> 'b -> 'c -> 'd -> 'e
   val uncurry : ('a -> 'b -> 'c -> 'd -> 'e) -> 'a * 'b * 'c * 'd -> 'e
+  val cmp1 : ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'd) -> int
+  val cmp2 : ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'd) -> int
+  val cmp3 : ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'd) -> int
+  val cmp4 : ('a * 'b * 'c * 'd) -> ('a * 'b * 'c * 'd) -> int
 end
