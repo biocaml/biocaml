@@ -22,6 +22,9 @@ val to_list : t -> int list
 val size : t -> int
   (** Number of elements in set. *)
 
+val is_empty : t -> bool
+  (** Return true if given set is empty. *)
+
 val inter : t -> t -> t
   (** Set intersection. *)
   
@@ -30,6 +33,9 @@ val union : t -> t -> t
 
 val diff : t -> t -> t
   (** Set difference. [diff s t] is the set of elements that are in [s] but not in [t]. *)
+
+val subset : t -> t -> bool
+  (** [subset s t] returns true if [s] is a subset of [t]. *)
   
 
 (** Debugging *)  

@@ -7,8 +7,8 @@ exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
 let empty = []
-
 let size t = List.fold_left (fun ans v -> ans + Range.size v) 0 t
+let is_empty t = size t = 0
 
 (* A canonical interval list is one in which adjacent intervals have gap between them and intervals retained in ascending order according to their coordinates. *)
 let rec is_canonical (vl : Range.t list) : bool =
@@ -100,7 +100,9 @@ let diff s t =
                   loop ans s t
   in
   of_range_list (loop [] s t)
-    
+
+let subset s t = is_empty (diff s t)
+
 module Test = struct
     
   let make_int_set (l : Range.t list) : IntSet.t =
@@ -124,6 +126,7 @@ module Test = struct
     is_good IntSet.diff diff "diff"
       
 end
+
 
 
   
