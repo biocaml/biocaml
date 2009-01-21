@@ -30,11 +30,13 @@ let _ = dispatch begin function
 
   | After_rules ->
 
+(* Delete this section once you are sure findlib based installations working fine. ****
       ocaml_lib ~extern:true ~dir:"../../lib" "tylesBase";
       flag ["ocaml"; "doc"] (S[A"-I";A"../../lib"]);
       flag ["ocaml"; "link"; "library"; "byte"] (A"../../lib/tylesBase.cma");
       flag ["ocaml"; "link"; "library"; "native"] (A"../../lib/tylesBase.cmx");
-      
+*)
+
       flag ["ocaml"; "parser"; "menhir"] (A"--explain");
 
       (* Add pa_openin.cmo to the ocaml pre-processor when use_opening is set *)

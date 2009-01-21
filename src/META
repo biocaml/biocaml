@@ -1,0 +1,5 @@
+description = "Bioinformatics library"
+requires = "tylesBase"
+version = "0.0"
+archive(byte) = "bioCaml.cma"
+archive(native) = "bioCaml.cmxa"
