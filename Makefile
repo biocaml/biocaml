@@ -20,7 +20,7 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),-I $(call lib_inc,$(lib))) $(patsubst %,-I src
 
 install: all
 #	cd src/_build; cp -f bioCaml.a bioCaml.o bioCaml.cm* ../../lib/ # this is a hack, install using findlib
-	cd src/_build; cp ../META .; ocamlfind install biocaml META bioCaml.cmi bioCaml.cma bioCaml.cmxa; rm -f META
+	cd src/_build; cp ../META .; ocamlfind install biocaml META bioCaml.cmi bioCaml.a bioCaml.cma bioCaml.cmxa; rm -f META
 
 all:
 #	make -C lib/tylesBase all
@@ -49,8 +49,6 @@ clean-doc:
 
 # delete compiled code
 clean:
-	make -C lib/tylesBase clean; echo ""
-	cd lib; rm -f *.a *.o *.so *.cm*
 	cd src; ocamlbuild -clean
 
 # delete compiled notes files
