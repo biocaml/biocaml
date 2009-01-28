@@ -18,13 +18,10 @@ INCLUDE=$(foreach lib,$(LIB_PKGS),-I $(call lib_inc,$(lib))) $(patsubst %,-I src
 
 .PHONY: all install doc
 
-install: all
-#	cd src/_build; cp -f bioCaml.a bioCaml.o bioCaml.cm* ../../lib/ # this is a hack, install using findlib
+install: all uninstall
 	cd src/_build; cp ../META .; ocamlfind install biocaml META bioCaml.cmi bioCaml.a bioCaml.cma bioCaml.cmxa; rm -f META
 
 all:
-#	make -C lib/tylesBase all
-#	cd lib/tylesBase/src/_build; cp -f tylesBase.a tylesBase.o tylesBase.cm* ../../../
 	cd src; ocamlbuild bioCaml.cma
 	cd src; ocamlbuild bioCaml.cmxa
 
@@ -33,7 +30,7 @@ doc/html/%:
 	rm -rf doc/html/$*; mkdir -p doc/html/$*
 	cp -fR src/_build/$*.docdir/* doc/html/$*
 
-doc: $(DOC_DIRS)
+doc: clean-doc $(DOC_DIRS)
 
 doc/module_dependencies.eps: doc
 	cd src/_build; ocamlfind ocamldoc -load base/color.odoc -load base/rSet.odoc -load base/romanNum.odoc -load base/browserLinesHelper.odoc -load base/trackLineHelper.odoc -load base/tracksHelper.odoc -load base/wigHelper.odoc -load base/wigLexer.odoc -load base/wigParser.odoc  -load bioCaml/about.odoc -load bioCaml/bar.odoc -load bioCaml/bed.odoc -load bioCaml/bpmap.odoc -load bioCaml/cel.odoc -load bioCaml/chrName.odoc -load bioCaml/commentLines.odoc -load bioCaml/fasta.odoc -load bioCaml/gff.odoc -load bioCaml/histogram.odoc -load bioCaml/math.odoc -load bioCaml/range.odoc -load bioCaml/seq.odoc -load bioCaml/sgr.odoc -load bioCaml/strandName.odoc -load bioCaml/wig.odoc -dot-types -dot-include-all
