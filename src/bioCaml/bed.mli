@@ -8,6 +8,8 @@ type t
     
 exception Bad of string
   
+val get_chr : string -> t -> (int * int) list
+
 val of_file : string -> t
   (** Parse given file. Raise [Bad] if any errors. *)
   

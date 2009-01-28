@@ -38,6 +38,8 @@ let to_list t =
     List.concat
   in f t
 
+let get_chr chr t : (int * int) list = StringMap.find chr t
+
 let of_line (s:string) : pt =
   let sl = String.nsplit s "\t" in
   let nth = List.nth sl in
