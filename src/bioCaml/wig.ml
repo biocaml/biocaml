@@ -416,7 +416,7 @@ module F = struct
           compact ans
 end
 
-let rec of_list ?(sort=false) l =
+let rec of_list ?(sort=true) l =
   if not sort then
     (compact <<- B.complete <<- (List.fold_left B.append_datum B.empty)) l
   else
@@ -425,7 +425,7 @@ let rec of_list ?(sort=false) l =
       if c <> 0 then c
       else compare lo1 lo2
     in
-    of_list (List.sort ~cmp l)
+    of_list ~sort:false (List.sort ~cmp l)
       
 let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t)
   
