@@ -35,6 +35,11 @@ let mem (chr,lo,hi) t =
   try Set.mem x (StringMap.find chr t)
   with Not_found -> false 
 
+(* Like insert but raise [Bad] if [pt] already in [t]. *)
+let insert_no_dup ((chr,lo,hi) as pt) t =
+  if mem pt t then raise_bad (sprintf "%s:[%d, %d] is repeated" chr lo hi)
+  else insert pt t
+
 let any_overlap t =
   let f _ set ans =
     if ans then ans
@@ -48,7 +53,7 @@ let any_overlap t =
   in
   StringMap.fold f t false
 
-let of_list l = List.fold_left (fun x y -> insert y x) empty l
+let of_list l = List.fold_left (fun ans pt -> insert_no_dup pt ans) empty l
 
 let to_lists t = StringMap.to_list (StringMap.map Set.to_list t)
 
@@ -77,7 +82,7 @@ let string_to_pt ?(increment_high=(-1)) (s:string) : pt =
         
 let of_channel ?(increment_high=(-1)) cin =
   let f ans line =
-    try insert (string_to_pt ~increment_high line) ans
+    try insert_no_dup (string_to_pt ~increment_high line) ans
     with Bad msg -> failwith msg
   in
   try Lines.fold_channel f empty cin

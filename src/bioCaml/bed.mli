@@ -28,7 +28,7 @@ val empty : t
   (** The empty data set. *)
 
 val insert : pt -> t -> t
-  (** [insert pt t] inserts [pt] into [t]. *)
+  (** [insert pt t] inserts [pt] into [t]. Does nothing if [pt] was already in [t]. *)
 
 val mem : pt -> t -> bool
   (** [mem pt t] returns true if [pt] into [t]. *)
@@ -40,7 +40,7 @@ val any_overlap : t -> bool
 (** {6 Constructors and Extractors} *)
 
 val of_list: pt list -> t
-  (** Construct data set from given [pt]'s. Data can be in any order, but [Bad] will be raised if data is ill-formed. *)
+  (** Construct data set from given [pt]'s. Raise [Bad] if the same [pt] is given more than once. *)
   
 val to_list : t -> pt list
   (** Extract data as a flat list. *)
@@ -55,7 +55,7 @@ val to_lists : t -> (string * (int * int) list) list
 (** {6 Parsers and Printers} *)
   
 val of_file : ?increment_high:int -> string -> t
-  (** Parse given file. Raise [Bad] if any errors. Default value for [increment_high] is [-1]. *)
+  (** Parse given file. Default value for [increment_high] is [-1]. Raise [Bad] if any errors. *)
   
 val of_channel : ?increment_high:int -> in_channel -> t
   (** Like [of_file]. *)
