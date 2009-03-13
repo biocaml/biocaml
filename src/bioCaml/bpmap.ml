@@ -1,4 +1,4 @@
-open TylesBase
+open Sesame
 open Printf
 
 type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}

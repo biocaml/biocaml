@@ -1,4 +1,4 @@
-open TylesBase
+open Sesame
 open Printf
 
 type idata = {mean:float; stdv:float; npixels:int}

@@ -1,5 +1,5 @@
 description = "Bioinformatics library"
-requires = "tylesBase pcre str"
+requires = "sesame pcre str"
 version = "0.0"
 archive(byte) = "bioCaml.cma"
 archive(native) = "bioCaml.cmxa"

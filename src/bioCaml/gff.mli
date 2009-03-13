@@ -2,7 +2,7 @@
 
     Versions 2 and 3 are supported. The only difference is the delimiter used for tag-value pairs in the attribute list: [3] uses an equal sign, and [2] uses a space. Version [3] also has additional requirements, e.g. the [feature] must be a sequence ontology term, but these are not checked. *)
 
-open TylesBase
+open Sesame
 
 exception Bad of string
   (** Raised if there are any parse errrors. *)

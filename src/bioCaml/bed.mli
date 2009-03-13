@@ -3,14 +3,14 @@
     {v
     chrA   lo1   hi1
     chrA   lo2   hi2
-     .       .       .
-     .       .       .
-     .       .       .
+     .      .     .
+     .      .     .
+     .      .     .
     chrB   lo1   hi1
     chrB   lo2   hi2
-     .       .       .
-     .       .       .
-     .       .       .
+     .      .     .
+     .      .     .
+     .      .     .
     v}
 
     Some tools require that given intervals do not overlap within each chromosome. This is not enforced, but you can use [any_overlap] to verify this property when needed.
@@ -31,7 +31,7 @@ val insert : pt -> t -> t
   (** [insert pt t] inserts [pt] into [t]. Does nothing if [pt] was already in [t]. *)
 
 val mem : pt -> t -> bool
-  (** [mem pt t] returns true if [pt] into [t]. *)
+  (** [mem pt t] returns true if [pt] is in [t]. *)
 
 val any_overlap : t -> bool
   (** Returns true if any intervals overlap within the same chromosome. *)
