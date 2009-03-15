@@ -225,14 +225,6 @@ module TrackLine = struct
 
   let of_list l = List.fold_left (fun t (a,x) -> set t a x) empty l
 
-  let valid_name s =
-    let s = if String.starts_with s "\"" then String.lchop s else s in
-    let s = if String.ends_with s "\"" then String.rchop s else s in
-    let f c l = if Char.is_alpha_num c then c::l else l in
-    let cl = String.fold_right f s [] in
-    let cl = List.take 15 cl in
-    String.implode cl
-
   let to_string t =
     (* if there is a type attribute print it first *)
     let t, ans =
@@ -292,6 +284,11 @@ module TrackLine = struct
     let ans = List.fold_left (fun ans (x,y) -> set ans x y) empty sl in
     validate ans;
     ans
+
+  let valid_wig t =
+    try find t "type" = "wiggle_0"
+    with Not_found -> false
+
 end
 
 module BrowserLines = struct

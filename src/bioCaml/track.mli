@@ -58,9 +58,9 @@ module TrackLine : sig
   val of_list : (string * string) list -> t
     (** [of_list l] sets [a] to [x] for every [(a,x)] pair in [l]. Raise [Bad] if any invalid values given. If attribute [a] given more than once, last will apply. *)
 
-  val valid_name : string -> string
-    (** [valid_name s] returns [s] if it is a valid name, or otherwise returns some minimal modification of it that is valid. *)
-    
+  val valid_wig : t -> bool
+    (** Returns true if [t] is a valid wiggle track line. *)
+
 end
 
 (** Browser lines configure the overall display of the Genome Browser when your file is uploaded. *)
