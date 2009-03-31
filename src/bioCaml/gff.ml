@@ -12,13 +12,20 @@ let fold = List.fold_left
 let iter = List.iter
 let to_list t = t
 
+let strip_quotes s =
+  let n = String.length s in
+  if n >= 2 && s.[0] = '"' && s.[n-1] = '"'
+  then String.slice ~first:1 ~last:(n-1) s
+  else s
+    
+let attribute_names row =
+  let rec loop ans = function
+    | [] -> ans
+    | (Something _)::l -> loop ans l
+    | (TagValue(x,_))::l -> loop ((strip_quotes x)::ans) l
+  in List.rev (loop [] row.attributes)
+
 let get_attributel row attr_name =
-  let strip_quotes s =
-    let n = String.length s in
-    if n >= 2 && s.[0] = '"' && s.[n-1] = '"'
-    then String.slice ~first:1 ~last:(n-1) s
-    else s
-  in
   let f attr = match attr with
     | TagValue (x,y) -> if x = attr_name then Some (strip_quotes y) else None
     | Something _ -> None

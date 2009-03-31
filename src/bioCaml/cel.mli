@@ -6,11 +6,11 @@ type t
 exception Bad of string
   (** Raised when encountering ill-formed CEL type. *)
   
-val of_file : string -> t option
-  (** Parse given file if possible. *)
+val of_file : string -> t
+  (** Parse given file if possible. Raise [Bad] if there are any parse errors. *)
   
-val of_file_exn : string -> t
-  (** Parse given file. Raise [Bad] if there are any parse errors. *)
+val of_file_opt : string -> t option
+  (** Parse given file if possible. *)
   
 
 (** {6 Operations on Intensity Section} *)

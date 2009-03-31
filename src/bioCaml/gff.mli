@@ -50,6 +50,16 @@ val to_map : t -> row list StringMap.t
 
 val map_of_file : ?version:int -> ?strict:bool -> string -> row list StringMap.t
 
+val row_to_string : ?version:int -> row -> string
+val to_channel : ?version:int -> t -> out_channel -> unit
+val to_file : ?version:int -> t -> string -> unit
+
+
+(** {6 Operations Related to Attributes} *)
+
+val attribute_names : row -> string list
+  (** List of attributes defined for the given [row]. *)
+  
 val get_attribute : row -> string -> string
   (** [get_attribute r x] returns the value of attribute [x]. Enclosing quotes if any are stripped off. Raise [Failure] if [x] is not defined exactly once. *)
 
@@ -68,6 +78,3 @@ val set_attribute : string -> string -> row -> row
 val delete_attribute : string -> row -> row
   (** [delete_attribute x r] deletes all occurrences of attribute [x] in [r]. *)
   
-val row_to_string : ?version:int -> row -> string
-val to_channel : ?version:int -> t -> out_channel -> unit
-val to_file : ?version:int -> t -> string -> unit

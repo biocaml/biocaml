@@ -142,5 +142,5 @@ module Parser = struct
       try_finally of_channel close_in (open_in file)
 end
 
-let of_file_exn = Parser.cel
-let of_file file = try Some (of_file_exn file) with Bad _ -> None
+let of_file = Parser.cel
+let of_file_opt file = try Some (of_file file) with Bad _ -> None
