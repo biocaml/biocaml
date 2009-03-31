@@ -38,6 +38,31 @@ type t = B of bt | V of vt | F of ft
 type pt = string * int * int * float
 type format = Bed | VariableStep | FixedStep
 
+let of_bed_channel 
+    ?(chr_map=identity)
+    ?(header=true) 
+    ?(increment_lo_hi=(1,0)) ic : t = 
+  let inclo,inchi = increment_lo_hi in
+  let f acc l = 
+    let lst = String.nsplit l "\t" in
+    let lo,hi,v = 
+      int_of_string (List.nth lst 1) + inclo,
+      int_of_string (List.nth lst 2) + inchi,
+      float_of_string (List.nth lst 3) 
+    in
+    let insert x prev = match prev with None -> [x] | Some l -> x::l in
+    StringMap.add_with (chr_map (List.nth lst 0)) (insert (lo,hi,v)) acc 
+  in
+  if header then (ignore (input_line ic));
+  B(Lines.fold_channel f StringMap.empty ic)
+
+let of_bed_file 
+    ?(chr_map=identity)
+    ?(header=true) 
+    ?(increment_lo_hi=(1,0)) file = 
+  try_finally (of_bed_channel ~chr_map ~header ~increment_lo_hi)
+    close_in (open_in file)
+
 let empty_data_set = B (StringMap.empty)
 
 let get_format = function B _ -> Bed | V _ -> VariableStep | F _ -> FixedStep

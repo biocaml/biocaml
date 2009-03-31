@@ -68,45 +68,68 @@ let get_chr chr t =
   try Set.to_list (StringMap.find chr t)
   with Not_found -> []
 
-let string_to_pt ?(increment_high=(-1)) (s:string) : pt =
+let string_to_pt ?(chr_map=identity) ?(increment_lo_hi=(1,0)) (s:string) =
   let sl = String.nsplit s "\t" in
   let nth = List.nth sl in
   match List.length sl with
     | 3 ->
         let lo = try int_of_string (nth 1) with Failure msg -> raise_bad (sprintf "%s is not an int" (nth 1)) in
         let hi = try int_of_string (nth 2) with Failure msg -> raise_bad (sprintf "%s is not an int" (nth 2)) in
-        let hi = hi + increment_high in
+        let inclo,inchi = increment_lo_hi in
+        let lo,hi = lo + inclo, hi + inchi in
         let lo,hi = make_interval (lo,hi) in
-        nth 0, lo, hi
+        chr_map (nth 0), lo, hi
     | n -> raise_bad (sprintf "expecting exactly 3 columns but found %d" n)
         
-let of_channel ?(increment_high=(-1)) cin =
+let of_channel ?(chr_map=identity) ?(increment_lo_hi=(1,0)) cin =
   let f ans line =
-    try insert_no_dup (string_to_pt ~increment_high line) ans
+    try insert_no_dup (string_to_pt ~chr_map ~increment_lo_hi line) ans
     with Bad msg -> failwith msg
   in
   try Lines.fold_channel f empty cin
   with Lines.Error (pos,msg) -> raise_bad (Msg.err ~pos msg)
 
-let of_file ?(increment_high=(-1)) file =
-  try_finally (of_channel ~increment_high) close_in (open_in file)
+let of_file ?(chr_map=identity) ?(increment_lo_hi=(1,0)) file =
+  try_finally (of_channel ~chr_map ~increment_lo_hi) close_in (open_in file)
 
-let pt_to_string ?(increment_high=1) (chr,lo,hi) =
+let pt_to_string ?(chr_map=identity) ?(increment_lo_hi=(-1,0)) (chr,lo,hi) =
+  let inclo,inchi = increment_lo_hi in
   String.concat "\t"
     [chr;
-     string_of_int lo;
-     string_of_int (hi + increment_high)
+    string_of_int (lo + inclo);
+    string_of_int (hi + inchi)
     ]
     
-let to_channel ?(increment_high=1) t cout =
-  let f chr (lo,hi) = fprintf cout "%s\n" (pt_to_string ~increment_high (chr,lo,hi)) in
+let to_channel ?(chr_map=identity) ?(increment_lo_hi=(-1,0)) t cout =
+  let f chr (lo,hi) = fprintf cout "%s\n" (pt_to_string ~chr_map ~increment_lo_hi (chr,lo,hi)) in
   let g chr l = Set.iter (f chr) l in
   StringMap.iter g t
 
-let to_file ?(increment_high=1) t file =
-  try_finally (to_channel ~increment_high t) close_out (open_out_safe file)
+let to_file ?(chr_map=identity) ?(increment_lo_hi=(-1,0)) t file =
+  try_finally (to_channel ~chr_map ~increment_lo_hi t) close_out (open_out_safe file)
 
+let set_of_rset x = (RSet.to_range_list ->> (List.map (fun l -> l.Range.lo,l.Range.hi)) ->> (List.fold_left (fun acc l -> Set.add l acc) Set.empty)) x
 
+let rset_of_set x = (Set.elements ->> (List.map (fun (a,b) -> Range.make a b)) ->> RSet.of_range_list) x
+
+let rset_function_on_twobeds rset_f bed1 bed2 = 
+  let beds = List.map (StringMap.map rset_of_set) [bed1;bed2] in
+  let chrs = 
+    let f chr elem acc = chr::acc in
+    let chrs = StringMap.fold f (List.nth beds 0) [] in
+    assert (chrs = (StringMap.fold f (List.nth beds 1) []));
+    chrs
+  in
+  let f acc chr = 
+    let rsets = List.map (StringMap.find chr) beds in
+    StringMap.add chr (rset_f (List.nth rsets 0) (List.nth rsets 1)) acc
+  in
+  let ans = List.fold_left f StringMap.empty chrs in
+  StringMap.map set_of_rset ans
+  
+let diff bed1 bed2 = rset_function_on_twobeds RSet.diff bed1 bed2
+    
+let union bed1 bed2 = rset_function_on_twobeds RSet.union bed1 bed2
 
 (*      
 let validate t =

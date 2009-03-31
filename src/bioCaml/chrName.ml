@@ -61,3 +61,11 @@ let to_roman t =
             
 let arabic = of_string ->> to_arabic
 let roman = of_string ->> to_roman
+
+let chr_map (s:string) : string =
+  if String.starts_with s "chr" then
+    String.sub s 3 (String.length s - 3)
+  else
+    s
+
+let short_roman = roman ->> chr_map

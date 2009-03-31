@@ -1,6 +1,6 @@
 (** WIG data.
     
-    Internal representation of coordinates always assumes the first position on a chromosome is numbered 0. Also, integer ranges are always closed; the range [\[0, 10\]] is the set of integers from 0 to 10 inclusive of 0 and 10. WIG data can be in three formats---bed, variable-step, or fixed-step---and unfortunately each has different conventions as follows:
+    Internal representation of coordinates always assumes the first position on a chromosome is numbered 1. Also, integer ranges are always closed; the range [\[1, 10\]] is the set of integers from 1 to 10 inclusive of 0 and 10. WIG data can be in three formats---bed, variable-step, or fixed-step---and unfortunately each has different conventions as follows:
     - Bed format requires half-open intervals [\[low, high\)]. Thus 1 is subtracted from the high value when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI", 0, 9, 3.14)].
     - Variable-step format numbers the first position 1. Thus 1 is subtracted from the low value when parsing. The line ["1 3.14"] is parsed to [(0, 3.14)].
     - Fixed-step format numbers the first position 1. Thus 1 is subtracted from the start coordinate given in header lines. The header line ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 0, 100, 30)].
@@ -41,6 +41,12 @@ val compact : t -> t
 
 val to_format : format -> t -> t option
   (** [to_format fmt t] converts internal representation of [t] to format [fmt] if possible, or returns None otherwise. *)
+
+val of_bed_channel : ?chr_map:(string -> string) -> ?header:bool 
+  -> ?increment_lo_hi:(int * int) -> in_channel -> t
+val of_bed_file : ?chr_map:(string -> string) -> ?header:bool 
+  -> ?increment_lo_hi:(int * int) -> string -> t
+
 
 (*  
 val of_channel : in_channel -> t

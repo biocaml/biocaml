@@ -258,22 +258,14 @@ let wilcoxon_rank_sum_to_z arr1 arr2 =
   let expectation = (l1 *. (l1 +. l2 +. 1.)) /. 2. in
   let var = (l1 *. l2 *. ((l1 +. l2 +. 1.) /. 12.)) in
   (sum1 -. expectation) /. (sqrt var)
+
+let wilcoxon_rank_sum_to_p arr1 arr2 = 
+  (* assumes a two-tailed distribution *)
+  let z = wilcoxon_rank_sum_to_z arr1 arr2 in
+  2. *. (1. -. (cnd (abs_float z)))
   
 let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 = 
-  let l1,l2 = (Array.length arr1),(Array.length arr2) in
-  let ranked = rank (Array.append arr1 arr2) in
-  let arr1 = Array.sub ranked 0 l1 in
-  let l1,l2 = (float_of_int l1), (float_of_int l2) in
-  let sum1 = 
-    let f acc elem = elem +. acc in
-    Array.fold_left f 0. arr1
-  in
-  let expectation = (l1 *. (l1 +. l2 +. 1.)) /. 2. in
-  let var = (l1 *. l2 *. ((l1 +. l2 +. 1.) /. 12.)) in
-  let z = abs_float ((sum1 -. expectation) /. (sqrt var)) in
-  (* here we assume this is a two-tailed distribution *)
-  let threshold = abs_float (ltqnorm (1. -. (alpha /. 2.))) in
-  if z < threshold then true else false
+  (wilcoxon_rank_sum_to_p arr1 arr2) < alpha
 
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = mapi Tuple.Pr.make a in

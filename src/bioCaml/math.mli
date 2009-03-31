@@ -70,6 +70,9 @@ val spearman : float array -> float array -> float
   (** [spearman arr1 arr2] computes the Spearman rank correlation coefficient of two float arrays. See wikipedia for the formula. Essentially, it ranks the two arrays using [rank], and then applies the [pearson] function. *)
 
 
+val cnd : float -> float
+  (** Cumulative distribution function. *)
+
 val ltqnorm : float -> float
   (** Lower tail quantile for standard normal distribution function.
 
@@ -83,6 +86,11 @@ val ltqnorm : float -> float
    than 1.15e-9. *)
 
 val wilcoxon_rank_sum_to_z : float array -> float array -> float
+(** As below, except returns a z value. *)
+
+val wilcoxon_rank_sum_to_p : float array -> float array -> float
+(** Performs the wilcoxon rank sum on two float arrays and returns the p-value. 
+    This assumes a two-tailed distribution. *)
 
 val wilcoxon_rank_sum : ?alpha:float -> float array -> float array -> bool
 (** [wilcoxon_rank_sum ~alpha=(float) arr1 arr2] performs the Wilcoxon rank sum test on two arrays with an optional argument alpha, set to 0.05 by default. If the null hypothesis is rejected -- that is, there is no significant difference between the two arrays, wilcoxon_rank_sum returns false. NB: this is for two-tailed distributions. *)

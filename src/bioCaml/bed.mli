@@ -1,4 +1,4 @@
-(** BED data. A BED file is in the format shown below, where columns must be separted by a tab character. The order of the lines does not matter. The definition is that intervals are half-open. So by default the line "chrA   lo   hi" is parsed to the interval [\[lo, hi-1\]] on chromosome [chrA]. Conversely when printing, 1 is added to the end point. The optional argument [increment_high] allows changing this behavior for non-conformant files.
+(** BED data. A BED file is in the format shown below, where columns must be separted by a tab character. The order of the lines does not matter. The definition is that intervals are zero based and half-open. So by default the line "chrA   lo   hi" is parsed to the interval [\[lo + 1, hi\]] on chromosome [chrA]. Similarly, when printing, the default is to print [\[lo - 1, hi\]]. The optional argument [increment_lo_hi] allows changing this behavior for non-conformant files. In addition, the optional argument [chr_map] is a [string -> string] function that allows changing of the chromosome name to a specified format, and defaults to [identity]. 
 
     {v
     chrA   lo1   hi1
@@ -36,6 +36,12 @@ val mem : pt -> t -> bool
 val any_overlap : t -> bool
   (** Returns true if any intervals overlap within the same chromosome. *)
 
+val diff : t -> t -> t
+  (** Returns the difference in base pairs from one bed to another. In other words, does an RSet.diff on each chromosome. *)
+
+val union : t -> t -> t
+  (** Returns the union in base pairs from one bed file to another. In other words, does an RSet.union on each chromosome. *)
+
 
 (** {6 Constructors and Extractors} *)
 
@@ -51,17 +57,16 @@ val get_chr : string -> t -> (int * int) list
 val to_lists : t -> (string * (int * int) list) list
   (** Extract data as a list of intervals for each chromosome. *)
   
-
 (** {6 Parsers and Printers} *)
   
-val of_file : ?increment_high:int -> string -> t
-  (** Parse given file. Default value for [increment_high] is [-1]. Raise [Bad] if any errors. *)
+val of_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> string -> t
+  (** Parse given file. Default value for [increment_lo_hi] is [(1,0)]. Raise [Bad] if any errors. *)
   
-val of_channel : ?increment_high:int -> in_channel -> t
+val of_channel : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> in_channel -> t
   (** Like [of_file]. *)
 
-val to_file : ?increment_high:int -> t -> string -> unit
-  (** [to_file t file] prints [t] to [file] in standard BED format. Default value for [increment_high] is [+1]. *)
+val to_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> t -> string -> unit
+  (** [to_file t file] prints [t] to [file] in standard BED format. Default value for [increment_lo_hi] is [(-1,0)]. *)
 
-val to_channel : ?increment_high:int -> t -> out_channel -> unit
+val to_channel : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> t -> out_channel -> unit
   (** Like [to_file]. *)

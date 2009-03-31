@@ -22,10 +22,11 @@ let to_chr_lists t =
   let ll = List.map (fun l -> Tuple.Tr.prj1 (List.hd l), List.map (fun (_,b,c) -> b,c) l) ll in
     ll
       
-let of_file_exn file =
-  let of_channel cin =
+let of_channel 
+    ?(chr_map=identity) 
+    ?(increment_bp=0) cin =
     let lines = Stream.lines_of_channel cin in
-    let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
+    let err msg = Msg.err ~pos:(Pos.l (Stream.count lines)) msg in
     let parse_line l =
       let ans = String.nsplit l "\t" in
         if List.length ans = 3 then
@@ -39,22 +40,36 @@ let of_file_exn file =
     in
       try
         let lines = Stream.to_list (Stream.map parse_line lines) in
-        let f sl = List.nth sl 0, int_of_string (List.nth sl 1), float_of_string (List.nth sl 2) in
-          of_list (List.map f lines)
+        let f sl = 
+          chr_map (List.nth sl 0), 
+          int_of_string (List.nth sl 1) + increment_bp, 
+          float_of_string (List.nth sl 2) 
+        in
+        of_list (List.map f lines)
       with
           Failure m | Bad m -> raise_bad (err m)
-  in
-    try_finally of_channel close_in (open_in file)
 
-let of_file file = try Some (of_file_exn file) with Bad _ -> None
+let of_file 
+    ?(chr_map=identity) 
+    ?(increment_bp=0) file = 
+  try_finally (of_channel ~chr_map ~increment_bp) close_in (open_in file)
 
-let to_file file t =
-  let to_channel t cout =
-    let f (s,i,v) =
-      output_string cout (String.concat "\t" [s; string_of_int i; string_of_float v]);
-      output_char cout '\n'
-    in
-      List.iter f t
+let to_channel
+    ?(chr_map=identity)
+    ?(increment_bp=0) t cout = 
+  let f (s,i,v) =
+    output_string cout (String.concat "\t" [
+      chr_map s; 
+      string_of_int (i + increment_bp); 
+      string_of_float v
+    ]);
+    output_char cout '\n'
   in
-    try_finally (to_channel t) close_out (open_out_safe file)
-      
+  List.iter f t
+
+let to_file 
+    ?(chr_map=identity)
+    ?(increment_bp=0)
+    t file = try_finally (to_channel ~chr_map ~increment_bp t) close_out (open_out_safe file) 
+
+    
