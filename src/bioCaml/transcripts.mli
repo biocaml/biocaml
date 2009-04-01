@@ -12,9 +12,9 @@ type 'a transcript =
 
 type 'a t = 'a transcript list
 
-val of_composite_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> string -> string t
+val of_composite_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> string -> (string * int) t
 
-val of_bed_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) ->string -> string t
+val of_bed_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) ->string -> (string * int) t
 
 val all_probes_in : 'a t -> (string * int * int * float) list -> ('a * float array) t
 

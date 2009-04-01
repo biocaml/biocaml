@@ -19,7 +19,7 @@ let raise_bad msg = raise (Bad msg)
 
 let empty = StringMap.empty
 
-let make_interval (lo,hi) =
+let make_interval (lo,hi) = 
   if lo <= hi then lo,hi
   else raise_bad (sprintf "invalid interval [%d, %d]" lo hi)
 

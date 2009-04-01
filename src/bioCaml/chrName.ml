@@ -20,7 +20,6 @@ let rex = Pcre.regexp "^(chr|CHR|Chr)?(.*)$"
 let of_string s =
   try
     let ss = Pcre.extract ~full_match:false ~rex s in
-    assert(Array.length ss = 2);
     let c = ss.(1) in
     if c = Alpha.x then
       ChrX
@@ -38,18 +37,16 @@ let of_string s =
             with Failure _ -> Unknown s
   with
       Not_found -> Unknown s
-        
-let chr = "chr"
   
 let non_num_to_string = function
-  | ChrX -> chr ^ Alpha.x | ChrY -> chr ^ Alpha.y | ChrM -> chr ^ Alpha.m
+  | ChrX -> Alpha.x | ChrY -> Alpha.y | ChrM -> Alpha.m
   | Unknown s -> s
   | ChrN n -> invalid_arg (Msg.bug (sprintf "non_num_to_string called on numeric chromosome %d" n))
       
 let to_arabic t =
   match t with
     | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
-    | ChrN n -> chr ^ (string_of_int n)
+    | ChrN n -> string_of_int n
         
 let to_roman t =
   match t with
@@ -58,15 +55,7 @@ let to_roman t =
         let n = RomanNum.to_string (RomanNum.of_int_exn n) in
         if List.mem n Alpha.all
         then failwith (sprintf "chromosome %s cannot be represented in Roman form" (to_arabic t))
-        else chr ^ n
+        else n
           
 let arabic = of_string ->> to_arabic
 let roman = of_string ->> to_roman
-
-let chr_map (s:string) : string =
-  if String.starts_with s "chr" then
-    String.sub s 3 (String.length s - 3)
-  else
-    s
-
-let short_roman = roman ->> chr_map
