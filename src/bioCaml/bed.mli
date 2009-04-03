@@ -38,15 +38,15 @@ val any_overlap : t -> bool
 
 val diff : t -> t -> t
   (** Returns the difference in base pairs from one bed to another. In other words, does an RSet.diff on each chromosome. *)
-
+  
 val union : t -> t -> t
   (** Returns the union in base pairs from one bed file to another. In other words, does an RSet.union on each chromosome. *)
-
+  
 
 (** {6 Constructors and Extractors} *)
 
 val of_list: pt list -> t
-  (** Construct data set from given [pt]'s. Raise [Bad] if the same [pt] is given more than once. *)
+  (** Construct data set from given [pt]'s. If there are duplicate points, just one is inserted. *)
   
 val to_list : t -> pt list
   (** Extract data as a flat list. *)
@@ -57,6 +57,7 @@ val get_chr : string -> t -> (int * int) list
 val to_lists : t -> (string * (int * int) list) list
   (** Extract data as a list of intervals for each chromosome. *)
   
+
 (** {6 Parsers and Printers} *)
   
 val of_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> string -> t
@@ -67,6 +68,6 @@ val of_channel : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> 
 
 val to_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> t -> string -> unit
   (** [to_file t file] prints [t] to [file] in standard BED format. Default value for [increment_lo_hi] is [(-1,0)]. *)
-
+  
 val to_channel : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) -> t -> out_channel -> unit
   (** Like [to_file]. *)

@@ -1,21 +1,19 @@
 (** Affymetrix's BPMAP files. Only text format supported. Binary BPMAP files must first be converted to text using Affymetrix's probe exporter tool. *)
 
-type probe =
-    {
-      org_name: string;  (** name of organism on which probe is based *)
-      version : string;  (** genome build version on which probe is based *) 
-      chr_name : string; (** name of chromosome on which probe is based *)
-      start_pos : int;   (** start position of probe on given chromosome *)
-      sequence : Seq.t;  (** sequence of the perfect match probe *)
-    }
+type probe = {
+  org_name: string;  (** name of organism on which probe is based *)
+  version : string;  (** genome build version on which probe is based *) 
+  chr_name : string; (** name of chromosome on which probe is based *)
+  start_pos : int;   (** start position of probe on given chromosome *)
+  sequence : Seq.t;  (** sequence of the perfect match probe *)
+}
 
-type row =
-    {
-      pmcoord : int * int; (** x,y-coordinates of perfect match probe. *)
-      mmcoord : int * int; (** x,y-coordinates of mis-match probe *)
-      probe : probe
-    }
-      (** Type of information on one data row. *)
+type row = {
+  pmcoord : int * int; (** x,y-coordinates of perfect match probe. *)
+  mmcoord : int * int; (** x,y-coordinates of mis-match probe *)
+  probe : probe
+}
+    (** Type of information on one data row. *)
     
 type t
     (** Type of a BPMAP file. *)
@@ -31,7 +29,7 @@ val col_names : string list
   
 val iter : (row -> unit) -> t -> unit
 val fold : ('a -> row -> 'a) -> 'a -> t -> 'a
-val row_list : t -> row list
+val to_list : t -> row list
   
 
 (** {6 I/O} *)

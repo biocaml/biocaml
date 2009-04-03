@@ -15,21 +15,19 @@ val of_file_opt : string -> t option
 
 (** {6 Operations on Intensity Section} *)
 
-type idata =
-    {
-      mean:float; (** mean intensity value *)
-      stdv:float; (** standard deviation of intensity *)
-      npixels:int (** number of pixels used in mean/stdv calculation *)
-    }
-      
+type idata = {
+  mean:float; (** mean intensity value *)
+  stdv:float; (** standard deviation of intensity *)
+  npixels:int (** number of pixels used in mean/stdv calculation *)
+}
+    
 (** Represents row in intensity section *)
-type irow =
-    {
-      xcoord:int; (** x-coordinate *)
-      ycoord:int; (** y-coordinate *)
-      idata:idata
-    }
-      
+type irow = {
+  xcoord:int; (** x-coordinate *)
+  ycoord:int; (** y-coordinate *)
+  idata:idata
+}
+
 val ifold : ('a -> irow -> 'a) -> 'a -> t -> 'a
   (** [ifold f a t] folds over data rows in intensity section of [t]. *) 
 

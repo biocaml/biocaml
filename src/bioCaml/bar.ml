@@ -1,5 +1,4 @@
-open Sesame
-open Printf
+open Sesame;; open Printf
 
 type header = (string * string) list
     (* list of tag-value pairs *)
@@ -32,9 +31,12 @@ let sectioni (_,secs) i =
   try List.find (fun s -> s.sec_num = i) secs
   with Not_found -> failwith (sprintf "section %d not found" i)
 
-let data_list (_,sections) =
-  let f s = List.map (fun (i,v) -> s.sec_name,i,v) s.sec_data in
-    List.flatten (List.map f sections)      
+let to_list (_,sections) =
+  let f s =
+    let chr = s.sec_name in
+    List.map (fun (i,v) -> chr,i,v) s.sec_data
+  in
+  List.flatten (List.map f sections)      
       
 module Parser = struct
   let junk_blank_lines lines =
@@ -99,6 +101,5 @@ module Parser = struct
       try_finally of_channel close_in (open_in file)
 end
   
-let of_file_exn = Parser.of_file
-let of_file file = try Some (of_file_exn file) with Bad _ -> None
+let of_file = Parser.of_file
   

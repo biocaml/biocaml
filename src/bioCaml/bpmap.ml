@@ -12,7 +12,7 @@ let col_names = ["PMX";"PMY";"MMX";"MMY";"Seq";"Pos";"Probe"]
 let num_probes = List.length  
 let iter = List.iter
 let fold = List.fold_left
-let row_list t = t
+let to_list t = t
 
 module Parser = struct
   let header (s:string) : string list =
@@ -44,7 +44,7 @@ module Parser = struct
             chr_name = chr;
             start_pos = to_int 5;
             sequence =
-              try Seq.of_string_exn (to_string 6)
+              try Seq.of_string (to_string 6)
               with Seq.Bad m -> raise_bad m
           }
       }

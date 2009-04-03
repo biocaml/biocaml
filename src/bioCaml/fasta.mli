@@ -23,11 +23,11 @@ val of_file : string -> t
   
 val fold : (header -> Seq.t -> 'b -> 'b) -> t -> 'b -> 'b
   (** [fold f t init] folds over the sequences in [t]. *)
-
+  
 val iter : (header -> Seq.t -> unit) -> t -> unit
   
 val headers : t -> header list
   (** Return all headers. *)
-
+  
 val get_seq : t -> header -> Seq.t
   (** [get_seq t x] returns the sequence with header [x] in [t]. Raise [Failure] if no such sequence. *)

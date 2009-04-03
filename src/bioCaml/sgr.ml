@@ -1,4 +1,4 @@
-open Sesame
+open Sesame;; open Printf
 
 type t = (string * int * float) list
     (* Stored in ascending order by (string,int) pairs. *)
@@ -21,55 +21,30 @@ let to_chr_lists t =
   let ll = List.npartition eq t in
   let ll = List.map (fun l -> Tuple.Tr.prj1 (List.hd l), List.map (fun (_,b,c) -> b,c) l) ll in
     ll
-      
-let of_channel 
-    ?(chr_map=identity) 
-    ?(increment_bp=0) cin =
-    let lines = Stream.lines_of_channel cin in
-    let err msg = Msg.err ~pos:(Pos.l (Stream.count lines)) msg in
-    let parse_line l =
-      let ans = String.nsplit l "\t" in
-        if List.length ans = 3 then
-          ans
-        else
-          let ans = String.nsplit l " " in
-            if List.length ans = 3 then
-              ans
-            else
-              raise_bad "column separator must be tab or single space"
-    in
-      try
-        let lines = Stream.to_list (Stream.map parse_line lines) in
-        let f sl = 
-          chr_map (List.nth sl 0), 
-          int_of_string (List.nth sl 1) + increment_bp, 
-          float_of_string (List.nth sl 2) 
-        in
-        of_list (List.map f lines)
-      with
-          Failure m | Bad m -> raise_bad (err m)
 
-let of_file 
-    ?(chr_map=identity) 
-    ?(increment_bp=0) file = 
+let of_channel ?(chr_map=identity) ?(increment_bp=0) cin =
+  let parse_line' delim line =
+    let sl = String.nsplit line delim in
+    let nth = List.nth sl in
+    match List.length sl with
+      | 3 -> chr_map (nth 0), int_of_string (nth 1) + increment_bp, float_of_string (nth 2)
+      | _ -> raise_bad "ill-formed line"
+  in
+  let parse_line line =
+    try parse_line' "\t" line
+    with Bad _ ->
+      try parse_line' " " line
+      with Bad msg -> failwith msg
+  in
+  Lines.of_channel parse_line cin
+    
+let of_file ?(chr_map=identity) ?(increment_bp=0) file = 
   try_finally (of_channel ~chr_map ~increment_bp) close_in (open_in file)
 
-let to_channel
-    ?(chr_map=identity)
-    ?(increment_bp=0) t cout = 
-  let f (s,i,v) =
-    output_string cout (String.concat "\t" [
-      chr_map s; 
-      string_of_int (i + increment_bp); 
-      string_of_float v
-    ]);
-    output_char cout '\n'
-  in
+let to_channel ?(chr_map=identity) ?(increment_bp=0) t cout = 
+  let f (s,i,v) = fprintf cout "%s\t%d\t%f\n" (chr_map s) (i+increment_bp) v in
   List.iter f t
-
-let to_file 
-    ?(chr_map=identity)
-    ?(increment_bp=0)
-    t file = try_finally (to_channel ~chr_map ~increment_bp t) close_out (open_out_safe file) 
-
     
+let to_file ?(chr_map=identity) ?(increment_bp=0) t file =
+  try_finally (to_channel ~chr_map ~increment_bp t) close_out (open_out_safe file) 
+ 

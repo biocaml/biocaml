@@ -1,29 +1,11 @@
-open Sesame
-open Tuple
-open Printf
+open Sesame;; open Tuple;; open Printf
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
-(** String conversions. *)
-let stoi (s:string) : int = try int_of_string s with Failure _ -> raise_bad (sprintf "%s is not an int" s)
-let stof (s:string) : float = try float_of_string s with Failure _ -> raise_bad (sprintf "%s is not a float" s)
-let ftos (x:float) : string = string_of_float x
-
-(** split on whitespace *)
-let split_ws = Str.split (Str.regexp "[ \t\r]+")
-
-(** split tag=value *)
-let split_eq (s:string) : string * string =
-  let sl = Str.split_delim (Str.regexp "=") s in
-  let nth = List.nth sl in
-  match List.length sl with
-    | 2 -> nth 0, nth 1
-    | _ -> raise_bad (sprintf "expected exactly one '=' sign in: %s" s)
-
 type bt = (int * int * float) list StringMap.t
     (* list items are (lo,hi,x) triples *)
-
+    
 type vt = {vspan:int; vdata : (int * float) list StringMap.t}
     (* list items are (lo,x) pairs, range is [lo, lo + vspan - 1] *)
     
@@ -31,39 +13,12 @@ type ft = {fspan:int; fdata : (int * int * float list) StringMap.t}
     (* For each chromosome there is a list of (start,step,xl) triples.
        For the i'th value in xl, the associated range is [lo,hi] where
        - lo = start + i*step
-       - hi = lo + span - 1
+       - hi = lo + fspan - 1
     *)
     
 type t = B of bt | V of vt | F of ft
 type pt = string * int * int * float
 type format = Bed | VariableStep | FixedStep
-
-let of_bed_channel 
-    ?(chr_map=identity)
-    ?(header=true) 
-    ?(increment_lo_hi=(1,0)) ic : t = 
-  let inclo,inchi = increment_lo_hi in
-  let f acc l = 
-    let lst = String.nsplit l "\t" in
-    let lo,hi,v = 
-      int_of_string (List.nth lst 1) + inclo,
-      int_of_string (List.nth lst 2) + inchi,
-      float_of_string (List.nth lst 3) 
-    in
-    let insert x prev = match prev with None -> [x] | Some l -> x::l in
-    StringMap.add_with (chr_map (List.nth lst 0)) (insert (lo,hi,v)) acc 
-  in
-  if header then (ignore (input_line ic));
-  B(Lines.fold_channel f StringMap.empty ic)
-
-let of_bed_file 
-    ?(chr_map=identity)
-    ?(header=true) 
-    ?(increment_lo_hi=(1,0)) file = 
-  try_finally (of_bed_channel ~chr_map ~header ~increment_lo_hi)
-    close_in (open_in file)
-
-let empty_data_set = B (StringMap.empty)
 
 let get_format = function B _ -> Bed | V _ -> VariableStep | F _ -> FixedStep
 
@@ -200,69 +155,94 @@ let fold f init t =
   iter (fun pt -> ans := f !ans pt) t;
   !ans
 
-module B = struct
-  type datum = string * int * int * float
-
-  type s = (int * int * float) list StringMap.t
-      (* List is ordered in reverse by coordinate. *)         
-      
-  let validate_datum (_,lo,hi,_) = 
-    if lo > hi then raise_bad (sprintf "invalid range [%d, %d)" lo (hi+1));
-    if lo < 0 then raise_bad (sprintf "start coordinate %d must be >= 0" lo)
-      
-  (* return unit if first point can be followed by second, assume they are on same chromosome *)
-  let can_append (lo1,hi1,_) (lo2,hi2,_) =
-    if hi1 >= lo2 then raise_bad (sprintf "range [%d, %d] cannot be followed by [%d, %d]" lo1 hi1 lo2 hi2)
-      
-  let datum_of_string s =
-    let sl = split_ws s in
-    let nth = List.nth sl in
-    match List.length sl with
-      | 4 -> 
-          let chr = nth 0 in
-          let lo = stoi (nth 1) in
-          let hi = stoi (nth 2) - 1 in (* specification requires half-open intervals [lo,hi) *)
-          let x = stof (nth 3) in
-          let d = (chr,lo,hi,x) in
-          validate_datum d;
-          d
-      | n -> raise_bad (sprintf "expecting exactly 4 columns but found %d" n)
-          
-  let empty = StringMap.empty
-
-  let append_datum s ((chr,lo2,hi2,x2) as d : datum) =
-    validate_datum d;
-    try
-      let l = StringMap.find chr s in
-      match l with
-        | [] -> StringMap.add chr [(lo2,hi2,x2)] s
-        | (lo1,hi1,x1)::_ ->
-            can_append (lo1,hi1,x1) (lo2,hi2,x2);
-            StringMap.add chr ((lo2,hi2,x2)::l) s
-    with
-        Not_found -> StringMap.add chr [(lo2,hi2,x2)] s
-          
-  let singleton x = append_datum empty x
+let rec of_list l =
+  let f ans (chr,lo,hi,x) =
+    if lo > hi then
+      raise_bad (sprintf "invalid interval [%d, %d]" lo hi)
+    else
+      let append prev = match prev with None -> [lo,hi,x] | Some l -> (lo,hi,x)::l in
+      StringMap.add_with chr append ans
+  in
+  let ans = List.fold_left f StringMap.empty l in
+  let ans = StringMap.map List.rev ans in
+  compact (B ans)
     
-  let datum_to_string (chr,lo,hi,x) =
-    String.concat "\t" [chr; string_of_int lo; string_of_int (hi+1); ftos x]
+let of_channel ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi ic = 
+  let of_bed_channel chr_map header increment_lo_hi ic =
+    let inclo,inchi = increment_lo_hi in
+    let f acc l = 
+      let lst = String.nsplit l "\t" in
+      match List.length lst with
+        | 4 ->
+            let chr = chr_map (List.nth lst 0) in
+            let lo = int_of_string (List.nth lst 1) + inclo in
+            let hi = int_of_string (List.nth lst 2) + inchi in
+            let v = float_of_string (List.nth lst 3) in
+            let insert prev = match prev with None -> [lo,hi,v] | Some l -> (lo,hi,v)::l in
+            StringMap.add_with chr insert acc
+        | n -> failwith (sprintf "expecting exactly 4 columns but found %d" n) 
+    in
+    if header then (ignore (input_line ic));
+    let ans = Lines.fold_channel f StringMap.empty ic in
+    let ans = StringMap.map List.rev ans in
+    compact (B ans)
+  in
+  match fmt with
+    | None -> failwith "must specify WIG file format" (* TO DO: infer format automatically *)
+    | Some Bed ->
+        let increment_lo_hi = match increment_lo_hi with Some x -> x | None -> (1,0) in
+        of_bed_channel chr_map header increment_lo_hi ic
+    | Some VariableStep -> failwith "parsing of WIG files in variable-step format not yet implemented"
+    | Some FixedStep -> failwith "parsing of WIG files in fixed-step format not yet implemented"
+        
+let of_file ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi file =
+  match fmt,increment_lo_hi with
+    | None, None ->
+        try_finally (of_channel ~chr_map ~header) close_in (open_in file)
+    | Some fmt, None ->
+        try_finally (of_channel ~fmt ~chr_map ~header) close_in (open_in file)
+    | None, Some increment_lo_hi ->
+        try_finally (of_channel ~chr_map ~header ~increment_lo_hi) close_in (open_in file)
+    | Some fmt, Some increment_lo_hi->
+        try_finally (of_channel ~fmt ~chr_map ~header ~increment_lo_hi) close_in (open_in file)
 
-  let complete s = 
-    let ans = B (StringMap.map List.rev s) in
-    compact ans
-end
+let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t)
+  
+let to_channel ?fmt t cout =
+  let print_as_is = function
+    | B bt ->
+        let f chr (lo,hi,x) = fprintf cout "%s\t%d\t%d\t%s\n" chr (lo-1) hi (string_of_float x) in
+        let g chr l = List.iter (f chr) l in
+        StringMap.iter g bt
+    | V vt ->
+        let g chr l =
+          fprintf cout "variableStep\tchrom=%s\tspan=%d\n" chr vt.vspan;
+          let f (lo,x) = fprintf cout "%d\t%s\n" lo (string_of_float x) in
+          List.iter f l
+        in
+        StringMap.iter g vt.vdata
+    | F ft ->
+        let g chr (start,step,l) =
+          fprintf cout "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d\n" chr start step ft.fspan;
+          List.iter (fun x -> fprintf cout "%s\n" (string_of_float x)) l
+        in
+        StringMap.iter g ft.fdata
+  in
+  match fmt with
+    | None -> print_as_is (compact t)
+    | Some fmt -> match to_format fmt t with
+        | None ->
+            let fmt = match fmt with Bed -> "bed" | VariableStep -> "variable-step" | FixedStep -> "fixed-step" in
+            failwith (sprintf "given data cannot be represented in %s format" fmt)
+        | Some t -> print_as_is t
+            
+let to_file ?fmt t file =
+  let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in
+  try_finally f close_out (open_out_safe file)
 
+
+(**** Some parsing functions that could be useful when support for parsing variable-step and fixed-step are added.
 module V = struct
-  type header = string * int (* header gives chromosome name and span >= 1 *)
-  type datum = int * float  (* data point is a low coordinate >= 0 and a value *)
-  type section = header * (datum list) (* list items stored in descending order by coordinate. *)
- 
-  type s = section StringMap.t 
-      (* Invariants: 
-         - each chromosome key maps to a section for the same chromosome
-         - all sections have same span
-      *)
-
   let header_of_string (s:string) : header =
     let sl = split_ws s in
     let nth = List.nth sl in
@@ -287,70 +267,15 @@ module V = struct
     let nth = List.nth sl in
     match List.length sl with
       | 2 -> 
-          let lo = stoi (nth 0) - 1 in (* specification uses 1-based indexing, we convert to 0-based *)
+          let lo = stoi (nth 0) in
           let x = stof (nth 1) in
-          if lo < 0 then raise_bad (sprintf "start coordinate %d must be >= 1" (lo+1));
+          if lo < 1 then raise_bad (sprintf "start coordinate %d must be >= 1" lo);
           lo,x
       | n -> raise_bad (sprintf "expecting exactly 2 columns but found %d" n)
           
-  let empty = StringMap.empty
-
-  let empty_section hdr = hdr,[]
-    
-  let append_datum (((_,span) as hdr, l) : section) ((lo2,x2) as d) =
-    if List.length l = 0 then
-      hdr, [d]
-    else
-      let lo1,_ = List.hd l in
-      let hi1 = lo1 + span - 1 in
-      let hi2 = lo2 + span - 1 in
-      if hi1 >= lo2 then raise_bad (sprintf "based on span %d, we have range [%d, %d] followed by [%d, %d] which is not allowed" span lo1 hi1 lo2 hi2);
-      hdr, d::l
-
-  let get_span s =
-    try
-      let _,((_,span),_) = StringMap.first s in
-      Some span
-    with 
-        Not_found -> None
-          
-  let append_section s ((((chr,span), l) as sect) : section) =
-    if List.length l = 0 then
-      raise_bad (sprintf "no data provided for chromosome %s" chr)
-    else (
-      match get_span s with
-        | None -> () (* no errors to check *)
-        | Some span' ->
-            if span <> span' then
-              raise_bad (sprintf "previously span = %d, cannot change to %d" span' span)
-            else if StringMap.mem chr s then
-              raise_bad (sprintf "data section for chromosome %s previously provided" chr)
-            else ()
-    );
-    StringMap.add chr sect s
-                
-  let complete s =
-    match get_span s with
-      | None -> empty_data_set
-      | Some span ->
-          let ans = V {vspan = span; vdata = StringMap.map (List.rev <<- snd) s} in
-          compact ans
-    
-  let header_to_string (chr,span) = sprintf "variableStep\tchrom=%s\tspan=%d" chr span
-  let datum_to_string (lo,x) = sprintf "%d\t%s" (lo+1) (ftos x)
 end
 
 module F = struct
-  type header = string * int * int * int (* header gives chromosome, start, step, and span *)
-  type datum = float (* a data point is just a float *)
-  type section = header * (datum list)
-
-  type s = section StringMap.t
-      (* Invariants: 
-         - each chromosome key maps to a section for the same chromosome
-         - all sections have same span
-      *)
-      
   let header_of_string s =
     let sl = split_ws s in
     let nth = List.nth sl in
@@ -384,110 +309,18 @@ module F = struct
           chr,start,step,span
       | n -> raise_bad (sprintf "expecting exactly 5 space separated fields but found %d" n)
           
-  let datum_of_string = stof
-
-  let empty = StringMap.empty
-
-  let empty_section hdr = hdr,[]
-    
-  let append_datum (((_,start,step,span) as hdr, l) : section) x2 =
-    match List.length l with
-      | 0 -> hdr, [x2]
-      | n ->
-          let i1 = n - 1 in
-          let i2 = i1 + 1 in
-          let lo1 = start + i1*step in
-          let hi1 = lo1 + span - 1 in
-          let lo2 = start + i2*step in
-          let hi2 = lo2 + span - 1 in
-          if hi1 >= lo2 then
-            raise_bad (sprintf "based on start %d, step %d, span %d, we have range [%d, %d] on datum %d followed by [%d, %d] on datum %d which is not allowed" start step span lo1 hi1 i1 lo2 hi2 i2)
-          else
-            hdr, x2::l
-
-  let get_span s =
-    try
-      let _,((_,_,_,span),_) = StringMap.first s in
-      Some span
-    with
-        Not_found -> None
-
-  let append_section s ((((chr,_,_,span), l) as sect) : section) =
-    if List.length l = 0 then
-      raise_bad (sprintf "no data provided for chromosome %s" chr)
-    else (
-      match get_span s with
-        | None -> () (* no errors to check *)
-        | Some span' ->
-            if span <> span' then
-              raise_bad (sprintf "previously span = %d, cannot change to %d" span' span)
-            else if StringMap.mem chr s then
-              raise_bad (sprintf "data section for chromosome %s previously provided" chr)
-            else ()
-    );
-    StringMap.add chr sect s
-          
-  let header_to_string (chr,start,step,span) = 
-    sprintf "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d" chr (start+1) step span
-      
-  let datum_to_string = ftos
-    
-  let complete s =
-    match get_span s with
-      | None -> empty_data_set
-      | Some span ->
-          let f ((_,start,step,_), l) = (start, step, List.rev l) in
-          let ans = F {fspan = span; fdata = StringMap.map f s} in
-          compact ans
 end
-
-let rec of_list ?(sort=true) l =
-  if not sort then
-    (compact <<- B.complete <<- (List.fold_left B.append_datum B.empty)) l
-  else
-    let cmp (chr1,lo1,_,_) (chr2,lo2,_,_) =
-      let c = compare chr1 chr2 in
-      if c <> 0 then c
-      else compare lo1 lo2
-    in
-    of_list ~sort:false (List.sort ~cmp l)
-      
-let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t)
-  
-let to_channel ?fmt t cout =
-  let p s = output_string cout s; output_char cout '\n' in
-  let print_as_is = function
-    | B bt ->
-        let f chr (lo,hi,x) = (p <<- B.datum_to_string) (chr,lo,hi,x) in
-        let g chr l = List.iter (f chr) l in
-        StringMap.iter g bt
-    | V vt ->
-        let g chr l =
-          (p <<- V.header_to_string) (chr,vt.vspan);
-          List.iter (p <<- V.datum_to_string) l
-        in
-        StringMap.iter g vt.vdata
-    | F ft ->
-        let g chr (start,step,l) =
-          (p <<- F.header_to_string) (chr,start,step,ft.fspan);
-          List.iter (p <<- F.datum_to_string) l
-        in
-        StringMap.iter g ft.fdata
-  in
-  match fmt with
-    | None -> print_as_is (compact t)
-    | Some fmt -> match to_format fmt t with
-        | None ->
-            let fmt = match fmt with Bed -> "bed" | VariableStep -> "variable-step" | FixedStep -> "fixed-step" in
-            failwith (sprintf "given data cannot be represented in %s format" fmt)
-        | Some t -> print_as_is t
-            
-let to_file ?fmt t file =
-  let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in
-  try_finally f close_out (open_out_safe file)
-
+*)
 
 (***** Old Parser, not working. ****
+(** split tag=value *)
+let split_eq (s:string) : string * string =
+  let sl = Str.split_delim (Str.regexp "=") s in
+  let nth = List.nth sl in
+  match List.length sl with
+    | 2 -> nth 0, nth 1
+    | _ -> raise_bad (sprintf "expected exactly one '=' sign in: %s" s)
+
 type line_type = BLine | VHeaderLine | VLine | FHeaderLine | FLine
 
 let line_type s =

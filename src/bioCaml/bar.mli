@@ -12,13 +12,10 @@ type section = private
       sec_data : (int * float) list (** pairs of coordinate-score data *)
     }
 
-val of_file : string -> t option
-  (** Parse file if possible. *)
-
-val of_file_exn : string -> t
+val of_file : string -> t
   (** Parse file. Raise [Bad] if there are parse errors. *)
   
-val data_list : t -> (string * int * float) list
+val to_list : t -> (string * int * float) list
   (** Return the data as a list of triplets (chr,pos,v) representing the chromosome name, probe position, and value. Will be returned in ascending order by (chr,pos). *)
   
 val section : t -> string -> section

@@ -13,4 +13,4 @@ val arabic : string -> string
   (** [arabic s] returns the canonical Arabic representation of [s]. *)
   
 val roman : string -> string
-  (** [roman s] returns the canonical Roman representation of [s]. Raise [Failure] if [s] represents chromosome number 10, or any other chromosome that would cause an ambiguity. *)
+  (** [roman s] returns the canonical Roman representation of [s]. Raises [Failure] if [s] represents chromosome number 10, or any other chromosome that would cause an ambiguity. *)

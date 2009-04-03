@@ -1,4 +1,4 @@
-(** Nucleic acid sequences. A nucleic acid code is any of A, C, G, T, U, R, Y, K, M, S, W, B, D, H, V, N, or X. See IUB/IUPAC standards for further information. Gaps are not supported. Internal representation uses uppercase, but constructors are case-insensitive. By convention the first nucleic acid in a sequence is numbered 0. *)
+(** Nucleic acid sequences. A nucleic acid code is any of A, C, G, T, U, R, Y, K, M, S, W, B, D, H, V, N, or X. See IUB/IUPAC standards for further information. Gaps are not supported. Internal representation uses uppercase, but constructors are case-insensitive. By convention the first nucleic acid in a sequence is numbered 1. *)
 
 type t
     (** Type of a sequence *)
@@ -6,16 +6,10 @@ type t
 exception Bad of string
   (** Raised to indicate ill-formed sequence. *)
 
-val of_string : string -> t option
-  (** Make sequence from string if possible. *)
-  
-val of_string_exn : string -> t
+val of_string : string -> t
   (** Make sequence from string. Raise [Bad] if unsuccessful. *)
   
-val of_buffer : Buffer.t -> t option
-  (** Make sequence from buffer if possible. *)
-  
-val of_buffer_exn : Buffer.t -> t
+val of_buffer : Buffer.t -> t
   (** Make sequence from buffer. Raise [Bad] if unsuccessful. *)
   
 val nth : t -> int -> char
