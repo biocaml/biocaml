@@ -73,5 +73,8 @@ module Parser = struct
     with Failure m | Bad m -> raise_bad (err m)
 end
 
+let of_channel ic = 
+  try_finally (Parser.fasta "in_channel") () ic
+
 let of_file file =
   try_finally (Parser.fasta file) close_in (open_in file)

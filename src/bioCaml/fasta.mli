@@ -18,6 +18,8 @@ type t
 
 exception Bad of string
 
+val of_channel : in_channel -> t
+
 val of_file : string -> t
   (** Parse given file. Raise [Bad] if there are any parse errors. *)
   
