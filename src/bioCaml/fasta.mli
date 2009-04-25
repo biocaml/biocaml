@@ -18,11 +18,9 @@ type t
 
 exception Bad of string
 
-val of_channel : in_channel -> t
-
 val of_file : string -> t
   (** Parse given file. Raise [Bad] if there are any parse errors. *)
-  
+
 val fold : (header -> Seq.t -> 'b -> 'b) -> t -> 'b -> 'b
   (** [fold f t init] folds over the sequences in [t]. *)
   

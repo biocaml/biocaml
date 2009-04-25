@@ -43,6 +43,7 @@ let to_string = String.copy
 let nth t i = String.get t (i-1)
 let length = String.length
 let fold_left = String.fold_left
+let fold_lefti = String.fold_lefti
 let fold_right = String.fold_right
 
 let slice first last t =

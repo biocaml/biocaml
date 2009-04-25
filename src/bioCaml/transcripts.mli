@@ -1,3 +1,4 @@
+open Sesame
 
 (* This module uses zero based, half-open intervals *)
 
@@ -16,6 +17,7 @@ val of_composite_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * i
 
 val of_bed_file : ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) ->string -> (string * int) t
 
-val all_probes_in : 'a t -> (string * int * int * float) list -> ('a * float array) t
+val all_probes_in : 'a t -> (string * int * int * 'b) list -> ('a * 'b array) t
 
-val all_points_in : 'a t -> (string * int * float) list -> ('a * float array) t
+val all_points_in : 'a t -> (string * int * 'b) list -> ('a * 'b array) t
+

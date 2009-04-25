@@ -27,6 +27,11 @@ val is_nucleic_acid : char -> bool
 val slice : int -> int -> t -> t
   (** [slice first last t] returns the sub-sequence, or slice, of [t] starting from index [first] to [last] (inclusive). Raise [Failure] if indices out of range or if [first] > [last]. *)
 
+val fold_left : ('a -> char -> 'a) -> 'a -> t -> 'a
+  (** see String.fold_left. *)
+
+val fold_lefti : ('a -> int -> char -> 'a) -> 'a -> t -> 'a
+  (** String.fold_lefti *)
 
 (** {6 Unsafe Sequences} *)
   

@@ -94,8 +94,8 @@ let of_bed_file ?(chr_map=identity) ?(increment_lo_hi=(1,0)) file =
 
 let all_probes_in 
     (trx_lst:'a t) 
-    (prbs: (string * int * int * float) list) 
-    : ('a * float array) t =
+    (prbs: (string * int * int * 'b) list) 
+    : ('a * 'b array) t =
   let insert x prev = match prev with None -> [x] | Some l -> x::l in
   let siimap_of_exons = 
     let f acc trx = SIIMap.add trx.chr (trx.lo,trx.hi) (trx.exons,trx.info) acc in
@@ -139,8 +139,8 @@ let all_probes_in
 
 let all_points_in
     (trx_lst:'a t) 
-    (points: (string * int * float) list)
-    : ('a * float array) t =
+    (points: (string * int * 'b) list)
+    : ('a * 'b array) t =
   let probes = List.map (fun (x,y,z) -> (x,y,y,z)) points in
   all_probes_in trx_lst probes
 
