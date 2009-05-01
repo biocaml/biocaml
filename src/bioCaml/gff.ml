@@ -99,10 +99,6 @@ let to_file ?(version=3) t file =
   try_finally (to_channel ~version t) close_out (open_out_safe file)
     
 module Parser = struct
-  let chr s = s
-  let source s = s
-  let feat s = s
-
   let phase s =
     if s = "." then
       None
@@ -150,7 +146,7 @@ module Parser = struct
     in
     List.map attribute (List.map String.strip (String.nsplit s ";"))
       
-  let row (ver:version) (s:string) : row option =
+  let row (chr_map : string -> string) (ver:version) (s:string) : row option =
     let s = String.strip s in
     if String.length s > 0 && s.[0] = '#' then
       None
@@ -165,11 +161,11 @@ module Parser = struct
         | k -> failwith (sprintf "expecting 9 columns but found %d" k)
       in
       Some {
-        chr = chr (nth 0);
-        strand = strand (nth 6);
+        chr = chr_map (nth 0);
+        strand = strand(nth 6);
         pos = interval (nth 3) (nth 4);
-        source = source (nth 1);
-	feature = feat (nth 2);
+        source = nth 1;
+	feature = nth 2;
         phase = phase (nth 7);
 	score = score (nth 5);
 	attributes = attributes ver attributes_str
@@ -177,10 +173,10 @@ module Parser = struct
         
 end
 
-let of_file ?(version=3) ?(strict=true) file =
+let of_file ?(chr_map=identity) ?(version=3) ?(strict=true) file =
   let ver = make_version version in
   let f ans s =
-    match Parser.row ver s with
+    match Parser.row chr_map ver s with
       | None -> ans
       | Some x -> x::ans
   in
@@ -190,7 +186,7 @@ let of_file ?(version=3) ?(strict=true) file =
 let fold_file ?(version=3) ?(strict=true) f init file =
   let ver = make_version version in
   let g accum line =
-    match Parser.row ver line with
+    match Parser.row identity ver line with
       | None -> accum
       | Some x -> f accum x
   in
