@@ -183,10 +183,10 @@ let of_file ?(chr_map=identity) ?(version=3) ?(strict=true) file =
   try List.rev (Lines.fold_file ~strict f [] file)
   with Lines.Error(pos,msg) -> raise_bad (Msg.err ~pos msg)
     
-let fold_file ?(version=3) ?(strict=true) f init file =
+let fold_file ?(chr_map=identity) ?(version=3) ?(strict=true) f init file =
   let ver = make_version version in
   let g accum line =
-    match Parser.row identity ver line with
+    match Parser.row chr_map ver line with
       | None -> accum
       | Some x -> f accum x
   in

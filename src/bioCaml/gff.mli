@@ -38,7 +38,7 @@ val of_file : ?chr_map:(string -> string) -> ?version:int -> ?strict:bool -> str
 val fold : ('a -> row -> 'a) -> 'a -> t -> 'a
 val iter : (row -> unit) -> t -> unit
 
-val fold_file : ?version:int -> ?strict:bool -> ('a -> row -> 'a) -> 'a -> string -> 'a
+val fold_file : ?chr_map:(string -> string) -> ?version:int -> ?strict:bool -> ('a -> row -> 'a) -> 'a -> string -> 'a
   (** [fold_file f init file] accumulates the result of applying [f] to each row of [file]. Optional arguments [version] and [strict] are as in [of_file]. *)
   
 val iter_file : ?version:int -> ?strict:bool -> (row -> unit) -> string -> unit
