@@ -17,7 +17,7 @@ doc/html/%:
 doc: clean-doc doc/html/base doc/html/$(lib)
 
 apps:
-	cd src; ocamlbuild $(patsubst src/%.ml,%.native,$(wildcard src/app/*.ml))
+	cd src; ocamlbuild $(patsubst src/%.ml,%.native,$(wildcard src/app/*.ml)); rm -f *.native
 
 
 ############################################################
