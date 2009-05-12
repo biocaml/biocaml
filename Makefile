@@ -2,9 +2,9 @@ lib=bioCaml
 
 ############################################################
 #
-# Compiling code and documentation
+# Compiling library, documentation, and applications
 #
-all: $(lib)
+all: $(lib) apps
 
 $(lib):
 	cd src; ocamlbuild $(lib).cma $(lib).cmxa
@@ -15,6 +15,9 @@ doc/html/%:
 	cp -fR src/_build/$*.docdir/* doc/html/$*
 
 doc: clean-doc doc/html/base doc/html/$(lib)
+
+apps:
+	cd src; ocamlbuild $(patsubst src/%.ml,%.native,$(wildcard src/app/*.ml))
 
 
 ############################################################
@@ -47,4 +50,4 @@ clean-all: clean-doc clean
 # clean everything and uninstall
 fresh: clean-all uninstall
 
-.PHONY: all $(lib) doc install uninstall clean clean-doc clean-all fresh
+.PHONY: all $(lib) doc apps install uninstall clean clean-doc clean-all fresh
