@@ -99,10 +99,10 @@ let to_file ?(chr_map=identity) ?(increment_lo_hi=(-1,0)) t file =
   try_finally (to_channel ~chr_map ~increment_lo_hi t) close_out (open_out_safe file)
 
 let set_of_rset = 
-  RSet.to_range_list ->> (List.map (fun x -> x.Range.lo,x.Range.hi)) ->> Set.of_list
+  RSet.to_range_list ->> Set.of_list
 
 let rset_of_set =
-  Set.to_list ->> (List.map (Tuple.Pr.uncurry Range.make)) ->> RSet.of_range_list
+  Set.to_list ->> RSet.of_range_list
 
 let diff bed1 bed2 =
   let f chr bed1_chr_set ans =

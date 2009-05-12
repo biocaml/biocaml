@@ -75,3 +75,51 @@ end
 
 let of_file file = 
   try_finally (Parser.fasta file) close_in (open_in file)
+
+let of_channel ic = 
+  try_finally (Parser.fasta "fasta file") close_in ic
+
+let to_file t file = 
+  let oc = open_out file in
+  let f header seq = 
+    output_string oc (">" ^ header ^ "\n");
+    output_string oc ((Seq.to_string seq) ^ "\n")
+  in
+  StringMap.iter f t; close_out oc
+
+(* bug-ridden -- David
+let map_headers f t = 
+  let folder hd seq acc = 
+    let newhd = f hd in
+    if StringMap.mem newhd acc then
+      StringMap.add (newhd ^ "_2") seq acc
+    else
+      StringMap.add newhd seq acc 
+  in
+  StringMap.fold folder t StringMap.empty
+
+let fold_file f init file = 
+  let ic = open_in file in
+  let hdrregex = Pcre.regexp ">(.+)" in
+  let acc = ref init in
+  let hdr = ref "" in
+  let seq = ref "" in
+  try 
+    while true do
+      let line = input_line ic in
+      try (
+          let arr = Pcre.extract ~rex:hdrregex line in
+          acc := f !acc !hdr (Seq.of_string !seq);
+          hdr := arr.(0);
+          seq := ""
+        )
+        with Not_found -> (seq := !seq ^ line)
+    done; assert false
+  with End_of_file -> (
+    acc := f !acc !hdr (Seq.of_string !seq);
+    close_in ic;
+    !acc
+  )
+
+let iter_file f file = fold_file (fun _ hdr seq -> f hdr seq) () file
+*)

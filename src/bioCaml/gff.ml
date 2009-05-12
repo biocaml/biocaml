@@ -183,10 +183,10 @@ let of_file ?(chr_map=identity) ?(version=3) ?(strict=true) file =
   try List.rev (Lines.fold_file ~strict f [] file)
   with Lines.Error(pos,msg) -> raise_bad (Msg.err ~pos msg)
     
-let fold_file ?(chr_map=identity) ?(version=3) ?(strict=true) f init file =
+let fold_file ?(version=3) ?(strict=true) f init file =
   let ver = make_version version in
   let g accum line =
-    match Parser.row chr_map ver line with
+    match Parser.row identity ver line with
       | None -> accum
       | Some x -> f accum x
   in
@@ -216,3 +216,20 @@ let map_of_file ?(version=3) ?(strict=true) file =
   let f ans r = StringMap.add_with r.chr (append r) ans in
   let ans = fold_file ~version ~strict f StringMap.empty file in
   StringMap.map List.rev ans
+(*
+let of_wig_file ~source ~feature ~strand ~phase ~attributes gff_file wig_file = 
+  let wig = Wig.of_file ~fmt:Wig.bed wig_file in
+  let f acc (c,s,f,v) = {
+    chr = c;
+    source = source;
+    feature = feature;
+    pos = s,f;
+    score = Some v;
+    strand = strand;
+    phase = phage;
+    attributes = attributes
+  }::acc
+  in
+  Wig.fold f [] wig
+
+*)

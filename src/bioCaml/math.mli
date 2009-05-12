@@ -27,6 +27,8 @@ val max : float array -> float
 val range : float -> float -> float -> float array
   (** [range step first last] returns array \[|first; first +. step; ... |\], where last element will be less than or equal to [last]. If [first > last], [step] subtracted and last element must be greater than or equal to [last]. In either case, [step] must be positive. *)
   
+val range_ints : int -> int -> int -> int list
+val range_floats : float -> float -> float -> float list
 
 (** {6 Statistical Operations} *)
   

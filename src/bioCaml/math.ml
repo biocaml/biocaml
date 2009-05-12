@@ -12,7 +12,7 @@ let column m i =
   if for_all (fun row -> i < length row) m
   then init (length m) (fun j -> m.(j).(i))
   else failwith (sprintf "invalid column index %d" i)
-    
+
 let transpose a =
   assert (is_rectangular a);
   if length a = 0 then [||] 
@@ -40,6 +40,19 @@ let odd x = (x mod 2) <> 0
 let min a = assert (length a > 0); fold_left min a.(0) a
 let max a = assert (length a > 0); fold_left max a.(0) a
   
+let prange add step lo hi = 
+  let rec f acc x = 
+    if x > hi then 
+      List.rev acc
+    else
+      let next = add x step in
+      f (x::acc) next
+  in
+  f [] lo
+
+let range_ints = prange (+)
+let range_floats = prange (+.)
+
 let range step first last =
   assert (step > 0.0);
   let n = (int_of_float <<- ceil <<- abs_float) ((last -. first) /. step) + 1 in
