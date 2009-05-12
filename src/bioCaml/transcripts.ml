@@ -1,5 +1,4 @@
-
-open Sesame
+open Sesame;; open Printf
 
 type 'a transcript = 
 { 
@@ -68,12 +67,8 @@ let of_composite_channel
   let ans = List.rev (SSMap.fold folder [] ans) in
   add_length_to_transcripts ans
 
-let of_composite_file 
-    ?(chr_map=identity)
-    ?(increment_lo_hi=(0,0))
-    file = 
-  try_finally (of_composite_channel ~chr_map ~increment_lo_hi) close_in 
-    (open_in file)
+let of_composite_file ?(chr_map=identity) ?(increment_lo_hi=(0,0)) file = 
+  try_finally (of_composite_channel ~chr_map ~increment_lo_hi) close_in (open_in file)
 
 let of_bed_channel ?(chr_map=identity) ?(increment_lo_hi=(1,0)) ic = 
   let bed = Bed.to_list (Bed.of_channel ~chr_map ~increment_lo_hi ic) in
@@ -91,6 +86,32 @@ let of_bed_channel ?(chr_map=identity) ?(increment_lo_hi=(1,0)) ic =
 
 let of_bed_file ?(chr_map=identity) ?(increment_lo_hi=(1,0)) file = 
   try_finally (of_bed_channel ~chr_map ~increment_lo_hi) close_in (open_in file)
+
+let of_gff transcript_name_of_exon gff =
+  let f transcript_name row prev = 
+    let lo,hi = row.Gff.pos in
+    match prev with
+      | None -> {
+          exons = [row.Gff.pos];
+          lo = lo;
+          hi = hi;
+          chr = row.Gff.chr;
+          info = transcript_name
+        }
+      | Some prev -> {
+          exons = row.Gff.pos::prev.exons;
+          lo = if lo < prev.lo then lo else prev.lo;
+          hi = if hi > prev.hi then hi else prev.hi;
+          chr = if row.Gff.chr = prev.chr then row.Gff.chr else failwith (sprintf "chromosome of transcript %s changed from %s to %s" transcript_name prev.chr row.Gff.chr);
+          info = (assert (transcript_name = prev.info); transcript_name)
+        }
+  in
+  let g ans row = match transcript_name_of_exon row with
+    | None -> ans
+    | Some transcript_name -> StringMap.add_with transcript_name (f transcript_name row) ans
+  in
+  let ans = Gff.fold g StringMap.empty gff in
+  StringMap.fold (fun _ x ans -> x::ans) ans []
 
 let all_probes_in 
     (trx_lst:'a t) 

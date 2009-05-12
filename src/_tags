@@ -4,4 +4,6 @@
 
 <bioCaml/*.cmx>: for-pack(BioCaml)
 
+<app/*.{ml,byte,native}>: pkg_getopt
+
 true: use_menhir, debug
