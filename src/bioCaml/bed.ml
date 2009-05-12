@@ -123,9 +123,20 @@ let union bed1 bed2 =
       let ans = StringMap.add chr (RSet.union bed1_chr_set bed2_chr_set) ans in
       let bed2 = StringMap.remove chr bed2 in
       ans,bed2
-    with Not_found -> ans,bed2
+    with Not_found -> (StringMap.add chr bed1_chr_set ans),bed2
   in
   let ans,bed2 = StringMap.fold f bed1 (StringMap.empty,bed2) in
   let ans = StringMap.map set_of_rset ans in
   let ans = StringMap.fold StringMap.add bed2 ans in
   ans
+
+let inter bed1 bed2 =
+  let f chr bed1_chr_set ans =
+    let bed1_chr_set = rset_of_set bed1_chr_set in
+    try
+      let bed2_chr_set = rset_of_set (StringMap.find chr bed2) in
+      StringMap.add chr (RSet.inter bed1_chr_set bed2_chr_set) ans
+    with Not_found -> ans
+  in
+  let ans = StringMap.fold f bed1 StringMap.empty in
+  StringMap.map set_of_rset ans

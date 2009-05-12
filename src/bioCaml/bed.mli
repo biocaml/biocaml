@@ -37,10 +37,13 @@ val any_overlap : t -> bool
   (** Returns true if any intervals overlap within the same chromosome. *)
 
 val diff : t -> t -> t
-  (** Returns the difference in base pairs from one bed to another. In other words, does an RSet.diff on each chromosome. *)
+  (** [diff t1 t2] returns the set difference in base pairs for each chromosome. *)
   
 val union : t -> t -> t
-  (** Returns the union in base pairs from one bed file to another. In other words, does an RSet.union on each chromosome. *)
+  (** [union t1 t2] returns the set union in base pairs for each chromosome. *)
+  
+val inter : t -> t -> t
+  (** [inter t1 t2] returns the set intersection in base pairs for each chromosome. *)
   
 
 (** {6 Constructors and Extractors} *)
