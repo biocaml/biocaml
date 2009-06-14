@@ -34,17 +34,24 @@ type options = {
 let no_options_defined t =
   t.option_strict = None &&
   t.option_in_file = None
-  
+
+(* Convert command line options to parameters,
+   or print help message and exit. *)  
 let options_to_params (t:options) : params =
-  assert (not t.option_help);
+  if t.option_help || no_options_defined t then
+    (printf "%s\n" usage; exit 0)
+  ;
   
-  let exists x = (if not (Sys.file_exists x) then failwith (sprintf "%s: no such file or directory" x)) in
+  let exists x =
+    if not (Sys.file_exists x) then
+      failwith (sprintf "%s: no such file or directory" x)
+  in
   
   let in_file = match t.option_in_file with
     | None -> failwith "must specify input file"
     | Some x -> (exists x; x)
-  in    
-
+  in
+  
   let strict = match t.option_strict with
     | None -> true
     | Some x -> (match x with
@@ -67,40 +74,32 @@ let parse_cmdline () : params =
     Getopt.noshort, "help", Some (fun () -> t.option_help <- true), None;
   ]
   in
-
+  
   let anon_handler x = match t.option_in_file with
     | None -> t.option_in_file <- Some x
     | Some _ -> failwith "multiple input files not allowed"
   in
   
   Getopt.parse_cmdline opts anon_handler;
-  if t.option_help || no_options_defined t then
-    (printf "%s\n" usage; exit 0)
-  else
-    options_to_params t
+  options_to_params t
 
 ;;
 try
-  let p = parse_cmdline() in
+  let params = parse_cmdline() in
   
   let f line =
-    if String.starts_with line "##" then
-      ()
-    else if String.for_all Char.is_space line then
-      ()
+    if String.starts_with line "##" then ()
+    else if String.for_all Char.is_space line then ()
     else
       try
-        let sl = String.nsplit line "\t" in
-        let nth = List.nth sl in
-        let nthi = nth ->> int_of_string in
-        let chr = nth 0 in
-        let lo = nthi 3 in
-        let hi = nthi 4 in
-        printf "%s\t%d\t%d\n" chr (lo-1) hi
-      with Failure msg -> (if p.strict then failwith msg else ())
+        match String.nsplit line "\t" with
+          | chr::_::_::lo::hi::_ ->
+              printf "%s\t%d\t%d\n" chr (int_of_string lo - 1) (int_of_string hi)
+          | _ -> failwith "expecting at least 5 columns"
+      with Failure msg -> (if params.strict then failwith msg else ())
   in
-  
-  Lines.iter_file f p.in_file
+
+  Lines.iter_file f params.in_file
 
 with
     Failure msg | Getopt.Error msg -> eprintf "%s: %s\n" prog_name msg
