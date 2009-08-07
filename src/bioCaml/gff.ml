@@ -173,6 +173,8 @@ module Parser = struct
         
 end
 
+let of_list xl = xl
+
 let of_file ?(chr_map=identity) ?(version=3) ?(strict=true) file =
   let ver = make_version version in
   let f ans s =

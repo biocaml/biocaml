@@ -35,6 +35,8 @@ type t
 val of_file : ?chr_map:(string -> string) -> ?version:int -> ?strict:bool -> string -> t
   (** [of_file file] parses [file]. If [strict=true], the default, [Bad] is raise on any errors. If [strict=false], errors are silently skipped. Default [version] is 3, but you can also specify 2. *)
   
+val of_list : row list -> t
+
 val fold : ('a -> row -> 'a) -> 'a -> t -> 'a
 val iter : (row -> unit) -> t -> unit
 
