@@ -218,20 +218,20 @@ let map_of_file ?(version=3) ?(strict=true) file =
   let f ans r = StringMap.add_with r.chr (append r) ans in
   let ans = fold_file ~version ~strict f StringMap.empty file in
   StringMap.map List.rev ans
-(*
-let of_wig_file ~source ~feature ~strand ~phase ~attributes gff_file wig_file = 
-  let wig = Wig.of_file ~fmt:Wig.bed wig_file in
-  let f acc (c,s,f,v) = {
-    chr = c;
-    source = source;
-    feature = feature;
-    pos = s,f;
-    score = Some v;
-    strand = strand;
-    phase = phage;
-    attributes = attributes
-  }::acc
-  in
-  Wig.fold f [] wig
 
-*)
+let index_by_attribute attr t =
+  let get_vals r attr = match attr with
+    | "CHR" -> [r.chr]
+    | "SOURCE" -> [r.source]
+    | "FEATURE" -> [r.feature]
+    | _ -> get_attributel r attr
+  in
+  let f ans r =
+    let ys = get_vals r attr in
+    let append prev = match prev with None -> [r] | Some l -> r::l in
+    List.fold_left (fun ans y -> StringMap.add_with y append ans) ans ys
+  in
+  let map = fold f StringMap.empty t in
+  let tbl = Hashtbl.create (StringMap.size map) in
+  StringMap.iter (fun x y -> Hashtbl.add tbl x (List.rev y)) map;
+  tbl

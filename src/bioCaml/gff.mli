@@ -80,3 +80,12 @@ val set_attribute : string -> string -> row -> row
 val delete_attribute : string -> row -> row
   (** [delete_attribute x r] deletes all occurrences of attribute [x] in [r]. *)
   
+val index_by_attribute : string -> t -> (string, row list) Hashtbl.t
+  (** [index_by_attribute x] returns a mapping from the values of
+      attribute [x] to those rows with that value. Instead of an
+      attribute, [x] can also be "CHR", "SOURCE", or "FEATURE" to
+      index by values of the respective column.
+
+      Postconditions:
+      - none of the values are the empty list
+      - each key is bound to only one value *)
