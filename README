@@ -1,6 +1,7 @@
 BioCaml - The OCaml Bioinformatics Library
-==========================================
 
+DESCRIPTION
+-----------
 BioCaml aims to be a high-performance user-friendly library for
 Bioinformatics. Current features include:
 
@@ -28,3 +29,17 @@ o Peak finding algorithms
 o Efficient querying of annotations
 o Efficient computations for sets of integer intervals
 o ... and more!
+
+INSTALLATION
+------------
+Please see INSTALL file.
+
+LICENSE
+-------
+The Sesame library is distributed according to the LGPL + linking
+exception terms as defined in the LICENSE file, which you should have
+received a copy of along with this library.
+
+CONTACT
+-------
+Ashish Agarwal <agarwal1975@gmail.com>
