@@ -1,10 +1,61 @@
-(*sbml types*)
+(** SBML file parser. Currently only level 2 version 4 is supported. *)
 
-(*TODO mathml*)
-type sb_math = {
- xmlns: string;
- apply: string list;
-}
+type sb_math_operator = 
+ (* arithmetics *)
+ | MPlus         (* a + b   *)
+ | MMinus        (* a - b   *)
+ | MTimes        (* a * b   *)
+ | MDivide       (* a / b   *)
+ | MPower        (* a ^ b   *)
+ | MRoot         (* a^(1/b) *)
+ | MAbs          (* |a|     *)
+ | MExp          (* e^a     *)
+ | MLn           (* ln a    *)
+ | MLog          (* log a,b *)
+ | MFloor        (* floor a *)
+ | MCeiling      (* ceil a  *)
+ | MFactorial    (* a!      *)
+ (* relational *)
+ | MEq           (* a == b *)
+ | MNeq          (* a != b *)
+ | MGt           (* a > b  *)
+ | MLt           (* a < b  *)
+ | MGeq          (* a >= b *)
+ | MLeq          (* a <= b *)
+ (* logic *)
+ | MAnd          (* a & b  *)
+ | MOr           (* a | b  *)
+ | MXor          (* a ^^ b *)
+ | MNot          (* !a     *)
+ (*trigonometry*)
+ | MSin 
+ | MCos 
+ | MTan 
+ | MArcsin 
+ | MArccos 
+ | MArctan 
+ (*delay a,b - see SBML spec *)
+ | MDelay       
+ (*user-defined functions*)
+ | MFundef of string
+
+type sb_math = 
+ (* composite *)
+ | MApply of sb_math_operator * (sb_math list)
+ | MLambda of (string list) * sb_math
+ | MPiecewise of ((string * sb_math) list) * string
+ (* tokens *)
+ | MFloatNumber of float
+ | MIntNumber of int
+ | MIdentifier of string
+ | MTime         (* simulation time - see SBML spec*)
+ | MTrue
+ | MFalse
+ | MNAN
+ | MPi
+ | MExponent
+ | MInfinity
+ | MNoMath     
 
 type sb_unit = {
  kind: string;
@@ -142,34 +193,8 @@ type sb_model = {
  speciesTypes : sb_species_type list;*)
 }     
 
-(*
-val store_attrs : (('a * 'b) * 'c) list -> ('b, 'c) Hashtbl.t
-val parse_list :  Xmlm.input -> (string * (Xmlm.attribute list -> Xmlm.input -> 'a)) list -> 'a list
-val parse_record : Xmlm.input -> (string * (string * (Xmlm.attribute list -> Xmlm.input -> 'a)) list) list 
-                              -> (string * (Xmlm.attribute list -> Xmlm.input -> 'b)) list 
-                              -> (string, 'a list) Hashtbl.t * (string, 'b) Hashtbl.t
-
-val parse_math : Xmlm.attribute list-> Xmlm.input -> sb_math
-
-val parse_unit : Xmlm.attribute list-> Xmlm.input -> sb_unit
-val parse_compartment : Xmlm.attribute list-> Xmlm.input -> sb_compartment
-val parse_species : Xmlm.attribute list-> Xmlm.input -> sb_species
-val parse_spreference : Xmlm.attribute list-> Xmlm.input -> sb_species_ref
-val parse_parameter : Xmlm.attribute list-> Xmlm.input -> sb_parameter
-val parse_fundef : Xmlm.attribute list-> Xmlm.input -> sb_function_definition
-val parse_unitdef : Xmlm.attribute list-> Xmlm.input -> sb_unit_definition
-val parse_iassignment : Xmlm.attribute list-> Xmlm.input -> sb_initial_assignment
-val parse_algebraic_rule : Xmlm.attribute list-> Xmlm.input -> sb_rule
-val parse_assignment_rule : Xmlm.attribute list-> Xmlm.input -> sb_rule
-val parse_rate_rule : Xmlm.attribute list-> Xmlm.input -> sb_rule
-val parse_generic_rule : Xmlm.attribute list-> Xmlm.input -> sb_generic_rule
-val parse_kineticlaw : Xmlm.attribute list-> Xmlm.input -> sb_kinetic_law
-val parse_reaction : Xmlm.attribute list-> Xmlm.input -> sb_reaction
-val parse_eassignment : Xmlm.attribute list-> Xmlm.input -> sb_event_assignment
-val parse_math_container : Xmlm.attribute list-> Xmlm.input -> sb_math_container
-val parse_event : Xmlm.attribute list-> Xmlm.input -> sb_event
-
-val parse_model : Xmlm.attribute list-> Xmlm.input -> sb_model
-*)
+val math_to_string : sb_math -> string
+  (** Returns a string with sb_math converted into a S-expression  *)
 
 val in_sbml : in_channel -> sb_model
+  (** Returns an sb_model read from input stream *)
