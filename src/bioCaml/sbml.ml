@@ -1,10 +1,61 @@
 (*A module for parsing SBML level 2 version 4*)
 
-(*TODO mathml*)
-type sb_math = {
- xmlns: string;
- apply: string list;
-}
+type sb_math_operator = 
+ (* arithmetics *)
+ | MPlus         (* a + b   *)
+ | MMinus        (* a - b   *)
+ | MTimes        (* a * b   *)
+ | MDivide       (* a / b   *)
+ | MPower        (* a ^ b   *)
+ | MRoot         (* a^(1/b) *)
+ | MAbs          (* |a|     *)
+ | MExp          (* e^a     *)
+ | MLn           (* ln a    *)
+ | MLog          (* log a,b *)
+ | MFloor        (* floor a *)
+ | MCeiling      (* ceil a  *)
+ | MFactorial    (* a!      *)
+ (* relational *)
+ | MEq           (* a == b *)
+ | MNeq          (* a != b *)
+ | MGt           (* a > b  *)
+ | MLt           (* a < b  *)
+ | MGeq          (* a >= b *)
+ | MLeq          (* a <= b *)
+ (* logic *)
+ | MAnd          (* a & b  *)
+ | MOr           (* a | b  *)
+ | MXor          (* a ^^ b *)
+ | MNot          (* !a     *)
+ (*trigonometry*)
+ | MSin 
+ | MCos 
+ | MTan 
+ | MArcsin 
+ | MArccos 
+ | MArctan 
+ (*delay a,b - see SBML spec *)
+ | MDelay       
+ (*user-defined functions*)
+ | MFundef of string
+
+type sb_math = 
+ (* composite *)
+ | MApply of sb_math_operator * (sb_math list)
+ | MLambda of (string list) * sb_math
+ | MPiecewise of ((string * sb_math) list) * string
+ (* tokens *)
+ | MFloatNumber of float
+ | MIntNumber of int
+ | MIdentifier of string
+ | MTime         (* simulation time - see SBML spec*)
+ | MTrue
+ | MFalse
+ | MNAN
+ | MPi
+ | MExponent
+ | MInfinity
+ | MNoMath                
 
 type sb_unit = {
  kind: string;
@@ -142,6 +193,166 @@ type sb_model = {
  speciesTypes : sb_species_type list;*)
 }     
 
+module MathML = struct
+(* MathML prettyprinting *)
+let rec math_to_string math =
+ let operator_to_string oper = 
+  match oper with 
+   | MPlus -> "+" 
+   | MMinus -> "-" 
+   | MTimes -> "*" 
+   | MPower -> "^" 
+   | MAbs -> "ABS" 
+   | MExp -> "EXP"  
+   | MFactorial -> "FACTORIAL"  
+   | MCeiling -> "CEILING"  
+   | MLt -> "<" 
+   | MGt -> ">" 
+   | MLeq -> "<=" 
+   | MGeq -> ">=" 
+   | MDelay -> "DELAY" 
+   | MFundef oper -> oper
+   | _ -> invalid_arg "can't convert unknown operator"
+   in
+ match math with 
+ | MApply (oper, exprlist) -> "(" ^ (operator_to_string oper) ^ " " ^ (String.concat " " (List.map math_to_string exprlist)) ^ ")"
+ | MLambda (bvarlist, lambda_expr) -> "(LAMBDA (" ^ (String.concat " " bvarlist) ^ ") " ^ (math_to_string lambda_expr) ^ ")"
+ | MPiecewise (piecelist, otherwise) -> "(PIECEWISE " ^ (String.concat " " (List.map 
+                                                 (fun next -> let (var, varexpr) = next in "(" ^ (math_to_string varexpr) ^ " " ^ var ^ ")") piecelist)) 
+                                          ^ " " ^ otherwise ^ ")"
+ | MFloatNumber f -> (string_of_float f)
+ | MIntNumber i -> (string_of_int i)
+ | MIdentifier s -> s
+ | MTime -> "<time>"
+ | MExponent -> "e"
+ | MNoMath -> "/no math/"
+ | _ -> invalid_arg "can't convert unknown math expr"
+
+(* MathML parsing *)
+
+let extract_string i depth errmsg =
+  let rec skip_tags i depth =
+    if depth > 0 then begin ignore (Xmlm.input i); skip_tags i (depth - 1) end else ()
+   in
+   skip_tags i depth;
+   let result = match Xmlm.input i with 
+    | `Data dat -> dat
+    | _ -> invalid_arg errmsg
+   in
+   skip_tags i depth; 
+   result
+
+let unpack_string s =
+ match s with 
+  | MIdentifier(str) -> str 
+  | _ -> invalid_arg "not a packed string"
+
+let unpack_symbol_type attrs =
+ let (_,sbmlUrl) = List.find (fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
+  let splitUrl = Str.split (Str.regexp_string "/") sbmlUrl in
+   List.nth splitUrl (List.length splitUrl - 1)
+
+let parse_bvarlist i =
+  let rec bvarlist_iter i bvarlist = 
+    match Xmlm.peek i with 
+    | `El_start ((_, "bvar"), _) -> bvarlist_iter i ((extract_string i 2 "malformed lambda expr in bvar") :: bvarlist)
+    | `El_start ((_, _), _) -> bvarlist
+    | _ -> invalid_arg "malformed lambda expr in bvar list"
+  in
+  List.rev (bvarlist_iter i [])
+
+let rec parse_mathexpr i =
+  let rec mathexpr_iter i formula = 
+    match Xmlm.input i with 
+    | `El_start ((_, "apply"), _) -> let operator = parse_operator i in 
+                                      let exprlist = parse_exprlist i in mathexpr_iter i (MApply (operator, exprlist))
+    | `El_start ((_, "lambda"), _) -> let bvars = parse_bvarlist i in 
+                                       let lambda_expr = parse_mathexpr i in mathexpr_iter i (MLambda (bvars, lambda_expr))
+    | `El_start ((_, "piecewise"), _) -> let pieces = parse_piecelist i in 
+                                          let otherwise = extract_string i 2 "malformed otherwise expr" in mathexpr_iter i (MPiecewise (pieces, otherwise))
+    | `El_start ((_, "ci"), _) -> mathexpr_iter i (MIdentifier (unpack_string (parse_mathexpr i)))
+    | `El_start ((_, "cn"), attrs) -> if (List.length attrs) = 1 
+                                       then match List.hd attrs with
+                                            | ((_, "type"), "integer") -> mathexpr_iter i (MIntNumber (int_of_string (unpack_string (parse_mathexpr i))))
+                                            | ((_, "type"), "e-notation") -> 
+                                                mathexpr_iter i (MFloatNumber (float_of_string (unpack_string (parse_mathexpr i))))
+                                            | ((_, _), _) -> invalid_arg "malformed cn tag"
+                                       else mathexpr_iter i (MFloatNumber (float_of_string (unpack_string (parse_mathexpr i))))
+    | `El_start ((_, "sep"), _) -> mathexpr_iter i (MIdentifier ((unpack_string (formula)) ^ "e" ^ (unpack_string (parse_mathexpr i))))
+    | `El_start ((_, "csymbol"), attrs) -> 
+        if (unpack_symbol_type attrs) = "time" then 
+         begin ignore (Xmlm.input i); mathexpr_iter i (MTime) end 
+         else invalid_arg "malformed csymbol expr"
+    | `El_start ((_, "exponentiale"), _) -> mathexpr_iter i (MExponent)
+
+   (* add more tokens *)
+
+    | `El_start ((_, tag), _) -> print_endline tag; invalid_arg "unknown math tag"
+    | `Data dat -> MIdentifier (dat) 
+    | `El_end -> formula
+    | `Dtd _ -> assert false
+  in
+  mathexpr_iter i MNoMath
+ and 
+ parse_operator i =
+ let oper = match Xmlm.input i with 
+   | `El_start ((_, "plus"), _) -> MPlus
+   | `El_start ((_, "minus"), _) -> MMinus
+   | `El_start ((_, "times"), _) -> MTimes
+   | `El_start ((_, "power"), _) -> MPower
+   | `El_start ((_, "abs"), _) -> MAbs
+   | `El_start ((_, "exp"), _) -> MExp
+   | `El_start ((_, "factorial"), _) -> MFactorial
+   | `El_start ((_, "ceiling"), _) -> MCeiling
+   | `El_start ((_, "lt"), _) -> MLt
+   | `El_start ((_, "gt"), _) -> MGt
+   | `El_start ((_, "leq"), _) -> MLeq
+   | `El_start ((_, "geq"), _) -> MGeq
+
+   (* add more operators *)
+
+   | `El_start ((_, "csymbol"), attrs) -> 
+       if (unpack_symbol_type attrs) = "delay" then 
+        begin ignore (Xmlm.input i); MDelay end
+        else invalid_arg "malformed csymbol expr"
+   (* assume a user-defined function in functionDefinition*)
+   | `El_start ((_, "ci"), _) -> MFundef (unpack_string (parse_mathexpr i))
+   | _ -> invalid_arg "malformed apply expr"
+ in ignore (Xmlm.input i); oper
+ and 
+ parse_exprlist i =
+  let rec exprlist_iter i exprlist = 
+    match Xmlm.peek i with 
+    | `El_start ((_, _), _) -> exprlist_iter i ((parse_mathexpr i) :: exprlist)
+    | `El_end -> exprlist
+    | _ -> invalid_arg "malformed mathml in apply"
+  in
+  List.rev (exprlist_iter i [])
+ and 
+ parse_piecelist i =
+  let rec piecelist_iter i piecelist = 
+    match Xmlm.peek i with 
+    | `El_start ((_, "piece"), _) -> ignore (Xmlm.input i); 
+                                      let piece_var = extract_string i 1 "malformed piece expr" in 
+                                       let piece_expr = parse_mathexpr i in 
+                                        ignore (Xmlm.input i); 
+                                        piecelist_iter i ((piece_var, piece_expr) :: piecelist)
+    | `El_start ((_, "otherwise"), _) -> piecelist
+    | _ -> invalid_arg "malformed piecewise expr"
+  in
+  List.rev (piecelist_iter i [])
+
+let parse_math attrs i =
+  let sbm = parse_mathexpr i in 
+  ignore (Xmlm.input i); (*math tag end*) 
+  sbm
+end
+
+let parse_math = MathML.parse_math
+let math_to_string = MathML.math_to_string
+
+module SBMLParser = struct
+
 (*abstract stuff for lists and attributes*)
 let store_attrs attrs = 
  let parse_hash = Hashtbl.create 10 in
@@ -173,17 +384,6 @@ let parse_record i list_dict record_dict =
     | `Data dat -> iter_record i 
     | `Dtd _ -> assert false
  in iter_record i; (list_hash, record_hash)
-
-(*TODO mathml*)
-let parse_math attrs i =
-  let rec pull i depth = 
-    match Xmlm.input i with 
-    | `El_start ((_, loc), attrs) -> (* print_string loc; *) pull i (depth + 1)
-    | `El_end -> if depth = 0 then () else pull i (depth - 1)
-    | `Data dat -> (* print_endline dat; *) pull i depth 
-    | `Dtd _ -> assert false
-  in
-  pull i 0; { xmlns = ""; apply = [] }
 
 (*enitity record parsing, ignore (Xmlm.input i) is for skipping tag's end *)
 
@@ -251,7 +451,7 @@ let parse_fundef attrs i =
  LFunctionDefinition ({
   fundef_id = (Hashtbl.find parse_hash "id"); 
   fundef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-  fundef_math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  fundef_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  })
 
 let parse_unitdef attrs i = 
@@ -271,7 +471,7 @@ let parse_hash = (store_attrs attrs) in
                                                 [("math",parse_math)]) in
  LInitialAssignment ({
   ia_symbol = (Hashtbl.find parse_hash "symbol"); 
-  ia_math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  ia_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  })
 
 let parse_generic_rule attrs i = 
@@ -280,13 +480,13 @@ let parse_hash = (store_attrs attrs) in
                                                 [("math",parse_math)]) in
  {
   gr_variable = (Hashtbl.find parse_hash "variable");
-  gr_math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  gr_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }
 let parse_algebraic_rule attrs i = 
  let (list_hash,record_hash) = (parse_record i [] 
                                                 [("math",parse_math)]) in
  LRule (AlgebraicRule ({
-  ar_math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  ar_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }))
 let parse_assignment_rule attrs i = LRule (AssignmentRule (parse_generic_rule attrs i))
 let parse_rate_rule attrs i = LRule (RateRule (parse_generic_rule attrs i))
@@ -297,7 +497,7 @@ let parse_kineticlaw attrs i =
  {
   klaw_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> invalid_arg "parameter") 
                     (Hashtbl.find list_hash "listOfParameters")) with Not_found -> []);
-  klaw_math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  klaw_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }
 
 let parse_reaction attrs i = 
@@ -310,12 +510,12 @@ let parse_reaction attrs i =
   react_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
   reversible = (try (bool_of_string (Hashtbl.find parse_hash "reversible")) with Not_found -> true);
   fast = (try (bool_of_string (Hashtbl.find parse_hash "fast")) with Not_found -> false);
-  reactants = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> invalid_arg "specref") 
+  reactants = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> invalid_arg "malformed specieReference") 
               (Hashtbl.find list_hash "listOfReactants")) with Not_found -> []);
-  products = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> invalid_arg "specref")
+  products = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> invalid_arg "malformed specieReference")
              (Hashtbl.find list_hash "listOfProducts")) with Not_found -> []);
   kinetic_law = (try (Hashtbl.find record_hash "kineticLaw") 
-        with Not_found -> {klaw_parameters = []; klaw_math = { xmlns = ""; apply = [] }});
+        with Not_found -> {klaw_parameters = []; klaw_math = MNoMath});
  })
 
 let parse_eassignment attrs i = 
@@ -324,14 +524,14 @@ let parse_hash = (store_attrs attrs) in
                                                 [("math",parse_math)]) in
  LEventAssignment ({
   ea_variable = (Hashtbl.find parse_hash "variable");
-  ea_math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  ea_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  })
 
 let parse_math_container attrs i = 
  let (list_hash,record_hash) = (parse_record i [] 
                                                 [("math",parse_math)]) in
  {
-  math = (try (Hashtbl.find record_hash "math") with Not_found -> { xmlns = ""; apply = [] });
+  math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }
 
 let parse_event attrs i = 
@@ -344,8 +544,8 @@ let parse_event attrs i =
   event_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
   useValuesFromTriggerTime = (try (bool_of_string (Hashtbl.find parse_hash "useValuesFromTriggerTime")) with Not_found -> true);
   trigger = (try Trigger (Hashtbl.find record_hash "trigger") with Not_found -> invalid_arg "trigger not found in event");
-  delay = (try Delay (Hashtbl.find record_hash "delay") with Not_found -> Delay ({math = { xmlns = ""; apply = [] }}));
-  eventAssignments = (try (List.rev_map (function LEventAssignment(t) -> t | _ -> invalid_arg "eassign") 
+  delay = (try Delay (Hashtbl.find record_hash "delay") with Not_found -> Delay ({math = MNoMath}));
+  eventAssignments = (try (List.rev_map (function LEventAssignment(t) -> t | _ -> invalid_arg "malformed eventAssignment") 
                           (Hashtbl.find list_hash "listOfEventAssignments")) with Not_found -> []);
  })
 
@@ -366,37 +566,40 @@ let parse_model attrs i =
 { 
   model_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
   model_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-  functionDefinitions = (try (List.rev_map (function LFunctionDefinition(t) -> t | _ -> invalid_arg "fundef") 
+  functionDefinitions = (try (List.rev_map (function LFunctionDefinition(t) -> t | _ -> invalid_arg "malformed functionDefinition") 
                         (Hashtbl.find list_hash "listOfFunctionDefinitions")) with Not_found -> []);
-  unitDefinitions = (try (List.rev_map (function LUnitDefinition(t) -> t | _ -> invalid_arg "fundef") 
+  unitDefinitions = (try (List.rev_map (function LUnitDefinition(t) -> t | _ -> invalid_arg "malformed unitDefinition") 
                     (Hashtbl.find list_hash "listOfUnitDefinitions")) with Not_found -> []);
-  compartments = (try (List.rev_map (function LCompartment(t) -> t | _ -> invalid_arg "fundef") 
+  compartments = (try (List.rev_map (function LCompartment(t) -> t | _ -> invalid_arg "malformed compartment") 
                  (Hashtbl.find list_hash "listOfCompartments")) with Not_found -> []);
-  species = (try (List.rev_map (function LSpecies(t) -> t | _ -> invalid_arg "fundef") 
+  species = (try (List.rev_map (function LSpecies(t) -> t | _ -> invalid_arg "malformed species") 
                  (Hashtbl.find list_hash "listOfSpecies")) with Not_found -> []);
-  reactions = (try (List.rev_map (function LReaction(t) -> t | _ -> invalid_arg "fundef") 
+  reactions = (try (List.rev_map (function LReaction(t) -> t | _ -> invalid_arg "malformed reaction") 
                    (Hashtbl.find list_hash "listOfReactions")) with Not_found -> []);
-  parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> invalid_arg "fundef") 
+  parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> invalid_arg "malformed parameter") 
                     (Hashtbl.find list_hash "listOfParameters")) with Not_found -> []);
-  initialAssignments = (try (List.rev_map (function LInitialAssignment(t) -> t | _ -> invalid_arg "fundef") 
+  initialAssignments = (try (List.rev_map (function LInitialAssignment(t) -> t | _ -> invalid_arg "malformed initialAssignment") 
                        (Hashtbl.find list_hash "listOfInitialAssignments")) with Not_found -> []);
-  rules = (try (List.rev_map (function LRule(t) -> t | _ -> invalid_arg "fundef")               
+  rules = (try (List.rev_map (function LRule(t) -> t | _ -> invalid_arg "malformed rule")               
           (Hashtbl.find list_hash "listOfRules")) with Not_found -> []);
-  events = (try (List.rev_map (function LEvent(t) -> t | _ -> invalid_arg "fundef") 
+  events = (try (List.rev_map (function LEvent(t) -> t | _ -> invalid_arg "malformed event") 
            (Hashtbl.find list_hash "listOfEvents")) with Not_found -> []);
  }
 
 (*reader function*)
 let in_sbml ichan =
-  let i = (Xmlm.make_input (`Channel ichan)) in
+  let i = (Xmlm.make_input ~strip:true (`Channel ichan)) in
   ignore (Xmlm.input i); (* `Dtd *)
   ignore (Xmlm.input i); (* smbl tag start *)
-  ignore (Xmlm.input i); (* smbl tag bogus data *)
   let model =
    match Xmlm.input i with 
    | `El_start ((_, "model"), attrs) -> parse_model attrs i
-   | _ -> invalid_arg "document not well-formed" in
-  ignore (Xmlm.input i); (* smbl tag bogus data *)
+   | _ -> invalid_arg "malformed sbml" in
   ignore (Xmlm.input i); (* smbl tag end *)
-  if not (Xmlm.eoi i) then invalid_arg "document not well-formed";
+  if not (Xmlm.eoi i) then invalid_arg "sbml too long";
   model
+
+end
+
+let in_sbml = SBMLParser.in_sbml
+
