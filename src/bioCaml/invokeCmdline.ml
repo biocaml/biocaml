@@ -1,5 +1,5 @@
-open Batteries
-
+open BatEnum
+   
 let invoke_cmd = fun command args -> let chan = Unix.open_process_in (command ^ " " ^ (String.concat " " args)) in
  let res = ref ([] : string list) in
   let rec invoke_aux () =

@@ -1,5 +1,7 @@
 (** SBML file parser. Currently only level 2 version 4 is supported. *)
 
+exception Bad of string
+
 type sb_math_operator = 
  (* arithmetics *)
  | MPlus         (* a + b   *)
@@ -58,10 +60,10 @@ type sb_math =
  | MNoMath     
 
 type sb_unit = {
- kind: string;
- exponent: int;
- scale: int;
- multiplier: float;
+ unit_kind: string;
+ unit_exponent: int;
+ unit_scale: int;
+ unit_multiplier: float;
 }
 
 type sb_function_definition = {
@@ -73,14 +75,14 @@ type sb_function_definition = {
 type sb_unit_definition = {
  unitdef_id: string;
  unitdef_name: string;
- unitlist: sb_unit list;
+ unitdef_unitlist: sb_unit list;
 }
 
 type sb_compartment = {
  compart_id: string;
  compart_name: string;
- spatialDimensions: int;
- size: float;
+ compart_spatialDimensions: int;
+ compart_size: float;
  compart_units: string;
  compart_outside: string;
  compart_constant: bool;
@@ -90,19 +92,19 @@ type sb_species_ref = {
  specref_species: string;
  specref_id: string;
  specref_name: string;
- stoichiometry: int;      (* TODO variant stoichiometry | stoichiometryMath *)
+ specref_stoichiometry: int;      (* TODO variant stoichiometry | stoichiometryMath *)
 }
 
 type sb_species = {
  species_id: string;
  species_name: string;
- speciesType: string;
- compartment: string;
- initialAmount: float;
- initialConcentration: float;
- substanceUnits: string;
- hasOnlySubstanceUnits: bool;
- boundaryCondition: bool;
+ species_type: string;
+ species_compartment: string;
+ species_initialAmount: float;
+ species_initialConcentration: float;
+ species_substanceUnits: string;
+ species_hasOnlySubstanceUnits: bool;
+ species_boundaryCondition: bool;
  species_constant: bool;
 }
 
@@ -122,11 +124,11 @@ type sb_kinetic_law = {
 type sb_reaction = {
  react_id: string;
  react_name: string;
- reversible: bool;
- fast: bool;
- reactants: sb_species_ref list;
- products: sb_species_ref list;
- kinetic_law: sb_kinetic_law;
+ react_boundaryCondition: bool;
+ react_fast: bool;
+ react_reactants: sb_species_ref list;
+ react_products: sb_species_ref list;
+ react_kineticLaw: sb_kinetic_law;
 }
 
 type sb_initial_assignment = {
@@ -160,31 +162,24 @@ type sb_event_assignment = {
 type sb_event = {
  event_id: string;
  event_name: string;
- useValuesFromTriggerTime: bool;
- trigger: sb_trigger;
- delay: sb_delay;
- eventAssignments: sb_event_assignment list;
+ event_useValuesFromTriggerTime: bool;
+ event_trigger: sb_trigger;
+ event_delay: sb_delay;
+ event_assignments: sb_event_assignment list;
 }
 
-(*a wrapper type to deal with heterogenous lists*)
-type sb_L = LFunctionDefinition of sb_function_definition | LUnitDefinition of sb_unit_definition | 
-                   LCompartment of sb_compartment | LSpecies of sb_species | LReaction of sb_reaction | 
-                   LParameter of sb_parameter | LInitialAssignment of sb_initial_assignment | LRule of sb_rule | 
-                   LEvent of sb_event | LEventAssignment of sb_event_assignment | LSpecieRef of sb_species_ref |
-                   LUnit of sb_unit 
-
 type sb_model = { 
- model_id: string;
- model_name: string;
- functionDefinitions : sb_function_definition list;
- unitDefinitions : sb_unit_definition list;
- compartments : sb_compartment list;
- species : sb_species list;
- reactions : sb_reaction list;
- parameters : sb_parameter list;
- initialAssignments : sb_initial_assignment list;
- rules : sb_rule list;
- events : sb_event list;
+ sbm_id: string;
+ sbm_name: string;
+ sbm_functionDefinitions : sb_function_definition list;
+ sbm_unitDefinitions : sb_unit_definition list;
+ sbm_compartments : sb_compartment list;
+ sbm_species : sb_species list;
+ sbm_reactions : sb_reaction list;
+ sbm_parameters : sb_parameter list;
+ sbm_initialAssignments : sb_initial_assignment list;
+ sbm_rules : sb_rule list;
+ sbm_events : sb_event list;
 
  (*could not find test xmls for these*)
 

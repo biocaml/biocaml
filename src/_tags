@@ -1,6 +1,6 @@
 <base> or <bioCaml>: include
 
-<**/*.{ml,mli,byte,native}>: pkg_str, pkg_extlib, pkg_pcre, pkg_sesame, pkg_xmlm
+<**/*.{ml,mli,byte,native}>: pkg_str, pkg_extlib, pkg_pcre, pkg_sesame, pkg_xmlm, pkg_batteries
 
 <bioCaml/*.cmx>: for-pack(BioCaml)
 

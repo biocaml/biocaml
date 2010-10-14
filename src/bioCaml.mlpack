@@ -8,6 +8,7 @@ CommentLines
 Fasta
 Gff
 Histogram
+InvokeCmdline
 Math
 Sbml
 Seq
