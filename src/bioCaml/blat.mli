@@ -23,4 +23,4 @@ type psl_record = {
 }
 
 val invoke_blat_files : string -> string -> string -> string -> string list
-val invoke_blat_mem : string -> BioCaml.Fasta.t -> BioCaml.Fasta.t -> psl_record list
+val invoke_blat_mem : string -> Fasta.t -> Fasta.t -> psl_record list
