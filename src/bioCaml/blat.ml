@@ -1,6 +1,3 @@
-open BioCaml
-open InvokeCmdline
-
 type psl_record = {
  psl_matches: int;
  psl_misMatches: int;
@@ -62,13 +59,13 @@ let parse_psl_line line =
     else None
 
 let invoke_blat_files path_to_blat target query outfile =                                (*TODO optional path*)
- invoke_cmd (path_to_blat ^ "blat") [target; query; outfile]
+ InvokeCmdline.invoke_cmd (path_to_blat ^ "blat") [target; query; outfile]
 
 let invoke_blat_mem path_to_blat target_fasta query_fasta =
   let target_file = (Filename.temp_file "" ".fa") in (Fasta.to_file target_fasta target_file);
   let query_file = (Filename.temp_file "" ".fa") in (Fasta.to_file query_fasta query_file);
   let out_file = (Filename.temp_file "" ".psl") in
   ignore (invoke_blat_files path_to_blat target_file query_file out_file); (*should we use the console output somehow? *)
-  let res = parse_lines out_file parse_psl_line in 
+  let res = InvokeCmdline.parse_lines out_file parse_psl_line in 
   Sys.remove (target_file); Sys.remove (query_file); Sys.remove (out_file); 
   res
