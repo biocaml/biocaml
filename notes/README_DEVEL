@@ -16,11 +16,8 @@ biocaml
   +- notes
   |  documenation and notes for developers
   |
-  +- lib
-  |  external libraries that are distributed with BioCaml
-  |
   +- src
-     |  all BioCaml source code goes under here
+     |  all source code goes under here
      |
      +- bioCaml
      |  root of the BioCaml API, most source code goes here
@@ -30,6 +27,9 @@ biocaml
      |
      +- base
      |  internally used modules that are not exposed by the API
+     |
+     +- ext
+     |  external libraries that are distributed with BioCaml
      |
      +- demo
         examples of how to use the applications and API
