@@ -1,8 +1,8 @@
-<base> or <bioCaml> or <ext/xmlm>: include
+<base> or <biocaml> or <ext/xmlm>: include
 
 <**/*.{ml,mli,byte,native}>: pkg_str, pkg_extlib, pkg_pcre, pkg_sesame, pkg_xmlm, pkg_batteries
 
-<bioCaml/*.cmx>: for-pack(BioCaml)
+<biocaml/*.cmx>: for-pack(Biocaml)
 
 <app/*.{ml,byte,native}>: pkg_getopt
 

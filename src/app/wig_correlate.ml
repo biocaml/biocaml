@@ -1,4 +1,4 @@
-open Sesame;; open BioCaml;; open Printf
+open Sesame;; open Biocaml;; open Printf
 
 let prog_name = Sys.argv.(0)
 
