@@ -1,7 +1,7 @@
 Directory Structure
 ===================
 
-The main directory of concern is biocaml/src/bioCaml. Insert new modules here.
+The main directory of concern is biocaml/src/biocaml. Insert new modules here.
 Below is a description of the complete directory hierarchy.
 
 biocaml
@@ -19,8 +19,8 @@ biocaml
   +- src
      |  all source code goes under here
      |
-     +- bioCaml
-     |  root of the BioCaml API, most source code goes here
+     +- biocaml
+     |  root of the Biocaml API, most source code goes here
      |
      +- app
      |  applications that will be distributed with the library
@@ -29,7 +29,7 @@ biocaml
      |  internally used modules that are not exposed by the API
      |
      +- ext
-     |  external libraries that are distributed with BioCaml
+     |  external libraries that are distributed with Biocaml
      |
      +- demo
         examples of how to use the applications and API

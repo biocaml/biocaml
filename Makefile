@@ -1,4 +1,5 @@
-lib=bioCaml
+lib=biocaml
+findlib-pkg=$(lib)
 
 ############################################################
 #
@@ -25,10 +26,10 @@ apps:
 # Installing and uninstalling
 #
 install: all uninstall
-	cd src/_build; ocamlfind install biocaml ../META $(patsubst %,$(lib).%,cmi a cma cmxa)
+	cd src/_build; ocamlfind install $(findlib-pkg) ../META $(patsubst %,$(lib).%,cmi a cma cmxa)
 
 uninstall:
-	ocamlfind remove biocaml
+	ocamlfind remove $(findlib-pkg)
 
 
 ############################################################
