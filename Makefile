@@ -8,7 +8,7 @@ findlib-pkg=$(lib)
 all: $(lib) apps
 
 $(lib):
-	cd src; ocamlbuild $(lib).cma $(lib).cmxa
+	cd src; ocamlbuild $(lib).cma $(lib).cmxa $(lib).cmxs
 
 doc/html/%:
 	cd src; ocamlbuild $*.docdir/index.html; rm -f $*.docdir
@@ -26,7 +26,7 @@ apps:
 # Installing and uninstalling
 #
 install: all uninstall
-	cd src/_build; ocamlfind install $(findlib-pkg) ../META $(patsubst %,$(lib).%,cmi a cma cmxa)
+	cd src/_build; ocamlfind install $(findlib-pkg) ../META $(patsubst %,$(lib).%,cmi a cma cmxa cmxs)
 
 uninstall:
 	ocamlfind remove $(findlib-pkg)
