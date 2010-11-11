@@ -25,7 +25,7 @@ apps:
 #
 # Installing and uninstalling
 #
-install: all uninstall
+install: $(lib) uninstall
 	cd src/_build; ocamlfind install $(findlib-pkg) ../META $(patsubst %,$(lib).%,cmi a cma cmxa cmxs)
 
 uninstall:
