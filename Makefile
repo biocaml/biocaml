@@ -23,6 +23,19 @@ apps:
 
 ############################################################
 #
+# Compiling dependency graph
+#
+dot: doc/dot/dependency_graph.ps
+
+doc/dot/dependency_graph.out: $(wildcard src/biocaml/*.ml)
+	ocamldoc -o $@ -I src/_build -I src/_build/biocaml -I src/_build/ext/sesame -I src/_build/ext/xmlm-1.0.2/src -dot $^
+
+doc/dot/dependency_graph.ps: doc/dot/dependency_graph.out
+	dot -Tps $^ >$@
+
+
+############################################################
+#
 # Installing and uninstalling
 #
 install: $(lib) uninstall
@@ -45,10 +58,14 @@ clean:
 clean-doc:
 	rm -rf doc/html/*
 
+# delete compiled dot files
+clean-dot:
+	rm -f doc/dot/*
+
 # delete all automatically generated files
 clean-all: clean-doc clean
 
 # clean everything and uninstall
 fresh: clean-all uninstall
 
-.PHONY: all $(lib) doc apps install uninstall clean clean-doc clean-all fresh
+.PHONY: all $(lib) doc dot apps install uninstall clean clean-doc clean-dot clean-all fresh
