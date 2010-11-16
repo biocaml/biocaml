@@ -377,8 +377,8 @@ type block =
     | T of TrackLine.t
     | C of CommentLines.t
     | Wig of Wig.t
-    | Bed of Bed.t
-        
+    (* | Bed of Bed.t *)
+
 type t = block list
 
 exception Bad of string
@@ -394,7 +394,7 @@ let to_channel ?wig_fmt t cout =
     | T x -> print_string (TrackLine.to_string x)
     | C x -> print_string (CommentLines.to_string x)
     | Wig x -> wig_to_channel x cout
-    | Bed x -> Bed.to_channel x cout
+    (* | Bed x -> Bed.to_channel x cout *)
   in
   List.iter print_block t
 
@@ -405,7 +405,7 @@ let to_file ?wig_fmt t file =
 let validate t =
   let t = List.filter (function C _ -> false | _ -> true) t in
 
-  let is_data = function | B _ | T _ | C _ -> false | Wig _ | Bed _ -> true in
+  let is_data = function | B _ | T _ | C _ -> false | Wig _ (* | Bed _ *) -> true in
   
   let rec browser_lines_first t =
     let rec loop non_b_seen = function

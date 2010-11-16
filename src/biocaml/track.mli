@@ -96,8 +96,8 @@ type block =
     | T of TrackLine.t    (** a track line *)
     | C of CommentLines.t     (** one or more comment lines or blank lines *)
     | Wig of Wig.t        (** WIG data section *)
-    | Bed of Bed.t        (** WIG data section *)
-         
+    (* | Bed of Bed.t *)       (** WIG data section *)
+
 type t
     (** Type of a track file. Can be thought of as a list of blocks with certain restrictions on the order in which blocks occur. *)
 
