@@ -1,5 +1,5 @@
 description = "Bioinformatics library"
-requires = "sesame pcre str batteries"
+requires = "extlib pcre str batteries"
 version = "0.0"
 archive(byte) = "biocaml.cma"
 archive(native) = "biocaml.cmxa"
