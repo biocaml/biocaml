@@ -5,6 +5,7 @@ Blat
 Bpmap
 Cel
 ChrName
+Common
 CommentLines
 Fasta
 Gff
@@ -20,5 +21,6 @@ Sgr
 StrandName
 # Track
 # Transcripts
+Util
 Wig
 Sesame
