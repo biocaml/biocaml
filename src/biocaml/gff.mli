@@ -1,6 +1,11 @@
-(** GFF files. Parser silently skips comment lines, blank lines, and pragmas.
+(** GFF files. Parser silently skips comment lines, blank lines, and
+    pragmas.
 
-    Versions 2 and 3 are supported. The only difference is the delimiter used for tag-value pairs in the attribute list: [3] uses an equal sign, and [2] uses a space. Version [3] also has additional requirements, e.g. the [feature] must be a sequence ontology term, but these are not checked. *)
+    Versions 2 and 3 are supported. The only difference is the
+    delimiter used for tag-value pairs in the attribute list: [3] uses
+    an equal sign, and [2] uses a space. Version [3] also has
+    additional requirements, e.g. the [feature] must be a sequence
+    ontology term, but these are not checked. *)
 
 open Sesame
 
@@ -33,7 +38,9 @@ type t
     (** The type representing a GFF file. *)
     
 val of_file : ?chr_map:(string -> string) -> ?version:int -> ?strict:bool -> string -> t
-  (** [of_file file] parses [file]. If [strict=true], the default, [Bad] is raise on any errors. If [strict=false], errors are silently skipped. Default [version] is 3, but you can also specify 2. *)
+  (** [of_file file] parses [file]. If [strict=true], the default,
+      [Bad] is raise on any errors. If [strict=false], errors are silently
+      skipped. Default [version] is 3, but you can also specify 2. *)
   
 val of_list : row list -> t
 
@@ -41,7 +48,9 @@ val fold : ('a -> row -> 'a) -> 'a -> t -> 'a
 val iter : (row -> unit) -> t -> unit
 
 val fold_file : ?version:int -> ?strict:bool -> ('a -> row -> 'a) -> 'a -> string -> 'a
-  (** [fold_file f init file] accumulates the result of applying [f] to each row of [file]. Optional arguments [version] and [strict] are as in [of_file]. *)
+  (** [fold_file f init file] accumulates the result of applying [f]
+      to each row of [file]. Optional arguments [version] and [strict] are
+      as in [of_file]. *)
   
 val iter_file : ?version:int -> ?strict:bool -> (row -> unit) -> string -> unit
 
@@ -63,22 +72,31 @@ val attribute_names : row -> string list
   (** List of attributes defined for the given [row]. *)
   
 val get_attribute : row -> string -> string
-  (** [get_attribute r x] returns the value of attribute [x]. Enclosing quotes if any are stripped off. Raise [Failure] if [x] is not defined exactly once. *)
+  (** [get_attribute r x] returns the value of attribute
+      [x]. Enclosing quotes if any are stripped off. Raise [Failure] if
+      [x] is not defined exactly once. *)
 
 val get_attributel : row -> string -> string list
-  (** [get_attributel r x] returns the values of the attribute named [x] in row [r]. A list is returned in case the same attribute is multiply defined. An empty list indicates that the requested attribute is undefined. See also [get_attribute]. *)
+  (** [get_attributel r x] returns the values of the attribute named
+      [x] in row [r]. A list is returned in case the same attribute is
+      multiply defined. An empty list indicates that the requested
+      attribute is undefined. See also [get_attribute]. *)
   
 val has_attribute : row -> string -> bool
   (** [has_attribute r x] returns true if attribute [x] is defined in [r]. *)
 
 val add_attribute : string -> string -> row -> row
-  (** [add_attribute x y r] adds attribute [x] with value [y] in [r]. Any previous value of [x] is left unaltered. Use [delete_attribute] first if desired. See also [set_attribute]. *)
+  (** [add_attribute x y r] adds attribute [x] with value [y] in
+      [r]. Any previous value of [x] is left unaltered. Use
+      [delete_attribute] first if desired. See also [set_attribute]. *)
 
 val set_attribute : string -> string -> row -> row
-  (** [set_attribute x y r] sets attribute [x] to [y] in [r], deleting any previous values. *)
+  (** [set_attribute x y r] sets attribute [x] to [y] in [r], deleting
+      any previous values. *)
   
 val delete_attribute : string -> row -> row
-  (** [delete_attribute x r] deletes all occurrences of attribute [x] in [r]. *)
+  (** [delete_attribute x r] deletes all occurrences of attribute [x]
+      in [r]. *)
   
 val index_by_attribute : string -> t -> (string, row list) Hashtbl.t
   (** [index_by_attribute x] returns a mapping from the values of
