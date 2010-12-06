@@ -24,7 +24,6 @@ module ArrayPrint = ArrayPrint
 module RedBlack = RedBlack
 module Range = Range
 module RSet = RSet
-module Table = Table
 module Monster = Monster
 module IntervalTree = IntervalTree
 
