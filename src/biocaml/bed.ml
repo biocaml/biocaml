@@ -6,8 +6,8 @@ let parse_line line =
     | [chr; lo; hi] ->
         chr, int_of_string lo, int_of_string hi
     | l -> failwith (l |> List.length |> sprintf "expecting exactly 3 columns but found %d")
-        
-let enum_input = IO.lines_of |- (Enum.map parse_line)
+
+let enum_input = IO.lines_of |- (Enum.map parse_line) |- Util.err_enum
 
 let sqlite_db_of_enum ?(db_filename="") ?(table_name = "bed") e =
   let db = Sqlite3.db_open db_filename in
