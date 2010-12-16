@@ -1,12 +1,10 @@
 open Batteries_uni;; open Printf
 
+exception Invalid of string
+
 (* Concrete syntax tree. *)
 module Cst = struct
-  type value =
-      | B of bool
-      | S of string
-
-  type tag = string * value
+  type tag = string * string
   type t = tag list
 
   let parse_escaped_string (s:string) : string =
@@ -25,7 +23,7 @@ module Cst = struct
   let parse_tag (s:string) : tag =
     try
       let x,y = String.split s "=" |> (Pair.map String.strip) in
-      x, S (parse_escaped_string y)
+      x, parse_escaped_string y
     with Not_found ->
       match s with
         | "" -> failwith "found empty tag"
@@ -33,54 +31,43 @@ module Cst = struct
         | _ ->
             let n = String.length s in
             if s.[0] = '!' then
-              String.slice ~first:1 ~last:n s, B false
+              String.slice ~first:1 ~last:n s, "false"
             else
-              s, B true
-
+              s, "true"
+                
   let of_string s : t =
     s |> flip String.nsplit "," |> List.map parse_tag
 end
 
-type tag =
-    | Table of bool
-    | Bed of bool
-    | Comments of bool
-    | Header of bool
-    | HeaderUnderlined of bool
-        (* | Rectangular of bool *)
-        
-    | CommentChar of char
-    | Separator of string
-        
+type tag = string * string
 type t = tag list
+    
+let parse_tag ((x,y) as tag : tag) : (tag, string) result =
+  let is_boolean = function "true" | "false" -> true | _ -> false in
+  let is_char y = String.length y = 1 in
+  let is_string y = String.length y <> 0 in
+  match x with
+    | "table" | "bed" | "comments" | "header" | "header_" ->
+        if is_boolean y then Ok tag
+        else Bad (sprintf "tag \'%s\' expected Boolean value but assigned \"%s\"" x y)
+    | "comment-char" ->
+        if is_char y then Ok tag
+        else Bad (sprintf "tag \'%s\' expected single character value but assigned \"%s\"" x y)
+    | "separator" ->
+        if is_string y then Ok tag
+        else Bad (sprintf "tag \'%s\' expected non-empty string value but assigned \"%s\"" x y)
+    | _ -> Bad (sprintf "unrecognized tag %s" x)
 
-let of_cst (cst : Cst.t) : t =
-  let parse_bool_tag (tag_name:string) (x:bool) = match tag_name with
-    | "table" -> Table x
-    | "bed" -> Bed x
-    | "comments" -> Comments x
-    | "header" -> Header x
-    | "header_" -> HeaderUnderlined x
-    | _ -> failwith (sprintf "%s tag is not Boolean" tag_name)
-  in        
-  let parse_string_tag (tag_name:string) (x:string) =
-    let n = String.length x in
-    if n = 0 then failwith (sprintf "%s tag's string value must not be empty" tag_name);
-    match tag_name with
-      | "comment-char" ->
-          if n = 1 then CommentChar x.[0]
-          else failwith (sprintf "%s tag's value must be single character" tag_name)
-      | "separator" -> Separator x
-      | _ -> failwith (sprintf "%s tag does not take string value" tag_name)
-  in      
-  let rec loop ans = function
-    | [] -> ans
-    | (tag_name, Cst.B x)::rest -> loop ((parse_bool_tag tag_name x)::ans) rest
-    | (tag_name, Cst.S x)::rest -> loop ((parse_string_tag tag_name x)::ans) rest
+let of_cst (cst:Cst.t) : t =
+  let parse_tag tag = match parse_tag tag with
+    | Ok tag -> tag
+    | Bad msg -> Invalid (msg) |> raise
   in
-  loop [] cst |> List.rev
+  List.map parse_tag cst
 
-let of_string = of_cst -| Cst.of_string
+let of_string = Cst.of_string |- of_cst
+
+let find = List.assoc
 
 
 (* ***** Below is relevant to checking validity of particular
