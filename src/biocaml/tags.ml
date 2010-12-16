@@ -69,6 +69,7 @@ let of_string = Cst.of_string |- of_cst
 
 let find = List.assoc
 
+let tag_is x y t = try find x t = y with Not_found -> false
 
 (* ***** Below is relevant to checking validity of particular
  * ***** combinations of tags. Incomplete, but save for now.
