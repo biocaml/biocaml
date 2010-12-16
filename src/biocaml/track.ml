@@ -375,7 +375,7 @@ end
 type block =
     | B of BrowserLines.t
     | T of TrackLine.t
-    | C of CommentLines.t
+    | C of Comments.t
     | Wig of Wig.t
     (* | Bed of Bed.t *)
 
@@ -392,7 +392,7 @@ let to_channel ?wig_fmt t cout =
   let print_block = function
     | B x -> print_string (BrowserLines.to_string x)
     | T x -> print_string (TrackLine.to_string x)
-    | C x -> print_string (CommentLines.to_string x)
+    | C x -> print_string (Comments.to_string x)
     | Wig x -> wig_to_channel x cout
     (* | Bed x -> Bed.to_channel x cout *)
   in

@@ -94,7 +94,7 @@ end
 type block =
     | B of BrowserLines.t (** sequence of browser lines *)
     | T of TrackLine.t    (** a track line *)
-    | C of CommentLines.t     (** one or more comment lines or blank lines *)
+    | C of Comments.t     (** one or more comment lines or blank lines *)
     | Wig of Wig.t        (** WIG data section *)
     (* | Bed of Bed.t *)       (** WIG data section *)
 
