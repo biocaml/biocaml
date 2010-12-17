@@ -47,7 +47,7 @@ let parse_tag ((x,y) as tag : tag) : (tag, string) result =
   let is_char y = String.length y = 1 in
   let is_string y = String.length y <> 0 in
   match x with
-    | "table" | "bed" | "comments" | "header" | "header_" ->
+    | "table" | "bed" | "header" | "header_" ->
         if is_boolean y then Ok tag
         else Bad (sprintf "tag \'%s\' expected Boolean value but assigned \"%s\"" x y)
     | "comment-char" ->
@@ -66,10 +66,9 @@ let of_cst (cst:Cst.t) : t =
   List.map parse_tag cst
 
 let of_string = Cst.of_string |- of_cst
-
 let find = List.assoc
-
 let tag_is x y t = try find x t = y with Not_found -> false
+let mem = List.mem_assoc
 
 (* ***** Below is relevant to checking validity of particular
  * ***** combinations of tags. Incomplete, but save for now.
