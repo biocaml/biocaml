@@ -22,14 +22,19 @@ val concat : ?comment_char:char -> t list -> t
       [Invalid] if start character differs in any of the given
       comments or from [comment_char]. *)
   
-val of_string : char -> string -> t
+val of_string : ?comment_char:char -> string -> t
   (** [of_string c s] creates list of lines by splitting given string
-      on newline characters. Each resulting line must begin with [c] or
-      consist of only whitespace. Raise [Invalid] otherwise. *)
+      on newline characters. Each resulting line must begin with
+      [comment_char] (default is '#') or consist of only
+      whitespace. Raise [Invalid] otherwise. *)
   
 val to_string : t -> string
   (** Return string representation of comment lines. All but last line
       will include line terminating character(s). *)
   
-val start_char : t -> char
+val comment_char : t -> char
   (** Return the start character for the given comments. *)
+
+val is_comments : ?comment_char:char -> string -> bool
+  (** Like [of_string] but simply returns true if given string can be
+      parsed as valid comment lines. *)

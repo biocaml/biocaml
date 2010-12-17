@@ -18,15 +18,15 @@ let concat ?(comment_char='#') ts = match ts with
       in
       c, loop sl ts
   
-let of_string start_char s =
+let of_string ?(comment_char='#') s =
   let is_space c = match c with ' ' | '\t' | '\r' -> true | _ -> false in
   let parse_line s =
     let n = String.length s in
-    if n > 0 && s.[0] = start_char then s
+    if n > 0 && s.[0] = comment_char then s
     else if s |> String.enum |> Enum.for_all is_space then s
-    else raise (Invalid (sprintf "comment line must begin with %c or contain all whitespace" start_char))
+    else raise (Invalid (sprintf "comment line must begin with %c or contain all whitespace" comment_char))
   in
-  start_char, s |> IO.input_string |> IO.lines_of |> Enum.map parse_line |> List.of_enum
+  comment_char, s |> IO.input_string |> IO.lines_of |> Enum.map parse_line |> List.of_enum
   
 let to_string (_,t) =
   let cout = IO.output_string() in
@@ -36,4 +36,8 @@ let to_string (_,t) =
 
 let to_string (_,t) = String.concat "\n" t
 
-let start_char (c,_) = c
+let comment_char (c,_) = c
+
+let is_comments ?(comment_char='#') s =
+  try of_string ~comment_char s |> ignore; true
+  with Invalid _ -> false
