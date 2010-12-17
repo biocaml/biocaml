@@ -32,4 +32,4 @@ open Batteries_uni
 
 val enum_input : IO.input -> (string * int * int) Enum.t
 
-val sqlite_db_of_enum : ?db_filename:string -> ?table_name:string -> (string * int * int) Enum.t -> Sqlite3.db
+val sqlite_db_of_enum : ?db:string -> ?table:string -> (string * int * int) Enum.t -> Sqlite3.db

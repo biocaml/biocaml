@@ -9,15 +9,15 @@ let parse_line line =
 
 let enum_input = IO.lines_of |- (Enum.map parse_line) |- Util.err_enum
 
-let sqlite_db_of_enum ?(db_filename="") ?(table_name = "bed") e =
-  let db = Sqlite3.db_open db_filename in
-  let stmt = sprintf "CREATE TABLE %s (chr TEXT, start INTEGER, end INTEGER);" table_name in
+let sqlite_db_of_enum ?(db="") ?(table="bed") e =
+  let db = Sqlite3.db_open db in
+  let stmt = sprintf "CREATE TABLE %s (chr TEXT, start INTEGER, end INTEGER);" table in
   (match Sqlite3.exec db stmt with
     | Sqlite3.Rc.OK -> ()
     | x -> failwith (Sqlite3.Rc.to_string x)
   );
   let insert (chr,lo,hi) =
-    let stmt = sprintf "INSERT INTO %s values ('%s', %d, %d);" table_name chr lo hi in
+    let stmt = sprintf "INSERT INTO %s values ('%s', %d, %d);" table chr lo hi in
     match Sqlite3.exec db stmt with
       | Sqlite3.Rc.OK -> ()
       | x -> failwith (Sqlite3.Rc.to_string x)
