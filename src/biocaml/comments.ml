@@ -1,28 +1,39 @@
-open Sesame
-open Printf
+open Batteries_uni;; open Printf
 
 type t = char * string list
     (* each string must be all whitespace or begin with specified char *)
     
-exception Bad of string
-let raise_bad msg = raise (Bad msg)
+exception Invalid of string
   
-let concat (c1,t1) (c2,t2) = 
-  if c1 = c2 
-  then c1, t1@t2
-  else raise_bad (sprintf "start characters %c and %c differ" c1 c2)
+let enum (_,sl) = List.enum sl
+
+let concat ?(comment_char='#') ts = match ts with
+  | [] -> comment_char,[]
+  | (c,sl)::ts ->
+      let rec loop ans = function
+        | [] -> ans
+        | (c',sl')::ts ->
+            if c = c' then loop (ans@sl') ts
+            else raise (Invalid (sprintf "start characters %c and %c differ" c c'))
+      in
+      c, loop sl ts
   
 let of_string start_char s =
   let is_space c = match c with ' ' | '\t' | '\r' -> true | _ -> false in
   let parse_line s =
     let n = String.length s in
     if n > 0 && s.[0] = start_char then s
-    else if String.for_all is_space s then s
-    else raise_bad (sprintf "comment line must begin with %c or contain all whitespace" start_char)
+    else if s |> String.enum |> Enum.for_all is_space then s
+    else raise (Invalid (sprintf "comment line must begin with %c or contain all whitespace" start_char))
   in
-  let sl = if s = "" then [""] else Str.split_delim (Str.regexp "\n") s in
-  start_char,List.map parse_line sl
-    
+  start_char, s |> IO.input_string |> IO.lines_of |> Enum.map parse_line |> List.of_enum
+  
+let to_string (_,t) =
+  let cout = IO.output_string() in
+  List.iter (IO.write_line cout) t;
+  let ans : string = IO.close_out cout in
+  ans
+
 let to_string (_,t) = String.concat "\n" t
 
 let start_char (c,_) = c
