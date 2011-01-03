@@ -1,13 +1,25 @@
+help:
+	@echo Usage:
+	@echo "  make BINDIR=path target"
+	@echo
+	@echo "where 'path' is directory to install executables. This can be"
+	@echo "omitted when 'target' does not require it."
+
 lib=biocaml
 findlib-pkg=$(lib)
 
 ############################################################
 #
+# Do everything
+#
+world: install-lib install-apps doc
+
+
+############################################################
+#
 # Compiling library, documentation, and applications
 #
-all: $(lib) apps
-
-$(lib):
+lib:
 	cd src; ocamlbuild $(lib).cma $(lib).cmxa $(lib).cmxs
 
 doc/html/%:
@@ -17,8 +29,10 @@ doc/html/%:
 
 doc: clean-doc doc/html/base doc/html/$(lib)
 
+APPS=$(patsubst src/app/%.ml,%,$(wildcard src/app/*.ml))
 apps:
-	cd src; ocamlbuild $(patsubst src/%.ml,%.native,$(wildcard src/app/*.ml)); rm -f *.native
+	cd src; ocamlbuild $(patsubst %,app/%.native,$(APPS))
+	rm -f $(patsubst %,src/%.native,$(APPS))
 
 
 ############################################################
@@ -36,21 +50,26 @@ doc/dot/dependency_graph.ps: doc/dot/dependency_graph.out
 
 ############################################################
 #
-# Installing and uninstalling
+# Installing/uninstalling library and applications
 #
-install: $(lib) uninstall
+install-lib: lib uninstall-lib
 	cd src/_build; ocamlfind install $(findlib-pkg) ../META $(patsubst %,$(lib).%,cmi a cma cmxa cmxs)
 
-uninstall:
+uninstall-lib:
 	ocamlfind remove $(findlib-pkg)
 
+install-apps: apps
+	mkdir $(BINDIR); bin/install_apps.ml src/_build/app $(BINDIR)
+
+uninstall-apps:
+	rm -f $(patsubst %,$(BINDIR)/%,$(APPS))
 
 ############################################################
 #
 # Clean up
 #
 
-# delete compiled code
+# delete compiled library and applications
 clean:
 	cd src; ocamlbuild -clean
 
@@ -63,9 +82,9 @@ clean-dot:
 	rm -f doc/dot/*
 
 # delete all automatically generated files
-clean-all: clean-doc clean
+clean-all: clean clean-doc clean-dot
 
 # clean everything and uninstall
-fresh: clean-all uninstall
+fresh: clean-all uninstall-lib uninstall-apps
 
-.PHONY: all $(lib) doc dot apps install uninstall clean clean-doc clean-dot clean-all fresh
+.PHONY: lib doc apps dot install-lib uninstall-lib install-apps uninstall-apps clean clean-doc clean-dot clean-all fresh
