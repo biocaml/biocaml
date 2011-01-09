@@ -1,20 +1,11 @@
-(** Tabular data. Several variations can be specified:
+(** Tabular data as defined by principal tag 'table'. Additional tags
+    supported are: header, header_, comment-char, separator. By
+    default, parsers assume input format is:
 
-    - Initial comment lines can be (dis)allowed (default =
-    allowed).
+    {v    "table,comment-char=#,header,header_,separator=\t". v}
 
-    - The character defining the start of a comment line can be
-    specified (default = '#').
-
-    - A header row can be optionally provided giving the column
-    names. If not provided, the names are "0", "1", "2",
-    etc. (Default: no header row.)
-
-    - If there is a header row, it can be followed by another row with
-    only spaces and dashes.
-
-    - The column separator can be specified (default = "\t").
-
+    If header=false, then column names are assigned the values: "0",
+    "1", "2", etc.
 *)
 
 open Batteries_uni
