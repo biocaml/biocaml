@@ -3,6 +3,9 @@ open Batteries_uni
 
 exception Invalid of string
 
-val enum_input : IO.input -> (string * string * string * string) Enum.t
-  (** Returns enumeration of the 4 lines constituting information about
-      each read. TO DO: design better data type for this. *)
+type record = (string * string * string * string)
+    (** Each record in a fastq file consists of 4 fields: title,
+        sequence, another title, and a quality score. *)
+
+val enum_input : IO.input -> record Enum.t
+  (** Returns enumeration of fastq records in given input. *)

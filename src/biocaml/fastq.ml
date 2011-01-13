@@ -2,6 +2,8 @@ open Batteries_uni;; open Printf
 
 exception Invalid of string
 
+type record = string * string * string * string
+
 let enum_input cin =
   let e = IO.lines_of cin in
   let open Enum in
