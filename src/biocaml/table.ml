@@ -1,6 +1,7 @@
 open Batteries_uni;; open Printf
 
 exception Invalid of string
+exception No_column of string
 
 type column_names = int * (int StringMap.t)
     (* number of columns, and map from column name to column number,
@@ -20,7 +21,7 @@ let make_getter columns =
   let map = columns |> List.enum |> Enum.foldi f StringMap.empty in
   fun row col ->
     try row.(StringMap.find col map)
-    with Invalid_argument _ -> raise (Invalid (sprintf "row does not have data for column %s" col))
+    with Invalid_argument _ -> raise (No_column col)
 
 let enum_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let itags = Tags.of_string itags in

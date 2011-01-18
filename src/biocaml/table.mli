@@ -12,13 +12,15 @@ open Batteries_uni
 
 exception Invalid of string
 
+exception No_column of string
+  
 type row
     (** Data row. *)
     
 type getter = row -> string -> string
   (** A function [get] of type [getter] can be used as [get r c] to
       get the value of the column named [c] in row [r]. Raise
-      [Failure] if given row does not have a value for column [c]. *)
+      [No_column c] if given row does not have a value for column [c]. *)
 
 type columns = string list
     (** All column names occurring in a file, in order that they occur. *)
