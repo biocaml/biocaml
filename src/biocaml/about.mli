@@ -1,4 +1,4 @@
-(** General information about the BioCaml library. *)
+(** General information about the Biocaml library. *)
 
 val major_version : int
   (** Major version number. *)
