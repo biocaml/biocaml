@@ -47,13 +47,13 @@ let parse_tag ((x,y) as tag : tag) : (tag, string) result =
   let is_char y = String.length y = 1 in
   let is_string y = String.length y <> 0 in
   match x with
-    | "table" | "bed" | "header" | "header_" ->
+    | "table" | "bed" | "sqlite" | "header" | "header_" ->
         if is_boolean y then Ok tag
         else Bad (sprintf "tag \'%s\' expected Boolean value but assigned \"%s\"" x y)
     | "comment-char" ->
         if is_char y then Ok tag
         else Bad (sprintf "tag \'%s\' expected single character value but assigned \"%s\"" x y)
-    | "separator" ->
+    | "separator" | "db" | "db_table" ->
         if is_string y then Ok tag
         else Bad (sprintf "tag \'%s\' expected non-empty string value but assigned \"%s\"" x y)
     | _ -> Bad (sprintf "unrecognized tag %s" x)
