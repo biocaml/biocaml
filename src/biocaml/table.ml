@@ -10,6 +10,7 @@ type column_names = int * (int StringMap.t)
 type row = string array
 type getter = row -> string -> string
 type columns = string list
+type t = Comments.t option * columns * getter * row Enum.t
 
 let make_getter columns =
   let f i elt accum =
@@ -23,7 +24,7 @@ let make_getter columns =
     try row.(StringMap.find col map)
     with Invalid_argument _ -> raise (No_column col)
 
-let enum_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
+let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let itags = Tags.of_string itags in
   let e = IO.lines_of cin in
   if not **> Tags.tag_is "table" "true" itags then raise (Tags.Invalid "table=true tag required");
@@ -78,3 +79,29 @@ let enum_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin 
   columns,
   make_getter columns,
   Enum.map (flip String.nsplit separator |- Array.of_list) e
+
+let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
+  let otags = Tags.of_string otags in
+  if not **> Tags.tag_is "sqlite" "true" otags then raise (Tags.Invalid "sqlite=true tag required");
+  let open Sqlite3 in
+  let db = db_open (Tags.find "db" otags) in
+  let db_table = Tags.find "db_table" otags in
+  
+  let cols' = cols |> List.map (sprintf "%s TEXT") |> String.concat ", " in
+  let stmt = sprintf "CREATE TABLE '%s' (%s);" db_table cols' in
+  print_endline stmt;
+  (match exec db stmt with
+    | Rc.OK -> ()
+    | x -> failwith (Rc.to_string x)
+  );
+
+  let insert row =
+    let values = cols |> List.map ((get row) |- (sprintf "'%s'")) |> String.concat ", " in
+    let stmt = sprintf "INSERT INTO '%s' values (%s);" db_table values in
+    print_endline stmt;
+    match exec db stmt with
+      | Rc.OK -> ()
+      | x -> failwith (Rc.to_string x)
+  in
+  Enum.iter insert e;
+  db
