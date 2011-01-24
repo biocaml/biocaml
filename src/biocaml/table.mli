@@ -43,6 +43,17 @@ val of_input : ?itags:string -> IO.input -> t
       requirements. Raises [Tags.Invalid] if [itags] are ill-formed or
       invalid for this function. *)
 
+val of_string_list : ?itags:string -> ?comments:string -> ?columns:(string list) -> string list list -> t
+  (** Default [itags] are:
+
+      {v "table,comment-char=#,header" v}
+
+      The only modification of this allowed is to change the
+      comment-char or omit it. If omitted, [comments] must not be
+      given.
+
+  *)
+
 val to_sqlite : ?otags:string -> t -> Sqlite3.db
   (** [to_sqlite t] writes contents of [t] into a SQLite database, and
       returns the handle to it. Comments in [t] are ignored. Default

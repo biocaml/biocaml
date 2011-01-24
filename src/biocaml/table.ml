@@ -80,6 +80,31 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   make_getter columns,
   Enum.map (flip String.nsplit separator |- Array.of_list) e
 
+
+let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns rows =
+  let itags = Tags.of_string itags in
+  if not **> Tags.tag_is "table" "true" itags then raise (Tags.Invalid "table=true tag required");
+
+  let comments =  match Tags.mem "comment-char" itags, comments with
+    | true, Some x ->
+        let comment_char = (Tags.find "comment-char" itags).[0] in
+        Some (Comments.of_string ~comment_char x) 
+    | false, None -> None
+    | true, None -> Invalid "comment-char specified but comments not provided" |> raise
+    | false, Some _ -> Invalid "comments not allowed but provided" |> raise
+  in
+
+  let columns = match columns with
+    | Some x -> x
+    | None ->
+        match rows with
+          | [] -> []
+          | row::_ -> 0 -- (List.length row - 1) |> Enum.map string_of_int |> List.of_enum
+  in
+
+  comments, columns, make_getter columns, List.enum rows |> Enum.map (Array.of_list)
+
+
 let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   let otags = Tags.of_string otags in
   if not **> Tags.tag_is "sqlite" "true" otags then raise (Tags.Invalid "sqlite=true tag required");
