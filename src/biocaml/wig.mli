@@ -1,7 +1,7 @@
 (** WIG data.
     
-    Internal representation of coordinates always assumes the first position on a chromosome is numbered 1. Also, integer ranges are always closed; the range [\[1, 10\]] is the set of integers from 1 to 10 inclusive of 0 and 10. WIG data can be in three formats---bed, variable-step, or fixed-step---and unfortunately each has different conventions as follows:
-    - Bed format requires half-open intervals [\[low, high\)] and numbers the first base as 0. Thus 1 added to the low value when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI", 1, 10, 3.14)].
+    Internal representation of coordinates always assumes the first position on a chromosome is numbered 1. Also, integer ranges are always closed; the range [\[1, 10\]] is the set of integers from 1 to 10 inclusive of 1 and 10. WIG data can be in three formats---bed, variable-step, or fixed-step---and unfortunately each has different conventions as follows:
+    - Bed format requires half-open intervals [\[low, high\)] and numbers the first base as 0. Thus 1 is added to the low value when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI", 1, 10, 3.14)].
     - Variable-step format numbers the first position 1 and uses closed intervals. Thus no change is required. The line ["1 3.14"] is parsed to [(1, 3.14)].
     - Fixed-step format numbers the first position 1 and uses closed intervals. Thus no change is required. The header line ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 1, 100, 30)].
     
