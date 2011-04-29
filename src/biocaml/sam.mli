@@ -32,3 +32,5 @@ type alignment = {
 val record_type_code_of_header_line : header_line -> string
 
 val enum_file : string -> (header * alignment Enum.t)
+
+val alignment_to_string : alignment -> string

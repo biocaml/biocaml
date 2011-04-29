@@ -33,6 +33,11 @@ let record_type_code_regexp = Pcre.regexp "^@[A-Za-z][A-Za-z]$"
 let header_tag_regexp = Pcre.regexp "^[A-Za-z][A-Za-z]$"
 let optional_tag_regexp = Pcre.regexp "^[A-Za-z][A-Za-z0-9]$"
 
+let alignment_to_string x =
+  sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s"
+    x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual
+    (x.optional |> List.map (sprintf "%s:%c:%s" |> Tuple3.uncurry) |> String.concat "\t")
+
 (** Parse given string as a header line if possible. *)
 let header_line_of_string s : header_line =
 
