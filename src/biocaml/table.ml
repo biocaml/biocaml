@@ -34,9 +34,9 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let comments, e =
     try
       let comment_char = (Tags.find "comment-char" itags).[0] in
-      let e1,e2 = Enum.span (Comments.is_comments ~comment_char) e in
-      Some (e1 |> Enum.map (Comments.of_string ~comment_char)
-      |> List.of_enum |> Comments.concat),
+      let e1,e2 = Enum.span (Comments.is_comments ~comment_char) e in 
+      let f x l = Comments.concat x (Comments.of_string ~comment_char l) in
+      Some (e1 |> Enum.fold f (Comments.empty comment_char)),
       e2
     with Not_found -> None, e
   in

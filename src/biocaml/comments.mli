@@ -8,26 +8,31 @@ type t
     
 exception Invalid of string
 
-val enum : t -> string Enum.t
-  (** Return enumeration of comment lines in given [t]. The start
-      character is included in each string, but line terminating
-      character(s) are not. *)
+val enum : t -> char * string Enum.t
+  (** Return start character and enumeration of comment lines in given
+      [t]. The start character is included in each string, but line
+      terminating character(s) are not. *)
 
-val concat : ?comment_char:char -> t list -> t
-  (** [concat ts] flattens the comment lines in [ts].
+val empty : char -> t
+  (** [empty c] is the empty list of comment lines, but with the
+      specification that [c] will be used as the start character. *)
 
-      Default value for [comment_char] is '#' if [ts] is empty;
-      otherwise it is determined from the given [ts]. In other words,
-      you should omit [comment_char] if [ts] is non-empty. Raise
-      [Invalid] if start character differs in any of the given
-      comments or from [comment_char]. *)
+val concat : t -> t -> t
+  (** [concat a b] concatenates comment lines [a] and [b] such that
+      [a] is followed by [b].
+
+      @raise Invalid if [a] and [b] do not have the same start
+      character. *)
   
 val of_string : ?comment_char:char -> string -> t
   (** [of_string c s] creates list of lines by splitting given string
       on newline characters. Each resulting line must begin with
       [comment_char] (default is '#') or consist of only
-      whitespace. Raise [Invalid] otherwise. *)
-  
+      whitespace.
+
+      @raise Invalid if any line's first character is not
+      [comment_char] or is not all whitespace. *)
+
 val to_string : t -> string
   (** Return string representation of comment lines. All but last line
       will include line terminating character(s). *)
