@@ -112,21 +112,19 @@ let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   let db = db_open (Tags.find "db" otags) in
   let db_table = Tags.find "db_table" otags in
   
-  let cols' = cols |> List.map (sprintf "%s TEXT") |> String.concat ", " in
+  let cols' = cols |> List.map (sprintf "'%s' TEXT") |> String.concat ", " in
   let stmt = sprintf "CREATE TABLE '%s' (%s);" db_table cols' in
-  print_endline stmt;
   (match exec db stmt with
     | Rc.OK -> ()
-    | x -> failwith (Rc.to_string x)
+    | x -> failwith (sprintf "sqlite error %s when executing command %s" (Rc.to_string x) stmt)
   );
 
   let insert row =
     let values = cols |> List.map ((get row) |- (sprintf "'%s'")) |> String.concat ", " in
     let stmt = sprintf "INSERT INTO '%s' values (%s);" db_table values in
-    print_endline stmt;
     match exec db stmt with
       | Rc.OK -> ()
-      | x -> failwith (Rc.to_string x)
+      | x -> failwith (sprintf "sqlite error %s when executing command %s" (Rc.to_string x) stmt)
   in
   Enum.iter insert e;
   db
