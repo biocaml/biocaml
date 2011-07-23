@@ -14,7 +14,7 @@ let is_empty t = size t = 0
 let rec is_canonical (vl : Range.t list) : bool =
   match vl with
     | [] | _::[] -> true
-    | u::v::vl -> u.Range.hi < v.Range.lo && is_canonical (v::vl)
+    | u::(v::vl as tail) -> u.Range.hi < v.Range.lo && is_canonical tail
         
 let to_canonical (vl : Range.t list) : Range.t list =
   (* Order relation such that subset and after are larger. *)
@@ -30,15 +30,15 @@ let to_canonical (vl : Range.t list) : Range.t list =
     match vl with
       | [] -> ans
       | v::[] -> v::ans
-      | u::v::vl ->
+      | u::(v::vl as tail) ->
           if u = v then
-            canonize ans (v::vl)
+            canonize ans tail
           else if Range.superset u v then
             canonize ans (u::vl)
           else if Range.before u v then
             match Range.union u v with
               | uv::[] -> canonize ans (uv::vl)
-              | u::v::[] -> canonize (u::ans) (v::vl)
+              | u::v::[] -> canonize (u::ans) tail
               | _ -> invalid_arg "impossible to get here"
           else
             invalid_arg "impossible to get here"
@@ -65,19 +65,19 @@ let inter s t =
     match (s,t) with
       | (_, []) -> ans
       | ([], _) -> ans
-      | (u::s, v::t) ->
+      | ((u::s as ul), (v::t as vl)) ->
           if u.Range.lo > v.Range.hi then
-            loop ans (u::s) t
+            loop ans ul t
           else if u.Range.hi < v.Range.lo then
-            loop ans s (v::t)
+            loop ans s vl
           else
             match Range.intersect u v with
               | None -> invalid_arg "impossible to get here"
               | Some w ->
                   match Pervasives.compare u.Range.hi v.Range.hi with
-                    | -1 -> loop (w::ans) s (v::t)
+                    | -1 -> loop (w::ans) s vl
                     |  0 -> loop (w::ans) s t
-                    |  1 -> loop (w::ans) (u::s) t
+                    |  1 -> loop (w::ans) ul t
                     |  _ -> invalid_arg "impossible to get here"
   in
   to_canonical (loop [] s t) (* canoninicity could maybe be obtained simply by List.rev *)
@@ -87,11 +87,11 @@ let diff s t =
     match (s,t) with
       | (_,[]) -> ans @ (List.rev s)
       | ([],_) -> ans
-      | (u::s, v::t) ->
+      | ((u::s as ul), (v::t as vl)) ->
           if u.Range.lo > v.Range.hi then
-            loop ans (u::s) t
+            loop ans ul t
           else if u.Range.hi < v.Range.lo then
-            loop (u::ans) s (v::t)
+            loop (u::ans) s vl
           else
             match Range.intersect u v with
               | None -> invalid_arg "impossible to get here"
@@ -138,5 +138,11 @@ module Test = struct
     is_good IntSet.inter inter "intersection";
     is_good IntSet.union union "union";
     is_good IntSet.diff diff "diff"
-      
+
+  let default_test () =
+    let f () = BatList.init 10000 (fun _ -> let x = Random.int 100 in x, Random.int 20 + x) in
+    let st = Random.get_state () in
+    Random.init 42 ;
+    test (f ()) (f ()) ;
+    Random.set_state st
 end
