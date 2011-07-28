@@ -56,6 +56,8 @@ val iter_file : ?version:int -> ?strict:bool -> (row -> unit) -> string -> unit
 
 val to_list : t -> row list
 
+val enum : t -> row Enum.t
+
 val to_map : t -> row list StringMap.t
   (** Partitions annotations by chromosome. *)
 
