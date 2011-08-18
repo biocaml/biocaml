@@ -24,7 +24,7 @@ module Cst = struct
     try
       let x,y = String.split s "=" |> (Pair.map String.strip) in
       x, parse_escaped_string y
-    with Not_found ->
+    with Not_found | Invalid_argument _ ->
       match s with
         | "" -> failwith "found empty tag"
         | "!" -> failwith "invalid tag \"!\""
