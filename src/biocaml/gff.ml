@@ -11,6 +11,7 @@ type t = row list
 let fold = List.fold_left
 let iter = List.iter
 let to_list t = t
+let enum t = List.enum t
 
 let strip_quotes s =
   let n = String.length s in
