@@ -33,6 +33,13 @@ let record_type_code_regexp = Pcre.regexp "^@[A-Za-z][A-Za-z]$"
 let header_tag_regexp = Pcre.regexp "^[A-Za-z][A-Za-z]$"
 let optional_tag_regexp = Pcre.regexp "^[A-Za-z][A-Za-z0-9]$"
 
+let header_line_to_string = function
+  | NonComment (rtc, xys) ->
+      sprintf "%s\t%s" rtc (String.concat "\t" (List.map (Tuple2.uncurry (sprintf "%s:%s")) xys))
+  | Comment x -> sprintf "@CO\t%s" x
+
+let header_to_string = List.map header_line_to_string |- String.concat "\n"
+
 let alignment_to_string x =
   sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s"
     x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual
