@@ -1,6 +1,6 @@
 <base> or <biocaml> or <ext/xmlm> or <ext/sesame>: include
 
-<**/*.{ml,mli,byte,native}>: pkg_str, pkg_extlib, pkg_pcre, pkg_xmlm, pkg_batteries, pkg_sqlite3
+<**/*.{ml,mli,byte,native}>: thread, pkg_str, pkg_extlib, pkg_pcre, pkg_xmlm, pkg_batteries, pkg_sqlite3
 
 <biocaml/*.cmx>: for-pack(Biocaml)
 <ext/sesame/sesame.cmx>: for-pack(Biocaml)
