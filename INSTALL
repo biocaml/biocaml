@@ -7,25 +7,32 @@ below are needed only if you are not using GODI.
 
 First, make sure you have the following prerequisites:
    
-   ocaml
+   ocaml (>= 3.12)
    findlib (for installation only)
-   ocamldsort (for installation only)
    extlib
    pcre
-   ...
+   sqlite3
+   batteries
+   getopt
 
 Assuming you have all the prerequisites installed, compile the code
-by typing
+by typing:
 
-   make all
+   ocaml setup.ml -configure
+or
+   ocaml setup.ml -configure --prefix /some/special/location
 
-Then, install the code by typing
+Then
+
+   make
+
+And install the libraries and executables by typing:
 
    make install
 
-This step will require root permission if your ocaml distribution is
-installed in a system directory. Finally, to make documentation do
+This last step will require root permission if your ocaml distribution
+is installed in a system directory. Finally, to make documentation do:
 
    make doc
 
-The root of the documentation is html/index.html.
+The root of the documentation is doclib.docdir/index.html.
