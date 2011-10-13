@@ -5,11 +5,13 @@ build:
 
 install:
 	ocaml setup.ml -reinstall
+
 uninstall:
 	ocaml setup.ml -uninstall
 
 doc:
 	ocaml setup.ml -doc
+
 clean:
 	ocaml setup.ml -clean
 
