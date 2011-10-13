@@ -27,7 +27,7 @@ doc/html/%:
 	mkdir -p doc/html/$*
 	cp -fR src/_build/$*.docdir/* doc/html/$*
 
-doc: clean-doc doc/html/base doc/html/$(lib)
+doc: clean-doc doc/html/$(lib)
 
 APPS=$(patsubst src/app/%.ml,%,$(wildcard src/app/*.ml))
 apps:
