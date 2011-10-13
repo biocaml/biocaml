@@ -1,7 +1,0 @@
-<base> or <lib> or <ext/xmlm> or <ext/sesame>: include
-
-<**/*.{ml,mli,byte,native}>: thread, pkg_str, pkg_extlib, pkg_pcre, pkg_xmlm, pkg_batteries, pkg_sqlite3
-
-<app/*.{ml,byte,native}>: pkg_getopt
-
-true: use_menhir, debug
