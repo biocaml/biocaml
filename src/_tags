@@ -1,4 +1,4 @@
-<base> or <biocaml> or <ext/xmlm> or <ext/sesame>: include
+<base> or <lib> or <ext/xmlm> or <ext/sesame>: include
 
 <**/*.{ml,mli,byte,native}>: thread, pkg_str, pkg_extlib, pkg_pcre, pkg_xmlm, pkg_batteries, pkg_sqlite3
 

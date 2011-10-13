@@ -42,7 +42,7 @@ apps:
 dot: doc/dot/dependency_graph.ps
 
 doc/dot/dependency_graph.out: $(wildcard src/biocaml/*.ml)
-	ocamldoc -o $@ -I src/_build -I src/_build/biocaml -I src/_build/ext/sesame -I src/_build/ext/xmlm-1.0.2/src -dot $^
+	ocamldoc -o $@ -I src/_build -I src/_build/lib -I src/_build/ext/sesame -I src/_build/ext/xmlm-1.0.2/src -dot $^
 
 doc/dot/dependency_graph.ps: doc/dot/dependency_graph.out
 	dot -Tps $^ >$@
@@ -54,8 +54,8 @@ doc/dot/dependency_graph.ps: doc/dot/dependency_graph.out
 #
 install-lib: lib uninstall-lib
 	cd src/_build/; ocamlfind install $(findlib-pkg) \
-            ../META $(patsubst %,biocaml/$(lib).%,a cma cmxa cmxs) \
-            biocaml/*.cmi biocaml/*.cmo biocaml/*.cmx
+            ../META $(patsubst %,lib/$(lib).%,a cma cmxa cmxs) \
+            lib/*.cmi lib/*.cmo lib/*.cmx
 
 uninstall-lib:
 	ocamlfind remove $(findlib-pkg)
