@@ -1,5 +1,8 @@
 open Batteries_uni;; open Printf
 
+module Comments = Biocaml_comments
+module Tags = Biocaml_tags
+
 exception Invalid of string
 exception No_column of string
 

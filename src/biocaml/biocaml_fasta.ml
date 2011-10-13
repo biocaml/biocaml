@@ -7,7 +7,7 @@ type record = string * string
 let enum_input inp =
   let e = IO.lines_of inp in
 
-  let open Comments in
+  let open Biocaml_comments in
   let comment_char = '#' in
   let e1,e2 = Enum.span (is_comments ~comment_char) e in
   let comments =

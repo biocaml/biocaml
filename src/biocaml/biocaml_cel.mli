@@ -34,14 +34,14 @@ val ifold : ('a -> irow -> 'a) -> 'a -> t -> 'a
 val iiter : (irow -> unit) -> t -> unit
   (** [iiter f t] iterates over the rows in intensity section of [t]. *)
   
-val data : Bpmap.t -> t list -> (Bpmap.probe * (idata * idata) list) list
+val data : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * (idata * idata) list) list
   (** [data bpmap cels] returns a list associating probes with pairs of (PM,MM) idata in each of the given cel files (in the same order of course). Raise [Failure] if any file in [cels] lacks a value for any probe in [bpmap]. *)
   
-val pm_mm : Bpmap.t -> t list -> (Bpmap.probe * float list) list
+val pm_mm : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * float list) list
   (** Similar to {!data} but the data returned are the PM-MM mean intensity values in [cels]. *)
   
-val pm : Bpmap.t -> t list -> (Bpmap.probe * float list) list
+val pm : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * float list) list
   (** Similar to {!data} but the data returned are the PM mean intensity values in [cels]. *)
   
-val mm : Bpmap.t -> t list -> (Bpmap.probe * float list) list
+val mm : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * float list) list
   (** Similar to {!data} but the data returned are the MM mean intensity values in [cels]. *)

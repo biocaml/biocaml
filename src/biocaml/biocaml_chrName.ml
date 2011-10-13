@@ -1,6 +1,8 @@
 open Sesame
 open Printf
 
+module RomanNum = Biocaml_romanNum
+
 type t = 
     | ChrX | ChrY | ChrM 
     | ChrN of int (* Invariant: int is strictly greater than 0 *)

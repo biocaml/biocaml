@@ -1,5 +1,6 @@
 open Sesame
 open Printf
+module Bpmap = Biocaml_bpmap
 
 type idata = {mean:float; stdv:float; npixels:int}
 type irow = {xcoord:int; ycoord:int; idata:idata}

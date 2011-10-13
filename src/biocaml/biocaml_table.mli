@@ -26,7 +26,7 @@ type getter = row -> string -> string
 type columns = string list
     (** All column names occurring in a file, in order that they occur. *)
 
-type t = Comments.t option * columns * getter * row Enum.t
+type t = Biocaml_comments.t option * columns * getter * row Enum.t
     (** A table consists of:
         - comments (optional)
         - column names

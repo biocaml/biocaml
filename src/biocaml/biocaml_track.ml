@@ -2,6 +2,9 @@ open Sesame
 open Tuple
 open Printf
 
+module Comments = Biocaml_comments
+module Wig = Biocaml_wig
+
 module TrackLine = struct
   module Map = StringMap
   type t = string Map.t

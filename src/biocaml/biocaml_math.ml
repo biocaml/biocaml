@@ -2,6 +2,8 @@ open Sesame
 open Printf
 open Array
 
+module Range = Biocaml_range
+
 exception ValueError of string
 
 let row m i =

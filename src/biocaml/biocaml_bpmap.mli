@@ -5,7 +5,7 @@ type probe = {
   version : string;  (** genome build version on which probe is based *) 
   chr_name : string; (** name of chromosome on which probe is based *)
   start_pos : int;   (** start position of probe on given chromosome *)
-  sequence : Seq.t;  (** sequence of the perfect match probe *)
+  sequence : Biocaml_seq.t;  (** sequence of the perfect match probe *)
 }
 
 type row = {

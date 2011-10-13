@@ -3,7 +3,7 @@
 type t
     (** Type of a set of integers. *)
 
-type range = Range.t
+type range = Biocaml_range.t
 
 exception Bad of string
 

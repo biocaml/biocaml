@@ -1,6 +1,8 @@
 open Sesame
 open Printf
 
+module Range = Biocaml_range
+
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 

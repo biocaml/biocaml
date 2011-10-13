@@ -94,8 +94,8 @@ end
 type block =
     | B of BrowserLines.t (** sequence of browser lines *)
     | T of TrackLine.t    (** a track line *)
-    | C of Comments.t     (** one or more comment lines or blank lines *)
-    | Wig of Wig.t        (** WIG data section *)
+    | C of Biocaml_comments.t     (** one or more comment lines or blank lines *)
+    | Wig of Biocaml_wig.t        (** WIG data section *)
     (* | Bed of Bed.t *)       (** WIG data section *)
 
 type t
@@ -103,7 +103,7 @@ type t
 
 exception Bad of string
 
-val to_channel : ?wig_fmt:Wig.format -> t -> out_channel -> unit
-val to_file : ?wig_fmt:Wig.format -> t -> string -> unit
+val to_channel : ?wig_fmt:Biocaml_wig.format -> t -> out_channel -> unit
+val to_file : ?wig_fmt:Biocaml_wig.format -> t -> string -> unit
 val to_list : t -> block list
 val of_list : block list -> t

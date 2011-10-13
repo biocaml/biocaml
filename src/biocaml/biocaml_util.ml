@@ -12,7 +12,7 @@ let err_enum ?(source="") e =
               | Some x -> x
           with
             | Enum.No_more_elements -> raise Enum.No_more_elements
-            | exn -> raise (Common.PosError(source, !n, -1, exn)))
+            | exn -> raise (Biocaml_common.PosError(source, !n, -1, exn)))
     )
     ~count:(fun () -> Enum.count e)
     ~clone:(fun () -> Enum.clone e)

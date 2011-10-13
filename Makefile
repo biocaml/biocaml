@@ -53,7 +53,9 @@ doc/dot/dependency_graph.ps: doc/dot/dependency_graph.out
 # Installing/uninstalling library and applications
 #
 install-lib: lib uninstall-lib
-	cd src/_build; ocamlfind install $(findlib-pkg) ../META $(patsubst %,$(lib).%,cmi a cma cmxa cmxs)
+	cd src/_build/; ocamlfind install $(findlib-pkg) \
+            ../META $(patsubst %,biocaml/$(lib).%,a cma cmxa cmxs) \
+            biocaml/*.cmi biocaml/*.cmo biocaml/*.cmx
 
 uninstall-lib:
 	ocamlfind remove $(findlib-pkg)

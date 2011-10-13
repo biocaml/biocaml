@@ -1,5 +1,6 @@
 module List = List2
 open Printf
+module Range = Biocaml_range
 
 type t = Range.t list (* retained in canonical form *)
 type range = Range.t

@@ -1,7 +1,7 @@
 open Sesame
 open Printf
 
-type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}
+type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Biocaml_seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}
 
 type t = row list
@@ -44,8 +44,8 @@ module Parser = struct
             chr_name = chr;
             start_pos = to_int 5;
             sequence =
-              try Seq.of_string (to_string 6)
-              with Seq.Bad m -> raise_bad m
+              try Biocaml_seq.of_string (to_string 6)
+              with Biocaml_seq.Bad m -> raise_bad m
           }
       }
 
@@ -75,7 +75,7 @@ let row_to_string r =
        string_of_int mmy;
        r.probe.org_name ^ ":" ^ r.probe.version ^ ";" ^ r.probe.chr_name;
        string_of_int (r.probe.start_pos);
-       Seq.to_string (r.probe.sequence)
+       Biocaml_seq.to_string (r.probe.sequence)
       ]
       
 let to_file file t =
