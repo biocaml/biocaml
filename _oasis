@@ -119,3 +119,11 @@ Executable wig_correlate
   CompiledObject: best
 
 
+Document doclib
+  Title:                API reference for Biocaml
+  Type:                 ocamlbuild (0.2)
+  Install:              false
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      src/lib/
+  XOCamlbuildLibraries: biocaml
+
