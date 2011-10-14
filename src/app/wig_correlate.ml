@@ -1,4 +1,6 @@
-open Biocaml;; open Biocaml.Sesame;; open Printf
+open Biocaml
+open Printf
+open Batteries
 
 let prog_name = Sys.argv.(0)
 

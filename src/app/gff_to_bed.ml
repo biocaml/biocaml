@@ -1,4 +1,5 @@
-open Sesame;; open Printf
+open Batteries
+open Printf
 
 let prog_name = Sys.argv.(0)
 
@@ -86,10 +87,11 @@ let parse_cmdline () : params =
 ;;
 try
   let params = parse_cmdline() in
-  
+  let string_is_whitespace s =
+    String.fold_left (fun a b -> a && Char.is_whitespace b) true s in
   let f line =
     if String.starts_with line "##" then ()
-    else if String.for_all Char.is_space line then ()
+    else if string_is_whitespace line then ()
     else
       try
         match String.nsplit line "\t" with
