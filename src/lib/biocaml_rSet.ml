@@ -1,5 +1,4 @@
-module List = List2
-open Printf
+open Biocaml_std
 module Range = Biocaml_range
 
 type t = Range.t list (* retained in canonical form *)
@@ -8,7 +7,7 @@ exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
 let empty = []
-let size t = List.fold_left (fun ans v -> ans + Range.size v) 0 t
+let size t = List.fold_left ~f:(fun ans v -> ans + Range.size v) ~init:0 t
 let is_empty t = size t = 0
 
 (* A canonical interval list is one in which adjacent intervals have gap between them and intervals retained in ascending order according to their coordinates. *)
@@ -54,7 +53,7 @@ let of_range_list l =
       | Some range -> range::acc 
       | None -> acc
   in
-  to_canonical (List.fold_left f [] l)
+  to_canonical (List.fold_left ~f ~init:[] l)
 
 let to_range_list t = List.map Range.to_pair t
 
@@ -121,7 +120,7 @@ module Test = struct
         let v = Range.make lo hi in
         IntSet.union accum (IntSet.of_list (Range.to_list v))
     in
-    List.fold_left f IntSet.empty l
+    List.fold_left ~f ~init:IntSet.empty l
       
   let test vl1 vl2 =
     let intset1 = Test.timesf "making first IntSet" make_int_set vl1 in

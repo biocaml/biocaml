@@ -1,6 +1,5 @@
-open Sesame
+open Biocaml_std
 open Tuple
-open Printf
 
 module Comments = Biocaml_comments
 module Wig = Biocaml_wig
@@ -226,7 +225,7 @@ module TrackLine = struct
     validate ans;
     ans
 
-  let of_list l = List.fold_left (fun t (a,x) -> set t a x) empty l
+  let of_list l = List.fold_left ~f:(fun t (a,x) -> set t a x) ~init:empty l
 
   let to_string t =
     (* if there is a type attribute print it first *)
@@ -284,7 +283,7 @@ module TrackLine = struct
     let sl = split_on_spaces s in
     if List.hd sl <> "track" then raise_bad "expecting keyword \"track\"";
     let sl = List.map split_on_equal (List.tl sl) in
-    let ans = List.fold_left (fun ans (x,y) -> set ans x y) empty sl in
+    let ans = List.fold_left ~f:(fun ans (x,y) -> set ans x y) ~init:empty sl in
     validate ans;
     ans
 
@@ -351,7 +350,7 @@ module BrowserLines = struct
                   let lo,hi = String.split lo_hi "-" in
                   position chr (int_of_string lo) (int_of_string hi)
                 with
-                  | ExtString.Invalid_string | Failure _ -> raise_bad msg
+                  | Not_found | Failure _ -> raise_bad msg
               )
           | "hide" -> hide (List.nth sl 2)
           | "dense" -> dense (List.nth sl 2)

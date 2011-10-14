@@ -93,6 +93,7 @@ try
     | _ -> assert false (* if here, options_to_params *)
   in
   
+  let module StringMap = Biocaml_std.StringMap in 
   let f counts r : int StringMap.t =
     let increment prev = match prev with None -> 1 | Some k -> k+1 in
     StringMap.add_with (get r) increment counts

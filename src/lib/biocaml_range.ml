@@ -1,7 +1,4 @@
-module String = String2
-module List = List2
-module Array = Array2
-open Printf
+open Biocaml_std
 
 type t = {lo:int; hi:int}
 exception Bad of string

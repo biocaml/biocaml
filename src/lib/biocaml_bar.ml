@@ -1,4 +1,4 @@
-open Sesame;; open Printf
+open Biocaml_std
 
 type header = (string * string) list
     (* list of tag-value pairs *)
@@ -24,11 +24,11 @@ let coord_convention = List.assoc "probe_coordinate_convention" <<- fst
 let sections = snd
 
 let section (_,secs) nm =
-  try List.find (fun s -> s.sec_name = nm) secs
+  try List.find ~f:(fun s -> s.sec_name = nm) secs
   with Not_found -> failwith (sprintf "section %s not found" nm)
     
 let sectioni (_,secs) i =
-  try List.find (fun s -> s.sec_num = i) secs
+  try List.find ~f:(fun s -> s.sec_num = i) secs
   with Not_found -> failwith (sprintf "section %d not found" i)
 
 let to_list (_,sections) =

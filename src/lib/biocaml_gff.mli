@@ -7,8 +7,6 @@
     additional requirements, e.g. the [feature] must be a sequence
     ontology term, but these are not checked. *)
 
-open Sesame
-
 exception Bad of string
   (** Raised if there are any parse errrors. *)
 
@@ -56,12 +54,12 @@ val iter_file : ?version:int -> ?strict:bool -> (row -> unit) -> string -> unit
 
 val to_list : t -> row list
 
-val enum : t -> row Enum.t
+val enum : t -> row BatEnum.t
 
-val to_map : t -> row list StringMap.t
+val to_map : t -> row list BatMap.StringMap.t
   (** Partitions annotations by chromosome. *)
 
-val map_of_file : ?version:int -> ?strict:bool -> string -> row list StringMap.t
+val map_of_file : ?version:int -> ?strict:bool -> string -> row list BatMap.StringMap.t
 
 val row_to_string : ?version:int -> row -> string
 val to_channel : ?version:int -> t -> out_channel -> unit

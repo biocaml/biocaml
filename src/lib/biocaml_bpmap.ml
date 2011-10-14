@@ -1,5 +1,4 @@
-open Sesame
-open Printf
+open Biocaml_std
 
 type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Biocaml_seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}
@@ -10,8 +9,8 @@ let raise_bad msg = raise (Bad msg)
 
 let col_names = ["PMX";"PMY";"MMX";"MMY";"Seq";"Pos";"Probe"]
 let num_probes = List.length  
-let iter = List.iter
-let fold = List.fold_left
+let iter f l = List.iter ~f l
+let fold f init l = List.fold_left ~f ~init l
 let to_list t = t
 
 module Parser = struct

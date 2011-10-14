@@ -1,85 +1,66 @@
 # OASIS_START
-# DO NOT EDIT (digest: 20878679e426c093abee1a7c3ed78061)
+# DO NOT EDIT (digest: ddf74ffef97b9952fc25bdaeff161709)
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
-# Library biocamlsesame
-"src/ext/sesame": include
-<src/ext/sesame/*.ml{,i}>: use_biocamlxmlm
-<src/ext/sesame/*.ml{,i}>: pkg_unix
-<src/ext/sesame/*.ml{,i}>: pkg_extlib
 # Library biocaml
 "src/lib": include
-<src/lib/*.ml{,i}>: use_biocamlsesame
 <src/lib/*.ml{,i}>: use_biocamlxmlm
 <src/lib/*.ml{,i}>: pkg_unix
 <src/lib/*.ml{,i}>: pkg_threads
 <src/lib/*.ml{,i}>: pkg_sqlite3
 <src/lib/*.ml{,i}>: pkg_pcre
-<src/lib/*.ml{,i}>: pkg_extlib
 <src/lib/*.ml{,i}>: pkg_batteries
 # Executable gff_to_bed
 <src/app/gff_to_bed.{native,byte}>: use_biocaml
-<src/app/gff_to_bed.{native,byte}>: use_biocamlsesame
 <src/app/gff_to_bed.{native,byte}>: use_biocamlxmlm
 <src/app/gff_to_bed.{native,byte}>: pkg_unix
 <src/app/gff_to_bed.{native,byte}>: pkg_threads
 <src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
 <src/app/gff_to_bed.{native,byte}>: pkg_pcre
 <src/app/gff_to_bed.{native,byte}>: pkg_getopt
-<src/app/gff_to_bed.{native,byte}>: pkg_extlib
 <src/app/gff_to_bed.{native,byte}>: pkg_batteries
 # Executable gff_counts
 <src/app/gff_counts.{native,byte}>: use_biocaml
-<src/app/gff_counts.{native,byte}>: use_biocamlsesame
 <src/app/gff_counts.{native,byte}>: use_biocamlxmlm
 <src/app/gff_counts.{native,byte}>: pkg_unix
 <src/app/gff_counts.{native,byte}>: pkg_threads
 <src/app/gff_counts.{native,byte}>: pkg_sqlite3
 <src/app/gff_counts.{native,byte}>: pkg_pcre
 <src/app/gff_counts.{native,byte}>: pkg_getopt
-<src/app/gff_counts.{native,byte}>: pkg_extlib
 <src/app/gff_counts.{native,byte}>: pkg_batteries
 # Executable wig_correlate
 <src/app/wig_correlate.{native,byte}>: use_biocaml
-<src/app/wig_correlate.{native,byte}>: use_biocamlsesame
 <src/app/wig_correlate.{native,byte}>: use_biocamlxmlm
 <src/app/wig_correlate.{native,byte}>: pkg_unix
 <src/app/wig_correlate.{native,byte}>: pkg_threads
 <src/app/wig_correlate.{native,byte}>: pkg_sqlite3
 <src/app/wig_correlate.{native,byte}>: pkg_pcre
 <src/app/wig_correlate.{native,byte}>: pkg_getopt
-<src/app/wig_correlate.{native,byte}>: pkg_extlib
 <src/app/wig_correlate.{native,byte}>: pkg_batteries
 # Executable gff_to_table
 <src/app/gff_to_table.{native,byte}>: use_biocaml
-<src/app/gff_to_table.{native,byte}>: use_biocamlsesame
 <src/app/gff_to_table.{native,byte}>: use_biocamlxmlm
 <src/app/gff_to_table.{native,byte}>: pkg_unix
 <src/app/gff_to_table.{native,byte}>: pkg_threads
 <src/app/gff_to_table.{native,byte}>: pkg_sqlite3
 <src/app/gff_to_table.{native,byte}>: pkg_pcre
 <src/app/gff_to_table.{native,byte}>: pkg_getopt
-<src/app/gff_to_table.{native,byte}>: pkg_extlib
 <src/app/gff_to_table.{native,byte}>: pkg_batteries
 # Executable sgr_to_wig
 <src/app/sgr_to_wig.{native,byte}>: use_biocaml
-<src/app/sgr_to_wig.{native,byte}>: use_biocamlsesame
 <src/app/sgr_to_wig.{native,byte}>: use_biocamlxmlm
 <src/app/sgr_to_wig.{native,byte}>: pkg_unix
 <src/app/sgr_to_wig.{native,byte}>: pkg_threads
 <src/app/sgr_to_wig.{native,byte}>: pkg_sqlite3
 <src/app/sgr_to_wig.{native,byte}>: pkg_pcre
 <src/app/sgr_to_wig.{native,byte}>: pkg_getopt
-<src/app/sgr_to_wig.{native,byte}>: pkg_extlib
 <src/app/sgr_to_wig.{native,byte}>: pkg_batteries
 <src/app/*.ml{,i}>: use_biocaml
-<src/app/*.ml{,i}>: use_biocamlsesame
 <src/app/*.ml{,i}>: use_biocamlxmlm
 <src/app/*.ml{,i}>: pkg_unix
 <src/app/*.ml{,i}>: pkg_threads
 <src/app/*.ml{,i}>: pkg_sqlite3
 <src/app/*.ml{,i}>: pkg_pcre
 <src/app/*.ml{,i}>: pkg_getopt
-<src/app/*.ml{,i}>: pkg_extlib
 <src/app/*.ml{,i}>: pkg_batteries
 # OASIS_STOP

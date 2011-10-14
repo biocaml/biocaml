@@ -1,3 +1,5 @@
+module Option = BatOption
+
 type t = {file:string option; line:int option; col:int option}
 
 exception Bad of string

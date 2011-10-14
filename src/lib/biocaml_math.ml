@@ -1,5 +1,4 @@
-open Sesame
-open Printf
+open Biocaml_std
 open Array
 
 module Range = Biocaml_range
@@ -39,8 +38,8 @@ let log2 = log ~base:2.0
 let even x = (x mod 2) = 0
 let odd x = (x mod 2) <> 0
 
-let min a = assert (length a > 0); fold_left min a.(0) a
-let max a = assert (length a > 0); fold_left max a.(0) a
+let min = min
+let max = max
   
 let prange add step lo hi = 
   let rec f acc x = 
@@ -162,7 +161,7 @@ let pearson (a1:float array) (a2:float array) =
   let f acc e1 e2 = 
     (((e1 -. a1avg) /. a1sd) *. ((e2 -. a2avg) /. a2sd)) +. acc 
   in
-  (List.fold_left2 f 0. a1 a2) /. (float_of_int ((List.length a1) - 1))
+  (List.fold_left2 ~f ~init:0. a1 a2) /. (float_of_int ((List.length a1) - 1))
     
 let rank arr =
   let arr = Array.copy arr in

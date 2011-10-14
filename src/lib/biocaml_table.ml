@@ -1,4 +1,4 @@
-open Batteries_uni;; open Printf
+open Biocaml_std
 
 module Comments = Biocaml_comments
 module Tags = Biocaml_tags
@@ -30,7 +30,7 @@ let make_getter columns =
 let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let itags = Tags.of_string itags in
   let e = IO.lines_of cin in
-  if not **> Tags.tag_is "table" "true" itags then raise (Tags.Invalid "table=true tag required");
+  if not (Tags.tag_is "table" "true" itags) then raise (Tags.Invalid "table=true tag required");
   let separator = Tags.find "separator" itags in
 
   (* parse comments if needed and return enumeration starting after comments *)
@@ -72,7 +72,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
     | None, Some s ->
         (s
         |> flip String.nsplit separator
-        |> List.length |> (fun n -> 0 -- (n-1))
+        |> List.length |> (fun n -> Enum.(0 -- (n-1)))
         |> Enum.map ((^) "column" -| string_of_int)
         |> List.of_enum)
     | Some columns, _ -> columns
@@ -86,7 +86,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
 
 let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns rows =
   let itags = Tags.of_string itags in
-  if not **> Tags.tag_is "table" "true" itags then raise (Tags.Invalid "table=true tag required");
+  if not (Tags.tag_is "table" "true" itags) then raise (Tags.Invalid "table=true tag required");
 
   let comments =  match Tags.mem "comment-char" itags, comments with
     | true, Some x ->
@@ -102,7 +102,7 @@ let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns row
     | None ->
         match rows with
           | [] -> []
-          | row::_ -> 0 -- (List.length row - 1) |> Enum.map string_of_int |> List.of_enum
+          | row::_ -> Enum.(0 -- (List.length row - 1)) |> Enum.map string_of_int |> List.of_enum
   in
 
   comments, columns, make_getter columns, List.enum rows |> Enum.map (Array.of_list)
@@ -110,12 +110,12 @@ let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns row
 
 let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   let otags = Tags.of_string otags in
-  if not **> Tags.tag_is "sqlite" "true" otags then raise (Tags.Invalid "sqlite=true tag required");
+  if not (Tags.tag_is "sqlite" "true" otags) then raise (Tags.Invalid "sqlite=true tag required");
   let open Sqlite3 in
   let db = db_open (Tags.find "db" otags) in
   let db_table = Tags.find "db_table" otags in
   
-  let cols' = cols |> List.map (sprintf "'%s' TEXT") |> String.concat ", " in
+  let cols' = cols |> List.map ~f:(sprintf "'%s' TEXT") |> String.concat ", " in
   let stmt = sprintf "CREATE TABLE '%s' (%s);" db_table cols' in
   (match exec db stmt with
     | Rc.OK -> ()
@@ -123,7 +123,7 @@ let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   );
 
   let insert row =
-    let values = cols |> List.map ((get row) |- (sprintf "'%s'")) |> String.concat ", " in
+    let values = cols |> List.map ~f:((get row) |- (sprintf "'%s'")) |> String.concat ", " in
     let stmt = sprintf "INSERT INTO '%s' values (%s);" db_table values in
     match exec db stmt with
       | Rc.OK -> ()

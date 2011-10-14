@@ -1,5 +1,4 @@
-open Sesame
-open Printf
+open Biocaml_std
 
 module Range = Biocaml_range
 
@@ -10,8 +9,8 @@ type strand = Sense | Antisense | Unknown | Unstranded
 type attribute = TagValue of string * string | Something of string
 type row = {chr:string; source:string; feature:string; pos:(int*int); score : float option; strand:strand; phase:int option; attributes : attribute list}
 type t = row list
-let fold = List.fold_left
-let iter = List.iter
+let fold f init l = List.fold_left ~f ~init l
+let iter f l = List.iter ~f l
 let to_list t = t
 let enum t = List.enum t
 
@@ -145,7 +144,7 @@ module Parser = struct
         let vl = String.strip vl in
 	TagValue (tg,vl)
       with
-          ExtString.Invalid_string -> Something s
+        Not_found -> Something s
     in
     List.map attribute (List.map String.strip (String.nsplit s ";"))
       
@@ -209,7 +208,7 @@ let to_map t =
       | Some prev -> r::prev
   in
   let f ans r = StringMap.add_with r.chr (append r) ans in
-  let ans = List.fold_left f StringMap.empty t in
+  let ans = List.fold_left ~f ~init:StringMap.empty t in
   StringMap.map List.rev ans
 
 let map_of_file ?(version=3) ?(strict=true) file =
@@ -232,7 +231,7 @@ let index_by_attribute attr t =
   let f ans r =
     let ys = get_vals r attr in
     let append prev = match prev with None -> [r] | Some l -> r::l in
-    List.fold_left (fun ans y -> StringMap.add_with y append ans) ans ys
+    List.fold_left ~f:(fun ans y -> StringMap.add_with y append ans) ~init:ans ys
   in
   let map = fold f StringMap.empty t in
   let tbl = Hashtbl.create (StringMap.size map) in

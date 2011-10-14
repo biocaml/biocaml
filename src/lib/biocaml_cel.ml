@@ -1,5 +1,5 @@
-open Sesame
-open Printf
+open Biocaml_std
+
 module Bpmap = Biocaml_bpmap
 
 type idata = {mean:float; stdv:float; npixels:int}
@@ -8,8 +8,8 @@ type isection = irow list
 let icolumns = ["X";"Y";"MEAN";"STDV";"NPIXELS"]
 let isection_name = "INTENSITY"
 let inum_values = List.length
-let ifold = List.fold_left
-let iiter = List.iter
+let ifold f init l = List.fold_left ~f ~init l
+let iiter f l = List.iter ~f l
 
 type t = isection (* retaining only intensity section for now *)
 exception Bad of string

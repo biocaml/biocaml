@@ -1,5 +1,7 @@
 open Printf
 
+module Pos = Biocaml_pos
+
 let msg ?(pre="MSG") ?pos msg =
   match pos with
     | None -> pre ^ ": " ^ msg

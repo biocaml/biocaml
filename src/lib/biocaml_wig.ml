@@ -1,4 +1,6 @@
-open Sesame;; open Tuple;; open Printf
+open Biocaml_std
+open Tuple
+
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
@@ -85,7 +87,7 @@ let b_to_v bt : vt option =
   match get_span bt with
     | None -> None
     | Some span ->
-        let vdat = StringMap.map (List.map Tr.prj13) bt in
+        let vdat = StringMap.map (List.map ~f:Tr.prj13) bt in
         Some {vspan=span; vdata = vdat}
           
 (* compact bed to fixed-step if possible *)
@@ -163,7 +165,7 @@ let rec of_list l =
       let append prev = match prev with None -> [lo,hi,x] | Some l -> (lo,hi,x)::l in
       StringMap.add_with chr append ans
   in
-  let ans = List.fold_left f StringMap.empty l in
+  let ans = List.fold_left ~f ~init:StringMap.empty l in
   let ans = StringMap.map List.rev ans in
   compact (B ans)
     

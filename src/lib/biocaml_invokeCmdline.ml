@@ -1,3 +1,4 @@
+open Biocaml_std
 open BatEnum
    
 let invoke_cmd = fun command args -> let chan = Unix.open_process_in (command ^ " " ^ (String.concat " " args)) in

@@ -2,6 +2,8 @@ open Batteries
 open Printf
 open Biocaml
 
+module StringMap = Biocaml_std.StringMap
+
 let prog_name = Sys.argv.(0)
 
 let usage = sprintf
@@ -102,7 +104,7 @@ let get_columns gff : columns =
   ]
   in
   let num_columns = List.length columns in
-  let columns = StringMap.of_list columns in
+  let columns = StringMap.of_enum (List.enum columns) in
   
   let add_attribute (num_columns,columns) attribute =
     if StringMap.mem attribute columns then
@@ -148,7 +150,7 @@ let convert_row strict (num_columns,columns) (x:Gff.row) : string list =
     "PHASE", phase
   ]
   in
-  let mp = StringMap.of_list mp in
+  let mp = StringMap.of_enum (List.enum mp) in
 
   let mp =
     let add_attribute mp = function
@@ -183,7 +185,7 @@ try
 
   (* print column headers *)
   let _ =  
-    let x = StringMap.to_list columns in
+    let x = List.of_enum (StringMap.enum columns) in
     let cmp (_,i) (_,j) = compare i j in
     let x = List.sort ~cmp  x in
     let x = List.map fst x in

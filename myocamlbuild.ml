@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 87f193d1c7444116b3bdfb9ab56360a0) *)
+(* DO NOT EDIT (digest: 77b69ddc75d400f120f206ca8ce0c45d) *)
 module OASISGettext = struct
 # 21 "/home/gildor/programmation/oasis/src/oasis/OASISGettext.ml"
   
@@ -454,7 +454,6 @@ let package_default =
      MyOCamlbuildBase.lib_ocaml =
        [
           ("src/ext/xmlm-1.0.2/src/biocamlxmlm", ["src/ext/xmlm-1.0.2/src"]);
-          ("src/ext/sesame/biocamlsesame", ["src/ext/sesame"]);
           ("src/lib/biocaml", ["src/lib"])
        ];
      lib_c = [];

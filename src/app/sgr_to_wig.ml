@@ -1,6 +1,8 @@
 open Batteries
 open Printf
 open Biocaml
+module Lines = Biocaml_std.Lines
+module Msg = Biocaml_std.Msg
 
 let prog_name = Sys.argv.(0)
 

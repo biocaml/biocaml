@@ -101,7 +101,7 @@ try
       with Failure msg -> (if params.strict then failwith msg else ())
   in
 
-  Lines.iter_file f params.in_file
+  Biocaml_std.Lines.iter_file f params.in_file
 
 with
     Failure msg | Getopt.Error msg -> eprintf "%s: %s\n" prog_name msg

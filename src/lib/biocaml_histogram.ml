@@ -1,5 +1,4 @@
-open Sesame
-open Printf
+open Biocaml_std
 
 type 'a t =
     {

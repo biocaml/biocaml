@@ -1,4 +1,4 @@
-open Sesame;; open Printf
+open Biocaml_std
 
 type t = (string * int * float) list
     (* Stored in ascending order by (string,int) pairs. *)

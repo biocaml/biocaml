@@ -1,5 +1,4 @@
-open Sesame
-open Printf
+open Biocaml_std
 
 module RomanNum = Biocaml_romanNum
 
@@ -59,5 +58,5 @@ let to_roman t =
         then failwith (sprintf "chromosome %s cannot be represented in Roman form" (to_arabic t))
         else n
           
-let arabic = of_string ->> to_arabic
-let roman = of_string ->> to_roman
+let arabic = to_arabic <<- of_string
+let roman = to_roman <<- of_string

@@ -13,51 +13,15 @@ Library biocamlxmlm
   Install: true
   Modules: Xmlm
 
-Library biocamlsesame
-  Path: ./src/ext/sesame/
-  FindlibName: biocamlsesame
-  BuildDepends: biocamlxmlm, extlib, unix
-  Install: true
-  Modules: Sesame
-           , Pervasives2
-           , Array2
-           , Char2
-           , DynArray2
-           , List2
-           , Map2
-           , PMap2
-           , Set2
-           , Stream2
-           , String2
-           , Option2
-           , Int
-           , MMap
-           , Msg
-           , Pos
-           , SparseArray
-           , Test
-           , ArrayPrint
-           , RedBlack
-           , Monster
-           , IntervalTree
-           , Fn 
-           , Tuple
-           , Order
-           , Ordered
-           , Lines
-           , IntMap
-           , StringMap
-           , IntSet
-           , StringSet
-           , Show
-           , SmallCheck
-
 Library biocaml
   Path: ./src/lib/
   FindlibName: biocaml
-  BuildDepends: threads, sqlite3, pcre, biocamlxmlm, biocamlsesame, unix, batteries
+  BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
   Install: true
   Modules: Biocaml
+           , Biocaml_msg
+           , Biocaml_pos
+           , Biocaml_std
            , Biocaml_about
            , Biocaml_bar
            , Biocaml_bed
