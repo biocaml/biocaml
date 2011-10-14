@@ -27,5 +27,4 @@ module Table          = Biocaml_table
 module Tags           = Biocaml_tags         
 module Util           = Biocaml_util         
 module Wig            = Biocaml_wig          
-module Sesame = Sesame
-include Sesame
+

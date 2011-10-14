@@ -100,7 +100,7 @@ let parse_cmdline () : params =
   ]
   in
   
-  Getopt.parse_cmdline opts (failwith <<- (sprintf "invalid option %s\n"));
+  Getopt.parse_cmdline opts (fun s -> failwith (sprintf "invalid option %s\n" s));
   options_to_params t
 
 
