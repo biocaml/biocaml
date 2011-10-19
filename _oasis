@@ -1,0 +1,93 @@
+OASISFormat: 0.2
+Name:        Biocaml
+Version:     0.0
+Synopsis:    The OCaml Bioinformatics Library
+Authors:     Ashish Agarwal
+License:     LGPL with OCaml linking exception
+Plugins:     META (0.2)
+BuildTools:  ocamlbuild
+
+Library biocamlxmlm
+  Path: src/ext/xmlm-1.0.2/src/
+  FindlibName: biocamlxmlm
+  Install: true
+  Modules: Xmlm
+
+Library biocaml
+  Path: ./src/lib/
+  FindlibName: biocaml
+  BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
+  Install: true
+  Modules: Biocaml
+           , Biocaml_msg
+           , Biocaml_pos
+           , Biocaml_std
+           , Biocaml_about
+           , Biocaml_bar
+           , Biocaml_bed
+           , Biocaml_bpmap
+           , Biocaml_cel
+           , Biocaml_chrName
+           , Biocaml_comments
+           , Biocaml_common
+           , Biocaml_fasta
+           , Biocaml_fastq
+           , Biocaml_genome
+           , Biocaml_gff
+           , Biocaml_histogram
+           , Biocaml_invokeCmdline
+           , Biocaml_math
+           , Biocaml_phredScore
+           , Biocaml_range
+           , Biocaml_romanNum
+           , Biocaml_rSet
+           , Biocaml_sam
+           , Biocaml_sbml
+           , Biocaml_seq
+           , Biocaml_sgr
+           , Biocaml_strandName
+           , Biocaml_table
+           , Biocaml_track
+           , Biocaml_tags
+           , Biocaml_util
+           , Biocaml_wig
+
+Executable gff_counts
+  Path:   ./src/app/
+  MainIs: gff_counts.ml
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable gff_to_bed
+  Path:   ./src/app/
+  MainIs: gff_to_bed.ml
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable gff_to_table
+  Path:   ./src/app/
+  MainIs: gff_to_table.ml
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable sgr_to_wig
+  Path:   ./src/app/
+  MainIs: sgr_to_wig.ml
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable wig_correlate
+  Path:   ./src/app/
+  MainIs: wig_correlate.ml
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+
+Document doclib
+  Title:                API reference for Biocaml
+  Type:                 ocamlbuild (0.2)
+  Install:              false
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      src/lib/
+  XOCamlbuildLibraries: biocaml
+

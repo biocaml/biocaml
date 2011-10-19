@@ -1,6 +1,5 @@
 .ocamlinit
-doc/
-src/_build/
+_build/
 bin/install_apps.ml.exe
 *~
 tmp/

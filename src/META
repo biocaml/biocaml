@@ -1,5 +1,0 @@
-description = "Bioinformatics library"
-requires = "extlib sqlite3 pcre str batteries"
-version = "0.0"
-archive(byte) = "biocaml.cma"
-archive(native) = "biocaml.cmxa"

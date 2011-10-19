@@ -1,6 +1,9 @@
-version = "1.0.2"
-description = "Streaming XML input/output for OCaml"
-archive(byte) = "xmlm.cmo"
-archive(native) = "xmlm.cmx"
-archive(plugin,native) = "xmlm.cmxs"
-directory = "+xmlm"
+# OASIS_START
+# DO NOT EDIT (digest: 6c395e41157dba2755ebb67fa427d088)
+version = "0.0"
+description = "The OCaml Bioinformatics Library"
+archive(byte) = "biocamlxmlm.cma"
+archive(native) = "biocamlxmlm.cmxa"
+exists_if = "biocamlxmlm.cma"
+# OASIS_STOP
+

@@ -1,0 +1,88 @@
+open Biocaml_std
+
+type 'a t =
+    {
+      cmp: 'a -> 'a -> int; (* comparison function of bin limit type *)
+      bin_limits: 'a array;  (* bin limits, length is n+1 for n bins *)
+      counts: float array    (* counts, length n for n bins *)
+    }
+
+let copy hist = {cmp = hist.cmp; bin_limits = Array.copy hist.bin_limits; counts = Array.copy hist.counts}
+
+let make cmp bins =
+  let rec is_ordered l =
+    match l with
+      | [] -> true
+      | x::[] -> true
+      | x1::x2::l ->
+          match cmp x1 x2 with
+            | -1 -> is_ordered (x2::l)
+            | 0 | 1 -> false
+            | c -> failwith (sprintf "comparison function returned %d" c)
+  in
+    if is_ordered bins then
+      {cmp=cmp; bin_limits = Array.of_list bins; counts = Array.make (List.length bins - 1) 0.0}
+    else
+      failwith "given bins are not monotonically increasing"
+        
+let limits_to_bins bl =
+  let bl = Array.to_list bl in
+  let rec loop ans bl =
+    match bl with
+      | [] -> failwith "impossible to get here"
+      | _::[] -> ans
+      | lo::hi::bl -> loop ((lo,hi)::ans) (hi::bl)
+  in List.rev (loop [] bl)
+      
+let to_list hist = List.combine (limits_to_bins hist.bin_limits) (Array.to_list hist.counts)
+  
+let bin hist k =
+  if k >= Array.length hist.counts then
+    failwith (sprintf "invalid bin number %d" k)
+  else
+    hist.bin_limits.(k), hist.bin_limits.(k+1)
+
+let count hist k =
+  if k >= Array.length hist.counts then
+    failwith (sprintf "invalid bin number %d" k)
+  else
+    hist.counts.(k)
+
+let num_bins hist = Array.length hist.counts
+let minimum hist = hist.bin_limits.(0)
+let maximum hist = hist.bin_limits.(Array.length hist.bin_limits - 1)
+
+let find_bin_index hist x =
+  let i = ref (-1) in
+  let _ =
+    for j = 0 to Array.length hist.bin_limits - 2 do
+      let cmp_lo = hist.cmp x hist.bin_limits.(j) in
+      let cmp_hi = hist.cmp x hist.bin_limits.(j+1) in
+        if (cmp_lo = 1 || cmp_lo = 0) && (cmp_hi = -1) then
+          i := j
+    done
+  in
+    if !i >= 0 then Some !i else None
+      
+let increment ?(delt=1.0) hist x =
+  let hist = copy hist in
+    match find_bin_index hist x with
+      | None -> hist
+      | Some i ->
+          hist.counts.(i) <- hist.counts.(i) +. delt;
+          hist
+            
+let reset hist = {hist with counts = Array.make (Array.length hist.counts) 0.}
+  
+let in_range hist x =
+  let cmp_lo = hist.cmp x (minimum hist) in
+  let cmp_hi = hist.cmp x (maximum hist) in
+    (cmp_lo = 1 || cmp_lo = 0) && (cmp_hi = -1)
+      
+let make_uniform min max n =
+  if min >= max then failwith (sprintf "minimum %.3f must be strictly less than maximum %.3f" min max);
+  if n < 1 then failwith (sprintf "cannot create histogram with %d bins" n);
+  let delt = (max -. min) /. (float_of_int n) in
+  let bins = Array.init (n+1) (fun i -> min +. (delt *. float_of_int i)) in
+  let _ = bins.(Array.length bins - 1) <- max in
+    make Pervasives.compare (Array.to_list bins)

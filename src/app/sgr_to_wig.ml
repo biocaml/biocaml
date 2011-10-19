@@ -1,4 +1,8 @@
-open Sesame;; open Printf
+open Batteries
+open Printf
+open Biocaml
+module Lines = Biocaml_std.Lines
+module Msg = Biocaml_std.Msg
 
 let prog_name = Sys.argv.(0)
 
@@ -98,7 +102,7 @@ let parse_cmdline () : params =
   ]
   in
   
-  Getopt.parse_cmdline opts (failwith <<- (sprintf "invalid option %s\n"));
+  Getopt.parse_cmdline opts (fun s -> failwith (sprintf "invalid option %s\n" s));
   options_to_params t
 
 

@@ -1,4 +1,8 @@
-open Sesame;; open Printf
+open Batteries
+open Printf
+open Biocaml
+
+module StringMap = Biocaml_std.StringMap
 
 let prog_name = Sys.argv.(0)
 
@@ -100,7 +104,7 @@ let get_columns gff : columns =
   ]
   in
   let num_columns = List.length columns in
-  let columns = StringMap.of_list columns in
+  let columns = StringMap.of_enum (List.enum columns) in
   
   let add_attribute (num_columns,columns) attribute =
     if StringMap.mem attribute columns then
@@ -146,7 +150,7 @@ let convert_row strict (num_columns,columns) (x:Gff.row) : string list =
     "PHASE", phase
   ]
   in
-  let mp = StringMap.of_list mp in
+  let mp = StringMap.of_enum (List.enum mp) in
 
   let mp =
     let add_attribute mp = function
@@ -164,11 +168,12 @@ let convert_row strict (num_columns,columns) (x:Gff.row) : string list =
   in
 
   let ans = Array.make num_columns "" in
-  let set_arr col_name col_val =
-    let i = StringMap.find col_name columns in
-    ans.(i-1) <- col_val
+  let set_arr ~key:col_name ~data:col_val =
+    match StringMap.find col_name columns with
+    | Some i -> ans.(i-1) <- col_val
+    | None -> failwith "Column not found (convert_row)"
   in
-  StringMap.iter set_arr mp;
+  StringMap.iter ~f:set_arr mp;
   Array.to_list ans
     
       
@@ -181,7 +186,7 @@ try
 
   (* print column headers *)
   let _ =  
-    let x = StringMap.to_list columns in
+    let x = List.of_enum (StringMap.enum columns) in
     let cmp (_,i) (_,j) = compare i j in
     let x = List.sort ~cmp  x in
     let x = List.map fst x in
