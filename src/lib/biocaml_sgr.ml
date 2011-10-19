@@ -39,12 +39,12 @@ let of_channel ?(chr_map=identity) ?(increment_bp=0) cin =
   Lines.of_channel parse_line cin
     
 let of_file ?(chr_map=identity) ?(increment_bp=0) file = 
-  try_finally (of_channel ~chr_map ~increment_bp) close_in (open_in file)
+  try_finally_exn (of_channel ~chr_map ~increment_bp) ~fend:close_in (open_in file)
 
 let to_channel ?(chr_map=identity) ?(increment_bp=0) t cout = 
   let f (s,i,v) = fprintf cout "%s\t%d\t%f\n" (chr_map s) (i+increment_bp) v in
   List.iter f t
     
 let to_file ?(chr_map=identity) ?(increment_bp=0) t file =
-  try_finally (to_channel ~chr_map ~increment_bp t) close_out (open_out_safe file) 
+  try_finally_exn (to_channel ~chr_map ~increment_bp t) ~fend:close_out (open_out_safe file) 
  

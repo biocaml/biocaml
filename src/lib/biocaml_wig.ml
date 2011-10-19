@@ -198,15 +198,16 @@ let of_channel ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi ic =
     | Some FixedStep -> failwith "parsing of WIG files in fixed-step format not yet implemented"
         
 let of_file ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi file =
+  let fend = close_in in
   match fmt,increment_lo_hi with
     | None, None ->
-        try_finally (of_channel ~chr_map ~header) close_in (open_in file)
+      try_finally_exn (of_channel ~chr_map ~header) ~fend (open_in file)
     | Some fmt, None ->
-        try_finally (of_channel ~fmt ~chr_map ~header) close_in (open_in file)
+        try_finally_exn (of_channel ~fmt ~chr_map ~header) ~fend (open_in file)
     | None, Some increment_lo_hi ->
-        try_finally (of_channel ~chr_map ~header ~increment_lo_hi) close_in (open_in file)
+        try_finally_exn (of_channel ~chr_map ~header ~increment_lo_hi) ~fend (open_in file)
     | Some fmt, Some increment_lo_hi->
-        try_finally (of_channel ~fmt ~chr_map ~header ~increment_lo_hi) close_in (open_in file)
+        try_finally_exn (of_channel ~fmt ~chr_map ~header ~increment_lo_hi) ~fend (open_in file)
 
 let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t)
   
@@ -240,7 +241,7 @@ let to_channel ?fmt t cout =
             
 let to_file ?fmt t file =
   let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in
-  try_finally f close_out (open_out_safe file)
+  try_finally_exn f ~fend:close_out (open_out_safe file)
 
 
 (**** Some parsing functions that could be useful when support for parsing variable-step and fixed-step are added.

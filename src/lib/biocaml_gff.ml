@@ -98,7 +98,7 @@ let to_channel ?(version=3) t cout =
   List.iter f t
     
 let to_file ?(version=3) t file =
-  try_finally (to_channel ~version t) close_out (open_out_safe file)
+  try_finally_exn (to_channel ~version t) ~fend:close_out (open_out_safe file)
     
 module Parser = struct
   let phase s =

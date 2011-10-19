@@ -3,10 +3,10 @@ include Printf
 let (<<-) f g = fun x -> f (g x)
 let identity = fun x -> x
 
-let try_finally f g x =
-  match try `V(f x) with e -> `E e with
-    | `V f_x -> g x; f_x
-    | `E e -> (try g x with _ -> ()); raise e
+let try_finally_exn ~fend f x =
+  match try `V (f x) with e -> `E e with
+    | `V f_x -> fend x; f_x
+    | `E e -> (try fend x with _ -> ()); raise e
 
 let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 let output_endline cout s = output_string cout s; output_string cout "\n"
@@ -187,7 +187,9 @@ module Lines = struct
     fold_stream ~strict f init (Stream.of_channel cin)
 
   let fold_file ?(strict=true) f init file =
-    try try_finally (fold_channel' ~file ~strict f init) close_in (open_in file)
+    try 
+      try_finally_exn (fold_channel' ~file ~strict f init)
+        ~fend:close_in (open_in file)
     with Error (p,m) -> raise_error (Pos.set_file p file) m
 
   let iter_file ?(strict=true) f file =

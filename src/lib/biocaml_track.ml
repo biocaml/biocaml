@@ -404,7 +404,7 @@ let to_channel ?wig_fmt t cout =
 
 let to_file ?wig_fmt t file =
   let to_channel t = match wig_fmt with None -> to_channel t | Some wig_fmt -> to_channel ~wig_fmt t in
-  try_finally (to_channel t) close_out (open_out_safe file)
+  try_finally_exn (to_channel t) ~fend:close_out (open_out_safe file)
    
 let validate t =
   let t = List.filter (function C _ -> false | _ -> true) t in

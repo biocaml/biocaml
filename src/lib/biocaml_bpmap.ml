@@ -58,7 +58,7 @@ module Parser = struct
         with 
             Failure msg | Bad msg -> raise_bad (err msg)
     in
-      try_finally (parse file) close_in (open_in file)
+    try_finally_exn (parse file) ~fend:close_in (open_in file)
 
 end
   
@@ -82,4 +82,4 @@ let to_file file t =
     output_endline cout (String.concat "\t" col_names);
     List.iter ((output_endline cout) <<- row_to_string) t
   in
-    try_finally print close_out (open_out_safe file)
+  try_finally_exn print ~fend:close_out (open_out_safe file)
