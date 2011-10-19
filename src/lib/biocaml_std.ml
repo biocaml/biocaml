@@ -19,17 +19,18 @@ module List = struct
   include BatList
   include BatList.Labels
 
-  let npartition eq l =
+  let npartition ~eq l =
     let insertl ll a =
       let rec loop prefix ll =
         match ll with
         | [] -> rev ([a]::prefix)
         | l::ll ->
-            if eq a (hd l)
-            then (rev ((a::l)::prefix)) @ ll 
-            else loop (l::prefix) ll
+          if eq a (hd l)
+          then (rev ((a::l)::prefix)) @ ll 
+          else loop (l::prefix) ll
       in loop [] ll
-    in map ~f:rev (fold_left ~f:insertl ~init:[] l)
+    in 
+    map ~f:rev (fold_left ~f:insertl ~init:[] l)
 
 end
 
