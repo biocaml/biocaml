@@ -64,7 +64,7 @@ end
 module Array = struct
   include Array 
   include BatArray 
-
+  include BatArray.Labels
       
   let is_rectangular d =
     if length d <= 1 then

@@ -67,7 +67,7 @@ let range step first last =
 let mean a =
   let n = length a in
   assert (n > 0);
-  (fold_left (+.) 0. a) /. (float_of_int n)
+  (fold_left ~f:(+.) ~init:0. a) /. (float_of_int n)
     
 let variance a =
   let n = length a in
@@ -75,9 +75,9 @@ let variance a =
   let avrg = mean a in
   let f v = let diff = v -. avrg in diff *. diff in
   let a = map f a in
-  (fold_left (+.) 0. a) /. (float_of_int (n - 1))
+  (fold_left ~f:(+.) ~init:0. a) /. (float_of_int (n - 1))
     
-let rms = sqrt <<- mean <<- (map (fun x -> x *. x))
+let rms = sqrt <<- mean <<- (map ~f:(fun x -> x *. x))
   
 let stdv = sqrt <<- variance
 
@@ -125,13 +125,13 @@ let quantile_normalization aa =
     let comp2 (_,a) (_,b) = Pervasives.compare a b in
     
     let aa = transpose aa in
-    let aa = map (mapi Tuple.Pr.make) aa in
-    (iter (sort comp2)) aa;
-    let avg i = (fold_left (fun sum expt -> snd expt.(i) +. sum) 0.0 aa) /. num_expts in
+    let aa = map (mapi ~f:Tuple.Pr.make) aa in
+    (iter ~f:(sort ~cmp:comp2)) aa;
+    let avg i = (fold_left ~f:(fun sum expt -> snd expt.(i) +. sum) ~init:0.0 aa) /. num_expts in
     let norms = init num_pts avg in
-    let aa = map (mapi (fun i (idx,_) -> idx, norms.(i))) aa in
-    (iter (sort comp1)) aa;
-    transpose (map (map snd) aa)
+    let aa = map (mapi ~f:(fun i (idx,_) -> idx, norms.(i))) aa in
+    (iter ~f:(sort ~cmp:comp1)) aa;
+    transpose (map ~f:(map ~f:snd) aa)
 
 let histogram ?(cmp=Pervasives.compare) arr =
   let f mp a =
@@ -139,7 +139,7 @@ let histogram ?(cmp=Pervasives.compare) arr =
     then PMap.add a (PMap.find a mp + 1) mp
     else PMap.add a 1 mp
   in
-  let mp = fold_left f (PMap.create cmp) arr in
+  let mp = fold_left ~f ~init:(PMap.create cmp) arr in
   let ans = PMap.foldi (fun a k ans -> (a,k)::ans) mp [] in
   of_list (List.rev ans)
 
@@ -184,7 +184,7 @@ let rank arr =
     else
       x, [i], g prev il ans
   in
-  let prev,il,ans = Array.fold_left f (0.,[],[]) arr in
+  let prev,il,ans = Array.fold_left ~f ~init:(0.,[],[]) arr in
   let ans = g prev il ans in
   let ans = List.sort ~cmp:(fun (_,a) (_,b) -> Pervasives.compare a b) ans in
   Array.of_list (List.map fst ans)
@@ -267,7 +267,7 @@ let wilcoxon_rank_sum_to_z arr1 arr2 =
   let l1,l2 = (float_of_int l1), (float_of_int l2) in
   let sum1 = 
     let f acc elem = elem +. acc in
-    Array.fold_left f 0. arr1
+    Array.fold_left ~f ~init:0. arr1
   in
   let expectation = (l1 *. (l1 +. l2 +. 1.)) /. 2. in
   let var = (l1 *. l2 *. ((l1 +. l2 +. 1.) /. 12.)) in
