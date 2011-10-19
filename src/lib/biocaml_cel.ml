@@ -122,7 +122,7 @@ module Parser = struct
     let sl = List.map String.strip sl in
     let _ = if sl <> icolumns then raise_bad "intensity section column names incorrect" else () in
 
-    let lines = Stream.keep_while (not <<- (String.for_all Char.is_space)) lines in
+    let lines = Stream.keep_while (not <<- (String.for_all ~f:Char.is_space)) lines in
     let lines = Stream.map intensity_row lines in
     let ans = Stream.to_list lines in
     let count = List.length ans in

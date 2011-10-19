@@ -40,7 +40,7 @@ let to_list (_,sections) =
       
 module Parser = struct
   let junk_blank_lines lines =
-    Stream.skip_while (String.for_all Char.is_space) lines
+    Stream.skip_while (String.for_all ~f:Char.is_space) lines
 
   let tag_value (s':string) : string * string =
     let s = String.strip (String.lchop s') in

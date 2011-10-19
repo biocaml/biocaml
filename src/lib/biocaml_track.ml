@@ -25,7 +25,7 @@ module TrackLine = struct
   let quotes_reqd = "must be enclosed in quotes when includes space"
     
   let quote_enclosed s = (* if s contains space, then must be quote enclosed *)
-    if String.exists' ((=) ' ') s
+    if String.exists ~f:((=) ' ') s
     then String.length s >= 3 && s.[0] = '"' && s.[String.length s - 1] = '"'
     else true
       
@@ -322,7 +322,7 @@ module BrowserLines = struct
       [Position (chr,lo,hi)]
         
   let mode_helper s = (* split string on spaces *)
-    if String.exists' ((=) '\n') s then raise_bad "newline characters not allowed in browser lines";
+    if String.exists ((=) '\n') s then raise_bad "newline characters not allowed in browser lines";
     let sl = Str.split (Str.regexp "[ \t\r]+") s in
     if List.length sl > 1 && List.exists ((=) "all") sl 
     then raise_bad "cannot include \"all\" keyword within list of track names"
@@ -344,14 +344,16 @@ module BrowserLines = struct
       else
         match List.nth sl 1 with
           | "position" ->
-              let msg = "browser position must be in form chr:start-end" in (
-                try
-                  let chr,lo_hi = String.split (List.nth sl 2) ":" in
-                  let lo,hi = String.split lo_hi "-" in
+              let msg = "browser position must be in form chr:start-end" in
+              begin match String.split (List.nth sl 2) ":" with
+              | Some (chr, lo_hi) -> 
+                begin match String.split lo_hi "-" with
+                | Some (lo, hi) ->
                   position chr (int_of_string lo) (int_of_string hi)
-                with
-                  | Not_found | Failure _ -> raise_bad msg
-              )
+                | None -> raise_bad msg
+                end
+              | None -> raise_bad msg (* TODO: precise error msg *)
+              end
           | "hide" -> hide (List.nth sl 2)
           | "dense" -> dense (List.nth sl 2)
           | "pack" -> pack (List.nth sl 2)

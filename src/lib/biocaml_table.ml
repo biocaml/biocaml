@@ -115,7 +115,7 @@ let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   let db = db_open (Tags.find "db" otags) in
   let db_table = Tags.find "db_table" otags in
   
-  let cols' = cols |> List.map ~f:(sprintf "'%s' TEXT") |> String.concat ", " in
+  let cols' = cols |> List.map ~f:(sprintf "'%s' TEXT") |> String.concat ~sep:", " in
   let stmt = sprintf "CREATE TABLE '%s' (%s);" db_table cols' in
   (match exec db stmt with
     | Rc.OK -> ()
@@ -123,7 +123,7 @@ let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   );
 
   let insert row =
-    let values = cols |> List.map ~f:((get row) |- (sprintf "'%s'")) |> String.concat ", " in
+    let values = cols |> List.map ~f:((get row) |- (sprintf "'%s'")) |> String.concat ~sep:", " in
     let stmt = sprintf "INSERT INTO '%s' values (%s);" db_table values in
     match exec db stmt with
       | Rc.OK -> ()

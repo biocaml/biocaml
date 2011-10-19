@@ -34,14 +34,15 @@ module List = struct
 end
 
 module String = struct
-  include String
+  include StringLabels
   include BatString
+  include BatString.Exceptionless
 
   (* String.for_all was in Sesame and heavily used in Biocaml. *)
-  let for_all f s =
+  let for_all ~f s =
     fold_left (fun b c -> b && f c) true s
 
-  let exists' f s =
+  let exists ~f s =
     fold_left (fun ans c -> f c || ans) false s
 
   let strip_final_cr s =
@@ -50,7 +51,7 @@ module String = struct
     then sub s 0 (l-1)
     else s
 
-  let fold_lefti f acc str = 
+  let fold_lefti ~f acc str = 
     let r = ref acc in
     for i = 0 to (String.length str - 1) do
       r := f !r i str.[i]

@@ -138,13 +138,12 @@ module Parser = struct
   let attributes (ver:version) (s:string) : attribute list =
     let sep = match ver with Two -> " " | Three -> "=" in
     let attribute (s:string) : attribute =
-      try
-        let tg,vl = String.split s sep in
+      match String.split s sep with
+      | Some (tg,vl) ->
         let tg = String.strip tg in
         let vl = String.strip vl in
 	TagValue (tg,vl)
-      with
-        Not_found -> Something s
+      | None -> Something s
     in
     List.map attribute (List.map String.strip (String.nsplit s ";"))
       
