@@ -22,7 +22,7 @@ let make_getter columns =
     else
       StringMap.add elt i accum
   in
-  let map = columns |> List.enum |> Enum.foldi f StringMap.empty in
+  let map = columns |> List.enum |> Enum.foldi ~f ~init:StringMap.empty in
   fun row col ->
     try row.(StringMap.find col map)
     with Invalid_argument _ -> raise (No_column col)
@@ -39,7 +39,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
       let comment_char = (Tags.find "comment-char" itags).[0] in
       let e1,e2 = Enum.span (Comments.is_comments ~comment_char) e in 
       let f x l = Comments.concat x (Comments.of_string ~comment_char l) in
-      Some (e1 |> Enum.fold f (Comments.empty comment_char)),
+      Some (e1 |> Enum.fold ~f ~init:(Comments.empty comment_char)),
       e2
     with Not_found -> None, e
   in
@@ -56,7 +56,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
           | None -> raise (Invalid "expected header underline but reached end-of-input")
           | Some s ->
               let pred c = Char.is_whitespace c || c = '-' in
-              if s |> String.enum |> Enum.for_all pred then
+              if s |> String.enum |> Enum.for_all ~f:pred then
                 ()
               else
                 raise (Invalid "header line must consist of only whitespace or \'-\'") )
@@ -73,7 +73,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
         (s
         |> flip String.nsplit separator
         |> List.length |> (fun n -> Enum.(0 -- (n-1)))
-        |> Enum.map ((^) "column" -| string_of_int)
+        |> Enum.map ~f:((^) "column" -| string_of_int)
         |> List.of_enum)
     | Some columns, _ -> columns
   in
@@ -102,10 +102,10 @@ let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns row
     | None ->
         match rows with
           | [] -> []
-          | row::_ -> Enum.(0 -- (List.length row - 1)) |> Enum.map string_of_int |> List.of_enum
+          | row::_ -> Enum.(0 -- (List.length row - 1)) |> Enum.map ~f:string_of_int |> List.of_enum
   in
 
-  comments, columns, make_getter columns, List.enum rows |> Enum.map (Array.of_list)
+  comments, columns, make_getter columns, List.enum rows |> Enum.map ~f:(Array.of_list)
 
 
 let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =

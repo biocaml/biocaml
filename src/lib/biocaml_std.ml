@@ -80,7 +80,7 @@ end
 module Char = struct
   include Char
   include BatChar
-  
+
   let is_space = is_whitespace
   let is_alpha_num c = is_letter c || is_digit c
 
@@ -88,6 +88,8 @@ end
 
 module Enum = struct
   include BatEnum
+  include BatEnum.Labels
+  include BatEnum.Labels.LExceptionless
 end  
 
 module Stream = struct
