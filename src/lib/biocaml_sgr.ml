@@ -19,7 +19,7 @@ let of_chr_lists l =
 let to_chr_lists t =
   let eq (s1,_,_) (s2,_,_) = s1 = s2 in
   let ll = List.npartition eq t in
-  let ll = List.map (fun l -> Tuple.Tr.prj1 (List.hd l), List.map (fun (_,b,c) -> b,c) l) ll in
+  let ll = List.map (fun l -> Tuple.Tr.first (List.hd l), List.map (fun (_,b,c) -> b,c) l) ll in
     ll
 
 let of_channel ?(chr_map=identity) ?(increment_bp=0) cin =

@@ -266,16 +266,12 @@ end
 module Tuple = struct
   include BatTuple
   module Pr = struct
+    include Tuple2
     let make a b = (a,b)
   end
   module Tr = struct
+    include Tuple3
     let make a b c = (a,b,c)
-    let prj1 (a,_,_) = a
-    let prj2 (_,b,_) = b
-    let prj3 (_,_,c) = c
-    let prj12 (a,b,_) = (a,b)
-    let prj13 (a,_,c) = (a,c)
-    let prj23 (_,b,c) = (b,c)
   end
 end
 
