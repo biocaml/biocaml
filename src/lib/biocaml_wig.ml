@@ -45,15 +45,15 @@ let v_to_f vt : ft option =
       | Some step -> Some (fst (List.hd l), step, List.map snd l)
   in
   
-  let g chr l ans =
+  let g ~key ~data:l ans =
     match ans with
       | None -> None
       | Some ans ->
           match convert_one l with
             | None -> None
-            | Some dat -> Some (StringMap.add chr dat ans)
+            | Some dat -> Some (StringMap.add key dat ans)
   in
-  match StringMap.fold g vt.vdata (Some StringMap.empty) with
+  match StringMap.fold ~f:g vt.vdata ~init:(Some StringMap.empty) with
     | None -> None
     | Some fdat -> Some {fspan = vt.vspan; fdata = fdat}
 
@@ -71,7 +71,7 @@ let b_to_v bt : vt option =
   in
   
   let get_span bt : int option =
-    let spans = StringMap.fold (fun _ l ans -> (get_span_chr l)::ans) bt [] in
+    let spans = StringMap.fold ~f:(fun ~key ~data:l ans -> (get_span_chr l)::ans) bt ~init:[] in
     if List.length spans = 0 then
       None (* if no chromosomes, do not compact *)
     else if List.exists Option.is_none spans then
@@ -137,19 +137,19 @@ let to_format fmt t : t option = match fmt,t with
 let iter f = function 
   | B t -> 
       let g chr (lo,hi,x) = f(chr,lo,hi,x) in
-      let h chr l = List.iter (g chr) l in
-      StringMap.iter h t
+      let h ~key:chr ~data:l = List.iter (g chr) l in
+      StringMap.iter ~f:h t
   | V t ->
       let g chr (lo,x) = f(chr, lo, lo + t.vspan - 1, x) in
-      let h chr l = List.iter (g chr) l in
-      StringMap.iter h t.vdata
+      let h ~key:chr ~data:l = List.iter (g chr) l in
+      StringMap.iter ~f:h t.vdata
   | F t ->
       let g chr start step i x =
         let lo = start + i*step in
         let hi = lo + t.fspan - 1 in
         f(chr,lo,hi,x)
       in
-      let h chr (start,step,l) = List.iteri (g chr start step) l in
+      let h ~key:chr ~data:(start,step,l) = List.iteri (g chr start step) l in
       StringMap.iter h t.fdata
         
 let fold f init t =
@@ -215,17 +215,17 @@ let to_channel ?fmt t cout =
   let print_as_is = function
     | B bt ->
         let f chr (lo,hi,x) = fprintf cout "%s\t%d\t%d\t%s\n" chr (lo-1) hi (string_of_float x) in
-        let g chr l = List.iter (f chr) l in
+        let g ~key:chr ~data:l = List.iter (f chr) l in
         StringMap.iter g bt
     | V vt ->
-        let g chr l =
+        let g ~key:chr ~data:l =
           fprintf cout "variableStep\tchrom=%s\tspan=%d\n" chr vt.vspan;
           let f (lo,x) = fprintf cout "%d\t%s\n" lo (string_of_float x) in
           List.iter f l
         in
         StringMap.iter g vt.vdata
     | F ft ->
-        let g chr (start,step,l) =
+        let g ~key:chr ~data:(start,step,l) =
           fprintf cout "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d\n" chr start step ft.fspan;
           List.iter (fun x -> fprintf cout "%s\n" (string_of_float x)) l
         in

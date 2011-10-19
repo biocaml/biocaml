@@ -24,8 +24,9 @@ let make_getter columns =
   in
   let map = columns |> List.enum |> Enum.foldi ~f ~init:StringMap.empty in
   fun row col ->
-    try row.(StringMap.find col map)
-    with Invalid_argument _ -> raise (No_column col)
+    match StringMap.find col map with
+    | Some i -> row.(i)
+    | None -> raise (No_column col)
 
 let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let itags = Tags.of_string itags in

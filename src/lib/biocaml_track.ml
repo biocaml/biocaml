@@ -11,12 +11,12 @@ module TrackLine = struct
   exception Bad of string
 
   let raise_bad msg = raise (Bad msg)
-  let get t attr = try Some (Map.find attr t) with Not_found -> None
+  let get t attr = Map.find attr t
   let empty = Map.empty
-  let to_list t = Map.fold (fun x y ans -> (x,y)::ans) t []
+  let to_list t = Map.fold ~f:(fun ~key ~data ans -> (key, data) :: ans) t ~init:[]
   let unset t attr = Map.remove attr t
-  let find t attr = Map.find attr t
-  let mem t a x = try x = find t a with Not_found -> false
+  let find t attr = Option.get (Map.find attr t)
+  let mem t a x = match Map.find a t with Some s -> s = x | None -> false
 
   (* error messages *) 
   let err attr value msg = sprintf "%s=%s is invalid: %s" attr value msg    
@@ -234,7 +234,7 @@ module TrackLine = struct
         | None -> t, "track"
         | Some y -> unset t "type", "track type=" ^ y
     in
-    Map.fold (fun x y ans -> ans ^ " " ^ x ^ "=" ^ y) t ans 
+    Map.fold ~f:(fun ~key ~data ans -> ans ^ " " ^ key ^ "=" ^ data) t ~init:ans 
       
 
   type state = NotInQuote | InQuote | InSpaces
@@ -288,8 +288,9 @@ module TrackLine = struct
     ans
 
   let valid_wig t =
-    try find t "type" = "wiggle_0"
-    with Not_found -> false
+    match Map.find "type" t with
+    | Some w -> w = "wiggle_0"
+    | None -> false
 
 end
 

@@ -234,5 +234,5 @@ let index_by_attribute attr t =
   in
   let map = fold f StringMap.empty t in
   let tbl = Hashtbl.create (StringMap.size map) in
-  StringMap.iter (fun x y -> Hashtbl.add tbl x (List.rev y)) map;
+  StringMap.iter ~f:(fun ~key ~data -> Hashtbl.add tbl key (List.rev data)) map;
   tbl

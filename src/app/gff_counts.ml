@@ -101,6 +101,6 @@ try
 
   let counts = Gff.fold_file ~version:2 f StringMap.empty params.in_file in
 
-  StringMap.iter (printf "%s\t%d\n") counts
+  StringMap.iter ~f:(fun ~key ~data -> printf "%s\t%d\n" key data) counts
 with
     Failure msg | Getopt.Error msg -> eprintf "%s: %s\n" prog_name msg

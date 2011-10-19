@@ -168,11 +168,12 @@ let convert_row strict (num_columns,columns) (x:Gff.row) : string list =
   in
 
   let ans = Array.make num_columns "" in
-  let set_arr col_name col_val =
-    let i = StringMap.find col_name columns in
-    ans.(i-1) <- col_val
+  let set_arr ~key:col_name ~data:col_val =
+    match StringMap.find col_name columns with
+    | Some i -> ans.(i-1) <- col_val
+    | None -> failwith "Column not found (convert_row)"
   in
-  StringMap.iter set_arr mp;
+  StringMap.iter ~f:set_arr mp;
   Array.to_list ans
     
       

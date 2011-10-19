@@ -214,27 +214,52 @@ module Lines = struct
 end
 
 module Set = struct
-  include BatSet
+  module Make (Ord : BatSet.OrderedType) = struct
+    module S = BatSet.Make(Ord)
+    include S
+    include S.Labels
+    include S.Exceptionless
+  end
 end
 module IntSet = struct 
   include BatSet.IntSet
+  include BatSet.IntSet.Labels
+  include BatSet.IntSet.Exceptionless
   let of_list l =
     of_enum (List.enum l)
   let to_list t =
     List.of_enum (enum t)
 end
 
-module Option = BatOption
-module PMap = BatPMap
+module Option = struct
+  module M = struct
+    include BatOption
+    include BatOption.Labels
+  end
+  module With_monad = struct
+    include M
+    include BatOption.Monad
+    let (>>=) = bind
+  end
+  include M
+end
+
+module PMap = struct
+  include BatPMap
+  include BatPMap.Exceptionless
+end
+
 module IO = BatIO
 
 module StringMap = struct
   include BatMap.StringMap
-  let add_with x f m =
-    let y' = try Some (find x m) with Not_found -> None in
-    add x (f y') m
+  include BatMap.StringMap.Labels
+  include BatMap.StringMap.Exceptionless
 
-  let size t = fold (fun _ _ ans -> ans + 1) t 0
+  let add_with x f m =
+    add x (f (find x m)) m
+
+  let size t = fold ~f:(fun ~key ~data ans -> ans + 1) ~init:0 t
 
 end
 

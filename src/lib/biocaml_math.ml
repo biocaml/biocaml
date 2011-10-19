@@ -135,9 +135,9 @@ let quantile_normalization aa =
 
 let histogram ?(cmp=Pervasives.compare) arr =
   let f mp a =
-    if PMap.mem a mp
-    then PMap.add a (PMap.find a mp + 1) mp
-    else PMap.add a 1 mp
+    match PMap.find a mp with
+    | Some e -> PMap.add a (e + 1) mp
+    | None -> PMap.add a 1 mp
   in
   let mp = fold_left ~f ~init:(PMap.create cmp) arr in
   let ans = PMap.foldi (fun a k ans -> (a,k)::ans) mp [] in
