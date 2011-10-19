@@ -19,13 +19,20 @@ module List = struct
   include BatList
   include BatList.Labels
 
-  let npartition ~eq l =
+  let assoc_exn = assoc
+  let hd_exn = hd
+  let tl_exn = tl
+
+  include BatList.Exceptionless
+  include BatList.Labels.LExceptionless
+
+  let npartition_exn ~eq l =
     let insertl ll a =
       let rec loop prefix ll =
         match ll with
         | [] -> rev ([a]::prefix)
         | l::ll ->
-          if eq a (hd l)
+          if eq a (hd_exn l)
           then (rev ((a::l)::prefix)) @ ll 
           else loop (l::prefix) ll
       in loop [] ll

@@ -281,8 +281,8 @@ module TrackLine = struct
           
   let of_string s =
     let sl = split_on_spaces s in
-    if List.hd sl <> "track" then raise_bad "expecting keyword \"track\"";
-    let sl = List.map split_on_equal (List.tl sl) in
+    if List.hd_exn sl <> "track" then raise_bad "expecting keyword \"track\"";
+    let sl = List.map split_on_equal (List.tl_exn sl) in
     let ans = List.fold_left ~f:(fun ans (x,y) -> set ans x y) ~init:empty sl in
     validate ans;
     ans
@@ -340,7 +340,7 @@ module BrowserLines = struct
       let sl = Str.bounded_split (Str.regexp "[ \t\r]+") s 3 in
       if List.length sl < 3 then 
         raise_bad "browser line should be in form \"browser attribute_name attribute_value(s)\""
-      else if List.hd sl <> "browser" then
+      else if List.hd_exn sl <> "browser" then
         raise_bad "browser line must begin with keyword \"browser\""
       else
         match List.nth sl 1 with

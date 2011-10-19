@@ -15,21 +15,23 @@ exception Bad of string
 let raise_bad msg = raise (Bad msg)
     
 let num_sections = List.length <<- snd
-let data_type = List.assoc "Data" <<- fst
-let scale = List.assoc "Scale" <<- fst
-let genomic_map = List.assoc "Genomic_Map" <<- fst
-let alg_name = List.assoc "AlgName" <<- fst
-let alg_version = List.assoc "AlgVersion" <<- fst
-let coord_convention = List.assoc "probe_coordinate_convention" <<- fst
+let data_type = List.assoc_exn "Data" <<- fst
+let scale = List.assoc_exn "Scale" <<- fst
+let genomic_map = List.assoc_exn "Genomic_Map" <<- fst
+let alg_name = List.assoc_exn "AlgName" <<- fst
+let alg_version = List.assoc_exn "AlgVersion" <<- fst
+let coord_convention = List.assoc_exn "probe_coordinate_convention" <<- fst
 let sections = snd
 
 let section (_,secs) nm =
-  try List.find ~f:(fun s -> s.sec_name = nm) secs
-  with Not_found -> failwith (sprintf "section %s not found" nm)
+  match List.find ~f:(fun s -> s.sec_name = nm) secs with
+  | None -> failwith (sprintf "section %s not found" nm)
+  | Some s -> s
     
 let sectioni (_,secs) i =
-  try List.find ~f:(fun s -> s.sec_num = i) secs
-  with Not_found -> failwith (sprintf "section %d not found" i)
+  match List.find ~f:(fun s -> s.sec_num = i) secs with
+  | None -> failwith (sprintf "section %d not found" i)
+  | Some s -> s
 
 let to_list (_,sections) =
   let f s =
@@ -89,7 +91,7 @@ module Parser = struct
           let secs = ref [] in
           let _ = while not (Stream.is_empty lines) do secs := (section lines)::!secs done in
           let secs = List.sort ~cmp:(fun s1 s2 -> Pervasives.compare s1.sec_name s2.sec_name) !secs in
-          let expected_num_secs = int_of_string (List.assoc "Number Sequences" hdr) in
+          let expected_num_secs = int_of_string (List.assoc_exn "Number Sequences" hdr) in
           let actual_num_secs = List.length secs in
             if actual_num_secs = expected_num_secs then
               (hdr,secs)

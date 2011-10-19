@@ -42,7 +42,7 @@ let v_to_f vt : ft option =
   let convert_one (l : (int * float) list) : (int * int * float list) option =
     match get_step l with
       | None -> None
-      | Some step -> Some (fst (List.hd l), step, List.map snd l)
+      | Some step -> Some (fst (List.hd_exn l), step, List.map snd l)
   in
   
   let g ~key ~data:l ans =
@@ -78,7 +78,7 @@ let b_to_v bt : vt option =
       None
     else
       let spans = List.map Option.get spans in
-      let span = List.hd spans in
+      let span = List.hd_exn spans in
       if List.for_all ((=) span) spans then
         Some span
       else
