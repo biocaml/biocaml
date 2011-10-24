@@ -2,3 +2,6 @@
 _build/
 *~
 tmp/
+doclib.docdir
+setup.data
+setup.log
