@@ -14,7 +14,7 @@
     in this module corresponds to using the fastq-sanger or
     fastq-illumina encodings, respectively, defined in this paper.
 *)
-open Batteries_uni
+open Batteries
 
 exception Error of string
 

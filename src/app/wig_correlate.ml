@@ -1,6 +1,6 @@
 open Biocaml
 open Printf
-open Batteries
+open Biocaml_std
 
 let prog_name = Sys.argv.(0)
 

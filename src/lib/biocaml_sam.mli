@@ -1,6 +1,6 @@
 (** SAM files. *)
 
-open Batteries_uni
+open Batteries
 
 exception Bad of string
 

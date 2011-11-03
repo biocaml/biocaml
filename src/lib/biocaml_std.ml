@@ -228,10 +228,11 @@ module Set = struct
     include S.Exceptionless
   end
 end
-module IntSet = struct 
-  include BatSet.IntSet
-  include BatSet.IntSet.Labels
-  include BatSet.IntSet.Exceptionless
+module IntSet = struct
+  module IS = BatSet.Make(BatInt)
+  include IS
+  include IS.Labels
+  include IS.Exceptionless
   let of_list l =
     of_enum (List.enum l)
   let to_list t =

@@ -1,4 +1,4 @@
-open Batteries_uni
+open Batteries
 
 let err_enum ?(source="") e =
   let n = ref 0 in

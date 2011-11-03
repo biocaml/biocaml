@@ -28,7 +28,7 @@
     [any_overlap] to verify this property when needed.
 *)
 
-open Batteries_uni
+open Batteries
 
 val enum_input : IO.input -> (string * int * int) Enum.t
 

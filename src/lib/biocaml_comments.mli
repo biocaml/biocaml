@@ -1,7 +1,7 @@
 (** Comment lines. Comment lines contain either just whitespace or
     have a user-specified start character. *)
 
-open Batteries_uni
+open Batteries
 
 type t
     (** Sequence of comment lines. *)

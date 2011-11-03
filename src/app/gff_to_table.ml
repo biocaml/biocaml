@@ -1,6 +1,7 @@
 open Batteries
 open Printf
 open Biocaml
+open Biocaml_std
 
 module StringMap = Biocaml_std.StringMap
 
@@ -114,7 +115,7 @@ let get_columns gff : columns =
   in
   
   let add_row (num_columns,columns) row =
-    List.fold_left add_attribute (num_columns,columns) (Gff.attribute_names row)
+    List.fold_left ~f:add_attribute ~init:(num_columns,columns) (Gff.attribute_names row)
   in
   
   Gff.fold add_row (num_columns,columns) gff
@@ -164,7 +165,7 @@ let convert_row strict (num_columns,columns) (x:Gff.row) : string list =
           else
             StringMap.add x y mp
     in
-    List.fold_left add_attribute mp x.Gff.attributes
+    List.fold_left ~f:add_attribute ~init:mp x.Gff.attributes
   in
 
   let ans = Array.make num_columns "" in

@@ -1,6 +1,5 @@
 (** Commonly needed values; the 'Pervasives' of Biocaml. *)
 
-open Batteries_uni
 
 exception PosError of string * int * int * exn
   (** An error exception that wraps an underlying exception (the last
