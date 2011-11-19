@@ -12,45 +12,49 @@
 type path = string
 type shell_cmd = path * string list
 
-type cmd = private {
-  exec : path; (** path to the executable *)
-  name : string option; (** other options as defined by MACS *)
-  format : string option;
-  pvalue : string option;
-  mfold : (int32 * int32) option;
-  tsize : int32 option;
-  gsize : string option;
-  bw : int32 option;
-  wig : bool;
-  space : int32 option;
-  control : string;
-  treatment : string;
-}
-
 exception Error of string
 
-(** checks if the version of macs at path [path] is 
-    supported by this module *)
-val check_version : path -> bool
+module Ver_1_4_0 : sig
 
-val cmd : ?exec:path
-  -> ?name:string -> ?format:string
-  -> ?pvalue:string -> ?mfold:(int32 * int32)
-  -> ?tsize:int32 -> ?gsize:string -> ?bw:int32
-  -> ?wig:bool -> ?space:int32
-  -> ?control:string -> treatment:string -> unit
-  -> cmd
+  type cmd = private {
+    exec : path; (** path to the executable *)
+    name : string option; (** other options as defined by MACS *)
+    format : string option;
+    pvalue : string option;
+    mfold : (int32 * int32) option;
+    tsize : int32 option;
+    gsize : string option;
+    bw : int32 option;
+    wig : bool;
+    space : int32 option;
+    control : string;
+    treatment : string;
+  }
 
-val xls_output : cmd -> path
-val bed_output : cmd -> path
-val rprogram_output : cmd -> path
+  (** checks if the version of macs at path [path] is
+      supported by this module *)
+  val check_version : path -> bool
 
-type peak = {
-  chr : string ;
-  pos : Biocaml_range.t ;
-  summit : int ;
-  pvalue : float ;
-  fdr : float option
-}
+  val cmd : ?exec:path
+    -> ?name:string -> ?format:string
+    -> ?pvalue:string -> ?mfold:(int32 * int32)
+    -> ?tsize:int32 -> ?gsize:string -> ?bw:int32
+    -> ?wig:bool -> ?space:int32
+    -> ?control:string -> treatment:string -> unit
+    -> cmd
 
-val peaks : cmd -> peak Enum.t
+  val xls_output : cmd -> path
+  val bed_output : cmd -> path
+  val rprogram_output : cmd -> path
+
+  type peak = {
+    chr : string ;
+    pos : Biocaml_range.t ;
+    summit : int ;
+    pvalue : float ;
+    fdr : float option
+  }
+
+  val peaks : cmd -> peak Enum.t
+
+end
