@@ -14,7 +14,7 @@ type shell_cmd = path * string list
 
 exception Error of string
 
-module Ver_1_4_0 : sig
+module Version_1_4_0 : sig
 
   type cmd = private {
     exec : path; (** path to the executable *)
@@ -43,6 +43,19 @@ module Ver_1_4_0 : sig
     -> ?control:string -> treatment:string -> unit
     -> cmd
 
+
+  (** Consider following two choices for providing outputs.*)
+
+  (** Outputs, option 1. *)
+  type output = {
+    xls : path;
+    bed : path;
+    rprogram : path
+  }
+
+  val output : cmd -> output
+
+  (** Outputs, option 2. *)
   val xls_output : cmd -> path
   val bed_output : cmd -> path
   val rprogram_output : cmd -> path
