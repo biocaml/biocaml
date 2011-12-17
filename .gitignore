@@ -5,3 +5,5 @@ tmp/
 doclib.docdir
 setup.data
 setup.log
+*.native
+*.byte

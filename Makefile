@@ -1,16 +1,18 @@
+
 all: build
 
-build:
+build byte native: configure
 	ocaml setup.ml -build
 
-install:
-	ocaml setup.ml -reinstall
+configure: setup.data
+setup.data: setup.ml
+	ocaml $< -configure
 
-uninstall:
-	ocaml setup.ml -uninstall
+setup.ml: _oasis
+	oasis.dev setup
 
-doc:
-	ocaml setup.ml -doc
+doc install uninstall reinstall: all
+	ocaml setup.ml -$@
 
 clean:
 	ocaml setup.ml -clean
@@ -18,4 +20,5 @@ clean:
 # clean everything and uninstall
 fresh: clean uninstall
 
-.PHONY: doc install uninstall clean fresh
+.PHONY: all byte native configure doc install uninstall reinstall upload-doc
+
