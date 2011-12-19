@@ -11,8 +11,17 @@ setup.data: setup.ml
 setup.ml: _oasis
 	oasis.dev setup
 
-doc install uninstall reinstall: all
+doc install: all
 	ocaml setup.ml -$@
+uninstall:
+# OASIS uninstall does not seem to work properly
+	ocaml setup.ml -$@
+	ocamlfind remove biocamlxmlm
+	ocamlfind remove biocaml
+
+reinstall:
+	$(MAKE) uninstall
+	$(MAKE) install
 
 clean:
 	ocaml setup.ml -clean
