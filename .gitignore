@@ -8,4 +8,4 @@ setup.log
 *.native
 *.byte
 .bzrignore
-*.clib
+
