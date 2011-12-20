@@ -1,42 +1,37 @@
 # OASIS_START
-# DO NOT EDIT (digest: ddf74ffef97b9952fc25bdaeff161709)
+# DO NOT EDIT (digest: 6f438a5e2685f1bade43f00ff86b5f7e)
+# Ignore VCS directories, you can use the same kind of rule outside 
+# OASIS_START/STOP if you want to exclude directories that contains 
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
+"src/ext/xmlm-1.0.2/src/biocamlxmlm.cmxs": use_biocamlxmlm
 # Library biocaml
 "src/lib": include
+"src/lib/biocaml.cmxs": use_biocaml
+<src/lib/biocaml.{cma,cmxa}>: use_libbiocaml
 <src/lib/*.ml{,i}>: use_biocamlxmlm
 <src/lib/*.ml{,i}>: pkg_unix
 <src/lib/*.ml{,i}>: pkg_threads
 <src/lib/*.ml{,i}>: pkg_sqlite3
 <src/lib/*.ml{,i}>: pkg_pcre
 <src/lib/*.ml{,i}>: pkg_batteries
-# Executable gff_to_bed
-<src/app/gff_to_bed.{native,byte}>: use_biocaml
-<src/app/gff_to_bed.{native,byte}>: use_biocamlxmlm
-<src/app/gff_to_bed.{native,byte}>: pkg_unix
-<src/app/gff_to_bed.{native,byte}>: pkg_threads
-<src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_bed.{native,byte}>: pkg_pcre
-<src/app/gff_to_bed.{native,byte}>: pkg_getopt
-<src/app/gff_to_bed.{native,byte}>: pkg_batteries
-# Executable gff_counts
-<src/app/gff_counts.{native,byte}>: use_biocaml
-<src/app/gff_counts.{native,byte}>: use_biocamlxmlm
-<src/app/gff_counts.{native,byte}>: pkg_unix
-<src/app/gff_counts.{native,byte}>: pkg_threads
-<src/app/gff_counts.{native,byte}>: pkg_sqlite3
-<src/app/gff_counts.{native,byte}>: pkg_pcre
-<src/app/gff_counts.{native,byte}>: pkg_getopt
-<src/app/gff_counts.{native,byte}>: pkg_batteries
-# Executable wig_correlate
-<src/app/wig_correlate.{native,byte}>: use_biocaml
-<src/app/wig_correlate.{native,byte}>: use_biocamlxmlm
-<src/app/wig_correlate.{native,byte}>: pkg_unix
-<src/app/wig_correlate.{native,byte}>: pkg_threads
-<src/app/wig_correlate.{native,byte}>: pkg_sqlite3
-<src/app/wig_correlate.{native,byte}>: pkg_pcre
-<src/app/wig_correlate.{native,byte}>: pkg_getopt
-<src/app/wig_correlate.{native,byte}>: pkg_batteries
+"src/lib/biocaml_mzXML_stubs.c": use_biocamlxmlm
+"src/lib/biocaml_mzXML_stubs.c": pkg_unix
+"src/lib/biocaml_mzXML_stubs.c": pkg_threads
+"src/lib/biocaml_mzXML_stubs.c": pkg_sqlite3
+"src/lib/biocaml_mzXML_stubs.c": pkg_pcre
+"src/lib/biocaml_mzXML_stubs.c": pkg_batteries
 # Executable gff_to_table
 <src/app/gff_to_table.{native,byte}>: use_biocaml
 <src/app/gff_to_table.{native,byte}>: use_biocamlxmlm
@@ -55,6 +50,33 @@
 <src/app/sgr_to_wig.{native,byte}>: pkg_pcre
 <src/app/sgr_to_wig.{native,byte}>: pkg_getopt
 <src/app/sgr_to_wig.{native,byte}>: pkg_batteries
+# Executable gff_counts
+<src/app/gff_counts.{native,byte}>: use_biocaml
+<src/app/gff_counts.{native,byte}>: use_biocamlxmlm
+<src/app/gff_counts.{native,byte}>: pkg_unix
+<src/app/gff_counts.{native,byte}>: pkg_threads
+<src/app/gff_counts.{native,byte}>: pkg_sqlite3
+<src/app/gff_counts.{native,byte}>: pkg_pcre
+<src/app/gff_counts.{native,byte}>: pkg_getopt
+<src/app/gff_counts.{native,byte}>: pkg_batteries
+# Executable wig_correlate
+<src/app/wig_correlate.{native,byte}>: use_biocaml
+<src/app/wig_correlate.{native,byte}>: use_biocamlxmlm
+<src/app/wig_correlate.{native,byte}>: pkg_unix
+<src/app/wig_correlate.{native,byte}>: pkg_threads
+<src/app/wig_correlate.{native,byte}>: pkg_sqlite3
+<src/app/wig_correlate.{native,byte}>: pkg_pcre
+<src/app/wig_correlate.{native,byte}>: pkg_getopt
+<src/app/wig_correlate.{native,byte}>: pkg_batteries
+# Executable gff_to_bed
+<src/app/gff_to_bed.{native,byte}>: use_biocaml
+<src/app/gff_to_bed.{native,byte}>: use_biocamlxmlm
+<src/app/gff_to_bed.{native,byte}>: pkg_unix
+<src/app/gff_to_bed.{native,byte}>: pkg_threads
+<src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
+<src/app/gff_to_bed.{native,byte}>: pkg_pcre
+<src/app/gff_to_bed.{native,byte}>: pkg_getopt
+<src/app/gff_to_bed.{native,byte}>: pkg_batteries
 <src/app/*.ml{,i}>: use_biocaml
 <src/app/*.ml{,i}>: use_biocamlxmlm
 <src/app/*.ml{,i}>: pkg_unix

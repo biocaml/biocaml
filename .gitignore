@@ -7,3 +7,5 @@ setup.data
 setup.log
 *.native
 *.byte
+.bzrignore
+*.clib

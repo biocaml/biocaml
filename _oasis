@@ -2,7 +2,7 @@ OASISFormat: 0.2
 Name:        Biocaml
 Version:     0.0
 Synopsis:    The OCaml Bioinformatics Library
-Authors:     Ashish Agarwal
+Authors:     Ashish Agarwal, Christophe Troestler
 License:     LGPL with OCaml linking exception
 Plugins:     META (0.2)
 BuildTools:  ocamlbuild
@@ -14,7 +14,7 @@ Library biocamlxmlm
   Modules: Xmlm
 
 Library biocaml
-  Path: ./src/lib/
+  Path: src/lib/
   FindlibName: biocaml
   BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
   Install: true
@@ -51,33 +51,36 @@ Library biocaml
            , Biocaml_tags
            , Biocaml_util
            , Biocaml_wig
+           , Biocaml_mzXML
+  CSources: biocaml_mzXML_stubs.c
+
 
 Executable gff_counts
-  Path:   ./src/app/
+  Path:   src/app/
   MainIs: gff_counts.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_bed
-  Path:   ./src/app/
+  Path:   src/app/
   MainIs: gff_to_bed.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_table
-  Path:   ./src/app/
+  Path:   src/app/
   MainIs: gff_to_table.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable sgr_to_wig
-  Path:   ./src/app/
+  Path:   src/app/
   MainIs: sgr_to_wig.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable wig_correlate
-  Path:   ./src/app/
+  Path:   src/app/
   MainIs: wig_correlate.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
