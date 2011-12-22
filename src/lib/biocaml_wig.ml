@@ -87,7 +87,7 @@ let b_to_v bt : vt option =
   match get_span bt with
     | None -> None
     | Some span ->
-        let vdat = StringMap.map (List.map ~f:Tuple3.get13) bt in
+        let vdat = StringMap.map (List.map ~f:(fun (x, _, z) -> (x, z))) bt in
         Some {vspan=span; vdata = vdat}
           
 (* compact bed to fixed-step if possible *)
