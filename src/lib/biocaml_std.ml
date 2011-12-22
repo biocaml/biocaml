@@ -11,7 +11,10 @@ let try_finally_exn ~fend f x =
 let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 let output_endline cout s = output_string cout s; output_string cout "\n"
 
-include BatStd
+let flip = BatPervasives.flip
+let ( |> ) = BatPervasives.( |> )
+let ( -| ) = BatPervasives.( -| )
+let ( |- ) = BatPervasives.( |- )
 
 module List = struct 
   include List
@@ -253,8 +256,8 @@ module Option = struct
 end
 
 module PMap = struct
-  include BatPMap
-  include BatPMap.Exceptionless
+  include BatMap
+  include BatMap.Exceptionless
 end
 
 module IO = BatIO
