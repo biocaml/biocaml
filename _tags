@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: ddf74ffef97b9952fc25bdaeff161709)
+# DO NOT EDIT (digest: 8c4ab154b6a510c1275022afc025aff1)
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
 # Library biocaml
@@ -37,6 +37,15 @@
 <src/app/wig_correlate.{native,byte}>: pkg_pcre
 <src/app/wig_correlate.{native,byte}>: pkg_getopt
 <src/app/wig_correlate.{native,byte}>: pkg_batteries
+# Executable test
+"src/tests/main.byte": pkg_unix
+"src/tests/main.byte": pkg_threads
+"src/tests/main.byte": pkg_oUnit
+"src/tests/main.byte": pkg_batteries
+<src/tests/*.ml{,i}>: pkg_unix
+<src/tests/*.ml{,i}>: pkg_threads
+<src/tests/*.ml{,i}>: pkg_oUnit
+<src/tests/*.ml{,i}>: pkg_batteries
 # Executable gff_to_table
 <src/app/gff_to_table.{native,byte}>: use_biocaml
 <src/app/gff_to_table.{native,byte}>: use_biocamlxmlm
