@@ -20,6 +20,14 @@ val add : int -> int -> 'a -> 'a t -> 'a t
 (** [add lo hi v t] is an interval tree containing the interval ([lo], [hi]) 
     labeled with value [v] plus the contents of [t] *)
 
+val cardinal : 'a t -> int
+
+val elements : 'a t -> (int * int * 'a) list
+
+val enum : 'a t -> (int * int * 'a) BatEnum.t
+
+val backwards : 'a t -> (int * int * 'a) BatEnum.t
+
 val find_closest : int -> int -> 'a t -> int * int * 'a
 (** [find_closest lo hi t] returns the interval in [t] which is at minimal
     distance of the interval ([lo],[hi]). Overlapping intervals are at distance

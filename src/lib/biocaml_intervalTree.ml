@@ -1,6 +1,7 @@
 (*
  * This implementation is largely inspired from the Set implementation of the
- * standard library.
+ * standard library and the BatSet module (from Batteries) for enum-related 
+ * functions
  *)
 
 type 'a t = Empty | Node of 'a node 
@@ -91,7 +92,65 @@ let rec add lo hi elt = function
       if c < 0 then bal (add lo hi elt n.left) n.lo n.hi n.elt n.right
       else bal n.left n.lo n.hi n.elt (add lo hi elt n.right)
 
+let rec cardinal = function
+  | Empty -> 0
+  | Node n -> cardinal n.left + 1 + cardinal n.right
+
+let node_contents n = n.lo, n.hi, n.elt
+
+let rec elements_aux accu = function
+  | Empty -> accu
+  | Node n -> elements_aux ((node_contents n) :: elements_aux accu n.right) n.left
+
+let elements s =
+  elements_aux [] s
     
+
+type 'a iter = E | C of 'a node * 'a t * 'a iter
+
+let rec cons_iter s t = match s with
+    Empty -> t
+  | Node n -> cons_iter n.left (C (n, n.right, t))
+
+let rec rev_cons_iter s t = match s with
+    Empty -> t
+  | Node n -> rev_cons_iter n.right (C (n, n.left, t))
+
+let rec enum_next l () = match !l with
+    E -> raise BatEnum.No_more_elements
+  | C (n, s, t) -> l := cons_iter s t; node_contents n
+
+let rec enum_backwards_next l () = match !l with
+    E -> raise BatEnum.No_more_elements
+  | C (n, s, t) -> l := rev_cons_iter s t; node_contents n
+
+let rec enum_count l () =
+  let rec aux n = function
+    | E -> n
+    | C (_, s, t) -> aux (n + 1 + cardinal s) t
+  in aux 0 !l
+
+let enum t =
+  let rec make l =
+    let l = ref l in
+    let clone() = make !l in
+    BatEnum.make ~next:(enum_next l) ~count:(enum_count l) ~clone
+  in make (cons_iter t E)
+
+let backwards t =
+  let rec make l =
+    let l = ref l in
+    let clone() = make !l in
+    BatEnum.make ~next:(enum_backwards_next l) ~count:(enum_count l) ~clone
+  in make (rev_cons_iter t E)
+
+
+
+
+
+
+
+
 let test_add () = 
   let r = ref empty in 
   for i = 1 to 1000000 do 
@@ -116,11 +175,11 @@ let rec find_closest lo hi = function
   | Empty -> raise Empty_tree
   | Node n -> 
     let dc = interval_distance lo hi n.lo n.hi in 
-    if dc = 0 then (n.lo,n.hi,n.elt)
+    if dc = 0 then node_contents n
     else
       let dl = tree_distance lo hi n.left
       and dr = tree_distance lo hi n.right in
-      if dc <= min dl dr then (n.lo,n.hi,n.elt)
+      if dc <= min dl dr then node_contents n
       else if dl <= dr then find_closest lo hi n.left
       else find_closest lo hi n.right
 
