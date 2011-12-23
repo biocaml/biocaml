@@ -91,3 +91,12 @@ Document doclib
   XOCamlbuildPath:      src/lib/
   XOCamlbuildLibraries: biocaml
 
+Executable test
+  Path:         src/tests
+  MainIs:       main.ml
+  Install:      false
+  BuildDepends: oUnit (>= 1.1.0), batteries
+  
+Test main
+  Command: $test
+
