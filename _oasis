@@ -95,7 +95,7 @@ Executable test
   Path:         src/tests
   MainIs:       main.ml
   Install:      false
-  BuildDepends: oUnit (>= 1.1.0), batteries
+  BuildDepends: threads, unix, oUnit (>= 1.1.0), batteries
   
 Test main
   Command: $test
