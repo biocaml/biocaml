@@ -25,6 +25,8 @@ let empty = Empty
 
 let is_empty = function Empty -> true | _ -> false
 
+exception Empty_tree
+
 let height = function
   | Empty -> 0 
   | Node n -> n.height
@@ -111,7 +113,7 @@ let tree_distance lo hi = function
   | Node n -> interval_distance lo hi n.left_end n.right_end
 
 let rec find_closest lo hi = function
-  | Empty -> raise Not_found
+  | Empty -> raise Empty_tree
   | Node n -> 
     let dc = interval_distance lo hi n.lo n.hi in 
     if dc = 0 then (n.lo,n.hi,n.elt)
