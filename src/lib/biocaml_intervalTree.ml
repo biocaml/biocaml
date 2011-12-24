@@ -85,12 +85,10 @@ let bal l lo hi elt r =
 
 let rec add lo hi elt = function
   | Empty -> create Empty lo hi elt Empty
-  | Node n as t ->
+  | Node n ->
     let c = interval_compare lo hi n.lo n.hi in 
-    if c = 0 then t 
-    else 
-      if c < 0 then bal (add lo hi elt n.left) n.lo n.hi n.elt n.right
-      else bal n.left n.lo n.hi n.elt (add lo hi elt n.right)
+    if c <= 0 then bal (add lo hi elt n.left) n.lo n.hi n.elt n.right
+    else bal n.left n.lo n.hi n.elt (add lo hi elt n.right)
 
 let rec cardinal = function
   | Empty -> 0

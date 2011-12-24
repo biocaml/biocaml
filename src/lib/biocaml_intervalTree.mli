@@ -17,8 +17,9 @@ val is_empty : 'a t -> bool
 exception Empty_tree
 
 val add : int -> int -> 'a -> 'a t -> 'a t
-(** [add lo hi v t] is an interval tree containing the interval ([lo], [hi]) 
-    labeled with value [v] plus the contents of [t] *)
+(** [add lo hi v t] adds the interval ([lo], [hi]) labeled with value [v] to the contents of [t]. Note that 
+    in contrast to sets, identical intervals (even with identical labels) may be *repeated* in an interval
+    tree. E.g., [add 1 2 () (add 1 2 ())] contains 2 intervals. *)
 
 val cardinal : 'a t -> int
 
