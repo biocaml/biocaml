@@ -1,10 +1,11 @@
 open OUnit
 open Batteries
+open Printf
 
 module Range = Biocaml_range
 module IntervalTree = Biocaml_intervalTree
 
-module ListImpl : module type of Biocaml_intervalTree = struct
+module ListImpl = struct
   type 'a t = (int * int * 'a) list
 
   exception Empty_tree
@@ -44,14 +45,14 @@ module ListImpl : module type of Biocaml_intervalTree = struct
       
 end
 
-let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n = 
+let random_interval ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) _ = 
   assert (maxw < ub - lb) ;
-  let aux _ = 
-    let w = Random.int (maxw - minw) + minw in
-    let lo = Random.int (ub - lb - w) + lb in
-    (lo, lo + w, ())
-  in
-  (1 -- n) /@ aux
+  let w = Random.int (maxw - minw) + minw in
+  let lo = Random.int (ub - lb - w) + lb in
+  (lo, lo + w, ())
+    
+let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n = 
+  (1 -- n) /@ (random_interval ~lb ~ub ~minw ~maxw)
 
 module TestAdditions(I : module type of Biocaml_intervalTree) = struct
   include I
@@ -74,6 +75,20 @@ let test_creation () =
     assert_equal ~msg:"Compare list and tree results" lres tres
   done
 
+let test_find_closest () = 
+  for i = 1 to 100 do
+    let intervals = random_intervals ~ub:1000 10 |> List.of_enum
+    and lo, hi, _ = random_interval  ~ub:1000 () in
+    let llo,lhi,_ = L.(find_closest lo hi (of_list intervals))
+    and tlo,thi,_ = T.(find_closest lo hi (of_list intervals)) 
+    and dist (x,y) = ListImpl.interval_dist lo hi x y in
+    assert_equal
+      ~cmp:(fun x y -> dist x = dist y)
+      ~printer:(fun (lo,hi) -> sprintf "[%d,%d](%d)" lo hi (dist (lo, hi)))
+      (llo, lhi) (tlo, thi)
+  done
+
 let tests = "IntervalTree" >::: [
   "Creation" >:: test_creation;
+  "Find closest" >:: test_find_closest;
 ]
