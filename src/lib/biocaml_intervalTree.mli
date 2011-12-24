@@ -3,7 +3,7 @@
     An interval tree is a collection of integer-bounded intervals labeled by a
     value.
 
-    For a brief description of the implementation, see {{:http://en.wikipedia.org/wiki/Interval_tree#Augmented_tree}
+    For a brief description of the implementation, see {{:http://en.wikipedia.org/wiki/Interval_tree#Augmented_tree}the matching Wikipedia article}
 
 *)
 
