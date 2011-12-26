@@ -35,3 +35,7 @@ val find_closest : int -> int -> 'a t -> int * int * 'a
     0 of each other.
 
     Raises [Empty_tree] if [t] is empty *)
+
+val print : 'a t -> unit
+
+val check_integrity : 'a t -> unit

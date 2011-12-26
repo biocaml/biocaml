@@ -4,6 +4,8 @@
  * functions
  *)
 
+open Printf
+
 type 'a t = Empty | Node of 'a node 
 and 'a node = {
   left : 'a t ;
@@ -34,7 +36,7 @@ let height = function
 
 let left_end = function
   | Empty -> max_int 
-  | Node n -> n.right_end
+  | Node n -> n.left_end
 
 let right_end = function
   | Empty -> min_int 
@@ -142,10 +144,28 @@ let backwards t =
     BatEnum.make ~next:(enum_backwards_next l) ~count:(enum_count l) ~clone
   in make (rev_cons_iter t E)
 
+let rec check_height_integrity = function
+  | Empty -> 0
+  | Node n ->
+    let h = max (check_height_integrity n.left) (check_height_integrity n.right) + 1 in
+    assert (h = n.height) ; 
+    assert (abs (height n.left - height n.right) <= 2) ;
+    h
+    
+let check_integrity t = 
+  ignore (check_height_integrity t)
 
+let rec print_aux margin = function
+  | Empty -> ()
+  | Node n ->
+    let space = String.make margin ' ' in
+    printf "%s(%d,%d)_(%d,%d)\n" space n.lo n.hi n.left_end n.right_end;
+    printf "%sleft\n" space ;
+    print_aux (margin + 2) n.left ;
+    printf "%sright\n" space ;
+    print_aux (margin + 2) n.right
 
-
-
+let print t = print_aux 0 t
 
 
 
@@ -169,16 +189,46 @@ let tree_distance lo hi = function
   | Empty -> max_int
   | Node n -> interval_distance lo hi n.left_end n.right_end
 
-let rec find_closest lo hi = function
-  | Empty -> raise Empty_tree
-  | Node n -> 
-    let dc = interval_distance lo hi n.lo n.hi in 
-    if dc = 0 then node_contents n
+let rec find_closest_aux lo hi = function
+  | Empty -> None
+  | Node n ->
+    let dc = interval_distance lo hi n.lo n.hi in
+    if dc = 0 then Some (n,0) 
     else
-      let dl = tree_distance lo hi n.left
-      and dr = tree_distance lo hi n.right in
-      if dc <= min dl dr then node_contents n
-      else if dl <= dr then find_closest lo hi n.left
-      else find_closest lo hi n.right
+      let dl_lb = tree_distance lo hi n.left
+      and dr_lb = tree_distance lo hi n.right in
+      let optval, optnode = 
+	if dl_lb < dc then 
+	  match find_closest_aux lo hi n.left with
+	      Some (nl,dl) when dl < dc -> dl, nl
+	    | _ -> dc, n
+	else dc, n in
+      let optval, optnode = 
+	if dr_lb < optval then 
+	  match find_closest_aux lo hi n.right with
+	      Some (nr,dr) when dr < optval -> dr, nr
+	    | _ -> optval, optnode
+	else optval, optnode
+      in
+      Some (optnode, optval)
 
+let find_closest lo hi t = match find_closest_aux lo hi t with
+    Some (n,_) -> node_contents n
+  | None -> raise Empty_tree
+
+(*
+let find_closest lo hi = function
+  | Empty -> None
+  | Node n ->
+    let queue = Queue.create () 
+    and optdist = ref max_int 
+    and optnode = ref None in
+    Queue.add t queue ;
+    while not (Queue.is_empty t) do
+      match Queue.pop queue with
+	  
+    done
+
+*)
+  
 (* let rec find_kclosest k lo hi t =  *)
