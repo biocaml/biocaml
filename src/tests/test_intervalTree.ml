@@ -99,7 +99,7 @@ let test_creation () =
   done
 
 let test_find_closest () = 
-  for i = 1 to 100 do
+  for i = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> List.of_enum
     and lo, hi, _ = random_interval  ~ub:1000 () in
     let llo,lhi,_ = L.(find_closest lo hi (of_list intervals))

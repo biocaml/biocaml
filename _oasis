@@ -93,10 +93,11 @@ Document doclib
   XOCamlbuildLibraries: biocaml
 
 Executable test
-  Path:         src/tests
-  MainIs:       main.ml
-  Install:      false
-  BuildDepends: threads, unix, oUnit (>= 1.1.0), batteries
+  Path:                 src/tests
+  MainIs:       	main.ml
+  Install:      	false
+  CompiledObject: 	native
+  BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries
   
 Test main
   Command: $test
