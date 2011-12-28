@@ -53,41 +53,6 @@ let create l lo hi elt r =
     right_end = max hi (max (right_end l) (right_end r))
   }
 
-
-let bal l lo hi elt r = 
-  let hl = height l and hr = height r in
-  if hl > hr + 2 then (
-    match l with 
-	Empty -> assert false
-      | Node ln -> 
-	if height ln.left >= height ln.right then 
-	  create ln.left ln.lo ln.hi ln.elt (create ln.right lo hi elt r)
-	else 
-	  match ln.right with 
-	      Empty -> assert false
-	    | Node lrn -> 
-	      create 
-		(create ln.left ln.lo ln.hi ln.elt lrn.left)
-		lrn.lo lrn.hi lrn.elt
-		(create lrn.right lo hi elt r)
-  )
-  else if hr > hl + 2 then (
-    match r with 
-	Empty -> assert false
-      | Node rn -> 
-	if height rn.right >= height rn.left then 
-	  create (create l lo hi elt rn.left) rn.lo rn.hi rn.elt rn.right
-	else 
-	  match rn.left with
-	      Empty -> assert false
-	    | Node rln ->
-	      create
-		(create l lo hi elt rln.left)
-		rln.lo rln.hi rln.elt
-		(create rln.right rn.lo rn.hi rn.elt rn.right)
-  )
-  else create l lo hi elt r
-
 let bal l lo hi elt r = 
   let hl = match l with Empty -> 0 | Node n -> n.height
   and hr = match r with Empty -> 0 | Node n -> n.height in
