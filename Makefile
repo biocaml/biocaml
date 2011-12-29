@@ -1,7 +1,7 @@
 
 all: build
 
-build byte native: configure
+setup.log build byte native: setup.data
 	ocaml setup.ml -build
 
 configure: setup.data
@@ -11,17 +11,8 @@ setup.data: setup.ml
 setup.ml: _oasis
 	oasis.dev setup
 
-doc install: all
+doc install uninstall reinstall: setup.log
 	ocaml setup.ml -$@
-uninstall:
-# OASIS uninstall does not seem to work properly
-	ocaml setup.ml -$@
-	ocamlfind remove biocamlxmlm
-	ocamlfind remove biocaml
-
-reinstall:
-	$(MAKE) uninstall
-	$(MAKE) install
 
 clean:
 	ocaml setup.ml -clean
