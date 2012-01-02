@@ -48,9 +48,15 @@ let create l lo hi elt r =
   Node {
     left = l ; right = r ;
     hi ; lo ; elt;
-    height = max hl hr + 1 ;
-    left_end = min (left_end l) lo ;
-    right_end = max hi (max (right_end l) (right_end r))
+    height = (if hl >= hr then hl + 1 else hr + 1) ;
+    left_end = (let le = left_end l in if lo < le then lo else le) ;
+    right_end = (
+      let lre = right_end l 
+      and rre = right_end r in 
+      if hi > lre then 
+	if hi > rre then hi else rre
+      else 
+	if lre > rre then lre else rre)
   }
 
 let bal l lo hi elt r = 
@@ -87,9 +93,14 @@ let bal l lo hi elt r =
 		(create rln.right rn.lo rn.hi rn.elt rn.right)
   )
   else Node { left = l ; lo ; hi ; elt ; right = r ;
-	      left_end = min lo (left_end l) ; 
-	      right_end = max hi (max (right_end l) (right_end r)) ;
-	      height = max hl hr + 1 }
+	      left_end = (let le = left_end l in if lo < le then lo else le) ; 
+	      right_end = (
+		let lre = right_end l 
+		and rre = right_end r in 
+		if hi > lre then 
+		  if hi > rre then hi else rre
+		else if lre > rre then lre else rre) ;
+	      height = (if hl >= hr then hl + 1 else hr + 1) }
 
 let rec add lo hi elt = function
   | Empty -> create Empty lo hi elt Empty
