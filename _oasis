@@ -33,7 +33,7 @@ Library biocaml
            , Biocaml_common
            , Biocaml_fasta
            , Biocaml_fastq
-           , Biocaml_genomeAnnotation
+           , Biocaml_genomeMap
            , Biocaml_gff
            , Biocaml_histogram
            , Biocaml_intervalTree
