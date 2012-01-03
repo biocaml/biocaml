@@ -37,5 +37,7 @@ val find_closest : int -> int -> 'a t -> int * int * 'a
     Raises [Empty_tree] if [t] is empty *)
 
 val print : 'a t -> unit
+(** Used for debugging purpose, should be removed in the long run *)
 
 val check_integrity : 'a t -> unit
+(** Used for debugging purpose, should be removed in the long run *)

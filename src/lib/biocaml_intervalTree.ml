@@ -233,19 +233,3 @@ let find_closest lo hi t = match find_closest_aux lo hi t with
     Some (n,_) -> node_contents n
   | None -> raise Empty_tree
 
-(*
-let find_closest lo hi = function
-  | Empty -> None
-  | Node n ->
-    let queue = Queue.create () 
-    and optdist = ref max_int 
-    and optnode = ref None in
-    Queue.add t queue ;
-    while not (Queue.is_empty t) do
-      match Queue.pop queue with
-	  
-    done
-
-*)
-  
-(* let rec find_kclosest k lo hi t =  *)
