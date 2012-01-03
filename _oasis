@@ -23,6 +23,7 @@ Library biocaml
            , Biocaml_pos
            , Biocaml_std
            , Biocaml_about
+           , Biocaml_accu
            , Biocaml_bar
            , Biocaml_bed
            , Biocaml_bpmap
