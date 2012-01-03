@@ -23,7 +23,6 @@ let enum t = Hashtbl.enum t.table
 
 let get t = Hashtbl.find t.table
 
-
 type 'instance counter = ('instance, 'instance, int, int) t
 
 module Counter = struct

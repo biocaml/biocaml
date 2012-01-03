@@ -7,6 +7,8 @@
 *)
 open Batteries
 
+(** {7 Generic API} *)
+
 type ('instance,'bin,'increment,'accu) t
 (** General type for accumulators: ['instance]s are mapped to ['bin]s, 
     and the ['accu]mulated value for a ['bin] is updated with an 
@@ -28,6 +30,7 @@ val get : ('a,'b,'c,'d) t -> 'b -> 'd
 (** [get accu x] returns the value associated to [b] in [accu]. *)
 
 
+(** {7 Counters} *)
 
 type 'instance counter = ('instance, 'instance, int, int) t
 (** The type of accumulators that count values *)
