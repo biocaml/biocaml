@@ -30,15 +30,16 @@ val get : ('a,'b,'c,'d) t -> 'b -> 'd
 (** [get accu x] returns the value associated to [b] in [accu]. *)
 
 
-(** {7 Counters} *)
+(** {7 Counters and histograms} *)
 
 type 'instance counter = ('instance, 'instance, int, int) t
 (** The type of accumulators that count values *)
 
 module Counter : sig
   type 'a t = 'a counter
-  val make : ?n:int -> unit -> 'a t
+  val create : ?n:int -> unit -> 'a t
   val add : 'a counter -> 'a -> int -> unit
   val tick : 'a counter -> 'a -> unit
 end
 
+val counts : ('a -> 'b) -> 'a Enum.t -> ('b * int) Enum.t

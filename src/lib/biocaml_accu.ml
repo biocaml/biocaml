@@ -27,8 +27,12 @@ type 'instance counter = ('instance, 'instance, int, int) t
 
 module Counter = struct
   type 'a t = 'a counter
-  let make ?n () = create ?n 0 identity ( + )
+  let create ?n () = create ?n 0 identity ( + )
   let add = add
   let tick accu x = add accu x 1
 end
 
+let counts f e = 
+  let c = Counter.create () in
+  Enum.iter (Counter.tick c) (e /@ f) ;
+  enum c
