@@ -1,6 +1,6 @@
 (** Miscellaneous functions that don't fit elsewhere. *)
 
-open Batteries_uni
+open Batteries
 
 val err_enum : ?source:string -> 'a Enum.t -> 'a Enum.t
   (** Returned enum behaves identically to given one except that its

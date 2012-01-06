@@ -1,5 +1,5 @@
 (** FASTA files. *)
-open Batteries_uni
+open Batteries
 
 exception Error of string
 

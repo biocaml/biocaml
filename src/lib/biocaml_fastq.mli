@@ -1,5 +1,5 @@
 (** FASTQ data. *)
-open Batteries_uni
+open Batteries
 
 exception Invalid of string
 

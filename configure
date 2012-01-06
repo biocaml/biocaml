@@ -1,0 +1,2 @@
+#!/bin/bash
+ocaml setup.ml -configure

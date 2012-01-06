@@ -9,7 +9,7 @@
     "1", "2", etc.
 *)
 
-open Batteries_uni
+open Batteries
 
 exception Invalid of string
 

@@ -23,6 +23,7 @@ Library biocaml
            , Biocaml_pos
            , Biocaml_std
            , Biocaml_about
+           , Biocaml_accu
            , Biocaml_bar
            , Biocaml_bed
            , Biocaml_bpmap
@@ -32,9 +33,10 @@ Library biocaml
            , Biocaml_common
            , Biocaml_fasta
            , Biocaml_fastq
-           , Biocaml_genome
+           , Biocaml_genomeMap
            , Biocaml_gff
            , Biocaml_histogram
+           , Biocaml_intervalTree
            , Biocaml_invokeCmdline
            , Biocaml_math
            , Biocaml_phredScore
@@ -90,4 +92,14 @@ Document doclib
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      src/lib/
   XOCamlbuildLibraries: biocaml
+
+Executable test
+  Path:                 src/tests
+  MainIs:       	main.ml
+  Install:      	false
+  CompiledObject: 	native
+  BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries
+  
+Test main
+  Command: $test
 

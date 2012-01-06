@@ -1,4 +1,4 @@
-open Batteries_uni;; open Printf
+open Batteries;; open Printf
 
 exception Error of string
 
@@ -9,7 +9,10 @@ let to_int t = t
 let to_probability t =
   10.0 ** (float_of_int t /. -10.0)
 
-let to_ascii ?(offset=33) t =
+let int_of_offset = function `offset33 -> 33 | `offset64 -> 64
+
+let to_ascii ?(offset=`offset33) t =
+  let offset = int_of_offset offset in
   let x = t + offset in
   if offset <= x && x <= 126 then
     Char.chr x
@@ -20,7 +23,8 @@ let of_int x =
   if x >= 0 then x
   else Error (sprintf "invalid PHRED score %d" x) |> raise
 
-let of_ascii ?(offset=33) x =
+let of_ascii ?(offset=`offset33) x =
+  let offset = int_of_offset offset in
   let c = Char.code x in
   if offset <= c && c <= 126 then
     c - offset

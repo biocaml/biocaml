@@ -37,7 +37,7 @@
 
 *)
 
-open Batteries_uni
+open Batteries
   
 exception Invalid of string
   (** Raised when an invalid tag or incompatible list of tags is encounted. *)

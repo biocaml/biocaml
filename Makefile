@@ -12,6 +12,9 @@ uninstall:
 doc:
 	ocaml setup.ml -doc
 
+test:
+	ocaml setup.ml -test
+
 clean:
 	ocaml setup.ml -clean
 

@@ -1,4 +1,5 @@
 module About          = Biocaml_about        
+module Accu           = Biocaml_accu
 module Bar            = Biocaml_bar          
 module Bed            = Biocaml_bed          
 module Bpmap          = Biocaml_bpmap        
@@ -8,7 +9,7 @@ module Comments       = Biocaml_comments
 module Common         = Biocaml_common       
 module Fasta          = Biocaml_fasta        
 module Fastq          = Biocaml_fastq        
-module Genome         = Biocaml_genome       
+module GenomeMap      = Biocaml_genomeMap
 module Gff            = Biocaml_gff          
 module Histogram      = Biocaml_histogram    
 module InvokeCmdline  = Biocaml_invokeCmdline

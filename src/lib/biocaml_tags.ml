@@ -1,4 +1,4 @@
-open Batteries_uni;; open Printf
+open Batteries;; open Printf
 
 exception Invalid of string
 
@@ -22,7 +22,7 @@ module Cst = struct
 
   let parse_tag (s:string) : tag =
     try
-      let x,y = String.split s "=" |> (Pair.map String.strip) in
+      let x,y = String.split s "=" |> (fun (x, y) -> String.strip x, String.strip y) in
       x, parse_escaped_string y
     with Not_found | Invalid_argument _ ->
       match s with
