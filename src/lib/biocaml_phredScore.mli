@@ -24,9 +24,12 @@ exception Error of string
 
 type t
 
-val to_int : t -> int
+val of_ascii : ?offset:[`offset33 | `offset64] -> char -> t
+  (** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
+      character [x].
 
-val to_probability : t -> float
+      @raise Error if [x] does not represent a valid score.
+  *)
 
 val to_ascii : ?offset:[`offset33 | `offset64] -> t -> char
   (** [to_ascii t] encodes [t] as an ASCII character.
@@ -42,12 +45,7 @@ val of_int : int -> t
       @raise Error if [x] is negative.
   *)
 
-val of_ascii : ?offset:[`offset33 | `offset64] -> char -> t
-  (** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
-      character [x].
-
-      @raise Error if [x] does not represent a valid score.
-  *)
+val to_int : t -> int
 
 val of_probability : ?f:(float -> int) -> float -> t
   (** [of_probability ~f x] returns [-10 * log_10(x)], which is the
@@ -60,3 +58,5 @@ val of_probability : ?f:(float -> int) -> float -> t
 
       @raise Error if [x] is not between 0.0 - 1.0.
   *)
+
+val to_probability : t -> float
