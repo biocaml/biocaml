@@ -60,3 +60,6 @@ val of_probability : ?f:(float -> int) -> float -> t
   *)
 
 val to_probability : t -> float
+  (** [to_probablity x] converts [x] to a probablity score. Note this
+      is not the inverse of [of_probability] due to the rounding done by
+      the latter. *)
