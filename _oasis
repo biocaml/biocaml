@@ -2,6 +2,7 @@ OASISFormat: 0.2
 Name:        Biocaml
 Version:     0.0
 Synopsis:    The OCaml Bioinformatics Library
+Homepage:    http://biocaml.org
 Authors:     Ashish Agarwal
 License:     LGPL with OCaml linking exception
 Plugins:     META (0.2)

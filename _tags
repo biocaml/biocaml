@@ -1,5 +1,18 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2c9bb887db8a8861b4db31188bb3058e)
+# DO NOT EDIT (digest: 6b595d74d634d76d805472ccf0277910)
+# Ignore VCS directories, you can use the same kind of rule outside 
+# OASIS_START/STOP if you want to exclude directories that contains 
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
 # Library biocaml
@@ -10,15 +23,24 @@
 <src/lib/*.ml{,i}>: pkg_sqlite3
 <src/lib/*.ml{,i}>: pkg_pcre
 <src/lib/*.ml{,i}>: pkg_batteries
-# Executable gff_to_bed
-<src/app/gff_to_bed.{native,byte}>: use_biocaml
-<src/app/gff_to_bed.{native,byte}>: use_biocamlxmlm
-<src/app/gff_to_bed.{native,byte}>: pkg_unix
-<src/app/gff_to_bed.{native,byte}>: pkg_threads
-<src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_bed.{native,byte}>: pkg_pcre
-<src/app/gff_to_bed.{native,byte}>: pkg_getopt
-<src/app/gff_to_bed.{native,byte}>: pkg_batteries
+# Executable gff_to_table
+<src/app/gff_to_table.{native,byte}>: use_biocaml
+<src/app/gff_to_table.{native,byte}>: use_biocamlxmlm
+<src/app/gff_to_table.{native,byte}>: pkg_unix
+<src/app/gff_to_table.{native,byte}>: pkg_threads
+<src/app/gff_to_table.{native,byte}>: pkg_sqlite3
+<src/app/gff_to_table.{native,byte}>: pkg_pcre
+<src/app/gff_to_table.{native,byte}>: pkg_getopt
+<src/app/gff_to_table.{native,byte}>: pkg_batteries
+# Executable sgr_to_wig
+<src/app/sgr_to_wig.{native,byte}>: use_biocaml
+<src/app/sgr_to_wig.{native,byte}>: use_biocamlxmlm
+<src/app/sgr_to_wig.{native,byte}>: pkg_unix
+<src/app/sgr_to_wig.{native,byte}>: pkg_threads
+<src/app/sgr_to_wig.{native,byte}>: pkg_sqlite3
+<src/app/sgr_to_wig.{native,byte}>: pkg_pcre
+<src/app/sgr_to_wig.{native,byte}>: pkg_getopt
+<src/app/sgr_to_wig.{native,byte}>: pkg_batteries
 # Executable gff_counts
 <src/app/gff_counts.{native,byte}>: use_biocaml
 <src/app/gff_counts.{native,byte}>: use_biocamlxmlm
@@ -38,26 +60,23 @@
 <src/app/wig_correlate.{native,byte}>: pkg_getopt
 <src/app/wig_correlate.{native,byte}>: pkg_batteries
 # Executable test
-"src/tests/test.byte": pkg_oUnit
+"src/tests/main.native": pkg_unix
+"src/tests/main.native": pkg_threads
+"src/tests/main.native": pkg_oUnit
+"src/tests/main.native": pkg_batteries
+<src/tests/*.ml{,i}>: pkg_unix
+<src/tests/*.ml{,i}>: pkg_threads
 <src/tests/*.ml{,i}>: pkg_oUnit
-# Executable gff_to_table
-<src/app/gff_to_table.{native,byte}>: use_biocaml
-<src/app/gff_to_table.{native,byte}>: use_biocamlxmlm
-<src/app/gff_to_table.{native,byte}>: pkg_unix
-<src/app/gff_to_table.{native,byte}>: pkg_threads
-<src/app/gff_to_table.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_table.{native,byte}>: pkg_pcre
-<src/app/gff_to_table.{native,byte}>: pkg_getopt
-<src/app/gff_to_table.{native,byte}>: pkg_batteries
-# Executable sgr_to_wig
-<src/app/sgr_to_wig.{native,byte}>: use_biocaml
-<src/app/sgr_to_wig.{native,byte}>: use_biocamlxmlm
-<src/app/sgr_to_wig.{native,byte}>: pkg_unix
-<src/app/sgr_to_wig.{native,byte}>: pkg_threads
-<src/app/sgr_to_wig.{native,byte}>: pkg_sqlite3
-<src/app/sgr_to_wig.{native,byte}>: pkg_pcre
-<src/app/sgr_to_wig.{native,byte}>: pkg_getopt
-<src/app/sgr_to_wig.{native,byte}>: pkg_batteries
+<src/tests/*.ml{,i}>: pkg_batteries
+# Executable gff_to_bed
+<src/app/gff_to_bed.{native,byte}>: use_biocaml
+<src/app/gff_to_bed.{native,byte}>: use_biocamlxmlm
+<src/app/gff_to_bed.{native,byte}>: pkg_unix
+<src/app/gff_to_bed.{native,byte}>: pkg_threads
+<src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
+<src/app/gff_to_bed.{native,byte}>: pkg_pcre
+<src/app/gff_to_bed.{native,byte}>: pkg_getopt
+<src/app/gff_to_bed.{native,byte}>: pkg_batteries
 <src/app/*.ml{,i}>: use_biocaml
 <src/app/*.ml{,i}>: use_biocamlxmlm
 <src/app/*.ml{,i}>: pkg_unix
