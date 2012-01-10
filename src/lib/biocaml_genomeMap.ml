@@ -7,22 +7,17 @@ module Range = Biocaml_range
 module Accu = Biocaml_accu
 
 let rec iset_intersects_range i j s = ISet.(BatAvlTree.(
-					      if i > j then raise (Invalid_argument "iset_intersects_range") ;
-					      if is_empty s then false
-					      else
-						let v1, v2 = root s in
-						  if j < v1 then iset_intersects_range i j (left_branch s)
-						  else if v2 < i then iset_intersects_range i j (right_branch s)
-						  else true
-					    ))
+  if i > j then raise (Invalid_argument "iset_intersects_range") ;
+  if is_empty s then false
+  else
+    let v1, v2 = root s in
+    if j < v1 then iset_intersects_range i j (left_branch s)
+    else if v2 < i then iset_intersects_range i j (right_branch s)
+    else true
+))
 
 module Selection = struct
   type 'a t = ('a, ISet.t) Map.t
-
-  let of_locations e =
-    let accu = Accu.create ISet.empty fst (fun (_,r) -> Range.(ISet.add_range r.lo r.hi)) in
-      Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
-      Map.of_enum (Accu.enum accu)
 
   let inter u v =
     Map.foldi
@@ -63,6 +58,11 @@ module Selection = struct
   let enum dom =
     (Map.enum dom) /@ (fun (k,s) -> Enum.map (fun (lo,hi) -> k, Range.make lo hi) (ISet.enum s))
       |> Enum.concat
+
+  let of_enum e =
+    let accu = Accu.create ISet.empty fst (fun (_,r) -> Range.(ISet.add_range r.lo r.hi)) in
+    Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
+    Map.of_enum (Accu.enum accu)
 end
 
 
@@ -93,7 +93,28 @@ module type LSet = sig
   val add : 'a location -> 'a t -> 'a t
 end
 
-module type LMap = sig
+module LMap = struct
+  module T = Biocaml_intervalTree
+
+  type ('a,'b) t = ('a, 'b T.t) Map.t
+
+  let intersects (k,r) dom =
+    try Range.(iset_intersects_range r.lo r.hi (Map.find k dom))
+    with Not_found -> false
+      
+  let enum dom =
+    (Map.enum dom) 
+    /@ (fun (k,t) -> Enum.map (fun (lo,hi,x) -> (k, Range.make lo hi), x) (T.enum t))
+    |> Enum.concat
+
+  let of_enum e =
+    let accu = Accu.create T.empty (fst |- fst) (fun ((_,r),v) -> Range.(T.add r.lo r.hi v)) in
+    Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
+    Map.of_enum (Accu.enum accu)
+
+end
+
+module type LMap_spec = sig
   type ('a,'b) t
 
   val make : ('a location * 'b) Enum.t -> ('a,'b) t

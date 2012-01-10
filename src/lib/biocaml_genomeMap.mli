@@ -6,9 +6,6 @@ type 'a location = 'a * range
 module Selection : sig
   type 'a t
 
-  val of_locations : 'a location Enum.t -> 'a t
-  (** [of_locations e] computes a selection as the union of the locations contained in [e] *)
-
   val inter : 'a t -> 'a t -> 'a t
   val diff : 'a t -> 'a t -> 'a t
   val size : 'a t -> int
@@ -17,6 +14,10 @@ module Selection : sig
   val intersection_size : 'a location -> 'a t -> int
 
   val enum : 'a t -> 'a location Enum.t
+
+  val of_enum : 'a location Enum.t -> 'a t
+    (** [of_enum e] computes a selection as the union of the locations contained in [e] *)
+
 end
 
 (** Partial function over the genome: each base may be associated to a value. *)
@@ -54,7 +55,16 @@ module type LSet = sig
 end
 
 (** A set of locations with an attached value on each of them *)
-module type LMap = sig
+module LMap : sig
+  type ('a,'b) t
+
+  val enum : ('a, 'b) t -> ('a location * 'b) Enum.t
+  val of_enum : ('a location * 'b) Enum.t -> ('a, 'b) t
+end
+
+
+(** A set of locations with an attached value on each of them *)
+module type LMap_spec = sig
   type ('a,'b) t
 
   val make : ('a location * 'b) Enum.t -> ('a,'b) t
