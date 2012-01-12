@@ -67,3 +67,4 @@
 <src/app/*.ml{,i}>: pkg_getopt
 <src/app/*.ml{,i}>: pkg_batteries
 # OASIS_STOP
+true: annot
