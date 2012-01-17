@@ -1,38 +1,60 @@
 Biocaml Installation Instructions
-=================================
 
-The recommended installation method is to use GODI (not yet implemented),
-which automatically downloads and installs for you. The directions
-below are needed only if you are not using GODI.
+Dependencies
+============
 
-First, make sure you have the following prerequisites:
-   
-   ocaml (>= 3.12)
-   findlib (for installation only)
-   extlib
-   pcre
-   sqlite3
-   batteries
-   getopt
+The main Biocaml library depends on
+* ocaml (>= 3.12)
+* sqlite3
+* pcre
+* batteries
+* unix
+* threads
 
-Assuming you have all the prerequisites installed, compile the code
-by typing:
+At compile/install-time, you will also need
+* findlib
 
-   ocaml setup.ml -configure
-or
-   ocaml setup.ml -configure --prefix /some/special/location
+Executables additionally depend on
+* getopt
 
-Then
+Tests additionally depend on
+* oUnit
 
-   make
 
-And install the libraries and executables by typing:
+Installing
+==========
 
-   make install
+Quickstart
+----------
+Uncompress the source archive, go to the root of the
+package, then run
 
-This last step will require root permission if your ocaml distribution
-is installed in a system directory. Finally, to make documentation do:
+    ocaml setup.ml -configure
+    ocaml setup.ml -build
+    ocaml setup.ml -doc
+    ocaml setup.ml -install
 
-   make doc
+Additional Details
+------------------
+For each of the above commands, add --help to see additional
+options. In particular, unless you are installing as root, you will
+likely need to set --bindir in the -configure step. For example
 
-The root of the documentation is doclib.docdir/index.html.
+    ocaml setup.ml -configure --bindir ~/bin
+
+The -doc step can be omitted if you do not need to generate
+documentation. If you do generate it, the root of the API
+documentation is [here](doclib.docdir/index.html). Documentation is
+not part of the -install step. Simply copy the directory elsewhere if
+you wish.
+
+A Makefile is provided for those who prefer it. Commands corresponding
+directly to the ones above are available.
+
+
+Uninstalling
+============
+
+Go to the root of the package, and run
+
+    ocaml setup.ml -uninstall
