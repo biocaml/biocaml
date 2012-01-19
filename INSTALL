@@ -48,8 +48,14 @@ documentation is [here](doclib.docdir/index.html). Documentation is
 not part of the -install step. Simply copy the directory elsewhere if
 you wish.
 
-A Makefile is provided for those who prefer it. Commands corresponding
-directly to the ones above are available.
+Makefile:
+Support for make is provided for those who prefer it. Commands
+corresponding directly to the ones above are available.
+
+Otags:
+Run 'make otags' to generate a TAGS file for use emacs or vi/vim. In
+this case, you will also need the otags tool to be installed in your
+path.
 
 
 Uninstalling
