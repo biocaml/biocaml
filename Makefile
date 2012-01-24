@@ -41,8 +41,8 @@ tags:
 	otags -o TAGS `find src -regex ".*\.ml"`
 
 CURR_DIR := `basename $(CURDIR)`
-dist:
-	ocaml setup.ml -clean
+.PHONY: dist
+dist: clean distclean
 	oasis setup
 	cd .. ; tar czf $(CURR_DIR).tgz $(CURR_DIR)
 	cd .. ; md5sum $(CURR_DIR).tgz > $(CURR_DIR).tgz.md5
