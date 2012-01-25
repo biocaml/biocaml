@@ -41,6 +41,7 @@ Library biocaml
            , Biocaml_invokeCmdline
            , Biocaml_math
            , Biocaml_phredScore
+           , Biocaml_pwm
            , Biocaml_range
            , Biocaml_romanNum
            , Biocaml_rSet
