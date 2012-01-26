@@ -66,11 +66,12 @@ let tandem ?(orientation = `direct) ~spacer mat1 mat2 bg =
 let scan mat seq tol = 
   let r = ref [] 
   and n = String.length seq 
-  and m = Array.length mat in
+  and m = Array.length mat in 
+  let seq = Array.init n (fun i -> int_of_char seq.[i]) in
   for i = n - m downto 0 do
     let score = ref 0. in
     for j = 0 to m - 1 do
-      score := !score +. mat.(j).(int_of_char seq.[i + j])
+      score := !score +. Array.(unsafe_get (unsafe_get mat j) (unsafe_get seq (i + j)))
     done ;
     if !score > tol 
     then r := (i, !score) :: !r
