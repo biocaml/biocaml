@@ -25,10 +25,19 @@ let background_of_sequence seq pc =
   done ;
   Array.map (fun c -> (float c +. pc) /. (float !n +. 4. *. pc)) counts
 
+let swap t i j =
+  let tmp = t.(i) in
+  t.(i) <- t.(j);
+  t.(j) <- tmp
+
 let reverse_complement a = Array.(
   init
     (length a)
-    (fun i -> [| a.(i).(3) ; a.(i).(2) ; a.(i).(1) ; a.(i).(0) |])
+    (fun i -> 
+      let r = copy a.(i) in
+      swap r 0 3 ;
+      swap r 1 2 ;
+      r)
 )
 
 let make mat bg = Array.(
@@ -45,6 +54,14 @@ let make mat bg = Array.(
       append r [| n_case |])
     mat
 )
+
+let tandem ?(orientation = `direct) ~spacer mat1 mat2 bg =
+  Array.concat [
+    (if orientation = `everted then reverse_complement else identity) (make mat1 bg) ;
+    Array.init spacer (fun _ -> Array.make 5 0.) ;
+    (if orientation = `inverted then reverse_complement else identity) (make mat2 bg)
+  ]
+
 
 let scan mat seq tol = 
   let r = ref [] 
