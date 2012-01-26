@@ -8,3 +8,6 @@ type record = string * string
 
 val enum_input : IO.input -> Biocaml_comments.t * record Enum.t
   (** Returns comments and enumeration of fasta records in given input. *)
+
+val enum_of_file : string -> Biocaml_comments.t * record Enum.t
+  (** Returns comments and enumeration of fasta records in given path. *)

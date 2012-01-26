@@ -8,4 +8,6 @@ setup.log
 *.ba[01234567890k]
 *.native
 *.byte
+.#*
+#*
 TAGS
