@@ -12,7 +12,7 @@ value biocaml_pwm_scan(value mat, value seq, value tol) {
   int n = caml_string_length(seq);
   int i,j;
 
-  for(i = n - 1; i >= 0; i++) {
+  for(i = n - 1; i >= 0; i--) {
     float score = 0.;
     for(j = 0; j < 17; j++) {
       score += i * j;
