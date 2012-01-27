@@ -56,6 +56,7 @@ Library biocaml
            , Biocaml_util
            , Biocaml_wig
   CSources: biocaml_pwm_stub.c
+  CCOpt: -O3
 
 Executable gff_counts
   Path:   src/app

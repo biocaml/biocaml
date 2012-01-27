@@ -1,9 +1,11 @@
 # OASIS_START
-# DO NOT EDIT (digest: e0fd3003caef4f5477302468364daf53)
+# DO NOT EDIT (digest: 9b8f90c0e67a1deaabd9483a176aefba)
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
 # Library biocaml
 "src/lib": include
+<src/lib/*.ml{,i}>: oasis_library_biocaml_ccopt
+"src/lib/biocaml_pwm_stub.c": oasis_library_biocaml_ccopt
 <src/lib/biocaml.{cma,cmxa}>: use_libbiocaml
 <src/lib/*.ml{,i}>: use_biocamlxmlm
 <src/lib/*.ml{,i}>: pkg_unix
