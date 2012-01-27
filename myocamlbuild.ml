@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 224676d597f28615368598bc4a6c1891) *)
+(* DO NOT EDIT (digest: 878ce3263badc14f4ef4469a78118422) *)
 module OASISGettext = struct
 # 21 "/tmp/buildd/oasis-0.2.0/src/oasis/OASISGettext.ml"
   
@@ -456,7 +456,7 @@ let package_default =
           ("src/ext/xmlm-1.0.2/src/biocamlxmlm", ["src/ext/xmlm-1.0.2/src"]);
           ("src/lib/biocaml", ["src/lib"])
        ];
-     lib_c = [];
+     lib_c = [("biocaml", "src/lib", [])];
      flags = [];
      }
   ;;

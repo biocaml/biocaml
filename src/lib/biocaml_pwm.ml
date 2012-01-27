@@ -78,4 +78,9 @@ let scan mat seq tol =
   done ;
   !r
 
+external stub_scan_fake : t -> string -> float -> unit = "biocaml_pwm_scan"
+
+let stub_scan mat seq tol = 
+  stub_scan_fake mat seq tol ;
+  []
 

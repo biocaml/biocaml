@@ -15,3 +15,5 @@ val tandem :
 val reverse_complement : t -> t
 
 val scan : t -> string -> float -> (int * float) list
+
+val stub_scan : t -> string -> float -> (int * float) list

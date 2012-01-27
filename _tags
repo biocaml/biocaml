@@ -1,15 +1,22 @@
 # OASIS_START
-# DO NOT EDIT (digest: 536877012b58dc91c988d767d6993dd0)
+# DO NOT EDIT (digest: e0fd3003caef4f5477302468364daf53)
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
 # Library biocaml
 "src/lib": include
+<src/lib/biocaml.{cma,cmxa}>: use_libbiocaml
 <src/lib/*.ml{,i}>: use_biocamlxmlm
 <src/lib/*.ml{,i}>: pkg_unix
 <src/lib/*.ml{,i}>: pkg_threads
 <src/lib/*.ml{,i}>: pkg_sqlite3
 <src/lib/*.ml{,i}>: pkg_pcre
 <src/lib/*.ml{,i}>: pkg_batteries
+"src/lib/biocaml_pwm_stub.c": use_biocamlxmlm
+"src/lib/biocaml_pwm_stub.c": pkg_unix
+"src/lib/biocaml_pwm_stub.c": pkg_threads
+"src/lib/biocaml_pwm_stub.c": pkg_sqlite3
+"src/lib/biocaml_pwm_stub.c": pkg_pcre
+"src/lib/biocaml_pwm_stub.c": pkg_batteries
 # Executable gff_to_bed
 <src/app/gff_to_bed.{native,byte}>: use_biocaml
 <src/app/gff_to_bed.{native,byte}>: use_biocamlxmlm
