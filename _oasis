@@ -9,13 +9,13 @@ Plugins:     META (0.2), DevFiles (0.2)
 BuildTools:  ocamlbuild
 
 Library biocamlxmlm
-  Path: src/ext/xmlm-1.0.2/src/
+  Path: src/ext/xmlm-1.0.2/src
   FindlibName: biocamlxmlm
   Install: true
   Modules: Xmlm
 
 Library biocaml
-  Path: ./src/lib/
+  Path: src/lib
   FindlibName: biocaml
   BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
   Install: true
@@ -56,31 +56,31 @@ Library biocaml
            , Biocaml_wig
 
 Executable gff_counts
-  Path:   ./src/app/
+  Path:   src/app
   MainIs: gff_counts.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_bed
-  Path:   ./src/app/
+  Path:   src/app
   MainIs: gff_to_bed.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_table
-  Path:   ./src/app/
+  Path:   src/app
   MainIs: gff_to_table.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable sgr_to_wig
-  Path:   ./src/app/
+  Path:   src/app
   MainIs: sgr_to_wig.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable wig_correlate
-  Path:   ./src/app/
+  Path:   src/app
   MainIs: wig_correlate.ml
   BuildDepends: getopt, biocaml
   CompiledObject: best
@@ -91,7 +91,7 @@ Document doclib
   Type:                 ocamlbuild (0.2)
   Install:              false
   BuildTools+:          ocamldoc
-  XOCamlbuildPath:      src/lib/
+  XOCamlbuildPath:      src/lib
   XOCamlbuildLibraries: biocaml
 
 Executable test
