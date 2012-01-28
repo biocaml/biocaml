@@ -35,14 +35,14 @@ let dr5_matrix seq =
   tandem ~orientation:`direct ~spacer:5 balmer_counts balmer_counts bg
 
 let test_c_version_doesnt_crash () = 
-  let seq = random_dna_string 200 in
+  let seq = random_dna_string 10000 in
   let mat = dr5_matrix seq in
-  ignore (stub_scan mat seq 10.)
+  ignore (fast_scan mat seq 10.)
 
 let test_c_and_caml_versions_agree () = 
   let seq = random_dna_string 100000 in
   let mat = dr5_matrix seq in
-  let c_res = stub_scan mat seq (-10.)
+  let c_res = fast_scan mat seq (-10.)
   and ocaml_res = scan mat seq (-10.) in
   assert_bool "Hits number" List.(length c_res = length ocaml_res) ;
   assert_bool "Same positions" List.(map fst c_res = map fst ocaml_res) ;

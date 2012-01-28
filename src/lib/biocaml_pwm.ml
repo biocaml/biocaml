@@ -78,10 +78,10 @@ let scan mat seq tol =
   done ;
   !r
 
-external stub_scan_fake : t -> int array -> float -> (int * float) list = "biocaml_pwm_scan"
+external stub_fast_scan : t -> int array -> float -> (int * float) list = "biocaml_pwm_scan"
 
-let stub_scan mat seq tol =  
+let fast_scan mat seq tol =  
   let n = String.length seq in
   let seq = Array.init n (fun i -> int_of_char seq.[i]) in
-  stub_scan_fake mat seq tol
+  stub_fast_scan mat seq tol
 
