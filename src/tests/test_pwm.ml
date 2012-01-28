@@ -39,6 +39,20 @@ let test_c_version_doesnt_crash () =
   let mat = dr5_matrix seq in
   ignore (stub_scan mat seq 10.)
 
+let test_c_and_caml_versions_agree () = 
+  let seq = random_dna_string 100000 in
+  let mat = dr5_matrix seq in
+  let c_res = stub_scan mat seq (-10.)
+  and ocaml_res = scan mat seq (-10.) in
+  assert_bool "Hits number" List.(length c_res = length ocaml_res) ;
+  assert_bool "Same positions" List.(map fst c_res = map fst ocaml_res) ;
+  let eps =
+    List.(fold_left2 
+	    (fun accu (_,x1) (_,x2) -> Pervasives.max accu (abs_float (x1 -. x2))) 
+	    0. c_res ocaml_res)
+  in assert_bool "Score no more than eps=1e-4" (eps < 1e-4)
+
 let tests = "PhredScore" >::: [
   "C version doesn't crash" >:: test_c_version_doesnt_crash;
+  "C/OCaml versions agree" >:: test_c_and_caml_versions_agree
 ]
