@@ -3,6 +3,7 @@ open OUnit
 let all_tests = [
   Test_phredScore.tests;
   Test_intervalTree.tests;
+  Test_pwm.tests;
 ]
 
 let () =
