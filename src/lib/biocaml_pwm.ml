@@ -31,10 +31,11 @@ let swap t i j =
   t.(j) <- tmp
 
 let reverse_complement a = Array.(
+  let n = length a in
   init
-    (length a)
+    n
     (fun i -> 
-      let r = copy a.(i) in
+      let r = copy a.(n - 1 - i) in
       swap r 0 3 ;
       swap r 1 2 ;
       r)
