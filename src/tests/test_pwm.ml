@@ -52,7 +52,21 @@ let test_c_and_caml_versions_agree () =
 	    0. c_res ocaml_res)
   in assert_bool "Score no more than eps=1e-4" (eps < 1e-4)
 
+let test_reverse_complement () = 
+  let bg = flat_background () in 
+  let m = make balmer_counts bg in
+  let m' = reverse_complement m in
+  let m'' = reverse_complement m' in
+  let a, a', a'' = Tuple3.mapn (fun x -> (x : t :> float array array)) (m, m', m'') in
+  assert_bool 
+    "Reverse complement should be idempotent" 
+    (a = a'') ;
+  assert_bool
+    "Wrong permutation of the first element of the matrix"
+    Array.(a.(0).(0) = a'.(length a' - 1).(3))
+
 let tests = "PhredScore" >::: [
   "C version doesn't crash" >:: test_c_version_doesnt_crash;
-  "C/OCaml versions agree" >:: test_c_and_caml_versions_agree
+  "C/OCaml versions agree" >:: test_c_and_caml_versions_agree;
+  "Reverse-complement test" >:: test_reverse_complement
 ]
