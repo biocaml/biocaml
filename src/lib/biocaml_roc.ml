@@ -18,10 +18,10 @@ let make ~pos ~neg =
       (Array.enum pos /@ (fun x -> x, `pos))
       (Array.enum neg /@ (fun x -> x, `neg))
   and initial = {
-    tp = Array.length pos ;
-    tn = 0 ;
-    fp = Array.length neg ;
-    fn = 0
+    tp = 0 ;
+    tn = Array.length neg ;
+    fp = 0 ;
+    fn = Array.length pos
   } 
   in Enum.(
     append
