@@ -7,12 +7,11 @@ type confusion_matrix = private {
   fn : int ;
 }
 
-val make : pos:float Enum.t -> neg:float Enum.t -> confusion_matrix * (float * confusion_matrix) Enum.t
+val make : pos:float Enum.t -> neg:float Enum.t -> (float * confusion_matrix) Enum.t
 (** Given an enum [pos] (resp. [neg]) of scores from positive (resp. negative) instances, [make ~pos ~neg] 
-    builds an enum of confusion matrices by setting an increasing acceptance threshold. More precisely, 
-    [make ~pos ~neg] is a pair, whose first member is the confusion matrix obtained with an accept-all 
-    threshold ([neg_infinity]); the second member enumerates the confusion matrices for all scores appearing
-    in [pos] and [neg]. *)
+    builds an enum of confusion matrices by setting an decreasing acceptance threshold. The result has at 
+    least one first value, which is the confusion matrix for an [infinity] threshold. The subsequent
+    thresholds are the values in [pos] and [neg]. *)
 
 val sensitivity : confusion_matrix -> float
 val false_positive_rate : confusion_matrix -> float

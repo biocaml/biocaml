@@ -10,8 +10,8 @@ type confusion_matrix = {
 let make ~pos ~neg = 
   let pos = Array.of_enum pos
   and neg = Array.of_enum neg in
-  Array.sort compare pos ;
-  Array.sort compare neg ;
+  Array.sort (flip compare) pos ;
+  Array.sort (flip compare) neg ;
   let sorted_elements = 
     Enum.merge
       (fun x y -> x <= y)
@@ -23,20 +23,22 @@ let make ~pos ~neg =
     fp = Array.length neg ;
     fn = 0
   } 
-  in
-  initial, 
-  Enum.unfold
-    initial
-    (fun accu -> 
-      if Enum.is_empty sorted_elements then None
-      else match Enum.get sorted_elements with
-	| Some (x, `pos) -> 
-	  let next = { accu with tp = accu.tp - 1 ; fn = accu.fn + 1 } in
-	  Some ((x, next), next)
-	| Some (x, `neg) ->
-	  let next = { accu with fp = accu.fp - 1 ; tn = accu.tn + 1 } in
-	  Some ((x, next), next)
-	| None -> None)
+  in Enum.(
+    append
+      (singleton (infinity, initial))
+      (unfold
+	 initial
+	 (fun accu -> 
+	   if is_empty sorted_elements then None
+	   else match get sorted_elements with
+	     | Some (x, `pos) -> 
+	       let next = { accu with tp = accu.tp + 1 ; fn = accu.fn - 1 } in
+	       Some ((x, next), next)
+	     | Some (x, `neg) ->
+	       let next = { accu with fp = accu.fp + 1 ; tn = accu.tn - 1 } in
+	       Some ((x, next), next)
+	     | None -> None))
+  )
 
 let positive cm = cm.tp + cm.fn
 let negative cm = cm.tn + cm.fp
