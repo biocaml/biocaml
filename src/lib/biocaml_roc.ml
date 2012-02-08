@@ -24,6 +24,7 @@ let make ~pos ~neg =
     fn = 0
   } 
   in
+  initial, 
   Enum.unfold
     initial
     (fun accu -> 
@@ -65,4 +66,16 @@ let false_discovery_rate cm =
 
 let f1_score cm =
   2. *. float cm.tp /. float (2 * cm.tp + cm.fp + cm.fn)
+
+let trapez_area x1 x2 y1 y2 = 0.5 *. (y1 +. y2) *. (x2 -. x1)
+
+let auc points = match Enum.get points with
+    None -> 0.
+  | Some p ->
+    Enum.fold
+      (fun ((x1,y1), sum) ((x2,y2) as p) -> 
+	(p, sum +. trapez_area x1 x2 y1 y2))
+      (p, 0.)
+      points
+    |> snd
 
