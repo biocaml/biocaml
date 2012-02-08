@@ -14,7 +14,7 @@ let make ~pos ~neg =
   Array.sort (flip compare) neg ;
   let sorted_elements = 
     Enum.merge
-      (fun x y -> x <= y)
+      ( > )
       (Array.enum pos /@ (fun x -> x, `pos))
       (Array.enum neg /@ (fun x -> x, `neg))
   and initial = {
