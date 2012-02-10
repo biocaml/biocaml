@@ -16,6 +16,7 @@ module InvokeCmdline  = Biocaml_invokeCmdline
 module Math           = Biocaml_math         
 module PhredScore     = Biocaml_phredScore   
 module Range          = Biocaml_range        
+module Roc            = Biocaml_roc
 module RomanNum       = Biocaml_romanNum     
 module RSet           = Biocaml_rSet         
 module Sam            = Biocaml_sam          

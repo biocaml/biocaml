@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 14d5959fd985b5411fab748d30b8b019)
+# DO NOT EDIT (digest: 5eb68a03ef36095b797b3ed77de43b81)
 Biocaml
 Biocaml_msg
 Biocaml_pos
@@ -23,6 +23,7 @@ Biocaml_invokeCmdline
 Biocaml_math
 Biocaml_phredScore
 Biocaml_range
+Biocaml_roc
 Biocaml_romanNum
 Biocaml_rSet
 Biocaml_sam
