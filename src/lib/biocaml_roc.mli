@@ -1,3 +1,12 @@
+(** Performance measurement for binary classification.
+
+    This module provides functions to compute various performance
+    measurement for binary classification. Typically, binary
+    classifiers output both a label and a score indicating a
+    confidence level. A ROC curve represents the variation of
+    sensitivity and specificity of the classifier as a function of a
+    score threshold.
+*)
 open Batteries
 
 type confusion_matrix = private {
