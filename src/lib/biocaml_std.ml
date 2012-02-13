@@ -18,8 +18,8 @@ let ( |- ) = BatPervasives.( |- )
 
 module List = struct 
   include List
-  include ListLabels
   include BatList
+  include ListLabels
   include BatList.Labels
 
   let assoc_exn = assoc
@@ -41,6 +41,7 @@ module List = struct
       in loop [] ll
     in 
     map ~f:rev (fold_left ~f:insertl ~init:[] l)
+
 
 end
 

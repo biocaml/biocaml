@@ -36,3 +36,13 @@ setup.data:
 .PHONY: build doc test all install uninstall reinstall clean distclean configure
 
 # OASIS_STOP
+
+tags:
+	otags -o TAGS `find src -regex ".*\.ml"`
+
+CURR_DIR := `basename $(CURDIR)`
+.PHONY: dist
+dist: clean distclean
+	oasis setup
+	cd .. ; tar czf $(CURR_DIR).tgz $(CURR_DIR)
+	cd .. ; md5sum $(CURR_DIR).tgz > $(CURR_DIR).tgz.md5

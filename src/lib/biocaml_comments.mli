@@ -43,3 +43,8 @@ val comment_char : t -> char
 val is_comments : ?comment_char:char -> string -> bool
   (** Like [of_string] but simply returns true if given string can be
       parsed as valid comment lines. *)
+
+val filter_comments_prefix : char -> string Enum.t -> t * string Enum.t
+  (** [filter_comments_prefix c e] removes the first lines of e that are 
+      comments and builds a [Comment.t] with it, which is returned along
+      with the rest of the enum [e] *)
