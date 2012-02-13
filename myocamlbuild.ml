@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 224676d597f28615368598bc4a6c1891) *)
+(* DO NOT EDIT (digest: 53fe92dea47eec1c1ae1ee7e2e42b231) *)
 module OASISGettext = struct
 # 21 "/tmp/buildd/oasis-0.2.0/src/oasis/OASISGettext.ml"
   
@@ -456,8 +456,12 @@ let package_default =
           ("src/ext/xmlm-1.0.2/src/biocamlxmlm", ["src/ext/xmlm-1.0.2/src"]);
           ("src/lib/biocaml", ["src/lib"])
        ];
-     lib_c = [];
-     flags = [];
+     lib_c = [("biocaml", "src/lib", [])];
+     flags =
+       [
+          (["oasis_library_biocaml_ccopt"; "compile"],
+            [(OASISExpr.EBool true, S [A "-ccopt"; A "-O3"])])
+       ];
      }
   ;;
 

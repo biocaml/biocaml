@@ -4,6 +4,7 @@ let all_tests = [
   Test_fasta.tests;
   Test_intervalTree.tests;
   Test_phredScore.tests;
+  Test_pwm.tests;
   Test_roc.tests
 ]
 
