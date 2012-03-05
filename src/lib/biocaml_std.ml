@@ -11,14 +11,15 @@ let try_finally_exn ~fend f x =
 let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 let output_endline cout s = output_string cout s; output_string cout "\n"
 
-
-let ( |> ) x f = f x
-let flip f a b = f b a
+let flip = BatPervasives.flip
+let ( |> ) = BatPervasives.( |> )
+let ( -| ) = BatPervasives.( -| )
+let ( |- ) = BatPervasives.( |- )
 
 module List = struct 
   include List
-  include ListLabels
   include BatList
+  include ListLabels
   include BatList.Labels
 
   let assoc_exn = assoc
@@ -40,6 +41,7 @@ module List = struct
       in loop [] ll
     in 
     map ~f:rev (fold_left ~f:insertl ~init:[] l)
+
 
 end
 

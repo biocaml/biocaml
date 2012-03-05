@@ -44,3 +44,7 @@ let comment_char = fst
 let is_comments ?(comment_char='#') s =
   try of_string ~comment_char s |> ignore; true
   with Invalid _ -> false
+
+let filter_comments_prefix comment_char e =
+  let comments, rest = Enum.span (is_comments ~comment_char) e in
+  (comment_char, List.of_enum comments), e

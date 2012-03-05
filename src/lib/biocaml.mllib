@@ -1,10 +1,11 @@
 # OASIS_START
-# DO NOT EDIT (digest: 32ee29f52cb27a360ad14b353a1af08e)
+# DO NOT EDIT (digest: de70c7e7b81bbdd76e8a7c16e93ed6d6)
 Biocaml
 Biocaml_msg
 Biocaml_pos
 Biocaml_std
 Biocaml_about
+Biocaml_accu
 Biocaml_bar
 Biocaml_bed
 Biocaml_bpmap
@@ -14,13 +15,16 @@ Biocaml_comments
 Biocaml_common
 Biocaml_fasta
 Biocaml_fastq
-Biocaml_genome
+Biocaml_genomeMap
 Biocaml_gff
 Biocaml_histogram
+Biocaml_intervalTree
 Biocaml_invokeCmdline
 Biocaml_math
 Biocaml_phredScore
+Biocaml_pwm
 Biocaml_range
+Biocaml_roc
 Biocaml_romanNum
 Biocaml_rSet
 Biocaml_sam

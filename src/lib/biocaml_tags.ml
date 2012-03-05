@@ -23,7 +23,7 @@ module Cst = struct
   let parse_tag (s:string) : tag =
     try
       let x,y = String.split s "="
-                |> (fun (x,y) -> String.strip x, String.strip y) in
+                |> (fun (x, y) -> String.strip x, String.strip y) in
       x, parse_escaped_string y
     with Not_found | Invalid_argument _ ->
       match s with

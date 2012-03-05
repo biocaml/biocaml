@@ -1,24 +1,48 @@
+# OASIS_START
+# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
 
-all: build
+SETUP = ocaml setup.ml
 
-setup.log build byte native: setup.data
-	ocaml setup.ml -build
+build: setup.data
+	$(SETUP) -build $(BUILDFLAGS)
 
-configure: setup.data
-setup.data: setup.ml
-	ocaml $< -configure
+doc: setup.data build
+	$(SETUP) -doc $(DOCFLAGS)
 
-setup.ml: _oasis
-	oasis.dev setup
+test: setup.data build
+	$(SETUP) -test $(TESTFLAGS)
 
-doc install uninstall reinstall: setup.log
-	ocaml setup.ml -$@
+all: 
+	$(SETUP) -all $(ALLFLAGS)
 
-clean:
-	ocaml setup.ml -clean
+install: setup.data
+	$(SETUP) -install $(INSTALLFLAGS)
 
-# clean everything and uninstall
-fresh: clean uninstall
+uninstall: setup.data
+	$(SETUP) -uninstall $(UNINSTALLFLAGS)
 
-.PHONY: all byte native configure doc install uninstall reinstall upload-doc
+reinstall: setup.data
+	$(SETUP) -reinstall $(REINSTALLFLAGS)
 
+clean: 
+	$(SETUP) -clean $(CLEANFLAGS)
+
+distclean: 
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
+
+setup.data:
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+.PHONY: build doc test all install uninstall reinstall clean distclean configure
+
+# OASIS_STOP
+
+tags:
+	otags -o TAGS `find src -regex ".*\.ml"`
+
+CURR_DIR := `basename $(CURDIR)`
+.PHONY: dist
+dist: clean distclean
+	oasis setup
+	cd .. ; tar czf $(CURR_DIR).tgz $(CURR_DIR)
+	cd .. ; md5sum $(CURR_DIR).tgz > $(CURR_DIR).tgz.md5
