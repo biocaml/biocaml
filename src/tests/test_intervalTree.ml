@@ -37,6 +37,9 @@ let interval_overlap lo hi lo' hi' =
   ( || )
     (hi >= lo' && hi <= hi')
     (lo >= lo' && lo <= hi')
+
+let intersects lo hi l = 
+  List.exists (fun (lo',hi',_) -> interval_overlap lo hi lo' hi') l
   
 let interval_distance lo hi lo' hi' =
   if interval_overlap lo hi lo' hi' then 0
@@ -98,6 +101,15 @@ let test_creation () =
     assert_equal ~msg:"Compare list and tree results" lres tres
   done
 
+let test_intersection () = 
+  for i = 1 to 1000 do
+    let intervals = random_intervals ~ub:1000 1000 |> List.of_enum
+    and lo, hi, _ = random_interval  ~ub:1000 () in
+    let l = L.(intersects lo hi (of_list intervals))
+    and t = T.(intersects lo hi (of_list intervals)) in
+    assert_equal l t
+  done
+
 let test_find_closest () = 
   for i = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> List.of_enum
@@ -114,5 +126,11 @@ let test_find_closest () =
 let tests = "IntervalTree" >::: [
   "Add" >:: test_add;
   "Creation" >:: test_creation;
+  "Intersection" >:: test_intersection;
   "Find closest" >:: test_find_closest;
 ]
+
+
+
+
+
