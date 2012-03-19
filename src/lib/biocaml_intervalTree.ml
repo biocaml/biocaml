@@ -90,7 +90,8 @@ let rec find_closest_aux lo hi = function
       Some (optnode, optval)
 
 let find_closest lo hi t = match find_closest_aux lo hi t with
-    Some (n,_) -> node_contents n
+    Some (n,d) -> 
+      let lo', hi', v = node_contents n in lo', hi', v, d
   | None -> raise Empty_tree
 
 

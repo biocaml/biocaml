@@ -21,10 +21,13 @@ val intersects : int -> int -> 'a t -> bool
 (** [intersects a b t] returns [true] if one interval in [t]
     intersects with the interval \[[a];[b]\].*)
 
-val find_closest : int -> int -> 'a t -> int * int * 'a
+val find_closest : int -> int -> 'a t -> int * int * 'a * int
 (** [find_closest lo hi t] returns the interval in [t] which is at
-    minimal distance of the interval \[[lo];[hi]\]. Overlapping
-    intervals are at distance 0 of each other.
+    minimal distance of the interval \[[lo];[hi]\]. The resulting
+    tuple contains from left to right, left-end of the interval,
+    right-end of the interval, value associated to the interval and
+    distance to the interval given in argument. Overlapping intervals
+    are at distance 0 of each other.
 
     Raises [Empty_tree] if [t] is empty *)
 
