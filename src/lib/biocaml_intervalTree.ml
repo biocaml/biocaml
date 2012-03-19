@@ -50,6 +50,14 @@ let interval_overlap lo hi lo' hi' =
     (hi >= lo' && hi <= hi')
     (lo >= lo' && lo <= hi')
   
+let rec intersects lo hi = function
+  | Empty -> false
+  | Node n -> 
+      if interval_overlap lo hi n.lo n.hi then true
+      else if interval_overlap lo hi n.left_end n.right_end then
+        intersects lo hi n.left || intersects lo hi n.right
+      else false
+
 let interval_distance lo hi lo' hi' =
   if interval_overlap lo hi lo' hi' then 0
   else min (abs (lo' - hi)) (abs (lo - hi'))

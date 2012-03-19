@@ -17,6 +17,10 @@ val is_empty : 'a t -> bool
 
 val cardinal : 'a t -> int
 
+val intersects : int -> int -> 'a t -> bool
+(** [intersects a b t] returns [true] if one interval in [t]
+    intersects with the interval \[a;b\].*)
+
 val find_closest : int -> int -> 'a t -> int * int * 'a
 (** [find_closest lo hi t] returns the interval in [t] which is at minimal
     distance of the interval ([lo],[hi]). Overlapping intervals are at distance
