@@ -19,12 +19,12 @@ val cardinal : 'a t -> int
 
 val intersects : int -> int -> 'a t -> bool
 (** [intersects a b t] returns [true] if one interval in [t]
-    intersects with the interval \[a;b\].*)
+    intersects with the interval \[[a];[b]\].*)
 
 val find_closest : int -> int -> 'a t -> int * int * 'a
-(** [find_closest lo hi t] returns the interval in [t] which is at minimal
-    distance of the interval ([lo],[hi]). Overlapping intervals are at distance
-    0 of each other.
+(** [find_closest lo hi t] returns the interval in [t] which is at
+    minimal distance of the interval \[[lo];[hi]\]. Overlapping
+    intervals are at distance 0 of each other.
 
     Raises [Empty_tree] if [t] is empty *)
 
@@ -35,9 +35,11 @@ val empty : 'a t
 (** the empty tree *)
 
 val add : int -> int -> 'a -> 'a t -> 'a t
-(** [add lo hi v t] adds the interval ([lo], [hi]) labeled with value [v] to the contents of [t]. Note that 
-    in contrast to sets, identical intervals (even with identical labels) may be *repeated* in an interval
-    tree. E.g., [add 1 2 () (add 1 2 ())] contains 2 intervals. *)
+(** [add lo hi v t] adds the interval ([lo], [hi]) labeled with value
+    [v] to the contents of [t]. Note that in contrast to sets,
+    identical intervals (even with identical labels) may be *repeated*
+    in an interval tree. E.g., [add 1 2 () (add 1 2 ())] contains 2
+    intervals. *)
 
 
 (** {6 Conversion} *)
