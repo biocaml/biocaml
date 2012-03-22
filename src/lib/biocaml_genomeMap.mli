@@ -39,22 +39,30 @@ module type Signal = sig
 end
 
 (** A set of locations *)
-module type LSet = sig
+module LSet : sig
   type 'a t
 
-  val make : 'a location Enum.t -> 'a t
+  val enum : 'a t -> 'a location Enum.t
+  val of_enum : 'a location Enum.t -> 'a t
 
 
-  val fold : ('a -> range -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    (** fold guaranteed on increasing order keywise, and for each key *)
+  (* val fold : ('a -> range -> 'b -> 'b) -> 'a t -> 'b -> 'b *)
+  (*   (\** fold guaranteed on increasing order keywise, and for each key *\) *)
 
   val intersects : 'a location -> 'a t -> bool
+    (** [intersects loc lmap] returns [true] if [loc] has a non-empty
+        intersection with one of the locations in [lmap], and returns
+        [false] otherwise *)
 
-  val enum : 'a t -> 'a location Enum.t
+  val closest : 'a location -> 'a t -> 'a location * int
+(** [closest loc lset] returns the location in [lset] that is the
+    closest to [loc], along with the actual (minimal)
+    distance. Throws [Not_found] if there is no location in [lset]
+    that comes from the same sequence than [loc]. *)
 
 
-  val union : 'a t -> 'a t -> 'a t
-  val add : 'a location -> 'a t -> 'a t
+(* val union : 'a t -> 'a t -> 'a t *)
+  (* val add : 'a location -> 'a t -> 'a t *)
 end
 
 (** A set of locations with an attached value on each of them *)
@@ -70,7 +78,7 @@ module LMap : sig
         [false] otherwise *)
 
   val closest : 'a location -> ('a,'b) t -> 'a location * 'b * int
-    (** [closest loc lmap] returns the location in [lmap] which is the 
+    (** [closest loc lmap] returns the location in [lmap] that is the 
         closest to [loc], along with its annotation and the actual (minimal) 
         distance. Throws [Not_found] if there is no location in [lmap] 
         that comes from the same sequence than [loc]. *)
