@@ -11,6 +11,9 @@ module Selection : sig
   val size : 'a t -> int
 
   val intersects : 'a location -> 'a t -> bool
+    (** [intersects loc sel] returns [true] if [loc] has a non-empty
+        intersection with [sel], and [false] otherwise. *)
+
   val intersection_size : 'a location -> 'a t -> int
 
   val enum : 'a t -> 'a location Enum.t
@@ -60,6 +63,17 @@ module LMap : sig
 
   val enum : ('a, 'b) t -> ('a location * 'b) Enum.t
   val of_enum : ('a location * 'b) Enum.t -> ('a, 'b) t
+
+  val intersects : 'a location -> ('a,'b) t -> bool
+    (** [intersects loc lmap] returns [true] if [loc] has a non-empty
+        intersection with one of the locations in [lmap], and returns
+        [false] otherwise *)
+
+  val closest : 'a location -> ('a,'b) t -> 'a location * 'b * int
+    (** [closest loc lmap] returns the location in [lmap] which is the 
+        closest to [loc], along with its annotation and the actual (minimal) 
+        distance. Throws [Not_found] if there is no location in [lmap] 
+        that comes from the same sequence than [loc]. *)
 end
 
 

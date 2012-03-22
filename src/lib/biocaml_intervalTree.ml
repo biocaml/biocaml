@@ -8,27 +8,24 @@ open Printf
 
 type 'a t = Empty | Node of 'a node 
 and 'a node = {
-  left : 'a t ;
-  lo : int ;
-  hi : int ;
-  elt : 'a ;
-  right : 'a t ;
-  height : int ;
-  left_end : int ;
-  right_end : int 
+  left : 'a t ; (* left child *)
+  lo : int ; (* left-end of the interval at this node *)
+  hi : int ; (* right-end of the interval at this node *)
+  elt : 'a ; (* element at this node *)
+  right : 'a t ; (* right child *)
+  height : int ; (* height of the tree (for balancing purpose) *)
+  left_end : int ; (* left-end of the left-most interval in the tree *)
+  right_end : int ; (* right-end of the right-most interval in the tree *)
 }
 
+exception Empty_tree
 
 let interval_compare lo hi lo' hi' =
   let c = compare lo lo' in 
   if c = 0 then compare hi hi'
   else c
 
-let empty = Empty
-
 let is_empty = function Empty -> true | _ -> false
-
-exception Empty_tree
 
 let height = function
   | Empty -> 0 
@@ -41,6 +38,65 @@ let left_end = function
 let right_end = function
   | Empty -> min_int 
   | Node n -> n.right_end
+
+let rec cardinal = function
+  | Empty -> 0
+  | Node n -> cardinal n.left + 1 + cardinal n.right
+
+let node_contents n = n.lo, n.hi, n.elt
+
+let interval_overlap lo hi lo' hi' =
+  ( || )
+    (hi >= lo' && hi <= hi')
+    (lo >= lo' && lo <= hi')
+  
+let rec intersects lo hi = function
+  | Empty -> false
+  | Node n -> 
+      if interval_overlap lo hi n.lo n.hi then true
+      else if interval_overlap lo hi n.left_end n.right_end then
+        intersects lo hi n.left || intersects lo hi n.right
+      else false
+
+let interval_distance lo hi lo' hi' =
+  if interval_overlap lo hi lo' hi' then 0
+  else min (abs (lo' - hi)) (abs (lo - hi'))
+  
+let tree_distance lo hi = function
+  | Empty -> max_int
+  | Node n -> interval_distance lo hi n.left_end n.right_end
+
+let rec find_closest_aux lo hi = function
+  | Empty -> None
+  | Node n ->
+    let dc = interval_distance lo hi n.lo n.hi in
+    if dc = 0 then Some (n,0) 
+    else
+      let dl_lb = tree_distance lo hi n.left
+      and dr_lb = tree_distance lo hi n.right in
+      let optval, optnode = 
+	if dl_lb < dc then 
+	  match find_closest_aux lo hi n.left with
+	      Some (nl,dl) when dl < dc -> dl, nl
+	    | _ -> dc, n
+	else dc, n in
+      let optval, optnode = 
+	if dr_lb < optval then 
+	  match find_closest_aux lo hi n.right with
+	      Some (nr,dr) when dr < optval -> dr, nr
+	    | _ -> optval, optnode
+	else optval, optnode
+      in
+      Some (optnode, optval)
+
+let find_closest lo hi t = match find_closest_aux lo hi t with
+    Some (n,d) -> 
+      let lo', hi', v = node_contents n in lo', hi', v, d
+  | None -> raise Empty_tree
+
+
+let empty = Empty
+
 
 let create l lo hi elt r =
   let hl = match l with Empty -> 0 | Node n -> n.height
@@ -109,11 +165,6 @@ let rec add lo hi elt = function
     if c <= 0 then bal (add lo hi elt n.left) n.lo n.hi n.elt n.right
     else bal n.left n.lo n.hi n.elt (add lo hi elt n.right)
 
-let rec cardinal = function
-  | Empty -> 0
-  | Node n -> cardinal n.left + 1 + cardinal n.right
-
-let node_contents n = n.lo, n.hi, n.elt
 
 let rec elements_aux accu = function
   | Empty -> accu
@@ -193,43 +244,4 @@ let test_add () =
     r := add j (j + Random.int 100) () !r
   done
 
-let interval_overlap lo hi lo' hi' =
-  ( || )
-    (hi >= lo' && hi <= hi')
-    (lo >= lo' && lo <= hi')
-  
-let interval_distance lo hi lo' hi' =
-  if interval_overlap lo hi lo' hi' then 0
-  else min (abs (lo' - hi)) (abs (lo - hi'))
-  
-let tree_distance lo hi = function
-  | Empty -> max_int
-  | Node n -> interval_distance lo hi n.left_end n.right_end
-
-let rec find_closest_aux lo hi = function
-  | Empty -> None
-  | Node n ->
-    let dc = interval_distance lo hi n.lo n.hi in
-    if dc = 0 then Some (n,0) 
-    else
-      let dl_lb = tree_distance lo hi n.left
-      and dr_lb = tree_distance lo hi n.right in
-      let optval, optnode = 
-	if dl_lb < dc then 
-	  match find_closest_aux lo hi n.left with
-	      Some (nl,dl) when dl < dc -> dl, nl
-	    | _ -> dc, n
-	else dc, n in
-      let optval, optnode = 
-	if dr_lb < optval then 
-	  match find_closest_aux lo hi n.right with
-	      Some (nr,dr) when dr < optval -> dr, nr
-	    | _ -> optval, optnode
-	else optval, optnode
-      in
-      Some (optnode, optval)
-
-let find_closest lo hi t = match find_closest_aux lo hi t with
-    Some (n,_) -> node_contents n
-  | None -> raise Empty_tree
 
