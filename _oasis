@@ -12,6 +12,10 @@ Flag apps
   Description: Build apps
   Default: false
 
+Flag tests
+  Description: Build tests
+  Default: true
+
 Library biocamlxmlm
   Path: src/ext/xmlm-1.0.2/src
   FindlibName: biocamlxmlm
@@ -108,13 +112,13 @@ Document doclib
   XOCamlbuildPath:      src/lib
   XOCamlbuildLibraries: biocaml
 
-Executable test
-  Path:             src/tests
+Executable tests_main
+  Path:			src/tests
   MainIs:       	main.ml
   Install:      	false
   CompiledObject: 	native
-  Build$:           flag(tests)
+  Build$:		flag(tests)
   BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
 
 Test main
-  Command: $test
+  Command: $tests_main
