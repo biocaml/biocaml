@@ -22,10 +22,4 @@ val spectrums : string -> spectrum list
 (** [spectrums fname] returns the spectrums contained in the file
     [fname]. *)
 
-
-
-module Base64 :
-  sig
-    val decode : precision: int -> string -> vec
-  end
 ;;

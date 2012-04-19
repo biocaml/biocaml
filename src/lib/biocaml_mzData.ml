@@ -58,15 +58,31 @@ type spectrum = {
   int: vec;
 }
 
+(* Specialized version of the String.concat(List.rev l) *)
+let rev_concat = function
+  | [] -> ""
+  | [s] -> s (* most of the time the lists below will be of length 1 *)
+  | l ->
+    let len = List.fold_left (fun len s -> len + String.length s) 0 l in
+    let r = String.create len in
+    let pos = ref len in
+    List.iter (fun s ->
+               pos := !pos - String.length s;
+               String.unsafe_blit s 0 r !pos (String.length s);
+              )
+              l;
+    assert(!pos = 0);
+    r
+
 
 let rec concat_data pull close_entid data =
   match pull() with
   | None -> failwith "Biocaml_mzData.spectrums: file ended while gathering \
                      <data> content"
-  | Some(Pxp_types.E_end_tag(_, entid)) when entid = close_entid ->
-    data
+  | Some(Pxp_types.E_end_tag("data", entid)) when entid = close_entid ->
+    rev_concat data
   | Some(Pxp_types.E_char_data(s)) ->
-    concat_data pull close_entid (data ^ s)
+    concat_data pull close_entid (s :: data)
   | _ -> concat_data pull close_entid data
 
 let rec decode_data pull =
@@ -77,7 +93,7 @@ let rec decode_data pull =
     if List.assoc "endian" atts <> "little" then
       failwith "Biocaml_mzData.spectrums: byte order must be little endian";
     let precision = int_of_string(List.assoc "precision" atts) in
-    let data = concat_data pull entid "" in
+    let data = concat_data pull entid [] in
     Base64.decode ~precision data
   | _ -> decode_data pull
 
@@ -97,12 +113,12 @@ let rec get_spectrum pull close_entid spec =
   | Some(Pxp_types.E_start_tag("intenArrayBinary", _, _, _)) ->
     let spec = { spec with int = decode_data pull } in
     get_spectrum pull close_entid spec
-  | Some(Pxp_types.E_end_tag(_, entid)) when entid = close_entid ->
+  | Some(Pxp_types.E_end_tag("spectrum", entid)) when entid = close_entid ->
     spec
-  | _ -> get_spectrum pull close_entid spec
+  | _ -> get_spectrum pull close_entid spec (* skip *)
 
 
-let dummy_vec = Array1.create float64 fortran_layout 0
+let empty_vec = Array1.create float64 fortran_layout 0
 
 let spectrums fname =
   let config = Pxp_types.default_config in
@@ -119,7 +135,7 @@ let spectrums fname =
       let id = int_of_string(List.assoc "id" atts) in
       (* retentionTime ? *)
       let scan = { id; mslevel = 0; start_mz = 0.; end_mz = 0.;
-                   mz = dummy_vec; int = dummy_vec } in
+                   mz = empty_vec; int = empty_vec } in
       let scan = get_spectrum pull entid scan in
       scans := scan :: !scans
     | _ -> ()
