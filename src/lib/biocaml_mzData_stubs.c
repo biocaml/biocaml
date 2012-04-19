@@ -26,8 +26,9 @@
 #include <caml/alloc.h>
 #include <caml/memory.h>
 #include <caml/fail.h>
+#include <caml/bigarray.h>
 
-/* of_base64[c] gives the number corresponding to the base64 char. */
+/* of_base64[c] gives the number (0..63) corresponding to the base64 char. */
 static const unsigned char of_base64[] = {
   0,  /* NUL  */
   0,  /* SOH  */
@@ -165,6 +166,9 @@ static unsigned char of_base64_2[0x7fff]; /* 2nd output byte */
 static unsigned char of_base64_3[0x7fff]; /* 3rd output byte */
 static unsigned char of_base64_12[2 * 0x7fffff]; /* 1st & 2nd in one shot */
 static int is_little_endian;
+static size_t pack_offset;
+/* Offset to pack 3 bytes in an int to make sure the integer is not
+   larger than 0x7fffff. */
 
 CAMLexport
 value biocaml_base64_init(value vunit) 
@@ -175,7 +179,9 @@ value biocaml_base64_init(value vunit)
   
   i = 1;
   is_little_endian = ((char *)&i)[0];
-
+  if (is_little_endian) pack_offset = 0;
+  else pack_offset = sizeof(int) - 3;
+  
   /* Fill the lookup tables */
   for (i='+'; i<='z'; i++) {
     for (j='+'; j<='z'; j++) {
@@ -188,16 +194,14 @@ value biocaml_base64_init(value vunit)
   for (i='+'; i<='z'; i++) {
     for (j='+'; j<='z'; j++) {
       for (k='+'; k<='z'; k++) {
-        if (is_little_endian) {
-          c = (char *) &index; /* to use memcpy later */
-          index = 0;
-          *c++ = i;
-          *c++ = j;
-          *c = k;
-          index *= 2; /* 2 output bytes */
-        } else {
-          index = 2*((i<<16)|(j<<8)|k);
-        }
+        /* Pack 3 chars (i,j,k) into an int to memcpy(of_base64_12) later */
+        c = (char *) &index;
+        index = 0;
+        c += pack_offset; /* for big-endian ([index] not too large) */
+        *c++ = i;
+        *c++ = j;
+        *c = k;
+        index *= 2; /* 2 output bytes */
         of_base64_12[index++] = of_base64_1[(i<<8)|j];
         of_base64_12[index]   = of_base64_2[(j<<8)|k];
       }
@@ -206,34 +210,24 @@ value biocaml_base64_init(value vunit)
   return(Val_unit);
 }
 
-
-/* decode 4 bytes of "src" into 3 bytes of "dest". */
-#define INDEX_LITTLE_ENDIAN(index, src)                 \
-  index = 0; /* not all bytes filled by memcpy */       \
-  memcpy((char *)&index, src, 3);                       
-
-#define INDEX_BIG_ENDIAN(index, src)            \
-  index = ((src[0]<<16)|(src[1]<<8)|(src[2]))
-
-#include <stdio.h>
 #define DECODE_BODY(ty, lenbuf, set_index, to_host_order)               \
-  b = buffer;                                                           \
-  data = (ty *) buffer;                                                 \
+  b = buffer;           /* current position (byte) in buffer */         \
+  data = (ty *) buffer; /* see buffer as elements of type [ty] */       \
   for(i = 0; i < npeaks; i++) {                                         \
-    /* Fill the buffer to be able to read 2 floats */                   \
-    while (b < (unsigned char *) (data + 2)) {                          \
+    /* Fill the buffer to be able to read 1 float. */                   \
+    while (b < (unsigned char *) (data + 1)) {                          \
       /* Decode 4 bytes of "peaks" into 3 bytes of "b" (buffer) */      \
-      set_index(index, peaks);                                          \
+      index = 0; /* not all bytes filled by memcpy */                   \
+      memcpy(((char *)&index) + pack_offset, peaks, 3);                 \
       memcpy(b, of_base64_12 + 2 * index, 2);                           \
       b[2] = of_base64_3[(peaks[2]<<8)|(peaks[3])];                     \
       peaks += 4;                                                       \
       b += 3;                                                           \
     }                                                                   \
-    /* convert from network byte order (for 2 float/double) */          \
+    /* convert from little byte endian (for 1 float/double) */          \
     to_host_order((unsigned char *) data);                              \
-    /* Extract the two numbers */                                       \
-    Store_double_field(vmz, i, *data++);                                \
-    Store_double_field(vintensity, i, *data++);                         \
+    /* Extract the number */                                            \
+    vec[i] = *data++;                                                   \
     /* If at end of the buffer, rewind. */                              \
     if (b >= buffer + lenbuf) {                                         \
       b = buffer;                                                       \
@@ -241,54 +235,55 @@ value biocaml_base64_init(value vunit)
     }                                                                   \
   }
 
-#define TO_HOST_BIG_ENDIAN(data) /* void; host order is big-endian */
+#define TO_HOST_LITTLE_ENDIAN(data) /* void; host order is little-endian */
 
-#define DECODE(ty, lenbuf, to_host_little_endian)                       \
+#define DECODE(ty, lenbuf, to_host_big_endian)                          \
   const char *peaks = String_val(vpeaks);                               \
   int i, npeaks = Int_val(vnpeaks);                                     \
-  int index;                                                            \
-  unsigned char *b, buffer[lenbuf]; /* partially decoded string */    \
-  ty *data;                                                             \
+  unsigned int index;                                                   \
+  unsigned char *b, buffer[lenbuf]; /* partially decoded string */      \
+  ty *data; /* to cast the decoded bytes */                             \
+  double *vec = (double *) Data_bigarray_val(vvec);                     \
                                                                         \
   if (is_little_endian) {                                               \
-    DECODE_BODY(ty, lenbuf, INDEX_LITTLE_ENDIAN, to_host_little_endian); \
+    DECODE_BODY(ty, lenbuf, INDEX_LITTLE_ENDIAN, TO_HOST_LITTLE_ENDIAN); \
   }                                                                     \
   else {                                                                \
-    DECODE_BODY(ty, lenbuf, INDEX_BIG_ENDIAN, TO_HOST_BIG_ENDIAN);      \
+    DECODE_BODY(ty, lenbuf, INDEX_BIG_ENDIAN, to_host_big_endian);      \
   }
 
 static void swap_bytes32(unsigned char *b)
 {
-  /* From network order (big-endian) to little endian (for 2 float). */
+  /* From little-endian to big endian (for 1 float). */
   char c;
-  /* bytes 0..3 (first float) */
+  /* bytes 0..3 */
   c = b[0];  b[0] = b[3];  b[3] = c;
   c = b[1];  b[1] = b[2];  b[2] = c;
-  /* bytes 4..7 (second float) */
-  c = b[4];  b[4] = b[7];  b[7] = c;
-  c = b[5];  b[5] = b[6];  b[6] = c;
 }
 
 CAMLexport value biocaml_base64_decode32(value vpeaks, value vnpeaks,
-                                         value vmz, value vintensity)
+                                         value vvec)
 {
-  CAMLparam3(vpeaks, vmz, vintensity);
-  DECODE(float, 24, swap_bytes32);
+  CAMLparam2(vpeaks, vvec);
+  DECODE(float, 12, swap_bytes32);
   CAMLreturn(Val_unit);
 }
 
 static void swap_bytes64(unsigned char *b)
 {
-  /* From network order (big-endian) to little endian (for 2 double). */
-  swap_bytes32(b); /* first double */
-  swap_bytes32(b + 8); /* second double */
+  /* From little-endian to big endian (for 1 double). */
+  char c;
+  c = b[0];  b[0] = b[7];  b[7] = c; /* bytes 0, 7 */
+  c = b[1];  b[1] = b[6];  b[6] = c; /* bytes 1, 6 */
+  c = b[2];  b[2] = b[5];  b[5] = c; /* bytes 2, 5 */
+  c = b[3];  b[3] = b[4];  b[4] = c; /* bytes 3, 4 */
 }
 
 CAMLexport value biocaml_base64_decode64(value vpeaks, value vnpeaks,
-                                         value vmz, value vintensity)
+                                         value vvec)
 {
-  CAMLparam3(vpeaks, vmz, vintensity);
-  DECODE(double, 48, swap_bytes64);
+  CAMLparam2(vpeaks, vvec);
+  DECODE(double, 24, swap_bytes64);
   CAMLreturn(Val_unit);
 }
 

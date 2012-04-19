@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 8431c7c68f345a0107f93f1d65c2f80f)
+# DO NOT EDIT (digest: 8bd8318023e71d22753e983fcf8f604a)
 biocaml_pwm_stub.o
-biocaml_mzXML_stubs.o
+biocaml_mzData_stubs.o
 # OASIS_STOP
