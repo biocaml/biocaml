@@ -8,6 +8,10 @@ License:     LGPL with OCaml linking exception
 Plugins:     META (0.2), DevFiles (0.2)
 BuildTools:  ocamlbuild
 
+Flag apps
+  Description: Build apps
+  Default: false
+
 Library biocamlxmlm
   Path: src/ext/xmlm-1.0.2/src
   FindlibName: biocamlxmlm
@@ -63,30 +67,35 @@ Library biocaml
 Executable gff_counts
   Path:   src/app
   MainIs: gff_counts.ml
+  Build$: flag(apps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_bed
   Path:   src/app
   MainIs: gff_to_bed.ml
+  Build$: flag(apps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_table
   Path:   src/app
   MainIs: gff_to_table.ml
+  Build$: flag(apps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable sgr_to_wig
   Path:   src/app
   MainIs: sgr_to_wig.ml
+  Build$: flag(apps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable wig_correlate
   Path:   src/app
   MainIs: wig_correlate.ml
+  Build$: flag(apps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
@@ -100,12 +109,12 @@ Document doclib
   XOCamlbuildLibraries: biocaml
 
 Executable test
-  Path:                 src/tests
+  Path:             src/tests
   MainIs:       	main.ml
   Install:      	false
   CompiledObject: 	native
+  Build$:           flag(tests)
   BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
-  
+
 Test main
   Command: $test
-

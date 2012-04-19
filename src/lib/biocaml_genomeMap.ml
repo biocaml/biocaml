@@ -98,9 +98,16 @@ module LMap = struct
 
   type ('a,'b) t = ('a, 'b T.t) Map.t
 
-  let intersects (k,r) dom =
-    try Range.(iset_intersects_range r.lo r.hi (Map.find k dom))
+  let intersects (k,r) lmap =
+    try Range.(T.intersects r.lo r.hi (Map.find k lmap))
     with Not_found -> false
+
+  let closest (k,r) lmap = 
+    try Range.(
+      let lo,hi,label,d = T.find_closest r.lo r.hi (Map.find k lmap) in
+      (k, make lo hi), label, d
+    )
+    with T.Empty_tree -> raise Not_found
       
   let enum dom =
     (Map.enum dom) 
