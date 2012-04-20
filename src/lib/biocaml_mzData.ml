@@ -16,6 +16,7 @@
    LICENSE for more details. *)
 
 
+open Printf
 open Bigarray
 
 type vec = (float, float64_elt, fortran_layout) Array1.t
@@ -36,13 +37,13 @@ module Base64 = struct
 
   let decode ~precision s =
     if precision = 32 then
-      (* Two 32 bits (thus 4 bytes) floats per peak *)
-      let npeaks = (String.length s / 4) * 3 / 8 in
+      (* One 32 bits (thus 4 bytes) floats per peak *)
+      let npeaks = (String.length s / 4) * 3 / 4 in
       let v = Array1.create float64 fortran_layout npeaks in
       decode32 s ~npeaks v;
       v
     else if precision = 64 then
-      let npeaks = (String.length s / 4) * 3 / 16 in
+      let npeaks = (String.length s / 4) * 3 / 8 in
       let v = Array1.create float64 fortran_layout npeaks in
       decode64 s ~npeaks v;
       v
@@ -93,8 +94,13 @@ let rec decode_data pull =
     if List.assoc "endian" atts <> "little" then
       failwith "Biocaml_mzData.spectrums: byte order must be little endian";
     let precision = int_of_string(List.assoc "precision" atts) in
+    let length = int_of_string(List.assoc "length" atts) in
     let data = concat_data pull entid [] in
-    Base64.decode ~precision data
+    let v = Base64.decode ~precision data in
+    if Array1.dim v <> length then
+      failwith(sprintf "Biocaml_mzData.spectrums: <data> expected length: %i, \
+                        got: %i" length (Array1.dim v));
+    v
   | _ -> decode_data pull
 
 let rec get_spectrum pull close_entid spec =
