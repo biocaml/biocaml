@@ -124,7 +124,7 @@ type source = [
 type input
 (** The type for input abstractions. *)
 
-val make_input : ?enc:encoding option -> ?strip:bool ->
+val make_input : ?enc:encoding -> ?strip:bool ->
                  ?ns:(string -> string option) ->
                  ?entity: (string -> string option) -> source -> input
 (** Returns a new input abstraction reading from the given source.
@@ -152,9 +152,9 @@ val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
                  input -> 'a
 (** If the next signal is a :
 
-    - [`Data] signal, inputs it and invokes [data] with the character data.}
+    - [`Data] signal, inputs it and invokes [data] with the character data.
     - [`El_start] signal, inputs the sequence of signals until its
-       matching [`El_end] and invokes [el] and [data] as follows
+      matching [`El_end] and invokes [el] and [data] as follows
       {ul
       {- [el], is called on each [`El_end] signals with the corresponding
          [`El_start] tag and the result of the callback invocation for the
@@ -357,7 +357,7 @@ module type S = sig
 
   type input
 
-  val make_input : ?enc:encoding option -> ?strip:bool ->
+  val make_input : ?enc:encoding -> ?strip:bool ->
                    ?ns:(string -> string option) ->
                    ?entity: (string -> string option) -> source -> input
 
@@ -487,23 +487,23 @@ with type string = String.t
     encoding as for the previous document is used.
 
     {3:inmisc Miscellaneous}
-    {ul
-    {- Parses the more liberal and simpler XML 1.1
-    {{:http://www.w3.org/TR/xml11/#NT-Name}Name} definition (minus [':'] because
-    of namespaces).}
-    {- The {{:http://www.w3.org/TR/REC-xml/#dt-doctype}DTD} is parsed
-      roughly (no guarantee it is well formed) and its information is ignored.}
-    {- The parser drops
-    {{:http://www.w3.org/TR/REC-xml/#dt-comment}comments},
-    {{:http://www.w3.org/TR/REC-xml/#dt-pi}processing instructions}, and
-    {{:http://www.w3.org/TR/REC-xml/#sec-rmd}standalone declaration}.}
-    {- Element attributes are not checked for uniqueness.}
-    {- Attribute and character data chunks are limited by
-       [Sys.max_string_length] (unless you use the functor).
-       The error [`Max_buffer_size] is raised if the limit is hit.}
-    {- Tail recursive.}
-    {- Non validating.}
-    }
+
+    - Parses the more liberal and simpler XML 1.1
+      {{:http://www.w3.org/TR/xml11/#NT-Name}Name} definition (minus
+      [':'] because of namespaces).
+    - The {{:http://www.w3.org/TR/REC-xml/#dt-doctype}DTD} is parsed
+      roughly (no guarantee it is well formed) and its information is
+      ignored.
+    - The parser drops
+      {{:http://www.w3.org/TR/REC-xml/#dt-comment}comments},
+      {{:http://www.w3.org/TR/REC-xml/#dt-pi}processing instructions}, and
+      {{:http://www.w3.org/TR/REC-xml/#sec-rmd}standalone declaration}.
+    - Element attributes are not checked for uniqueness.
+    - Attribute and character data chunks are limited by
+      [Sys.max_string_length] (unless you use the functor).  The error
+      [`Max_buffer_size] is raised if the limit is hit.
+    - Tail recursive.
+    - Non validating.
 
 
     {2:output Output}

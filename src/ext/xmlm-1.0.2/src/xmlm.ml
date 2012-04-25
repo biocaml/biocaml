@@ -69,7 +69,7 @@ module type S = sig
 
   type input
 
-  val make_input : ?enc:encoding option -> ?strip:bool ->
+  val make_input : ?enc:encoding -> ?strip:bool ->
                    ?ns:(string -> string option) ->
                    ?entity: (string -> string option) -> source -> input
 
@@ -338,7 +338,7 @@ struct
   let u_end_doc = u_start_doc - 1
   let signal_start_stream = `Data String.empty
 
-  let make_input ?(enc = None) ?(strip = false) ?(ns = fun _ -> None)
+  let make_input ?enc ?(strip = false) ?(ns = fun _ -> None)
                  ?(entity = fun _ -> None) src =
     let i = match src with
     | `Fun f -> f
