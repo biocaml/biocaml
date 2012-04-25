@@ -25,7 +25,7 @@ Library biocamlxmlm
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries, pxp
+  BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
   Install: true
   Modules: Biocaml
            , Biocaml_msg

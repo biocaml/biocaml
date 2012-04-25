@@ -62,96 +62,97 @@ type spectrum = {
   z: int_vec;
 }
 
-(* Specialized version of the String.concat(List.rev l) *)
-let rev_concat = function
-  | [] -> ""
-  | [s] -> s (* most of the time the lists below will be of length 1 *)
-  | l ->
-    let len = List.fold_left (fun len s -> len + String.length s) 0 l in
-    let r = String.create len in
-    let pos = ref len in
-    List.iter (fun s ->
-               pos := !pos - String.length s;
-               String.unsafe_blit s 0 r !pos (String.length s);
-              )
-              l;
-    assert(!pos = 0);
-    r
+(* XML helper functions
+ ***********************************************************************)
 
+let rec skip_tag_loop xml depth =
+  match Xmlm.input xml with
+  | `El_start _ -> skip_tag_loop xml (depth + 1)
+  | `El_end -> if depth > 0 then skip_tag_loop xml (depth - 1)
+  | `Data _ | `Dtd _ -> skip_tag_loop xml depth
 
-let rec concat_data pull close_entid data =
-  match pull() with
-  | None -> failwith "Biocaml_mzData.spectrums: file ended while gathering \
-                     <data> content"
-  | Some(Pxp_types.E_end_tag("data", entid)) when entid = close_entid ->
-    rev_concat data
-  | Some(Pxp_types.E_char_data(s)) ->
-    concat_data pull close_entid (s :: data)
-  | _ -> concat_data pull close_entid data
+(* The start tag is supposed to be already read.  Skip to the closing tag. *)
+let skip_tag xml = skip_tag_loop xml 0
 
-let rec decode_data pull =
-  match pull() with
-  | None -> failwith "Biocaml_mzData.spectrums: file ended while looking for \
-                     <data>"
-  | Some(Pxp_types.E_start_tag("data", atts, _, entid)) ->
-    if List.assoc "endian" atts <> "little" then
+let rec get_next_data xml =
+  match Xmlm.input xml with
+  | `Data s -> (* No to consecutive `Data are guaranteed, no concat *)
+    s
+  | `El_start _ ->
+    skip_tag xml; (* ensure the corresponding close tag is read *)
+    get_next_data xml
+  | `El_end ->
+    failwith "Biocaml_mzData.spectrums: got tag while looking for XML data"
+  | _ -> get_next_data xml
+
+let rec return_on_end_tag xml v =
+  match Xmlm.input xml with
+  | `El_end -> v
+  | `El_start _ -> skip_tag xml;  return_on_end_tag xml v
+  | _ -> return_on_end_tag xml v
+
+let rec attribute name = function
+  | [] -> failwith("Biocaml_mzData.spectrums: " ^ name
+                  ^ " not found in attributes")
+  | ((_, n), v) :: tl -> if n = name then v else attribute name tl
+
+(* mzData parsing
+ ***********************************************************************)
+
+(* Parse and decode <data>. *)
+let rec decode_data xml =
+  match Xmlm.input xml with
+  | `El_start((_, "data"), atts) ->
+    if attribute "endian" atts <> "little" then
       failwith "Biocaml_mzData.spectrums: byte order must be little endian";
-    let precision = int_of_string(List.assoc "precision" atts) in
-    let length = int_of_string(List.assoc "length" atts) in
-    let data = concat_data pull entid [] in
+    let precision = int_of_string(attribute "precision" atts) in
+    let length = int_of_string(attribute "length" atts) in
+    let data = get_next_data xml in
     let v = Base64.decode ~precision data in
     if Array1.dim v <> length then
       failwith(sprintf "Biocaml_mzData.spectrums: <data> expected length: %i, \
                         got: %i" length (Array1.dim v));
-    v
-  | _ -> decode_data pull
+    return_on_end_tag xml v (* </data> *)
+  | _ -> decode_data xml
 
-let rec get_spectrum pull close_entid spec =
-  match pull() with
-  | None -> failwith "Biocaml_mzData.spectrums: file ended while parsing for \
-                     <spectrum>"
-  | Some(Pxp_types.E_start_tag("spectrumInstrument", atts, _, _)) ->
-    let mslevel = int_of_string(List.assoc "msLevel" atts)
-    and start_mz = float_of_string(List.assoc "mzRangeStart" atts)
-    and end_mz = float_of_string(List.assoc "mzRangeStop" atts) in
+(* [get_spectrum xml spec 0] returns [spec] updated with the content
+   of the <spectrum> block.  *)
+let rec get_spectrum xml spec depth =
+  match Xmlm.input xml with
+  | `El_start((_,"spectrumInstrument"), atts) ->
+    let mslevel = int_of_string(attribute "msLevel" atts)
+    and start_mz = float_of_string(attribute "mzRangeStart" atts)
+    and end_mz = float_of_string(attribute "mzRangeStop" atts) in
     let spec = { spec with mslevel; start_mz; end_mz } in
-    get_spectrum pull close_entid spec
-  | Some(Pxp_types.E_start_tag("mzArrayBinary", _, _, _)) ->
-    let spec = { spec with mz = decode_data pull } in
-    get_spectrum pull close_entid spec
-  | Some(Pxp_types.E_start_tag("intenArrayBinary", _, _, _)) ->
-    let spec = { spec with int = decode_data pull } in
-    get_spectrum pull close_entid spec
-  | Some(Pxp_types.E_end_tag("spectrum", entid)) when entid = close_entid ->
-    spec
-  | _ -> get_spectrum pull close_entid spec (* skip *)
+    get_spectrum xml spec (depth + 1)
+  | `El_start((_,"mzArrayBinary"), _) ->
+    let spec = { spec with mz = decode_data xml } in
+    get_spectrum xml spec (depth + 1)
+  | `El_start((_,"intenArrayBinary"), _) ->
+    let spec = { spec with int = decode_data xml } in
+    get_spectrum xml spec (depth + 1)
+  | `El_start _ ->
+    get_spectrum xml spec (depth + 1)
+  | `El_end ->
+    if depth = 0 then spec else get_spectrum xml spec (depth - 1)
+  | _ -> get_spectrum xml spec depth (* skip *)
 
 
 let empty_vec = Array1.create float64 fortran_layout 0
 let empty_int_vec = Array1.create int fortran_layout 0
 
-let pxp_conf = {
-  Pxp_types.default_config with
-  Pxp_types.enable_comment_nodes = false;
-  encoding = `Enc_utf8;
-}
-
 let spectrums fname =
-  let source = Pxp_types.from_file fname in
-  let entmng = Pxp_ev_parser.create_entity_manager pxp_conf source in
-  let pull = Pxp_ev_parser.create_pull_parser
-               pxp_conf (`Entry_document []) entmng in
+  let fh = open_in fname in
+  let xml = Xmlm.make_input ~enc:`UTF_8 (`Channel fh) in
   let scans = ref [] in
-  let continue = ref true in
-  while !continue do
-    match pull() with
-    | None -> continue := false
-    | Some(Pxp_types.E_start_tag("spectrum", atts, _, entid)) ->
-      let id = int_of_string(List.assoc "id" atts) in
+  while not(Xmlm.eoi xml) do
+    match Xmlm.input xml with
+    | `El_start((_, "spectrum"), atts) ->
+      let id = int_of_string(attribute "id" atts) in
       (* retentionTime ? *)
-      let scan = { id; mslevel = 0; mass = 0.; start_mz = 0.; end_mz = 0.;
+      let scan = { id; mslevel = 0; mass = nan; start_mz = nan; end_mz = nan;
                    mz = empty_vec; int = empty_vec; z = empty_int_vec } in
-      let scan = get_spectrum pull entid scan in
+      let scan = get_spectrum xml scan 0 in
       scans := scan :: !scans
     | _ -> ()
   done;
