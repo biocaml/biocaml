@@ -128,14 +128,14 @@ val make_input : ?enc:encoding option -> ?strip:bool ->
                  ?ns:(string -> string option) ->
                  ?entity: (string -> string option) -> source -> input
 (** Returns a new input abstraction reading from the given source.
-    {ul
-    {- [enc], character encoding of the document, {{:#inenc} details}.
-       Defaults to [None].}
-    {- [strip], strips whitespace in character data, {{:#inwspace} details}.
+
+    @param enc, character encoding of the document, {{:#inenc} details}.
+       Defaults to [None].
+    @param strip, strips whitespace in character data, {{:#inwspace} details}.
        Defaults to [false].}
-    {- [ns] is called to bind undeclared namespace prefixes,
+    @param ns is called to bind undeclared namespace prefixes,
        {{:#inns} details}. Default returns always [None].}
-    {- [entity] is called to resolve non predefined entity references,
+    @param entity is called to resolve non predefined entity references,
        {{:#inentity} details}. Default returns always [None].}} *)
 
 val input : input -> signal
@@ -146,25 +146,25 @@ val input : input -> signal
     is always non empty. After a well-formed sequence was input another may
     be input, see {!eoi} and {{:#iseq}details}.
 
-    @raise {!Error} on input errors. *)
+    @raise Error on input errors. *)
 
 val input_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a)  ->
                  input -> 'a
 (** If the next signal is a :
-    {ul
-    {- [`Data] signal, inputs it and invokes [data] with the character data.}
-    {- [`El_start] signal, inputs the sequence of signals until its
-       matching [`El_end] and invokes [el] and [data] as follows
-    {ul
-    {- [el], is called on each [`El_end] signals with the corresponding
-      [`El_start] tag and the result of the callback invocation for the
-      element's children.}
-    {- [data], is called on each [`Data] signals with the character data.
-      This function won't be called twice consecutively or with the empty
-      string.}}}
-    {- Other signals, raises [Invalid_argument].}}
 
-    @raise {!Error} on input errors and [Invalid_argument]
+    - [`Data] signal, inputs it and invokes [data] with the character data.}
+    - [`El_start] signal, inputs the sequence of signals until its
+       matching [`El_end] and invokes [el] and [data] as follows
+      {ul
+      {- [el], is called on each [`El_end] signals with the corresponding
+         [`El_start] tag and the result of the callback invocation for the
+         element's children.}
+      {- [data], is called on each [`Data] signals with the character data.
+         This function won't be called twice consecutively or with the empty
+         string.}}
+    - Other signals, raises [Invalid_argument].
+
+    @raise Error on input errors and [Invalid_argument]
       if the next signal is not [`El_start] or [`Data]. *)
 
 val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) ->
@@ -172,18 +172,18 @@ val input_doc_tree : el:(tag -> 'a list -> 'a) -> data:(string -> 'a) ->
 (** Same as {!input_tree} but reads a complete {{:#TYPEsignal}well-formed}
     sequence of signals.
 
-    @raise {!Error} on input errors and [Invalid_argument]
-     if the next signal is not [`Dtd]. *)
+    @raise Error on input errors and [Invalid_argument]
+           if the next signal is not [`Dtd]. *)
 
 val peek : input -> signal
 (** Same as {!input} but doesn't remove the signal from the sequence.
 
-    @raise {!Error} on input errors. *)
+    @raise Error on input errors. *)
 
 val eoi : input -> bool
 (** Returns [true] if the end of input is reached. See {{:#iseq}details}.
 
-    @raise {!Error} on input errors. *)
+    @raise Error on input errors. *)
 
 val pos : input -> pos
 (** Current position in the input abstraction. *)
@@ -205,21 +205,22 @@ type output
 val make_output : ?nl:bool -> ?indent:int option ->
                   ?ns_prefix:(string -> string option) -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
-    {ul
-    {- [nl], if [true] a newline is output when the root's element [`El_end]
-     signal is output.
-    Defaults to [false].}
-    {- [indent], identation behaviour, see {{:#outindent} details}. Defaults to
-      [None].}
-    {- [ns_prefix], undeclared namespace prefix bindings,
-       see {{:#outns}details}. Default returns always [None].}} *)
+
+    @param nl, if [true] a newline is output when the root's element [`El_end]
+       signal is output.  Defaults to [false].
+
+    @param indent, identation behaviour, see {{:#outindent}
+       details}. Defaults to [None].
+
+    @param ns_prefix, undeclared namespace prefix bindings,
+       see {{:#outns}details}. Default returns always [None]. *)
 
 
 val output : output -> signal -> unit
 (** Outputs a signal. After a well-formed sequence of signals was
     output a new well-formed sequence can be output.
 
-    @raise [Invalid_argument] if the resulting signal sequence on
+    @raise Invalid_argument if the resulting signal sequence on
     the output abstraction is not {{:#TYPEsignal}well-formed} or if a
     namespace name could not be bound to a prefix. *)
 
@@ -301,7 +302,7 @@ module type Buffer = sig
       {{:http://www.unicode.org/glossary/#code_point}code point} to a
       buffer.
 
-      @raise {!Full} if the buffer cannot be grown. *)
+      @raise Full if the buffer cannot be grown. *)
 
   val clear : t -> unit
   (** Clears the buffer. *)
@@ -558,30 +559,29 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
     signals.
 
     {3:outmisc Miscellaneous}
-    {ul
-    {- Output on a channel does not flush it.}
-    {- In attribute and character data you provide, markup
-       delimiters ['<'],['>'],['&'], and ['\"'] are
-        automatically escaped to
-        {{:http://www.w3.org/TR/REC-xml/#sec-predefined-ent}predefined
-        entities}.}
-    {- No checks are peformed on the prefix and local part of output
+
+    - Output on a channel does not flush it.
+    - In attribute and character data you provide, markup
+      delimiters ['<'],['>'],['&'], and ['\"'] are automatically escaped to
+      {{:http://www.w3.org/TR/REC-xml/#sec-predefined-ent}predefined
+      entities}.
+    - No checks are peformed on the prefix and local part of output
       names to verify they are
       {{:http://www.w3.org/TR/xml-names11/#NT-NCName}NCName}s.
       For example using the tag name [("","dip d")] will produce
-      a non well-formed document because of the space character.}
-    {- Tail recursive.}}
+      a non well-formed document because of the space character.
+    - Tail recursive.
 
     {2 Tips}
-    {ul
-    {- The best options to do an input/output round trip
-       and preserve as much information as possible is to
-       input with [strip = false] and output with [indent = None].}
-    {- Complete whitespace control on output is achieved
-       with [indent = None] and suitable [`Data] signals}}
-*)
 
-(** {1:ex Examples}
+    - The best options to do an input/output round trip and preserve
+      as much information as possible is to input with [strip = false]
+      and output with [indent = None].
+
+    - Complete whitespace control on output is achieved with [indent =
+      None] and suitable [`Data] signals.  *)
+
+  (** {1:ex Examples}
 
     {2:exseq Sequential processing}
 
