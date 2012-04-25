@@ -20,6 +20,7 @@ open Printf
 open Bigarray
 
 type vec = (float, float64_elt, fortran_layout) Array1.t
+type int_vec = (int, int_elt, fortran_layout) Array1.t
 
 
 module Base64 = struct
@@ -53,10 +54,12 @@ end
 type spectrum = {
   id: int;
   mslevel: int;
+  mass: float;
   start_mz: float;
   end_mz: float;
   mz: vec;
   int: vec;
+  z: int_vec;
 }
 
 (* Specialized version of the String.concat(List.rev l) *)
@@ -125,13 +128,19 @@ let rec get_spectrum pull close_entid spec =
 
 
 let empty_vec = Array1.create float64 fortran_layout 0
+let empty_int_vec = Array1.create int fortran_layout 0
+
+let pxp_conf = {
+  Pxp_types.default_config with
+  Pxp_types.enable_comment_nodes = false;
+  encoding = `Enc_utf8;
+}
 
 let spectrums fname =
-  let config = Pxp_types.default_config in
   let source = Pxp_types.from_file fname in
-  let entmng = Pxp_ev_parser.create_entity_manager config source in
+  let entmng = Pxp_ev_parser.create_entity_manager pxp_conf source in
   let pull = Pxp_ev_parser.create_pull_parser
-               config (`Entry_document []) entmng in
+               pxp_conf (`Entry_document []) entmng in
   let scans = ref [] in
   let continue = ref true in
   while !continue do
@@ -140,8 +149,8 @@ let spectrums fname =
     | Some(Pxp_types.E_start_tag("spectrum", atts, _, entid)) ->
       let id = int_of_string(List.assoc "id" atts) in
       (* retentionTime ? *)
-      let scan = { id; mslevel = 0; start_mz = 0.; end_mz = 0.;
-                   mz = empty_vec; int = empty_vec } in
+      let scan = { id; mslevel = 0; mass = 0.; start_mz = 0.; end_mz = 0.;
+                   mz = empty_vec; int = empty_vec; z = empty_int_vec } in
       let scan = get_spectrum pull entid scan in
       scans := scan :: !scans
     | _ -> ()
