@@ -111,17 +111,16 @@ module Precursor = struct
     match Xmlm.input xml with
     | `El_start((_, "cvParam"), attr) ->
       let depth = depth + 1 in (* for </cvParam> *)
-      (match attribute "MassToChargeRatio" attr with
-       | Some mz -> get_ionSelection xml { p with mz = float_of_string mz } depth
-       | None ->
-         match attribute "ChargeState" attr with
-         | Some z -> get_ionSelection xml { p with z = float_of_string z } depth
-         | None ->
-           match attribute "Intensity" attr with
-           | Some int ->
-             get_ionSelection xml { p with int = float_of_string int } depth
-           | None -> get_ionSelection xml p depth
-      )
+      let name = attribute_exn "name" attr in
+      let value = attribute_exn "value" attr in
+      if name = "MassToChargeRatio" then
+        get_ionSelection xml { p with mz = float_of_string value } depth
+      else if name = "ChargeState" then
+        get_ionSelection xml { p with z = float_of_string value } depth
+      else if name = "Intensity" then
+        get_ionSelection xml { p with int = float_of_string value } depth
+      else
+        get_ionSelection xml p depth
     | `El_start _ -> get_ionSelection xml p (depth + 1)
     | `El_end -> if depth = 0 then p  (* </ionSelection> *)
                 else get_ionSelection xml p (depth - 1)
