@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2d69efbc3372e608c42304e3023c66bc)
+# DO NOT EDIT (digest: 09f3e67c4567e219409aa0340065094c)
 # Library biocamlxmlm
 "src/ext/xmlm-1.0.2/src": include
 # Library biocaml
@@ -12,21 +12,18 @@
 <src/lib/*.ml{,i}>: pkg_unix
 <src/lib/*.ml{,i}>: pkg_threads
 <src/lib/*.ml{,i}>: pkg_sqlite3
-<src/lib/*.ml{,i}>: pkg_pxp
 <src/lib/*.ml{,i}>: pkg_pcre
 <src/lib/*.ml{,i}>: pkg_batteries
 "src/lib/biocaml_pwm_stub.c": use_biocamlxmlm
 "src/lib/biocaml_pwm_stub.c": pkg_unix
 "src/lib/biocaml_pwm_stub.c": pkg_threads
 "src/lib/biocaml_pwm_stub.c": pkg_sqlite3
-"src/lib/biocaml_pwm_stub.c": pkg_pxp
 "src/lib/biocaml_pwm_stub.c": pkg_pcre
 "src/lib/biocaml_pwm_stub.c": pkg_batteries
 "src/lib/biocaml_mzData_stubs.c": use_biocamlxmlm
 "src/lib/biocaml_mzData_stubs.c": pkg_unix
 "src/lib/biocaml_mzData_stubs.c": pkg_threads
 "src/lib/biocaml_mzData_stubs.c": pkg_sqlite3
-"src/lib/biocaml_mzData_stubs.c": pkg_pxp
 "src/lib/biocaml_mzData_stubs.c": pkg_pcre
 "src/lib/biocaml_mzData_stubs.c": pkg_batteries
 # Executable gff_to_bed
@@ -35,7 +32,6 @@
 <src/app/gff_to_bed.{native,byte}>: pkg_unix
 <src/app/gff_to_bed.{native,byte}>: pkg_threads
 <src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_bed.{native,byte}>: pkg_pxp
 <src/app/gff_to_bed.{native,byte}>: pkg_pcre
 <src/app/gff_to_bed.{native,byte}>: pkg_getopt
 <src/app/gff_to_bed.{native,byte}>: pkg_batteries
@@ -45,7 +41,6 @@
 "src/tests/main.native": pkg_unix
 "src/tests/main.native": pkg_threads
 "src/tests/main.native": pkg_sqlite3
-"src/tests/main.native": pkg_pxp
 "src/tests/main.native": pkg_pcre
 "src/tests/main.native": pkg_oUnit
 "src/tests/main.native": pkg_batteries
@@ -54,7 +49,6 @@
 <src/tests/*.ml{,i}>: pkg_unix
 <src/tests/*.ml{,i}>: pkg_threads
 <src/tests/*.ml{,i}>: pkg_sqlite3
-<src/tests/*.ml{,i}>: pkg_pxp
 <src/tests/*.ml{,i}>: pkg_pcre
 <src/tests/*.ml{,i}>: pkg_oUnit
 <src/tests/*.ml{,i}>: pkg_batteries
@@ -64,7 +58,6 @@
 <src/app/gff_counts.{native,byte}>: pkg_unix
 <src/app/gff_counts.{native,byte}>: pkg_threads
 <src/app/gff_counts.{native,byte}>: pkg_sqlite3
-<src/app/gff_counts.{native,byte}>: pkg_pxp
 <src/app/gff_counts.{native,byte}>: pkg_pcre
 <src/app/gff_counts.{native,byte}>: pkg_getopt
 <src/app/gff_counts.{native,byte}>: pkg_batteries
@@ -74,7 +67,6 @@
 <src/app/wig_correlate.{native,byte}>: pkg_unix
 <src/app/wig_correlate.{native,byte}>: pkg_threads
 <src/app/wig_correlate.{native,byte}>: pkg_sqlite3
-<src/app/wig_correlate.{native,byte}>: pkg_pxp
 <src/app/wig_correlate.{native,byte}>: pkg_pcre
 <src/app/wig_correlate.{native,byte}>: pkg_getopt
 <src/app/wig_correlate.{native,byte}>: pkg_batteries
@@ -84,7 +76,6 @@
 <src/app/gff_to_table.{native,byte}>: pkg_unix
 <src/app/gff_to_table.{native,byte}>: pkg_threads
 <src/app/gff_to_table.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_table.{native,byte}>: pkg_pxp
 <src/app/gff_to_table.{native,byte}>: pkg_pcre
 <src/app/gff_to_table.{native,byte}>: pkg_getopt
 <src/app/gff_to_table.{native,byte}>: pkg_batteries
@@ -94,7 +85,6 @@
 <src/app/sgr_to_wig.{native,byte}>: pkg_unix
 <src/app/sgr_to_wig.{native,byte}>: pkg_threads
 <src/app/sgr_to_wig.{native,byte}>: pkg_sqlite3
-<src/app/sgr_to_wig.{native,byte}>: pkg_pxp
 <src/app/sgr_to_wig.{native,byte}>: pkg_pcre
 <src/app/sgr_to_wig.{native,byte}>: pkg_getopt
 <src/app/sgr_to_wig.{native,byte}>: pkg_batteries
@@ -103,7 +93,6 @@
 <src/app/*.ml{,i}>: pkg_unix
 <src/app/*.ml{,i}>: pkg_threads
 <src/app/*.ml{,i}>: pkg_sqlite3
-<src/app/*.ml{,i}>: pkg_pxp
 <src/app/*.ml{,i}>: pkg_pcre
 <src/app/*.ml{,i}>: pkg_getopt
 <src/app/*.ml{,i}>: pkg_batteries
