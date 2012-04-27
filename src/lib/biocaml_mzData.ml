@@ -15,6 +15,7 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the file
    LICENSE for more details. *)
 
+(* http://www.umanitoba.ca/afs/plant_science/psgendb/local/install/ncbi_cxx--Jun_15_2010/src/algo/ms/formats/mzdata/mzData.dtd *)
 
 open Printf
 open Bigarray
@@ -51,17 +52,6 @@ module Base64 = struct
     else invalid_arg "Biocaml_mzData: <peak> precision must be 32 or 64"
 end
 
-type spectrum = {
-  id: int;
-  mslevel: int;
-  mass: float;
-  start_mz: float;
-  end_mz: float;
-  mz: vec;
-  int: vec;
-  z: int_vec;
-}
-
 (* XML helper functions
  ***********************************************************************)
 
@@ -91,55 +81,130 @@ let rec return_on_end_tag xml v =
   | `El_start _ -> skip_tag xml;  return_on_end_tag xml v
   | _ -> return_on_end_tag xml v
 
+let rec attribute_exn name = function
+  | [] -> failwith "Biocaml_mzData.spectrums: attribute not found"
+  | ((_, n), v) :: tl -> if n = name then v else attribute_exn name tl
+
 let rec attribute name = function
-  | [] -> failwith("Biocaml_mzData.spectrums: " ^ name
-                  ^ " not found in attributes")
-  | ((_, n), v) :: tl -> if n = name then v else attribute name tl
+  | [] -> None
+  | ((_, n), v) :: tl -> if n = name then Some v else attribute name tl
 
 (* mzData parsing
  ***********************************************************************)
 
+module Precursor = struct
+  type t = {
+    mslevel: int; (** 1: MS, 2: MS/MS,... *)
+    mz: float;  (** MassToChargeRatio *)
+    z: float;   (** ChargeState *)
+    int: float; (** Intensity *)
+  }
+
+  (* Commission of atomic weights and isotopic abondance *)
+  let mass_proton = 1.00727646677 (* Dalton *)
+
+  let mass p = (p.mz -. mass_proton) *. p.z
+
+  (* Get <ionSelection> content. FIXME: the spec does not define which
+     param. should be present. *)
+  let rec get_ionSelection xml p depth =
+    match Xmlm.input xml with
+    | `El_start((_, "cvParam"), attr) ->
+      let depth = depth + 1 in (* for </cvParam> *)
+      (match attribute "MassToChargeRatio" attr with
+       | Some mz -> get_ionSelection xml { p with mz = float_of_string mz } depth
+       | None ->
+         match attribute "ChargeState" attr with
+         | Some z -> get_ionSelection xml { p with z = float_of_string z } depth
+         | None ->
+           match attribute "Intensity" attr with
+           | Some int ->
+             get_ionSelection xml { p with int = float_of_string int } depth
+           | None -> get_ionSelection xml p depth
+      )
+    | `El_start _ -> get_ionSelection xml p (depth + 1)
+    | `El_end -> if depth = 0 then p  (* </ionSelection> *)
+                else get_ionSelection xml p (depth - 1)
+    | `Data _ | `Dtd _ -> get_ionSelection xml p depth (* skip *)
+
+  let rec get_precursor xml p =
+    match Xmlm.input xml with
+    | `El_start((_, "ionSelection"), _) -> get_ionSelection xml p 0
+    | `El_start _ -> skip_tag xml; get_precursor xml p (* <activation> *)
+    | `El_end -> p (* </precursor> *)
+    | `Data _ | `Dtd _ -> get_precursor xml p
+
+  (* Knowing that <precursorList> was just read, parse the [xml] to
+     get the list of precursors.  *)
+  let rec add_list xml pl =
+    match Xmlm.input xml with
+    | `El_start((_, "precursor"), attr) ->
+      let mslevel = int_of_string(attribute_exn "msLevel" attr) in
+      let p = get_precursor xml { mslevel; mz = nan; z = nan; int = nan } in
+      add_list xml (p :: pl)
+    | `El_start _ -> skip_tag xml;  add_list xml pl
+    | `El_end -> pl                      (* </precursorList> *)
+    | `Data _ | `Dtd _ -> add_list xml pl
+
+  let list xml = add_list xml []
+end
+
+type spectrum = {
+  id: int;
+  mslevel: int;
+  precursor: Precursor.t list;
+  start_mz: float;
+  end_mz: float;
+  mz: vec;
+  int: vec;
+  sup: (string * vec) list;
+}
+
 (* Parse and decode <data>. *)
-let rec decode_data xml =
+let rec vec_of_binary_data xml =
   match Xmlm.input xml with
   | `El_start((_, "data"), atts) ->
-    if attribute "endian" atts <> "little" then
-      failwith "Biocaml_mzData.spectrums: byte order must be little endian";
-    let precision = int_of_string(attribute "precision" atts) in
-    let length = int_of_string(attribute "length" atts) in
+    (* FIXME: both byte order are accepted *)
+    if attribute_exn "endian" atts <> "little" then
+      failwith "Biocaml_mzData: byte order must be little endian";
+    let precision = int_of_string(attribute_exn "precision" atts) in
+    let length = int_of_string(attribute_exn "length" atts) in
     let data = get_next_data xml in
     let v = Base64.decode ~precision data in
     if Array1.dim v <> length then
-      failwith(sprintf "Biocaml_mzData.spectrums: <data> expected length: %i, \
-                        got: %i" length (Array1.dim v));
+      failwith(sprintf "Biocaml_mzData: Invalid XML: <data> expected \
+                        length: %i, got: %i" length (Array1.dim v));
     return_on_end_tag xml v (* </data> *)
-  | _ -> decode_data xml
+  | _ -> vec_of_binary_data xml
 
 (* [get_spectrum xml spec 0] returns [spec] updated with the content
    of the <spectrum> block.  *)
 let rec get_spectrum xml spec depth =
   match Xmlm.input xml with
-  | `El_start((_,"spectrumInstrument"), atts) ->
-    let mslevel = int_of_string(attribute "msLevel" atts)
-    and start_mz = float_of_string(attribute "mzRangeStart" atts)
-    and end_mz = float_of_string(attribute "mzRangeStop" atts) in
+  | `El_start((_, "spectrumInstrument"), atts) ->
+    let mslevel = int_of_string(attribute_exn "msLevel" atts)
+    and start_mz = float_of_string(attribute_exn "mzRangeStart" atts)
+    and end_mz = float_of_string(attribute_exn "mzRangeStop" atts) in
     let spec = { spec with mslevel; start_mz; end_mz } in
     get_spectrum xml spec (depth + 1)
-  | `El_start((_,"mzArrayBinary"), _) ->
-    let spec = { spec with mz = decode_data xml } in
+  | `El_start((_, "precursorList"), _) ->
+    let spec = { spec with precursor = Precursor.list xml } in
     get_spectrum xml spec (depth + 1)
-  | `El_start((_,"intenArrayBinary"), _) ->
-    let spec = { spec with int = decode_data xml } in
+  | `El_start((_, "mzArrayBinary"), _) ->
+    let spec = { spec with mz = vec_of_binary_data xml } in
     get_spectrum xml spec (depth + 1)
-  | `El_start _ ->
+  | `El_start((_, "intenArrayBinary"), _) ->
+    let spec = { spec with int = vec_of_binary_data xml } in
     get_spectrum xml spec (depth + 1)
+  (* | `El_start((_, "supDataArray"), _) -> *)
+  (* | `El_start((_, "supDataArrayBinary"), _) -> *)
+  | `El_start _ -> get_spectrum xml spec (depth + 1)
   | `El_end ->
     if depth = 0 then spec else get_spectrum xml spec (depth - 1)
   | _ -> get_spectrum xml spec depth (* skip *)
 
 
 let empty_vec = Array1.create float64 fortran_layout 0
-let empty_int_vec = Array1.create int fortran_layout 0
 
 let spectrums fname =
   let fh = open_in fname in
@@ -148,10 +213,11 @@ let spectrums fname =
   while not(Xmlm.eoi xml) do
     match Xmlm.input xml with
     | `El_start((_, "spectrum"), atts) ->
-      let id = int_of_string(attribute "id" atts) in
+      let id = int_of_string(attribute_exn "id" atts) in
       (* retentionTime ? *)
-      let scan = { id; mslevel = 0; mass = nan; start_mz = nan; end_mz = nan;
-                   mz = empty_vec; int = empty_vec; z = empty_int_vec } in
+      let scan = { id; mslevel = 0; precursor = [];
+                   start_mz = nan; end_mz = nan;
+                   mz = empty_vec; int = empty_vec; sup = [] } in
       let scan = get_spectrum xml scan 0 in
       scans := scan :: !scans
     | _ -> ()

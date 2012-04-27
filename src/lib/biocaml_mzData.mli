@@ -11,16 +11,30 @@ type int_vec = (int, int_elt, fortran_layout) Array1.t
 (** Vectors of OCaml ints. *)
 
 
+module Precursor : sig
+  type t = {
+    mslevel: int; (** 1: MS, 2: MS/MS,... *)
+    mz: float;    (** MassToChargeRatio *)
+    z: float;     (** ChargeState *)
+    int: float;   (** Intensity *)
+  }
+
+  val mass : t -> float
+  (** [mass p] return the mass of the precursor [p] WITHOUT charge. *)
+end
+
+
 (** MS spectrum. *)
 type spectrum = {
   id: int;         (** index of the spectrum in the file (starting with 1). *)
   mslevel: int;    (** 1: MS, 2: MS/MS,... *)
-  mass: float;     (** total peptide mass *)
+  precursor: Precursor.t list;  (** List of precursors to the spectrum
+                                    currently being described. *)
   start_mz: float;
   end_mz: float;
   mz: vec;         (** m/z *)
   int: vec;        (** intensities *)
-  z: int_vec;      (** Charge State *)
+  sup: (string * vec) list; (** Supplemental (name, arrays), if any *)
 }
 
 val spectrums : string -> spectrum list
