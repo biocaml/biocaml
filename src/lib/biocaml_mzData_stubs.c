@@ -235,9 +235,7 @@ value biocaml_base64_init(value vunit)
     }                                                                   \
   }
 
-#define TO_HOST_LITTLE_ENDIAN(data) /* void; host order is little-endian */
-
-#define DECODE(ty, lenbuf, to_host_big_endian)                          \
+#define DECODE(ty, lenbuf, to_host_little_endian, to_host_big_endian)   \
   const char *peaks = String_val(vpeaks);                               \
   int i, npeaks = Int_val(vnpeaks);                                     \
   unsigned int index;                                                   \
@@ -246,11 +244,13 @@ value biocaml_base64_init(value vunit)
   double *vec = (double *) Data_bigarray_val(vvec);                     \
                                                                         \
   if (is_little_endian) {                                               \
-    DECODE_BODY(ty, lenbuf, INDEX_LITTLE_ENDIAN, TO_HOST_LITTLE_ENDIAN); \
+    DECODE_BODY(ty, lenbuf, INDEX_LITTLE_ENDIAN, to_host_little_endian); \
   }                                                                     \
   else {                                                                \
     DECODE_BODY(ty, lenbuf, INDEX_BIG_ENDIAN, to_host_big_endian);      \
   }
+
+#define TO_HOST_IDENTITY(data) /* Do nothing */
 
 static void swap_bytes32(unsigned char *b)
 {
@@ -261,11 +261,20 @@ static void swap_bytes32(unsigned char *b)
   c = b[1];  b[1] = b[2];  b[2] = c;
 }
 
-CAMLexport value biocaml_base64_decode32(value vpeaks, value vnpeaks,
+/* Decode data stored in little endian */
+CAMLexport value biocaml_base64_little32(value vpeaks, value vnpeaks,
                                          value vvec)
 {
   CAMLparam2(vpeaks, vvec);
-  DECODE(float, 12, swap_bytes32);
+  DECODE(float, 12, TO_HOST_IDENTITY, swap_bytes32);
+  CAMLreturn(Val_unit);
+}
+
+CAMLexport value biocaml_base64_big32(value vpeaks, value vnpeaks,
+                                      value vvec)
+{
+  CAMLparam2(vpeaks, vvec);
+  DECODE(float, 12, swap_bytes32, TO_HOST_IDENTITY);
   CAMLreturn(Val_unit);
 }
 
@@ -279,11 +288,19 @@ static void swap_bytes64(unsigned char *b)
   c = b[3];  b[3] = b[4];  b[4] = c; /* bytes 3, 4 */
 }
 
-CAMLexport value biocaml_base64_decode64(value vpeaks, value vnpeaks,
+CAMLexport value biocaml_base64_little64(value vpeaks, value vnpeaks,
                                          value vvec)
 {
   CAMLparam2(vpeaks, vvec);
-  DECODE(double, 24, swap_bytes64);
+  DECODE(double, 24, TO_HOST_IDENTITY, swap_bytes64);
+  CAMLreturn(Val_unit);
+}
+
+CAMLexport value biocaml_base64_big64(value vpeaks, value vnpeaks,
+                                      value vvec)
+{
+  CAMLparam2(vpeaks, vvec);
+  DECODE(double, 24, swap_bytes64, TO_HOST_IDENTITY);
   CAMLreturn(Val_unit);
 }
 

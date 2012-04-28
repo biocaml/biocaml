@@ -20,11 +20,11 @@ module Precursor : sig
   }
 
   val mass : t -> float
-  (** [mass p] return the mass of the precursor [p] WITHOUT charge. *)
+  (** [mass p] return the mass of the precursor [p] {i without} charge. *)
 end
 
 
-(** MS spectrum. *)
+(** Individual mass spectrum. *)
 type spectrum = {
   id: int;         (** index of the spectrum in the file (starting with 1). *)
   mslevel: int;    (** 1: MS, 2: MS/MS,... *)
@@ -38,7 +38,7 @@ type spectrum = {
 }
 
 val spectrums : string -> spectrum list
-(** [spectrums fname] returns the spectrums contained in the file
-    [fname]. *)
+(** [spectrums fname] returns the spectra contained in the file
+    [fname].  *)
 
 ;;

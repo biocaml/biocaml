@@ -29,25 +29,33 @@ module Base64 = struct
   external init : unit -> unit = "biocaml_base64_init"
   let () = init ()
 
-  external decode32 :
+  external little32 :
     string -> npeaks:int -> (float, float64_elt, _) Array1.t -> unit
-    = "biocaml_base64_decode32"
+    = "biocaml_base64_little32"
 
-  external decode64 :
+  external big32 :
     string -> npeaks:int -> (float, float64_elt, _) Array1.t -> unit
-    = "biocaml_base64_decode64"
+    = "biocaml_base64_big32"
 
-  let decode ~precision s =
+  external little64 :
+    string -> npeaks:int -> (float, float64_elt, _) Array1.t -> unit
+    = "biocaml_base64_little64"
+
+  external big64 :
+    string -> npeaks:int -> (float, float64_elt, _) Array1.t -> unit
+    = "biocaml_base64_big64"
+
+  let decode ~precision ~little_endian s =
     if precision = 32 then
       (* One 32 bits (thus 4 bytes) floats per peak *)
       let npeaks = (String.length s / 4) * 3 / 4 in
       let v = Array1.create float64 fortran_layout npeaks in
-      decode32 s ~npeaks v;
+      if little_endian then little32 s ~npeaks v else big32 s ~npeaks v;
       v
     else if precision = 64 then
       let npeaks = (String.length s / 4) * 3 / 8 in
       let v = Array1.create float64 fortran_layout npeaks in
-      decode64 s ~npeaks v;
+      if little_endian then little64 s ~npeaks v else big64 s ~npeaks v;
       v
     else invalid_arg "Biocaml_mzData: <peak> precision must be 32 or 64"
 end
@@ -163,13 +171,11 @@ type spectrum = {
 let rec vec_of_binary_data xml =
   match Xmlm.input xml with
   | `El_start((_, "data"), atts) ->
-    (* FIXME: both byte order are accepted *)
-    if attribute_exn "endian" atts <> "little" then
-      failwith "Biocaml_mzData: byte order must be little endian";
     let precision = int_of_string(attribute_exn "precision" atts) in
     let length = int_of_string(attribute_exn "length" atts) in
+    let little_endian = attribute_exn "endian" atts = "little" in
     let data = get_next_data xml in
-    let v = Base64.decode ~precision data in
+    let v = Base64.decode ~precision ~little_endian data in
     if Array1.dim v <> length then
       failwith(sprintf "Biocaml_mzData: Invalid XML: <data> expected \
                         length: %i, got: %i" length (Array1.dim v));

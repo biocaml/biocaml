@@ -1152,7 +1152,7 @@ module Buffer = struct
       else if u <= 0xFFFF then
         (buf (0xE0 lor (u lsr 12));
          buf (0x80 lor ((u lsr 6) land 0x3F));
-       buf (0x80 lor (u land 0x3F)))
+         buf (0x80 lor (u land 0x3F)))
       else
         (buf (0xF0 lor (u lsr 18));
          buf (0x80 lor ((u lsr 12) land 0x3F));
