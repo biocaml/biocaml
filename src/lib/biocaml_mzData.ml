@@ -160,8 +160,6 @@ type spectrum = {
   id: int;
   mslevel: int;
   precursor: Precursor.t list;
-  start_mz: float;
-  end_mz: float;
   mz: vec;
   int: vec;
   sup: (string * vec) list;
@@ -187,10 +185,8 @@ let rec vec_of_binary_data xml =
 let rec get_spectrum xml spec depth =
   match Xmlm.input xml with
   | `El_start((_, "spectrumInstrument"), atts) ->
-    let mslevel = int_of_string(attribute_exn "msLevel" atts)
-    and start_mz = float_of_string(attribute_exn "mzRangeStart" atts)
-    and end_mz = float_of_string(attribute_exn "mzRangeStop" atts) in
-    let spec = { spec with mslevel; start_mz; end_mz } in
+    let mslevel = int_of_string(attribute_exn "msLevel" atts) in
+    let spec = { spec with mslevel } in
     get_spectrum xml spec (depth + 1)
   | `El_start((_, "precursorList"), _) ->
     let spec = { spec with precursor = Precursor.list xml } in
@@ -221,7 +217,6 @@ let spectrums fname =
       let id = int_of_string(attribute_exn "id" atts) in
       (* retentionTime ? *)
       let scan = { id; mslevel = 0; precursor = [];
-                   start_mz = nan; end_mz = nan;
                    mz = empty_vec; int = empty_vec; sup = [] } in
       let scan = get_spectrum xml scan 0 in
       scans := scan :: !scans

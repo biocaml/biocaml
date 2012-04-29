@@ -30,8 +30,6 @@ type spectrum = {
   mslevel: int;    (** 1: MS, 2: MS/MS,... *)
   precursor: Precursor.t list;  (** List of precursors to the spectrum
                                     currently being described. *)
-  start_mz: float;
-  end_mz: float;
   mz: vec;         (** m/z *)
   int: vec;        (** intensities *)
   sup: (string * vec) list; (** Supplemental (name, arrays), if any *)
