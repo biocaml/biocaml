@@ -74,7 +74,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
         (s
         |> flip String.nsplit separator
         |> List.length |> (fun n -> Enum.(0 -- (n-1)))
-        |> Enum.map ~f:((^) "column" -| string_of_int)
+        |> Enum.map ~f:(fun i -> "column" ^ string_of_int i)
         |> List.of_enum)
     | Some columns, _ -> columns
   in
@@ -82,7 +82,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   comments,
   columns,
   make_getter columns,
-  Enum.map (flip String.nsplit separator |- Array.of_list) e
+  Enum.map (fun s -> Array.of_list(String.nsplit s separator)) e
 
 
 let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns rows =
@@ -124,7 +124,8 @@ let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   );
 
   let insert row =
-    let values = cols |> List.map ~f:((get row) |- (sprintf "'%s'")) |> String.concat ~sep:", " in
+    let values = cols |> List.map ~f:(fun x -> sprintf "'%s'" (get row x))
+                 |> String.concat ~sep:", " in
     let stmt = sprintf "INSERT INTO '%s' values (%s);" db_table values in
     match exec db stmt with
       | Rc.OK -> ()
