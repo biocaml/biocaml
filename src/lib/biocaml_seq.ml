@@ -7,7 +7,7 @@ let raise_bad msg = raise (Bad msg)
 module Set = Set.Make(struct type t = char let compare = Pervasives.compare end)
 let codes = 
   let codes = ['A';'C';'G';'T';'U';'R';'Y';'K';'M';'S';'W';'B';'D';'H';'V';'N';'X'] in
-  List.fold_left ~f:(flip Set.add) ~init:Set.empty codes
+  List.fold_left ~f:(fun s e -> Set.add e s) ~init:Set.empty codes
 
 let is_nucleic_acid c = Set.mem (Char.uppercase c) codes
 

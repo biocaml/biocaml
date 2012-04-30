@@ -3,7 +3,7 @@ Name:        Biocaml
 Version:     0.0
 Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
-Authors:     Ashish Agarwal
+Authors:     Ashish Agarwal, Christophe Troestler
 License:     LGPL with OCaml linking exception
 Plugins:     META (0.2), DevFiles (0.2)
 BuildTools:  ocamlbuild
@@ -11,6 +11,10 @@ BuildTools:  ocamlbuild
 Flag apps
   Description: Build apps
   Default: false
+
+Flag tests
+  Description: Build tests
+  Default: true
 
 Library biocamlxmlm
   Path: src/ext/xmlm-1.0.2/src
@@ -60,7 +64,8 @@ Library biocaml
            , Biocaml_tags
            , Biocaml_util
            , Biocaml_wig
-  CSources: biocaml_pwm_stub.c
+           , Biocaml_mzData
+  CSources: biocaml_pwm_stub.c, biocaml_mzData_stubs.c
   CCOpt: -O3
 
 Executable gff_counts
@@ -107,13 +112,13 @@ Document doclib
   XOCamlbuildPath:      src/lib
   XOCamlbuildLibraries: biocaml
 
-Executable test
-  Path:             src/tests
+Executable tests_main
+  Path:			src/tests
   MainIs:       	main.ml
   Install:      	false
   CompiledObject: 	native
-  Build$:           flag(tests)
+  Build$:		flag(tests)
   BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
 
 Test main
-  Command: $test
+  Command: $tests_main
