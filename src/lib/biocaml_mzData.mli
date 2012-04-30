@@ -35,8 +35,8 @@ type spectrum = {
   sup: (string * vec) list; (** Supplemental (name, arrays), if any *)
 }
 
-val spectrums : string -> spectrum list
-(** [spectrums fname] returns the spectra contained in the file
+val of_file : string -> spectrum list
+(** [of_file fname] returns the spectra contained in the file
     [fname].  *)
 
 ;;

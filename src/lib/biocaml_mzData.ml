@@ -207,7 +207,7 @@ let rec get_spectrum xml spec depth =
 
 let empty_vec = Array1.create float64 fortran_layout 0
 
-let spectrums fname =
+let of_file fname =
   let fh = open_in fname in
   let xml = Xmlm.make_input ~enc:`UTF_8 (`Channel fh) in
   let scans = ref [] in
