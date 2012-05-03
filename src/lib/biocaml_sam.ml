@@ -119,4 +119,6 @@ let enum_file file =
         else
           List.rev header
   in
-  get_header [], Enum.map alignment_of_string enum
+  let a = get_header [] in
+  let b = Enum.map alignment_of_string enum in
+  a, b
