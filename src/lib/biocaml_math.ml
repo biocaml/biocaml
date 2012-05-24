@@ -134,8 +134,9 @@ let quantile_normalization aa =
     transpose (map ~f:(map ~f:snd) aa)
 
 let histogram ?(cmp=Pervasives.compare) arr =
+  let module PMap = BatMap.PMap in 
   let f mp a =
-    match PMap.find a mp with
+    match PMap.Exceptionless.find a mp with
     | Some e -> PMap.add a (e + 1) mp
     | None -> PMap.add a 1 mp
   in
