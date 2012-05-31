@@ -66,34 +66,6 @@ let tree_distance lo hi = function
   | Empty -> max_int
   | Node n -> interval_distance lo hi n.left_end n.right_end
 
-let rec find_closest_aux lo hi = function
-  | Empty -> None
-  | Node n ->
-    let dc = interval_distance lo hi n.lo n.hi in
-    if dc = 0 then Some (n,0) 
-    else
-      let dl_lb = tree_distance lo hi n.left
-      and dr_lb = tree_distance lo hi n.right in
-      let optval, optnode = 
-	if dl_lb < dc then 
-	  match find_closest_aux lo hi n.left with
-	      Some (nl,dl) when dl < dc -> dl, nl
-	    | _ -> dc, n
-	else dc, n in
-      let optval, optnode = 
-	if dr_lb < optval then 
-	  match find_closest_aux lo hi n.right with
-	      Some (nr,dr) when dr < optval -> dr, nr
-	    | _ -> optval, optnode
-	else optval, optnode
-      in
-      Some (optnode, optval)
-
-let find_closest lo hi t = match find_closest_aux lo hi t with
-    Some (n,d) -> 
-      let lo', hi', v = node_contents n in lo', hi', v, d
-  | None -> raise Empty_tree
-
 
 let empty = Empty
 
@@ -211,6 +183,70 @@ let backwards t =
     let clone() = make !l in
     BatEnum.make ~next:(enum_backwards_next l) ~count:(enum_count l) ~clone
   in make (rev_cons_iter t E)
+
+
+
+
+
+
+let rec find_closest_aux lo hi = function
+  | Empty -> None
+  | Node n ->
+    let dc = interval_distance lo hi n.lo n.hi in
+    if dc = 0 then Some (n,0) 
+    else
+      let dl_lb = tree_distance lo hi n.left
+      and dr_lb = tree_distance lo hi n.right in
+      let optval, optnode = 
+	if dl_lb < dc then 
+	  match find_closest_aux lo hi n.left with
+	      Some (nl,dl) when dl < dc -> dl, nl
+	    | _ -> dc, n
+	else dc, n in
+      let optval, optnode = 
+	if dr_lb < optval then 
+	  match find_closest_aux lo hi n.right with
+	      Some (nr,dr) when dr < optval -> dr, nr
+	    | _ -> optval, optnode
+	else optval, optnode
+      in
+      Some (optnode, optval)
+
+let find_closest lo hi t = match find_closest_aux lo hi t with
+    Some (n,d) -> 
+      let lo', hi', v = node_contents n in lo', hi', v, d
+  | None -> raise Empty_tree
+
+
+
+let find_intersecting_elem lo hi t = 
+  let rec loop = function 
+  | [] -> None
+  | h :: t -> match h with 
+    | Empty -> loop t
+    | Node n -> 
+        if interval_overlap lo hi n.left_end n.right_end then (
+          let t = n.left :: n.right :: t in 
+          if interval_overlap lo hi n.lo n.hi 
+          then Some (node_contents n, t)
+          else loop t
+        )
+        else loop t
+  in 
+  BatEnum.unfold [t] loop 
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 let rec check_height_integrity = function
   | Empty -> 0

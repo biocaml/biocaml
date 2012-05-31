@@ -21,16 +21,6 @@ val intersects : int -> int -> 'a t -> bool
 (** [intersects a b t] returns [true] if one interval in [t]
     intersects with the interval \[[a];[b]\].*)
 
-val find_closest : int -> int -> 'a t -> int * int * 'a * int
-(** [find_closest lo hi t] returns the interval in [t] which is at
-    minimal distance of the interval \[[lo];[hi]\]. The resulting
-    tuple contains from left to right, left-end of the interval,
-    right-end of the interval, value associated to the interval and
-    distance to the interval given in argument. Overlapping intervals
-    are at distance 0 of each other.
-
-    Raises [Empty_tree] if [t] is empty *)
-
 
 (** {6 Constructors} *)
 
@@ -54,6 +44,23 @@ val enum : 'a t -> (int * int * 'a) BatEnum.t
 val backwards : 'a t -> (int * int * 'a) BatEnum.t
 
 
+(** {6 Searching and filtering} *)
+
+val find_closest : int -> int -> 'a t -> int * int * 'a * int
+(** [find_closest lo hi t] returns the interval in [t] which is at
+    minimal distance of the interval \[[lo];[hi]\]. The resulting
+    tuple contains from left to right, left-end of the interval,
+    right-end of the interval, value associated to the interval and
+    distance to the interval given in argument. Overlapping intervals
+    are at distance 0 of each other.
+
+    Raises [Empty_tree] if [t] is empty *)
+
+val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) BatEnum.t
+(** [find_intersecting_elem a b t] is equivalent to [Enum.filter (fun
+    (x,y,_) -> intersects x y t) (enum t)] but is more efficient. *)
+
+
 (** {6 Misc} *)
 
 val print : 'a t -> unit
@@ -61,3 +68,12 @@ val print : 'a t -> unit
 
 val check_integrity : 'a t -> unit
 (** Used for debugging purpose, should be removed in the long run *)
+
+
+
+
+
+
+
+
+
