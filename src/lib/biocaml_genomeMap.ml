@@ -92,7 +92,11 @@ module LMap = struct
       (k, make lo hi), label, d
     )
     with T.Empty_tree -> raise Not_found
-      
+
+  let intersecting_elems (k, { Range.lo ; hi }) lmap =
+    T.find_intersecting_elem lo hi (Map.find k lmap)
+    /@ (fun (lo,hi,x) -> (k, Range.make lo hi), x)
+
   let enum dom =
     (Map.enum dom) 
     /@ (fun (k,t) -> Enum.map (fun (lo,hi,x) -> (k, Range.make lo hi), x) (T.enum t))
@@ -115,6 +119,9 @@ module LSet = struct
   let closest loc lset = 
     let loc', (), d = LMap.closest loc lset in
     loc', d
+
+  let intersecting_elems loc lset = 
+    LMap.intersecting_elems loc lset /@ fst
 
   let enum lset = LMap.enum lset /@ fst
   let of_enum e = e /@ (fun x -> x, ()) |> LMap.of_enum

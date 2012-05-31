@@ -50,19 +50,20 @@ module LSet : sig
   (*   (\** fold guaranteed on increasing order keywise, and for each key *\) *)
 
   val intersects : 'a location -> 'a t -> bool
-    (** [intersects loc lmap] returns [true] if [loc] has a non-empty
-        intersection with one of the locations in [lmap], and returns
-        [false] otherwise *)
+  (** [intersects loc lmap] returns [true] if [loc] has a non-empty
+      intersection with one of the locations in [lmap], and returns
+      [false] otherwise *)
 
   val closest : 'a location -> 'a t -> 'a location * int
-(** [closest loc lset] returns the location in [lset] that is the
-    closest to [loc], along with the actual (minimal)
-    distance. Throws [Not_found] if there is no location in [lset]
-    that comes from the same sequence than [loc]. *)
+  (** [closest loc lset] returns the location in [lset] that is the
+      closest to [loc], along with the actual (minimal)
+      distance. Throws [Not_found] if there is no location in [lset]
+      that comes from the same sequence than [loc]. *)
+    
+  val intersecting_elems : 'a location -> 'a t -> 'a location Enum.t
+  (** [intersecting_elems loc lset] returns an enumeration of all
+      locations in [lset] that intersect [loc]. *)
 
-
-(* val union : 'a t -> 'a t -> 'a t *)
-  (* val add : 'a location -> 'a t -> 'a t *)
 end
 
 (** A set of locations with an attached value on each of them *)
@@ -82,6 +83,11 @@ module LMap : sig
         closest to [loc], along with its annotation and the actual (minimal) 
         distance. Throws [Not_found] if there is no location in [lmap] 
         that comes from the same sequence than [loc]. *)
+
+  val intersecting_elems : 'a location -> ('a, 'b) t -> ('a location * 'b) Enum.t
+  (** [intersecting_elems loc lmap] returns an enumeration of elements
+      in [lmap] whose location intersects with [loc]. *)
+
 end
 
 
