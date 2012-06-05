@@ -94,8 +94,10 @@ module LMap = struct
     with T.Empty_tree -> raise Not_found
 
   let intersecting_elems (k, { Range.lo ; hi }) lmap =
-    T.find_intersecting_elem lo hi (Map.find k lmap)
-    /@ (fun (lo,hi,x) -> (k, Range.make lo hi), x)
+    try 
+      T.find_intersecting_elem lo hi (Map.find k lmap)
+      /@ (fun (lo,hi,x) -> (k, Range.make lo hi), x)
+    with Not_found -> Enum.empty ()
 
   let enum dom =
     (Map.enum dom) 
