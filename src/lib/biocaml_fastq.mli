@@ -1,11 +1,22 @@
 (** FASTQ data. *)
-open Batteries
 
-exception Invalid of string
 
-type record = (string * string * string * string)
-    (** Each record in a fastq file consists of 4 fields: title,
-        sequence, another title, and a quality score. *)
+type record = {
+  name: string;
+  sequence: string;
+  comment: string;
+  qualities: string;
+} 
 
-val enum_input : IO.input -> record Enum.t
-  (** Returns enumeration of fastq records in given input. *)
+type parser
+
+val feed_line: parser -> string -> unit
+
+val next :
+  parser ->
+  [> `error of
+      [> `sequence_and_qualities_do_not_match of int * string * string
+      | `wrong_comment_line of int * string
+      | `wrong_name_line of int * string ]
+  | `nothing_ready
+  | `record of record ]
