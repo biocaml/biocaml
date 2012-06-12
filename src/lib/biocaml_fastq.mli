@@ -23,3 +23,13 @@ val next :
       | `wrong_name_line of int * string ]
   | `nothing_ready
   | `record of record ]
+
+    
+type printer
+
+val printer: ?buffer:[`clear of int | `reset of int] -> unit -> printer
+  
+val feed_record: printer -> record -> unit
+
+val get_string: printer -> string
+
