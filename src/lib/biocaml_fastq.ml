@@ -40,7 +40,7 @@ let feed_string p s =
 
 let next p =
   if Queue.length p.lines < 4 then
-    `nothing_ready
+    `not_ready
   else (
     let name_line = Queue.pop p.lines in
     let sequence = Queue.pop p.lines in

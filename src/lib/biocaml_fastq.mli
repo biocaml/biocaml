@@ -21,7 +21,7 @@ val next :
       [> `sequence_and_qualities_do_not_match of int * string * string
       | `wrong_comment_line of int * string
       | `wrong_name_line of int * string ]
-  | `nothing_ready
+  | `not_ready
   | `record of record ]
 
     

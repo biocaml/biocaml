@@ -3,7 +3,7 @@ open Lwt
 let print_next_ones parser =
   let rec next_m () =
     match Biocaml_fastq.next parser with
-    | `nothing_ready -> Lwt_io.printf "%%"
+    | `not_ready -> Lwt_io.printf "%%"
     | `record {Biocaml_fastq. name; sequence; comment; qualities; } ->
       Lwt_io.printf "Read %S (%d bp)\n" name (String.length sequence)
       >>= fun () ->
