@@ -9,7 +9,8 @@ type record = {
 } 
 
 type parser
-
+val parser: unit -> parser
+  
 val feed_line: parser -> string -> unit
 
 val next :
