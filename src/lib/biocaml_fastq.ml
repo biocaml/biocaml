@@ -56,7 +56,7 @@ let next p =
     else (
       p.parsed_lines <- p.parsed_lines + 4;
       `record { name = String.sub name_line 1 (String.length name_line - 1);
-                comment = String.sub name_line 1 (String.length name_line - 1);
+                comment = String.sub comment_line 1 (String.length comment_line - 1);
                 sequence; qualities }
     ))
       
@@ -94,6 +94,86 @@ let get_string p =
   ret
   
 
+
+class type ['input, 'output, 'error] transform =
+object
+  method feed: 'input -> unit
+  method next: [ `output of 'output | `not_ready | `error of 'error ]
+end
+
+type parser_error =
+[ `sequence_and_qualities_do_not_match of int * string * string
+| `wrong_comment_line of int * string
+| `wrong_name_line of int * string ]
+
+class fastq_parser =
+object
+  val parser = parser ()
+  method feed s =
+    feed_string parser s
+  method next:  [ `output of record | `not_ready | `error of parser_error ] =
+    match next parser with
+    | `record r -> `output r
+    | `error e -> `error e
+    | `not_ready -> `not_ready
+end
+  
+type empty
+class fastq_printer =
+object
+  val printer = printer ()
+  method feed r = feed_record printer r
+  method next :  [ `output of string | `not_ready | `error of empty ] =
+    match (get_string printer) with
+    | "" -> `not_ready
+    | s -> `output s
+end
+  
+  
+
+class trimmer (specification: [`beginning of int|`ending of int]) =
+object
+  val records =  Queue.create ()
+  method feed r = Queue.push r records 
+  method next: 
+    [ `output of record | `not_ready | `error of [`invalid_size of int] ] =
+    if Queue.length records > 0 then
+      let r = Queue.pop records in
+      let rlgth = String.length r.sequence in
+      begin match specification with
+      | `beginning i when i < rlgth ->
+        `output 
+          { r with sequence = String.sub r.sequence ~pos:i ~len:(rlgth - i);
+              qualities = String.sub r.qualities ~pos:i ~len:(rlgth - i) }
+      | `ending i when i < rlgth ->
+        `output 
+          { r with sequence = String.sub r.sequence ~pos:0 ~len:(rlgth - i);
+              qualities = String.sub r.qualities ~pos:0 ~len:(rlgth - i) }
+      | _ ->
+        `error (`invalid_size rlgth)
+      end
+    else
+      `not_ready
+
+end
+
+let compose ta tb =
+object
+  method feed (i: 'a) : unit =
+    ta#feed i
+  method next : [ `output of 'e | `not_ready
+                | `error of [`left of 'c | `right of 'f ] ] =
+    match ta#next with
+    | `output o ->
+      tb#feed o;
+      begin match tb#next with
+      | `output o -> `output o
+      | `not_ready -> `not_ready
+      | `error e -> `error (`right e)
+      end
+    | `not_ready -> `not_ready
+    | `error e -> `error (`left e)
+end 
   
 (*
 

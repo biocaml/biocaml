@@ -66,6 +66,50 @@ let reprint_fastq file =
     Lwt_io.printf "%s" (Biocaml_fastq.get_string printer))
     list_of_records
   
+let test_classy_trimmer file =
+  let fastq_file_trimmer =
+    Biocaml_fastq.(
+      compose
+        (compose
+           (new fastq_parser)
+           (new trimmer (`beginning 10)))
+        (compose
+           (new trimmer (`ending 2))
+           (new fastq_printer)))
+  in
+  Lwt_io.(with_file ~mode:input file (fun i ->
+    let rec loop () =
+      read i
+      >>= fun read_string ->
+      if read_string = "" then
+        return ()
+      else (
+        fastq_file_trimmer#feed read_string;
+        begin match fastq_file_trimmer#next with
+        | `output o ->
+          Lwt_io.printf "%s" o
+        | `not_ready ->
+          Lwt_io.printf "=====  NOT READY \n"
+        | `error _ -> 
+          Lwt_io.printf "=====  ERROR\n"
+        end
+        >>= fun () ->
+        loop ())
+    in
+    loop ()))
+  >>= fun () ->
+  let rec finish_printing () =
+    begin match fastq_file_trimmer#next with
+    | `output o ->
+      Lwt_io.printf "%s" o >>= fun () ->
+      finish_printing ()
+    | `not_ready ->
+      Lwt_io.printf "=====  NOT READY \n"
+    | `error _ -> 
+      Lwt_io.printf "=====  ERROR\n"
+    end
+  in
+  finish_printing ()
   
   
 let () =
@@ -77,6 +121,8 @@ let () =
     Lwt_io.printf "\nBy pieces of %d bytes:\n" 4200 >>= fun () ->
     test_fastq_string 4200 Sys.argv.(1) >>= fun () ->
     Lwt_io.printf "\nRe-print the FASTQ:\n" >>= fun () ->
-    reprint_fastq Sys.argv.(1)
+    reprint_fastq Sys.argv.(1) >>= fun () ->
+    Lwt_io.printf "\nTrim the FASTQ:\n" >>= fun () ->
+    test_classy_trimmer Sys.argv.(1)
 
   )
