@@ -13,6 +13,8 @@ val parser: unit -> parser
   
 val feed_line: parser -> string -> unit
 
+val feed_string: parser -> string -> unit
+
 val next :
   parser ->
   [> `error of

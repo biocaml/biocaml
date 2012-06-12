@@ -19,7 +19,23 @@ let feed_line p s =
   Queue.push s p.lines
 
 let feed_string p s =
-  failwith "TODO"
+  let lines = BatString.nsplit s "\n" in 
+  let rec faux = function
+    | [] -> assert false
+    | [ "" ] -> (* last char was a "\n" *) ()
+    | [ s ] -> (* some remaining stuff *)
+      p.unfinished_line <- Some s;
+    | h :: t ->
+      Queue.push h p.lines;
+      faux t
+  in
+  match p.unfinished_line, lines with
+  | _, [] -> ()
+  | None, l -> faux l
+  | Some s, h :: t ->
+    p.unfinished_line <- None;
+    faux ((s ^ h) :: t)
+
   
 
 let next p =
