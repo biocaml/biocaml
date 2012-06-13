@@ -68,14 +68,26 @@ let reprint_fastq file =
   
 let test_classy_trimmer file =
   let fastq_file_trimmer =
+    let counter_transform =
+      object
+        val mutable id =  0
+        method feed () = ()
+        method next = id <- id + 1; `output id
+      end in
     Biocaml_fastq.(
-      compose
-        (compose
-           (new fastq_parser)
-           (new trimmer (`beginning 10)))
-        (compose
-           (new trimmer (`ending 2))
-           (new fastq_printer)))
+      (compose
+         (mix
+            (compose
+               (compose
+                  (new fastq_parser)
+                  (new trimmer (`beginning 10)))
+               (new trimmer (`ending 2)))
+            counter_transform
+            ~f:(fun r c -> { r with name = Printf.sprintf "%s -- %d" r.name c }))
+         (new fastq_printer)))
+(*  string  ---  fastq-record --- trimmed-fast \
+                                               f --- named-fastq --- string 
+    unit  ---  count --------------------------/                              *)    
   in
   Lwt_io.(with_file ~mode:input file (fun i ->
     let rec loop () =
@@ -84,7 +96,7 @@ let test_classy_trimmer file =
       if read_string = "" then
         return ()
       else (
-        fastq_file_trimmer#feed read_string;
+        fastq_file_trimmer#feed (read_string, ());
         begin match fastq_file_trimmer#next with
         | `output o ->
           Lwt_io.printf "%s" o
