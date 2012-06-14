@@ -69,3 +69,12 @@ val mix :
   ( 'input_left * 'input_right, 'output_f,
     [ `left of 'error_left | `right of 'error_right ] ) transform
   
+
+(** Non-cooperative functions. *)
+
+exception Invalid of string
+
+
+val enum_input : BatIO.input -> record BatEnum.t
+(** Returns enumeration of fastq records in given input. *)
+

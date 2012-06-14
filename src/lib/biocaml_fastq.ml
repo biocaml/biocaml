@@ -206,42 +206,56 @@ object
     end
 end
   
-
+(* ************************************************************************** *)
+(* Non-cooperative / Unix *)
   
-(*
-
-
-open Batteries;; open Printf
-
-
-open Batteries;; open Printf
 
 exception Invalid of string
 
-type record = string * string * string * string
-
+let to_tuple r = (r.name, r.sequence, r.comment, r.qualities)
+  
 let enum_input cin =
   let e = IO.lines_of cin in
+  let parser = parser () in
   let open Enum in
+  let get_or_raise e exn =
+    match get e with
+    | None -> raise exn
+    | Some s -> s in
+  let invalidf fmt = ksprintf (fun s -> raise (Invalid s)) fmt in
   let rec make_from_enum (e : string t) = make
     ~next:(fun () ->
-      let a = match get e with
-        | None -> raise No_more_elements
-        | Some a -> a
+      let a = get_or_raise e No_more_elements in
+      let b =
+        get_or_raise e
+          (Invalid "expected sequence line after '@' line but reached end-of-input")
       in
-      let b = match get e with
-        | None -> raise (Invalid "expected sequence line after '@' line but reached end-of-input")
-        | Some b -> b
+      let c =
+        get_or_raise e
+          (Invalid "expected '+' line after sequence line but reached end-of-inpout")
       in
-      let c = match get e with
-        | None -> raise (Invalid "expected '+' line after sequence line but reached end-of-inpout")
-        | Some c -> c
+      let d =
+        get_or_raise e
+          (Invalid "expected quality score after '+' line but reached end-of-input")
       in
-      let d = match get e with
-        | None -> raise (Invalid "expected quality score after '+' line but reached end-of-input")
-        | Some d -> d
-      in
-      a,b,c,d
+      feed_line parser a;
+      feed_line parser b;
+      feed_line parser c;
+      feed_line parser d;
+      begin match next parser with
+      | `record o -> o
+      | `not_ready -> raise (Invalid "Parser in wrong state: not_ready")
+      | `error error ->
+        begin match error with        
+        | `sequence_and_qualities_do_not_match (line, seq, qualities) ->
+          invalidf "Line %d: sequence and qualities do not match: %d Vs %d."
+            line (String.length seq) (String.length qualities)
+        | `wrong_comment_line (line, _) ->
+          invalidf "Line %d: Wrong comment line." line
+        | `wrong_name_line (line, _) ->
+          invalidf "Line %d: Wrong sequence-id line." line
+        end
+      end
     )
     
     ~count:(fun () ->
@@ -253,4 +267,13 @@ let enum_input cin =
     ~clone:(fun () -> make_from_enum (clone e))
   in
   make_from_enum e
+(*
+#require "biocaml";;
+open Batteries;;
+let i = File.open_in "01.fastq";;
+let e = Biocaml_fastq.enum_input i;;
+List.of_enum e;;
+
 *)
+
+    
