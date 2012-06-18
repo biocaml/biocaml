@@ -35,8 +35,8 @@ module ListImpl = struct
 
   let interval_overlap lo hi lo' hi' =
     ( || )
-      (hi >= lo' && hi <= hi')
-      (lo >= lo' && lo <= hi')
+      (lo  <= lo' && lo' <= hi)
+      (lo' <= lo  && lo  <= hi')
       
   let intersects lo hi l = 
     List.exists (fun (lo',hi',_) -> interval_overlap lo hi lo' hi') l
@@ -133,14 +133,28 @@ let test_find_closest () =
   done
 
 
-let test_find_intersecting_elem () = 
+
+let test_find_intersecting_elem1 () = 
+  let u = T.(add 69130 69630 () (add 69911 70411 () (add 70501 71001 () empty))) in 
+  assert_equal
+    T.(find_intersecting_elem 70163 70163 u |> List.of_enum |> List.length)
+    1 ;
+  assert_equal
+    T.(find_intersecting_elem 65163 75163 u |> List.of_enum |> List.length)
+    3
+
+let test_find_intersecting_elem2 () = 
   for i = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> List.of_enum
     and lo, hi, _ = random_interval  ~ub:1000 () in
     let l = L.(find_intersecting_elem lo hi (of_list intervals)) |> Set.of_enum
     and t = T.(find_intersecting_elem lo hi (of_list intervals)) |> Set.of_enum in
     assert_equal Set.(cardinal (union (diff l t) (diff t l))) 0 ;
-    (* for some reason, [assert_equal l t] says false *)
+  (* [assert_equal l t] is not a valid test because sets cannot be
+     compared with ( = ). Indeed, a set is an AVL tree whose structure
+     may depend on the order its elements were added: ( = ) compare
+     the structure directly and may for this reason fail to see two
+     sets have the same elements *)
   done
 
 let tests = "IntervalTree" >::: [
@@ -148,7 +162,8 @@ let tests = "IntervalTree" >::: [
   "Creation" >:: test_creation;
   "Intersection" >:: test_intersection;
   "Find closest" >:: test_find_closest;
-  "Find intersecting elements" >:: test_find_intersecting_elem;
+  "Find intersecting elements (1)" >:: test_find_intersecting_elem1;
+  "Find intersecting elements (2)" >:: test_find_intersecting_elem2;
 ]
 
 

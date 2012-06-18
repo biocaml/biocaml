@@ -47,8 +47,8 @@ let node_contents n = n.lo, n.hi, n.elt
 
 let interval_overlap lo hi lo' hi' =
   ( || )
-    (hi >= lo' && hi <= hi')
-    (lo >= lo' && lo <= hi')
+    (lo  <= lo' && lo' <= hi)
+    (lo' <= lo  && lo  <= hi')
   
 let rec intersects lo hi = function
   | Empty -> false
@@ -219,21 +219,6 @@ let find_closest lo hi t = match find_closest_aux lo hi t with
 
 
 
-let find_intersecting_elem lo hi t = 
-  let rec loop = function 
-  | [] -> None
-  | h :: t -> match h with 
-    | Empty -> loop t
-    | Node n -> 
-        if interval_overlap lo hi n.left_end n.right_end then (
-          let t = n.left :: n.right :: t in 
-          if interval_overlap lo hi n.lo n.hi 
-          then Some (node_contents n, t)
-          else loop t
-        )
-        else loop t
-  in 
-  BatEnum.unfold [t] loop 
 
 
 
@@ -279,5 +264,34 @@ let test_add () =
     let j = Random.int 100 in
     r := add j (j + Random.int 100) () !r
   done
+
+
+
+
+let find_intersecting_elem lo hi t = 
+  let rec loop = function 
+  | [] -> None
+  | h :: t -> match h with 
+    | Empty -> loop t
+    | Node n -> 
+        if interval_overlap lo hi n.left_end n.right_end then (
+          let t = n.left :: n.right :: t in 
+          if interval_overlap lo hi n.lo n.hi 
+          then Some (node_contents n, t)
+          else loop t
+        )
+        else loop t
+  in 
+  BatEnum.unfold [t] loop 
+
+
+
+
+
+
+
+
+
+
 
 
