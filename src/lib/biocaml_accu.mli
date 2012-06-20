@@ -40,6 +40,8 @@ module Counter : sig
   val create : ?n:int -> unit -> 'a t
   val add : 'a counter -> 'a -> int -> unit
   val tick : 'a counter -> 'a -> unit
+  val enum : 'a counter -> ('a * int) Enum.t
+  val of_enum : 'a Enum.t -> 'a counter
 end
 
 val counts : ('a -> 'b) -> 'a Enum.t -> ('b * int) Enum.t
@@ -53,6 +55,8 @@ module Relation : sig
   type ('a, 'b) t = ('a,'b) relation
   val create : ?n:int -> unit -> ('a,'b) t
   val add : ('a,'b) t -> 'a -> 'b -> unit
+  val enum : ('a,'b) relation -> ('a * 'b list) Enum.t
+  val of_enum : ('a * 'b) Enum.t -> ('a, 'b) relation
 end
 
 val relation : ('a * 'b) Enum.t -> ('a * 'b list) Enum.t

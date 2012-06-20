@@ -30,12 +30,15 @@ module Counter = struct
   let create ?n () = create ?n 0 identity ( + )
   let add = add
   let tick accu x = add accu x 1
+  let enum = enum
+  let of_enum e = 
+    let c = create () in
+    Enum.iter (tick c) e ;
+    c
 end
 
 let counts f e = 
-  let c = Counter.create () in
-  Enum.iter (Counter.tick c) (e /@ f) ;
-  enum c
+  enum (Counter.of_enum (e /@ f))
 
 
 type ('a, 'b) relation = ('a,'a,'b,'b list) t
@@ -45,14 +48,16 @@ module Relation = struct
   let create ?n () = 
     create [] identity (fun x xs -> x :: xs)
   let add = add
+  let enum = enum
+  let of_enum xs = 
+    let r = create () in
+    Enum.iter
+      (fun (x,y) -> add r x y)
+      xs ;
+    r
 end
 
-let relation xs = 
-  let r = Relation.create () in
-  Enum.iter
-    (fun (x,y) -> Relation.add r x y)
-    xs ;
-  enum r
+let relation xs = enum (Relation.of_enum xs)
 
 
 
