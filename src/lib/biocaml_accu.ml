@@ -37,14 +37,22 @@ let counts f e =
   Enum.iter (Counter.tick c) (e /@ f) ;
   enum c
 
-type ('a, 'b) relation = ('a,'a,'b,'b list) t 
+
+type ('a, 'b) relation = ('a,'a,'b,'b list) t
+
+module Relation = struct
+  type ('a, 'b) t = ('a,'b) relation
+  let create ?n () = 
+    create [] identity (fun x xs -> x :: xs)
+  let add = add
+end
 
 let relation xs = 
-  let r = create [] identity (fun x xs -> x :: xs) in
+  let r = Relation.create () in
   Enum.iter
-    (fun (x,y) -> add r x y)
+    (fun (x,y) -> Relation.add r x y)
     xs ;
-  r
+  enum r
 
 
 

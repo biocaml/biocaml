@@ -47,9 +47,15 @@ val counts : ('a -> 'b) -> 'a Enum.t -> ('b * int) Enum.t
 
 (** {7 Relation} *)
 
-type ('a, 'b) relation = ('a,'a,'b,'b list) t 
+type ('a, 'b) relation = ('a,'a,'b,'b list) t
 
-val relation : ('a * 'b) Enum.t -> ('a, 'b) relation
+module Relation : sig
+  type ('a, 'b) t = ('a,'b) relation
+  val create : ?n:int -> unit -> ('a,'b) t
+  val add : ('a,'b) t -> 'a -> 'b -> unit
+end
+
+val relation : ('a * 'b) Enum.t -> ('a * 'b list) Enum.t
 
 
 
