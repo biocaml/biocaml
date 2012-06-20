@@ -36,3 +36,32 @@ let counts f e =
   let c = Counter.create () in
   Enum.iter (Counter.tick c) (e /@ f) ;
   enum c
+
+type ('a, 'b) relation = ('a,'a,'b,'b list) t 
+
+let relation xs = 
+  let r = create [] identity (fun x xs -> x :: xs) in
+  Enum.iter
+    (fun (x,y) -> add r x y)
+    xs ;
+  r
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

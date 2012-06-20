@@ -43,3 +43,30 @@ module Counter : sig
 end
 
 val counts : ('a -> 'b) -> 'a Enum.t -> ('b * int) Enum.t
+
+
+(** {7 Relation} *)
+
+type ('a, 'b) relation = ('a,'a,'b,'b list) t 
+
+val relation : ('a * 'b) Enum.t -> ('a, 'b) relation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
