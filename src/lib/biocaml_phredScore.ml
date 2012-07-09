@@ -4,6 +4,11 @@ exception Error of string
 
 type t = int
 
+let round_float_to_int x =
+  if mod_float x 1.0 < 0.5
+  then int_of_float (floor x)
+  else int_of_float (ceil x)
+
 let to_int t = t
 
 let to_probability t =
@@ -31,13 +36,7 @@ let of_ascii ?(offset=`offset33) x =
   else
     Error (sprintf "%c with offset %d is not a valid score" x offset) |> raise
 
-let of_probability
-    ?(f = fun x ->
-      if mod_float x 1.0 < 0.5
-      then int_of_float (floor x)
-      else int_of_float (ceil x)
-    )
-    x =
+let of_probability ?(f = round_float_to_int) x =
   if 0.0 <= x && x <= 1.0 then
     f (-10. *. log10 x)
   else
