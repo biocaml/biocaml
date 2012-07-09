@@ -63,3 +63,23 @@ val to_probability : t -> float
   (** [to_probablity x] converts [x] to a probablity score. Note this
       is not the inverse of [of_probability] due to the rounding done by
       the latter. *)
+
+val of_solexa_score : ?f:(float -> int) -> Biocaml_solexaScore.t -> t
+  (** [of_solexa_score x] converts Solexa score [x] to a PHRED
+      score.
+
+      The conversion produces a float, and it is unclear what
+      convention is used to convert the resulting float value to an
+      integer. As in {!of_probability}, the optional [f] parameter is
+      provided to dictate this.
+  *)
+
+val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexaScore.t
+  (** [to_solexa_score t] converts PHRED score [t] to a Solexa
+      score.
+
+      The conversion produces a float, and it is unclear what
+      convention is used to convert the resulting float value to an
+      integer. As in {!of_probability}, the optional [f] parameter is
+      provided to dictate this.
+  *)
