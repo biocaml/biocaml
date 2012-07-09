@@ -4,7 +4,7 @@
 
     {v
     # comment
-    # commment
+    # comment
     ...
     >header
     content
