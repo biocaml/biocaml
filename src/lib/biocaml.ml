@@ -24,6 +24,7 @@ module Sam            = Biocaml_sam
 module Sbml           = Biocaml_sbml         
 module Seq            = Biocaml_seq          
 module Sgr            = Biocaml_sgr          
+module SolexaScore    = Biocaml_solexaScore
 module StrandName     = Biocaml_strandName   
 module Track          = Biocaml_track        
 module Table          = Biocaml_table        

@@ -57,6 +57,7 @@ Library biocaml
            , Biocaml_sam
            , Biocaml_sbml
            , Biocaml_seq
+           , Biocaml_solexaScore
            , Biocaml_sgr
            , Biocaml_strandName
            , Biocaml_table
