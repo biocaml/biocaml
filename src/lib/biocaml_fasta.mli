@@ -11,7 +11,7 @@
     >header
     content
     ...
-    }
+    v}
 
     where the content may span multiple lines.
     
