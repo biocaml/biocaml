@@ -44,8 +44,15 @@ module Counter : sig
   val of_enum : 'a Enum.t -> 'a counter
 end
 
-val counts : ('a -> 'b) -> 'a Enum.t -> ('b * int) Enum.t
-
+val counts  : ('a -> 'b)       -> 'a Enum.t ->              ('b * int) Enum.t
+val product : 
+  ?filter:('a -> 'b -> bool) -> 
+  ('a -> 'b -> 'c) -> 
+  'a list -> 'b list -> 
+  ('c * int) Enum.t 
+(** [product filter f l1 l2] computes an histogram of values returned by f
+    when it is applied for all combinations of elements in [l1] and
+    [l2] such that the predicate [filter] is true *)
 
 (** {7 Relation} *)
 

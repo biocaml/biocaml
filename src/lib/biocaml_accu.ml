@@ -40,6 +40,15 @@ end
 let counts f e = 
   enum (Counter.of_enum (e /@ f))
 
+let product ?filter f l1 l2 = Counter.(
+  let c = create () in
+  let tick = match filter with
+  | Some p -> fun e1 e2 -> if p e1 e2 then tick c (f e1 e2)
+  | None   -> fun e1 e2 -> tick c (f e1 e2)
+  in
+  List.iter (fun e1 -> List.iter (tick e1) l2) l1 ;
+  enum c
+)
 
 type ('a, 'b) relation = ('a,'a,'b,'b list) t
 
