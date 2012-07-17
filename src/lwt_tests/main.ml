@@ -9,16 +9,16 @@ let print_next_ones parser =
       >>= fun () ->
       next_m ()
     | `error (`sequence_and_qualities_do_not_match (l, seq, qs)) ->
-      Lwt_io.printf "Error line %d: %d bp Vs %d q-scores\n" l
+      Lwt_io.printf "Error %s: %d bp Vs %d q-scores\n" (Biocaml_pos.to_string l)
         (String.length seq) (String.length qs)
       >>= fun () ->
       next_m ()
     | `error (`wrong_comment_line (l, _)) ->
-      Lwt_io.printf "Syntax error (comment line) line: %d\n" l
+      Lwt_io.printf "Syntax error (comment line): %s\n" (Biocaml_pos.to_string l)
       >>= fun () ->
       next_m ()
     | `error (`wrong_name_line (l, _)) ->
-      Lwt_io.printf "Syntax error (name line) line: %d\n" l
+      Lwt_io.printf "Syntax error (name line): %s\n" (Biocaml_pos.to_string l)
       >>= fun () ->
       next_m ()
   in
@@ -26,15 +26,15 @@ let print_next_ones parser =
         
       
 let test_fastq_lines file =
-  let parser = Biocaml_fastq.parser () in
+  let parser = Biocaml_transform.Line_oriented.parser () in
   let stream_of_lines = Lwt_io.lines_of_file file in
   Lwt_stream.iter_s (fun l ->
-    Biocaml_fastq.feed_line parser l;
+    Biocaml_transform.Line_oriented.feed_line parser l;
     print_next_ones parser)
     stream_of_lines
 
 let test_fastq_string count file =
-  let parser = Biocaml_fastq.parser () in
+  let parser = Biocaml_transform.Line_oriented.parser () in
   Lwt_io.(with_file ~mode:input file (fun i ->
     let rec loop () =
       read ~count i
@@ -42,7 +42,7 @@ let test_fastq_string count file =
       if read_string = "" then
         return ()
       else (
-        Biocaml_fastq.feed_string parser read_string;
+        Biocaml_transform.Line_oriented.feed_string parser read_string;
         print_next_ones parser
         >>= fun () ->
         loop ())
@@ -50,11 +50,11 @@ let test_fastq_string count file =
     loop ()))
 
 let reprint_fastq file =
-  let parser = Biocaml_fastq.parser () in
+  let parser = Biocaml_transform.Line_oriented.parser () in
   let stream_of_lines = Lwt_io.lines_of_file file in
   let stream_of_records =
     Lwt_stream.filter_map (fun l ->
-      Biocaml_fastq.feed_line parser l;
+      Biocaml_transform.Line_oriented.feed_line parser l;
       match Biocaml_fastq.next parser with
       | `record r -> Some r
       | _ -> None) stream_of_lines in
@@ -79,7 +79,7 @@ let test_classy_trimmer file =
          (mix
             (compose
                (compose
-                  (new Biocaml_fastq.fastq_parser)
+                  (new Biocaml_fastq.fastq_parser ())
                   (new Biocaml_fastq.trimmer (`beginning 10)))
                (new Biocaml_fastq.trimmer (`ending 2)))
             counter_transform

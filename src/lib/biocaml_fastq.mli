@@ -1,6 +1,8 @@
 (** FASTQ data. *)
 
 
+open Biocaml_transform
+
 type record = {
   name: string;
   sequence: string;
@@ -8,22 +10,15 @@ type record = {
   qualities: string;
 } 
 
-type parser
-val parser: unit -> parser
-  
-val feed_line: parser -> string -> unit
-
-val feed_string: parser -> string -> unit
-
 val next :
-  parser ->
+  Line_oriented.parser ->
   [> `error of
-      [> `sequence_and_qualities_do_not_match of int * string * string
-      | `wrong_comment_line of int * string
-      | `wrong_name_line of int * string ]
+      [> `sequence_and_qualities_do_not_match of
+          Biocaml_pos.t * string * string
+      | `wrong_comment_line of Biocaml_pos.t * string
+      | `wrong_name_line of Biocaml_pos.t * string ]
   | `not_ready
   | `record of record ]
-
     
 type printer
 
@@ -35,14 +30,14 @@ val get_string: printer -> string
 
 (**  {3 Classy Interface } *)
   
-open Biocaml_transform
-                          
+  
 type parser_error =
-[ `sequence_and_qualities_do_not_match of int * string * string
-| `wrong_comment_line of int * string
-| `wrong_name_line of int * string ]
+[ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
+| `wrong_comment_line of Biocaml_pos.t * string
+| `wrong_name_line of Biocaml_pos.t * string ]
 
-class fastq_parser: [string, record, parser_error] transform
+class fastq_parser: ?filename:string -> unit ->
+  [string, record, parser_error] transform
 
 type empty
 class fastq_printer: [record, string, empty] transform

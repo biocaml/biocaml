@@ -1,4 +1,21 @@
 
+module Line_oriented: sig
+  type parser
+  val parser: ?filename:string -> unit -> parser
+    
+  val feed_line: parser -> string -> unit
+
+  val feed_string: parser -> string -> unit
+
+    
+  val queued_lines: parser -> int
+  val next_line: parser -> string option
+  val next_line_exn: parser -> string
+
+  val current_position: parser -> Biocaml_pos.t
+end
+
+
 class type ['input, 'output, 'error] transform =
 object
   method feed: 'input -> unit

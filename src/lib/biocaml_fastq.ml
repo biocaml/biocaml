@@ -7,57 +7,30 @@ type record = {
   qualities: string;
 } 
 
-type parser = {
-  mutable unfinished_line : string option;
-  lines : string Queue.t;
-  mutable parsed_lines : int;
-}
-
-let parser () = {unfinished_line = None; lines = Queue.create (); parsed_lines = 0}
-
-let feed_line p s =
-  Queue.push s p.lines
-
-let feed_string p s =
-  let lines = BatString.nsplit s "\n" in 
-  let rec faux = function
-    | [] -> assert false
-    | [ "" ] -> (* last char was a "\n" *) ()
-    | [ s ] -> (* some remaining stuff *)
-      p.unfinished_line <- Some s;
-    | h :: t ->
-      Queue.push h p.lines;
-      faux t
-  in
-  match p.unfinished_line, lines with
-  | _, [] -> ()
-  | None, l -> faux l
-  | Some s, h :: t ->
-    p.unfinished_line <- None;
-    faux ((s ^ h) :: t)
-
-  
 
 let next p =
-  if Queue.length p.lines < 4 then
+  let open Biocaml_transform.Line_oriented in
+  if queued_lines p < 4 then
     `not_ready
   else (
-    let name_line = Queue.pop p.lines in
-    let sequence = Queue.pop p.lines in
-    let comment_line = Queue.pop p.lines in
-    let qualities = Queue.pop p.lines in
+    let name_line    = next_line_exn p in
     if String.length name_line = 0 || name_line.[0] <> '@'
-    then `error (`wrong_name_line (p.parsed_lines + 1, name_line))
-    else if String.length comment_line = 0 || comment_line.[0] <> '+'
-    then `error (`wrong_comment_line (p.parsed_lines + 3, comment_line))
-    else if String.length sequence <> String.length qualities
-    then `error (`sequence_and_qualities_do_not_match (p.parsed_lines + 2,
-                                                       sequence, qualities))
-    else (
-      p.parsed_lines <- p.parsed_lines + 4;
-      `record { name = String.sub name_line 1 (String.length name_line - 1);
-                comment = String.sub comment_line 1 (String.length comment_line - 1);
-                sequence; qualities }
+    then `error (`wrong_name_line (current_position p, name_line))
+    else 
+      let sequence     = next_line_exn p in
+      let comment_line = next_line_exn p in
+      if String.length comment_line = 0 || comment_line.[0] <> '+'
+      then `error (`wrong_comment_line (current_position p, comment_line))
+      else 
+        let qualities    = next_line_exn p in
+        if String.length sequence <> String.length qualities
+        then `error (`sequence_and_qualities_do_not_match (current_position p,
+                                                           sequence, qualities))
+        else (
+          `record {
+            name = String.sub name_line 1 (String.length name_line - 1);
+            comment = String.sub comment_line 1 (String.length comment_line - 1);
+            sequence; qualities }
     ))
       
 
@@ -96,13 +69,14 @@ let get_string p =
 
 
 type parser_error =
-[ `sequence_and_qualities_do_not_match of int * string * string
-| `wrong_comment_line of int * string
-| `wrong_name_line of int * string ]
+[ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
+| `wrong_comment_line of Biocaml_pos.t * string
+| `wrong_name_line of Biocaml_pos.t * string ]
 
-class fastq_parser =
+open Biocaml_transform.Line_oriented 
+class fastq_parser ?filename () =
 object
-  val parser = parser ()
+  val parser = parser ?filename ()
   method feed s =
     feed_string parser s
   method next:  [ `output of record | `not_ready | `error of parser_error ] =
@@ -190,14 +164,15 @@ let enum_input cin =
       | `record o -> o
       | `not_ready -> raise (Invalid "Parser in wrong state: not_ready")
       | `error error ->
+        let prpos = Biocaml_pos.to_string in
         begin match error with        
-        | `sequence_and_qualities_do_not_match (line, seq, qualities) ->
-          invalidf "Line %d: sequence and qualities do not match: %d Vs %d."
-            line (String.length seq) (String.length qualities)
-        | `wrong_comment_line (line, _) ->
-          invalidf "Line %d: Wrong comment line." line
-        | `wrong_name_line (line, _) ->
-          invalidf "Line %d: Wrong sequence-id line." line
+        | `sequence_and_qualities_do_not_match (pos, seq, qualities) ->
+          invalidf "%s: sequence and qualities do not match: %d Vs %d."
+            (prpos pos) (String.length seq) (String.length qualities)
+        | `wrong_comment_line (pos, _) ->
+          invalidf "%s: Wrong comment line." (prpos pos)
+        | `wrong_name_line (pos, _) ->
+          invalidf "%s: Wrong sequence-id line." (prpos pos)
         end
       end
     )
