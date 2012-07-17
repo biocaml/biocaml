@@ -47,3 +47,7 @@ exception Invalid of string
 val enum_input : BatIO.input -> record BatEnum.t
 (** Returns enumeration of fastq records in given input. *)
 
+
+exception Error of parser_error 
+val enum_parser: ?filename:string -> string BatEnum.t -> record BatEnum.t
+(** Stream transformation for [BatEnum.t]. *)

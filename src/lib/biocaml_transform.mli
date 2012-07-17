@@ -76,3 +76,11 @@ val mix :
   ( 'input_left * 'input_right, 'output_f,
     [ `left of 'error_left | `right of 'error_right ] ) transform
 (** Create a transformation that merges the output of two transformations.  *) 
+
+
+val enum_transformation :
+  error_to_exn:('error -> exn) ->
+  ('input, 'output, 'error) transform ->
+  'input BatEnum.t -> 'output BatEnum.t
+(** Make an enum-transformation that may raise exceptions. *)
+    

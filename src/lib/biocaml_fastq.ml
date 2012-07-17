@@ -167,4 +167,15 @@ List.of_enum e;;
 
 *)
 
-    
+exception Error of parser_error 
+let enum_parser ?filename e =
+  let transfo = new fastq_parser ?filename () in
+  Biocaml_transform.enum_transformation (fun e -> Error e) transfo e
+(*
+#require "biocaml";;
+open Batteries;;
+let i = File.lines_of "01.fastq";;
+let j = Enum.map  (sprintf "%s\n") i;;
+let e = Biocaml_fastq.enum_parser j;;
+List.of_enum e;;
+*) 
