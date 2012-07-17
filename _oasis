@@ -32,6 +32,7 @@ Library biocaml
   BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
   Install: true
   Modules: Biocaml
+           , Biocaml_transform
            , Biocaml_msg
            , Biocaml_pos
            , Biocaml_std

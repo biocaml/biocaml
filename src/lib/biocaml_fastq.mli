@@ -34,13 +34,9 @@ val feed_record: printer -> record -> unit
 val get_string: printer -> string
 
 (**  {3 Classy Interface } *)
-
-class type ['input, 'output, 'error] transform =
-object
-  method feed: 'input -> unit
-  method next: [ `output of 'output | `not_ready | `error of 'error ]
-end
-
+  
+open Biocaml_transform
+                          
 type parser_error =
 [ `sequence_and_qualities_do_not_match of int * string * string
 | `wrong_comment_line of int * string
@@ -56,19 +52,6 @@ class trimmer:
     [record, record, [`invalid_size of int]] transform
 
 
-val compose:
-  ( 'input_left, 'middle, 'error_left) transform ->
-  ( 'middle, 'output_right, 'error_right) transform ->
-  ( 'input_left, 'output_right, [ `left of 'error_left | `right of 'error_right ] )
-    transform
-    
-val mix :
-  ( 'input_left, 'output_left, 'error_left) transform ->
-  ( 'input_right, 'output_right, 'error_right) transform ->
-  f:('output_left -> 'output_right -> 'output_f) ->
-  ( 'input_left * 'input_right, 'output_f,
-    [ `left of 'error_left | `right of 'error_right ] ) transform
-  
 
 (** Non-cooperative functions. *)
 

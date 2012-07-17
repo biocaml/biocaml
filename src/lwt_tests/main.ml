@@ -74,17 +74,19 @@ let test_classy_trimmer file =
         method feed () = ()
         method next = id <- id + 1; `output id
       end in
-    Biocaml_fastq.(
+    Biocaml_transform.(
       (compose
          (mix
             (compose
                (compose
-                  (new fastq_parser)
-                  (new trimmer (`beginning 10)))
-               (new trimmer (`ending 2)))
+                  (new Biocaml_fastq.fastq_parser)
+                  (new Biocaml_fastq.trimmer (`beginning 10)))
+               (new Biocaml_fastq.trimmer (`ending 2)))
             counter_transform
-            ~f:(fun r c -> { r with name = Printf.sprintf "%s -- %d" r.name c }))
-         (new fastq_printer)))
+            ~f:(fun r c ->
+              { r with Biocaml_fastq.name =
+                  Printf.sprintf "%s -- %d" r.Biocaml_fastq.name c }))
+         (new Biocaml_fastq.fastq_printer)))
 (*  string  ---  fastq-record --- trimmed-fast \
                                                f --- named-fastq --- string 
     unit  ---  count --------------------------/                              *)    
