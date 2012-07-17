@@ -10,31 +10,22 @@ type record = {
   qualities: string;
 } 
 
-val next :
-  Line_oriented.parser ->
-  [> `error of
-      [> `sequence_and_qualities_do_not_match of
-          Biocaml_pos.t * string * string
-      | `wrong_comment_line of Biocaml_pos.t * string
-      | `wrong_name_line of Biocaml_pos.t * string ]
-  | `not_ready
-  | `record of record ]
-    
-type printer
-
-val printer: ?buffer:[`clear of int | `reset of int] -> unit -> printer
-  
-val feed_record: printer -> record -> unit
-
-val get_string: printer -> string
-
-(**  {3 Classy Interface } *)
-  
-  
 type parser_error =
 [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
 | `wrong_comment_line of Biocaml_pos.t * string
 | `wrong_name_line of Biocaml_pos.t * string ]
+
+val next :
+  Line_oriented.parser ->
+  [> `error of parser_error | `not_ready | `record of record ]
+    
+
+val printer:
+  ?buffer:[`clear of int | `reset of int] -> unit -> record Printer_queue.t
+
+
+(**  {3 Classy Interface } *)
+  
 
 class fastq_parser: ?filename:string -> unit ->
   [string, record, parser_error] transform

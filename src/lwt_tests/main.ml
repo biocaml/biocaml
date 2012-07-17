@@ -62,8 +62,8 @@ let reprint_fastq file =
   >>= fun list_of_records ->
   let printer = Biocaml_fastq.printer () in
   Lwt_list.iter_s (fun r ->
-    Biocaml_fastq.feed_record printer r;
-    Lwt_io.printf "%s" (Biocaml_fastq.get_string printer))
+    Biocaml_transform.Printer_queue.feed printer r;
+    Lwt_io.printf "%s" (Biocaml_transform.Printer_queue.flush printer))
     list_of_records
   
 let test_classy_trimmer file =

@@ -47,6 +47,42 @@ module Line_oriented = struct
     Biocaml_pos.make ?file:p.filename ~line:p.parsed_lines ()
 end
 
+module Printer_queue = struct
+
+  type 'a t = {
+    records : 'a Queue.t;
+    buffer : Buffer.t;
+    clear_buffer: Buffer.t -> unit;
+    to_string: 'a -> string;
+  }
+
+  let make ?(buffer:[`clear of int | `reset of int]= `reset 1024) ~to_string () =
+    let buffer, clear_buffer =
+      match buffer with
+      | `clear s -> (Buffer.create s, Buffer.clear)
+      | `reset s -> (Buffer.create s, Buffer.reset) in
+    {
+      records = Queue.create ();
+      buffer; clear_buffer;
+      to_string;
+    }
+  
+  let feed p r = Queue.push r p.records
+
+  let flush p =
+    let rec faux () =
+      if Queue.is_empty p.records then ()
+      else (
+        let r = Queue.pop p.records in
+        Buffer.add_string p.buffer (p.to_string r);
+        faux ()
+      ) in
+    faux ();
+    let ret = Buffer.contents p.buffer in
+    p.clear_buffer p.buffer;
+    ret
+
+end
 
 
 class type ['input, 'output, 'error] transform =

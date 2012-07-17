@@ -15,6 +15,18 @@ module Line_oriented: sig
   val current_position: parser -> Biocaml_pos.t
 end
 
+module Printer_queue: sig
+
+  type 'a t
+
+  val make: ?buffer:[`clear of int | `reset of int] ->
+    to_string:('a -> string) -> unit -> 'a t
+
+  val feed: 'a t -> 'a -> unit
+
+  val flush: 'a t -> string
+    
+end
 
 class type ['input, 'output, 'error] transform =
 object

@@ -34,38 +34,9 @@ let next p =
     ))
       
 
-type printer = {
-  records : record Queue.t;
-  buffer : Buffer.t;
-  clear_buffer: Buffer.t -> unit;
-}
-
-let printer ?(buffer:[`clear of int | `reset of int]= `reset 1024)  () =
-  let buffer, clear_buffer =
-    match buffer with
-    | `clear s -> (Buffer.create s, Buffer.clear)
-    | `reset s -> (Buffer.create s, Buffer.reset) in
-  {
-    records = Queue.create ();
-    buffer; clear_buffer;
-  }
-  
-let feed_record p r = Queue.push r p.records
-
-let get_string p =
-  let rec faux () =
-    if Queue.is_empty p.records then ()
-    else (
-      let r = Queue.pop p.records in
-      Buffer.add_string p.buffer
-        (sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities);
-      faux ()
-    ) in
-  faux ();
-  let ret = Buffer.contents p.buffer in
-  p.clear_buffer p.buffer;
-  ret
-  
+let printer =
+  Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
+    sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities)
 
 
 type parser_error =
@@ -87,12 +58,13 @@ object
 end
   
 type empty
+open Biocaml_transform.Printer_queue 
 class fastq_printer =
 object
   val printer = printer ()
-  method feed r = feed_record printer r
+  method feed r = feed printer r
   method next :  [ `output of string | `not_ready | `error of empty ] =
-    match (get_string printer) with
+    match (flush printer) with
     | "" -> `not_ready
     | s -> `output s
 end
