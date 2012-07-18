@@ -22,8 +22,11 @@ module Line_oriented: sig
   val next_line: parser -> string option
   (** Get the next line. *)
 
+  exception No_next_line
+  (** The exception thrown by [next_line_exn]. *)
+
   val next_line_exn: parser -> string
-  (** Get the next line, but throw [Queue.empty] if there is no line to return. *)
+  (** Get the next line, but throw [No_next_line] if there is no line to return. *)
     
   val current_position: parser -> Biocaml_pos.t
   (** Get the current position in the stream. *)

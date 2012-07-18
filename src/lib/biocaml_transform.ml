@@ -37,11 +37,16 @@ module Line_oriented = struct
         
   let queued_lines p = Queue.length p.lines
   let next_line p =
-    p.parsed_lines <- p.parsed_lines + 1;
-    try Some (Queue.pop p.lines) with e -> None
+    try let l = Queue.pop p.lines in
+        p.parsed_lines <- p.parsed_lines + 1;
+        Some l
+    with e -> None
+
+  exception No_next_line
   let next_line_exn p =
-    p.parsed_lines <- p.parsed_lines + 1;
-    Queue.pop p.lines
+    match next_line p with
+    | Some s -> s
+    | None -> raise No_next_line
 
   let current_position p =
     Biocaml_pos.make ?file:p.filename ~line:p.parsed_lines ()
