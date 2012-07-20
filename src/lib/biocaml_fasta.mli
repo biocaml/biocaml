@@ -4,14 +4,14 @@
 
     {v
     # comment
-    # commment
+    # comment
     ...
     >header
     content
     >header
     content
     ...
-    }
+    v}
 
     where the content may span multiple lines.
     
