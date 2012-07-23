@@ -77,22 +77,6 @@ module type Signal = sig
   val enum : ('a,'b) t -> ('a location * 'b) Enum.t
 end
 
-module type LSet = sig
-  type 'a t
-
-  val make : 'a location Enum.t -> 'a t
-
-
-  val fold : ('a -> Range.t -> 'b -> 'b) -> 'a t -> 'b -> 'b
-
-  val intersects : 'a location -> 'a t -> bool
-
-  val enum : 'a t -> 'a location Enum.t
-
-  val union : 'a t -> 'a t -> 'a t
-  val add : 'a location -> 'a t -> 'a t
-end
-
 module LMap = struct
   module T = Biocaml_intervalTree
 
@@ -108,7 +92,13 @@ module LMap = struct
       (k, make lo hi), label, d
     )
     with T.Empty_tree -> raise Not_found
-      
+
+  let intersecting_elems (k, { Range.lo ; hi }) lmap =
+    try 
+      T.find_intersecting_elem lo hi (Map.find k lmap)
+      /@ (fun (lo,hi,x) -> (k, Range.make lo hi), x)
+    with Not_found -> Enum.empty ()
+
   let enum dom =
     (Map.enum dom) 
     /@ (fun (k,t) -> Enum.map (fun (lo,hi,x) -> (k, Range.make lo hi), x) (T.enum t))
@@ -120,6 +110,26 @@ module LMap = struct
     Map.of_enum (Accu.enum accu)
 
 end
+
+module LSet = struct
+  module T = Biocaml_intervalTree
+
+  type 'a t = ('a, unit T.t) Map.t
+
+  let intersects = LMap.intersects
+
+  let closest loc lset = 
+    let loc', (), d = LMap.closest loc lset in
+    loc', d
+
+  let intersecting_elems loc lset = 
+    LMap.intersecting_elems loc lset /@ fst
+
+  let enum lset = LMap.enum lset /@ fst
+  let of_enum e = e /@ (fun x -> x, ()) |> LMap.of_enum
+
+end
+
 
 module type LMap_spec = sig
   type ('a,'b) t

@@ -33,31 +33,36 @@ module ListImpl = struct
     pos (gap (make lo hi) (make lo' hi'))
   )
 
-let interval_overlap lo hi lo' hi' =
-  ( || )
-    (hi >= lo' && hi <= hi')
-    (lo >= lo' && lo <= hi')
-
-let intersects lo hi l = 
-  List.exists (fun (lo',hi',_) -> interval_overlap lo hi lo' hi') l
-  
-let interval_distance lo hi lo' hi' =
-  if interval_overlap lo hi lo' hi' then 0
-  else min (abs (lo' - hi)) (abs (lo - hi'))
-
-let interval_dist = interval_distance
-
+  let interval_overlap lo hi lo' hi' =
+    ( || )
+      (lo  <= lo' && lo' <= hi)
+      (lo' <= lo  && lo  <= hi')
+      
+  let intersects lo hi l = 
+    List.exists (fun (lo',hi',_) -> interval_overlap lo hi lo' hi') l
+      
+  let interval_distance lo hi lo' hi' =
+    if interval_overlap lo hi lo' hi' then 0
+    else min (abs (lo' - hi)) (abs (lo - hi'))
+      
+  let interval_dist = interval_distance
+    
   let find_closest lo hi = function
-    | [] -> raise Empty_tree
-    | h :: t -> 
-        let lo', hi', x = 
-          List.fold_left 
-	    (fun ((lo',hi',_) as interval') ((lo'', hi'', _) as interval'') ->
-	      if interval_dist lo hi lo' hi' <= interval_dist lo hi lo'' hi''
-	      then interval'
-	      else interval'')
-	    h t
-        in lo', hi', x, interval_dist lo hi lo' hi'
+  | [] -> raise Empty_tree
+  | h :: t -> 
+      let lo', hi', x = 
+        List.fold_left 
+	  (fun ((lo',hi',_) as interval') ((lo'', hi'', _) as interval'') ->
+	    if interval_dist lo hi lo' hi' <= interval_dist lo hi lo'' hi''
+	    then interval'
+	    else interval'')
+	  h t
+      in lo', hi', x, interval_dist lo hi lo' hi'
+   
+  let find_intersecting_elem lo hi t = 
+    Enum.filter
+      (fun (x,y,_) -> interval_overlap lo hi x y)
+      (enum t)
 
   let print _ = assert false
   let check_integrity _ = assert false
@@ -127,13 +132,39 @@ let test_find_closest () =
     assert_equal dl (dist (llo, lhi))
   done
 
+
+
+let test_find_intersecting_elem1 () = 
+  let u = T.(add 69130 69630 () (add 69911 70411 () (add 70501 71001 () empty))) in 
+  assert_equal
+    T.(find_intersecting_elem 70163 70163 u |> List.of_enum |> List.length)
+    1 ;
+  assert_equal
+    T.(find_intersecting_elem 65163 75163 u |> List.of_enum |> List.length)
+    3
+
+let test_find_intersecting_elem2 () = 
+  for i = 1 to 1000 do
+    let intervals = random_intervals ~ub:1000 1000 |> List.of_enum
+    and lo, hi, _ = random_interval  ~ub:1000 () in
+    let l = L.(find_intersecting_elem lo hi (of_list intervals)) |> Set.of_enum
+    and t = T.(find_intersecting_elem lo hi (of_list intervals)) |> Set.of_enum in
+    assert_equal Set.(cardinal (union (diff l t) (diff t l))) 0 ;
+  (* [assert_equal l t] is not a valid test because sets cannot be
+     compared with ( = ). Indeed, a set is an AVL tree whose structure
+     may depend on the order its elements were added: ( = ) compare
+     the structure directly and may for this reason fail to see two
+     sets have the same elements *)
+  done
+
 let tests = "IntervalTree" >::: [
   "Add" >:: test_add;
   "Creation" >:: test_creation;
   "Intersection" >:: test_intersection;
   "Find closest" >:: test_find_closest;
+  "Find intersecting elements (1)" >:: test_find_intersecting_elem1;
+  "Find intersecting elements (2)" >:: test_find_intersecting_elem2;
 ]
-
 
 
 

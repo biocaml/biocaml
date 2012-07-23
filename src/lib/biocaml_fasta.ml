@@ -34,7 +34,7 @@ let enum_of_linesi e =
     | h :: t when String.starts_with h ">" ->
         (
           h,
-          List.(t |> map (flip String.nsplit " " |- map int_of_string) |> flatten)
+          List.(t |> map (String.nsplit ~by:" " |- map int_of_string) |> flatten)
         )
     | h :: _ -> raise (Error "Incorrect FASTA format")
   in

@@ -89,7 +89,6 @@ end
 
 
 module Char = struct
-  include Char
   include BatChar
 
   let is_space = is_whitespace
@@ -264,9 +263,10 @@ end
 module IO = BatIO
 
 module StringMap = struct
-  include BatMap.StringMap
-  include BatMap.StringMap.Labels
-  include BatMap.StringMap.Exceptionless
+  module StringMap = BatMap.Make(String)
+  include StringMap
+  include StringMap.Labels
+  include StringMap.Exceptionless
 
   let add_with x f m =
     add x (f (find x m)) m

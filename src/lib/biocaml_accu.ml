@@ -30,9 +30,60 @@ module Counter = struct
   let create ?n () = create ?n 0 identity ( + )
   let add = add
   let tick accu x = add accu x 1
+  let enum = enum
+  let of_enum e = 
+    let c = create () in
+    Enum.iter (tick c) e ;
+    c
 end
 
 let counts f e = 
-  let c = Counter.create () in
-  Enum.iter (Counter.tick c) (e /@ f) ;
+  enum (Counter.of_enum (e /@ f))
+
+let product ?filter f l1 l2 = Counter.(
+  let c = create () in
+  let tick = match filter with
+  | Some p -> fun e1 e2 -> if p e1 e2 then tick c (f e1 e2)
+  | None   -> fun e1 e2 -> tick c (f e1 e2)
+  in
+  List.iter (fun e1 -> List.iter (tick e1) l2) l1 ;
   enum c
+)
+
+type ('a, 'b) relation = ('a,'a,'b,'b list) t
+
+module Relation = struct
+  type ('a, 'b) t = ('a,'b) relation
+  let create ?n () = 
+    create [] identity (fun x xs -> x :: xs)
+  let add = add
+  let enum = enum
+  let of_enum xs = 
+    let r = create () in
+    Enum.iter
+      (fun (x,y) -> add r x y)
+      xs ;
+    r
+end
+
+let relation xs = enum (Relation.of_enum xs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

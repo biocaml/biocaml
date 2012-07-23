@@ -58,7 +58,7 @@ let test_reverse_complement () =
   let m' = reverse_complement m in
   let m'' = reverse_complement m' in
   let a, a', a'' =
-    Tuple3.map (fun x -> (x : t :> float array array)) (m, m', m'') in
+    Tuple3.mapn (fun x -> (x : t :> float array array)) (m, m', m'') in
   assert_bool 
     "Reverse complement should be idempotent" 
     (a = a'') ;

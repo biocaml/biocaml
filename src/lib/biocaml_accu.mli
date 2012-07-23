@@ -40,6 +40,50 @@ module Counter : sig
   val create : ?n:int -> unit -> 'a t
   val add : 'a counter -> 'a -> int -> unit
   val tick : 'a counter -> 'a -> unit
+  val enum : 'a counter -> ('a * int) Enum.t
+  val of_enum : 'a Enum.t -> 'a counter
 end
 
-val counts : ('a -> 'b) -> 'a Enum.t -> ('b * int) Enum.t
+val counts  : ('a -> 'b)       -> 'a Enum.t ->              ('b * int) Enum.t
+val product : 
+  ?filter:('a -> 'b -> bool) -> 
+  ('a -> 'b -> 'c) -> 
+  'a list -> 'b list -> 
+  ('c * int) Enum.t 
+(** [product filter f l1 l2] computes an histogram of values returned by f
+    when it is applied for all combinations of elements in [l1] and
+    [l2] such that the predicate [filter] is true *)
+
+(** {7 Relation} *)
+
+type ('a, 'b) relation = ('a,'a,'b,'b list) t
+
+module Relation : sig
+  type ('a, 'b) t = ('a,'b) relation
+  val create : ?n:int -> unit -> ('a,'b) t
+  val add : ('a,'b) t -> 'a -> 'b -> unit
+  val enum : ('a,'b) relation -> ('a * 'b list) Enum.t
+  val of_enum : ('a * 'b) Enum.t -> ('a, 'b) relation
+end
+
+val relation : ('a * 'b) Enum.t -> ('a * 'b list) Enum.t
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
