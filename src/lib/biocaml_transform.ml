@@ -1,3 +1,4 @@
+open Biocaml_internal_pervasives
 
 module Line_oriented = struct
 
@@ -15,17 +16,17 @@ module Line_oriented = struct
      filename}
 
   let feed_line p s =
-    Queue.push s p.lines
+    Queue.enqueue p.lines s
       
   let feed_string p s =
-    let lines = BatString.nsplit s "\n" in 
+    let lines = String.split s ~on:'\n' in 
     let rec faux = function
       | [] -> assert false
       | [ "" ] -> (* last char was a "\n" *) ()
-      | [ s ] -> (* some remaining stuff *)
+      | [ s ] -> (* there is a partial line at the end *)
         p.unfinished_line <- Some s;
       | h :: t ->
-        Queue.push h p.lines;
+        Queue.enqueue p.lines h;
         faux t
     in
     match p.unfinished_line, lines with
@@ -37,11 +38,12 @@ module Line_oriented = struct
         
   let queued_lines p = Queue.length p.lines
   let next_line p =
-    try let l = Queue.pop p.lines in
-        p.parsed_lines <- p.parsed_lines + 1;
-        Some l
-    with e -> None
-
+    let l = Queue.dequeue p.lines in
+    if l <> None then (
+      p.parsed_lines <- p.parsed_lines + 1;
+    );
+    l
+      
   exception No_next_line
   let next_line_exn p =
     match next_line p with
@@ -72,16 +74,15 @@ module Printer_queue = struct
       to_string;
     }
   
-  let feed p r = Queue.push r p.records
+  let feed p r = Queue.enqueue p.records r
 
   let flush p =
     let rec faux () =
-      if Queue.is_empty p.records then ()
-      else (
-        let r = Queue.pop p.records in
+      match Queue.dequeue p.records with
+      | Some r ->
         Buffer.add_string p.buffer (p.to_string r);
         faux ()
-      ) in
+      | None -> () in
     faux ();
     let ret = Buffer.contents p.buffer in
     p.clear_buffer p.buffer;
