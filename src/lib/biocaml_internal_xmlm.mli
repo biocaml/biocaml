@@ -133,11 +133,11 @@ val make_input : ?enc:encoding -> ?strip:bool ->
     @param enc, character encoding of the document, {{:#inenc} details}.
        Defaults to [None].
     @param strip, strips whitespace in character data, {{:#inwspace} details}.
-       Defaults to [false].}
+       Defaults to [false].
     @param ns is called to bind undeclared namespace prefixes,
-       {{:#inns} details}. Default returns always [None].}
+       {{:#inns} details}. Default returns always [None].
     @param entity is called to resolve non predefined entity references,
-       {{:#inentity} details}. Default returns always [None].}} *)
+       {{:#inentity} details}. Default returns always [None]. *)
 
 val input : input -> signal
 (** Inputs a signal. Repeated invocation of the function with the same
@@ -229,13 +229,13 @@ val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
 (** Outputs signals corresponding to a value by recursively
     applying the given value deconstructor.
 
-    @raise see {!output}. *)
+    @raise Invalid_argument see {!output}. *)
 
 val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit
 (** Same as {!output_tree} but outputs a complete {{:#TYPEsignal}well-formed}
     sequence of signals.
 
-    @raise see {!output}. *)
+    @raise Invalid_argument see {!output}. *)
 
 (** {1:sto Functorial interface}
 
