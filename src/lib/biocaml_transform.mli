@@ -87,3 +87,9 @@ val enum_transformation :
   'input BatEnum.t -> 'output BatEnum.t
 (** Make an enum-transformation that may raise exceptions. *)
     
+val stream_transformation:
+  error_to_exn:('error -> exn) ->
+  ('input, 'output, 'error) transform ->
+  'input Stream.t -> 'output Stream.t
+(** Make a transformation between standard OCaml streams that may
+    raise exceptions. *)

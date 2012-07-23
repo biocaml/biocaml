@@ -163,5 +163,20 @@ let enum_transformation ~error_to_exn tr en =
   BatEnum.from (fun () -> loop_until_ready tr en)
     
     
+let stream_transformation ~error_to_exn tr en =
+  let rec loop_until_ready tr en =
+    match tr#next with
+    | `output o -> Some o
+    | `error e -> raise (error_to_exn e)
+    | `not_ready ->
+      begin match Stream.next en with
+      | None -> None
+      | Some s ->
+        tr#feed s;
+        loop_until_ready tr en
+      end
+  in
+  Stream.from (fun _ -> loop_until_ready tr en)
+    
 
   
