@@ -1,4 +1,4 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 
 type record = {
   name: string;
@@ -72,11 +72,11 @@ end
 class trimmer (specification: [`beginning of int|`ending of int]) =
 object
   val records =  Queue.create ()
-  method feed r = Queue.push r records 
+  method feed r = Queue.enqueue records r
   method next: 
     [ `output of record | `not_ready | `error of [`invalid_size of int] ] =
-    if Queue.length records > 0 then
-      let r = Queue.pop records in
+    begin match Queue.dequeue records with
+    | Some r ->
       let rlgth = String.length r.sequence in
       begin match specification with
       | `beginning i when i < rlgth ->
@@ -90,82 +90,15 @@ object
       | _ ->
         `error (`invalid_size rlgth)
       end
-    else
-      `not_ready
+    | None -> `not_ready
+    end
 
 end
 
   
 (* ************************************************************************** *)
 (* Non-cooperative / Unix *)
-  
 
-exception Invalid of string
-
-let to_tuple r = (r.name, r.sequence, r.comment, r.qualities)
-  
-let enum_input cin =
-  let e = IO.lines_of cin in
-  let parser = parser () in
-  let open Enum in
-  let get_or_raise e exn =
-    match get e with
-    | None -> raise exn
-    | Some s -> s in
-  let invalidf fmt = ksprintf (fun s -> raise (Invalid s)) fmt in
-  let rec make_from_enum (e : string t) = make
-    ~next:(fun () ->
-      let a = get_or_raise e No_more_elements in
-      let b =
-        get_or_raise e
-          (Invalid "expected sequence line after '@' line but reached end-of-input")
-      in
-      let c =
-        get_or_raise e
-          (Invalid "expected '+' line after sequence line but reached end-of-inpout")
-      in
-      let d =
-        get_or_raise e
-          (Invalid "expected quality score after '+' line but reached end-of-input")
-      in
-      feed_line parser a;
-      feed_line parser b;
-      feed_line parser c;
-      feed_line parser d;
-      begin match next parser with
-      | `record o -> o
-      | `not_ready -> raise (Invalid "Parser in wrong state: not_ready")
-      | `error error ->
-        let prpos = Biocaml_pos.to_string in
-        begin match error with        
-        | `sequence_and_qualities_do_not_match (pos, seq, qualities) ->
-          invalidf "%s: sequence and qualities do not match: %d Vs %d."
-            (prpos pos) (String.length seq) (String.length qualities)
-        | `wrong_comment_line (pos, _) ->
-          invalidf "%s: Wrong comment line." (prpos pos)
-        | `wrong_name_line (pos, _) ->
-          invalidf "%s: Wrong sequence-id line." (prpos pos)
-        end
-      end
-    )
-    
-    ~count:(fun () ->
-      let n = count e in
-      if n mod 4 = 0 then n/4
-      else raise (Invalid "underlying enum does not contain multiple of 4 items")
-    )
-    
-    ~clone:(fun () -> make_from_enum (clone e))
-  in
-  make_from_enum e
-(*
-#require "biocaml";;
-open Batteries;;
-let i = File.open_in "01.fastq";;
-let e = Biocaml_fastq.enum_input i;;
-List.of_enum e;;
-
-*)
 
 exception Error of parser_error 
 let enum_parser ?filename e =

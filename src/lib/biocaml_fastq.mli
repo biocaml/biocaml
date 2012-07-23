@@ -39,13 +39,7 @@ class trimmer:
 
 
 
-(** Non-cooperative functions. *)
-
-exception Invalid of string
-
-
-val enum_input : BatIO.input -> record BatEnum.t
-(** Returns enumeration of fastq records in given input. *)
+(** {3 Non-cooperative functions} *)
 
 
 exception Error of parser_error 
