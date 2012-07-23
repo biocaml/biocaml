@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 6b9f22e823a5d1893e09ca8ad69f28bf)
+# DO NOT EDIT (digest: 95f558ad7675e6a6f3b4d1beb2dc7500)
 version = "0.0"
 description = "The OCaml Bioinformatics Library"
-requires = "threads sqlite3 pcre biocamlxmlm unix batteries"
+requires = "core threads sqlite3 pcre biocamlxmlm unix batteries"
 archive(byte) = "biocaml.cma"
 archive(byte, plugin) = "biocaml.cma"
 archive(native) = "biocaml.cmxa"
