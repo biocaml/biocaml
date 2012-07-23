@@ -20,19 +20,14 @@ Flag tests
   Description: Build tests
   Default: false
 
-Library biocamlxmlm
-  Path: src/ext/xmlm-1.0.2/src
-  FindlibName: biocamlxmlm
-  Install: true
-  Modules: Xmlm
-
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: core, threads, sqlite3, pcre, biocamlxmlm, unix, batteries
+  BuildDepends: core, threads, sqlite3, pcre, unix, batteries
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
+           , Biocaml_internal_xmlm
            , Biocaml_transform
            , Biocaml_msg
            , Biocaml_pos

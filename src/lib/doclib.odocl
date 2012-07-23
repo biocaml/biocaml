@@ -1,7 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: b6d3b97fd50040deff9ab4e54f8267d4)
+# DO NOT EDIT (digest: fa3c6859a3f18b5b235a1a860aec32ff)
 Biocaml
 Biocaml_internal_pervasives
+Biocaml_internal_xmlm
 Biocaml_transform
 Biocaml_msg
 Biocaml_pos

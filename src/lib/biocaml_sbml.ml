@@ -1,3 +1,5 @@
+module Xmlm = Biocaml_internal_xmlm
+  
 (*A module for parsing SBML level 2 version 4*)
 
 exception Bad of string

@@ -1,4 +1,0 @@
-<**/*.ml> : annot
-<src> : include
-<test> : include
-<test/*> : debug

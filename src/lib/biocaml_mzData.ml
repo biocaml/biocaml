@@ -23,6 +23,7 @@ open Bigarray
 type vec = (float, float64_elt, fortran_layout) Array1.t
 type int_vec = (int, int_elt, fortran_layout) Array1.t
 
+module Xmlm = Biocaml_internal_xmlm
 
 module Base64 = struct
 

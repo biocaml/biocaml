@@ -16,6 +16,8 @@ let ( |> ) = BatPervasives.( |> )
 let ( -| ) = BatPervasives.( -| )
 let ( |- ) = BatPervasives.( |- )
 
+module Xmlm = Biocaml_internal_xmlm
+  
 module List = struct 
   include List
   include BatList

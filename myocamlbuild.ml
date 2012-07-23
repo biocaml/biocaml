@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: ac39ca83606dfb0ffcd9a37bbab404d5) *)
+(* DO NOT EDIT (digest: 7b711eca7415babca8187d66d099ee2e) *)
 module OASISGettext = struct
 # 21 "/home/smondet/usr/oasis-0.3.0~rc5/src/oasis/OASISGettext.ml"
 
@@ -549,9 +549,7 @@ end
 open Ocamlbuild_plugin;;
 let package_default =
   {
-     MyOCamlbuildBase.lib_ocaml =
-       [("biocamlxmlm", ["src/ext/xmlm-1.0.2/src"]); ("biocaml", ["src/lib"])
-       ];
+     MyOCamlbuildBase.lib_ocaml = [("biocaml", ["src/lib"])];
      lib_c = [("biocaml", "src/lib", [])];
      flags =
        [
@@ -562,7 +560,6 @@ let package_default =
        [
           ("src/tests", ["src/lib"]);
           ("src/lwt_tests", ["src/lib"]);
-          ("src/lib", ["src/ext/xmlm-1.0.2/src"]);
           ("src/app", ["src/lib"])
        ];
      }
@@ -570,6 +567,6 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 574 "myocamlbuild.ml"
+# 571 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;
