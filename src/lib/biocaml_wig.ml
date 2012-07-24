@@ -1,17 +1,17 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 open Tuple
 
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
-type bt = (int * int * float) list StringMap.t
+type bt = (int * int * float) list String.Map.t
     (* list items are (lo,hi,x) triples *)
     
-type vt = {vspan:int; vdata : (int * float) list StringMap.t}
+type vt = {vspan:int; vdata : (int * float) list String.Map.t}
     (* list items are (lo,x) pairs, range is [lo, lo + vspan - 1] *)
     
-type ft = {fspan:int; fdata : (int * int * float list) StringMap.t}
+type ft = {fspan:int; fdata : (int * int * float list) String.Map.t}
     (* For each chromosome there is a list of (start,step,xl) triples.
        For the i'th value in xl, the associated range is [lo,hi] where
        - lo = start + i*step
@@ -42,7 +42,7 @@ let v_to_f vt : ft option =
   let convert_one (l : (int * float) list) : (int * int * float list) option =
     match get_step l with
       | None -> None
-      | Some step -> Some (fst (List.hd_exn l), step, List.map snd l)
+      | Some step -> Some (fst (List.hd_exn l), step, List.map ~f:snd l)
   in
   
   let g ~key ~data:l ans =
@@ -51,9 +51,9 @@ let v_to_f vt : ft option =
       | Some ans ->
           match convert_one l with
             | None -> None
-            | Some dat -> Some (StringMap.add key dat ans)
+            | Some data -> Some (String.Map.add ~key ~data ans)
   in
-  match StringMap.fold ~f:g vt.vdata ~init:(Some StringMap.empty) with
+  match String.Map.fold ~f:g vt.vdata ~init:(Some String.Map.empty) with
     | None -> None
     | Some fdat -> Some {fspan = vt.vspan; fdata = fdat}
 
@@ -71,15 +71,15 @@ let b_to_v bt : vt option =
   in
   
   let get_span bt : int option =
-    let spans = StringMap.fold ~f:(fun ~key ~data:l ans -> (get_span_chr l)::ans) bt ~init:[] in
+    let spans = String.Map.fold ~f:(fun ~key ~data:l ans -> (get_span_chr l)::ans) bt ~init:[] in
     if List.length spans = 0 then
       None (* if no chromosomes, do not compact *)
-    else if List.exists Option.is_none spans then
+    else if List.exists ~f:Option.is_none spans then
       None
     else
-      let spans = List.map Option.get spans in
+      let spans = List.map ~f:Option.value_exn spans in
       let span = List.hd_exn spans in
-      if List.for_all ((=) span) spans then
+      if List.for_all ~f:((=) span) spans then
         Some span
       else
         None
@@ -87,7 +87,7 @@ let b_to_v bt : vt option =
   match get_span bt with
     | None -> None
     | Some span ->
-        let vdat = StringMap.map (List.map ~f:(fun (x, _, z) -> (x, z))) bt in
+        let vdat = String.Map.map ~f:(List.map ~f:(fun (x, _, z) -> (x, z))) bt in
         Some {vspan=span; vdata = vdat}
           
 (* compact bed to fixed-step if possible *)
@@ -102,13 +102,13 @@ let rec compact t = match t with
 
 (* expand variable-step to bed *)
 let v_to_b vt : bt =
-  let f l = List.map (fun (lo,x) -> lo, lo + vt.vspan - 1, x) l in
-  StringMap.map f vt.vdata
+  let f l = List.map ~f:(fun (lo,x) -> lo, lo + vt.vspan - 1, x) l in
+  String.Map.map ~f vt.vdata
 
 (* expand fixed-step to variable-step *)
 let f_to_v ft : vt =
-  let f (start,step,xl) = List.mapi (fun i x -> start + i*step, x) xl in
-  {vspan = ft.fspan; vdata = StringMap.map f ft.fdata}
+  let f (start,step,xl) = List.mapi ~f:(fun i x -> start + i*step, x) xl in
+  {vspan = ft.fspan; vdata = String.Map.map ~f ft.fdata}
 
 (* expand fixed-step to bed *)
 let f_to_b ft : bt =
@@ -118,9 +118,9 @@ let f_to_b ft : bt =
       let hi = lo + ft.fspan - 1 in
       lo,hi,x
     in
-    List.mapi g l
+    List.mapi ~f:g l
   in
-  StringMap.map f ft.fdata
+  String.Map.map ~f ft.fdata
     
 (* convert [t] to [fmt] if possible *)
 let to_format fmt t : t option = match fmt,t with
@@ -137,20 +137,20 @@ let to_format fmt t : t option = match fmt,t with
 let iter f = function 
   | B t -> 
       let g chr (lo,hi,x) = f(chr,lo,hi,x) in
-      let h ~key:chr ~data:l = List.iter (g chr) l in
-      StringMap.iter ~f:h t
+      let h ~key:chr ~data:l = List.iter ~f:(g chr) l in
+      String.Map.iter ~f:h t
   | V t ->
       let g chr (lo,x) = f(chr, lo, lo + t.vspan - 1, x) in
-      let h ~key:chr ~data:l = List.iter (g chr) l in
-      StringMap.iter ~f:h t.vdata
+      let h ~key:chr ~data:l = List.iter ~f:(g chr) l in
+      String.Map.iter ~f:h t.vdata
   | F t ->
       let g chr start step i x =
         let lo = start + i*step in
         let hi = lo + t.fspan - 1 in
         f(chr,lo,hi,x)
       in
-      let h ~key:chr ~data:(start,step,l) = List.iteri (g chr start step) l in
-      StringMap.iter h t.fdata
+      let h ~key:chr ~data:(start,step,l) = List.iteri ~f:(g chr start step) l in
+      String.Map.iter ~f:h t.fdata
         
 let fold f init t =
   let ans = ref init in
@@ -162,31 +162,31 @@ let rec of_list l =
     if lo > hi then
       raise_bad (sprintf "invalid interval [%d, %d]" lo hi)
     else
-      let append prev = match prev with None -> [lo,hi,x] | Some l -> (lo,hi,x)::l in
-      StringMap.add_with chr append ans
+      let append prev = match prev with None -> Some [lo,hi,x] | Some l -> Some ((lo,hi,x)::l) in
+      String.Map.change ans chr append
   in
-  let ans = List.fold_left ~f ~init:StringMap.empty l in
-  let ans = StringMap.map List.rev ans in
+  let ans = List.fold_left ~f ~init:String.Map.empty l in
+  let ans = String.Map.map ~f:List.rev ans in
   compact (B ans)
     
-let of_channel ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi ic = 
+let of_channel ?fmt ?(chr_map=Fn.id) ?(header=true) ?increment_lo_hi ic = 
   let of_bed_channel chr_map header increment_lo_hi ic =
     let inclo,inchi = increment_lo_hi in
     let f acc l = 
-      let lst = String.nsplit l "\t" in
+      let lst = String.split l ~on:'\t' in
       match List.length lst with
         | 4 ->
-            let chr = chr_map (List.nth lst 0) in
-            let lo = int_of_string (List.nth lst 1) + inclo in
-            let hi = int_of_string (List.nth lst 2) + inchi in
-            let v = float_of_string (List.nth lst 3) in
-            let insert prev = match prev with None -> [lo,hi,v] | Some l -> (lo,hi,v)::l in
-            StringMap.add_with chr insert acc
+            let chr = chr_map (List.nth_exn lst 0) in
+            let lo = int_of_string (List.nth_exn lst 1) + inclo in
+            let hi = int_of_string (List.nth_exn lst 2) + inchi in
+            let v = float_of_string (List.nth_exn lst 3) in
+            let insert prev = match prev with None -> Some [lo,hi,v] | Some l -> Some ((lo,hi,v)::l) in
+            String.Map.change acc chr insert
         | n -> failwith (sprintf "expecting exactly 4 columns but found %d" n) 
     in
     if header then (ignore (input_line ic));
-    let ans = Lines.fold_channel f StringMap.empty ic in
-    let ans = StringMap.map List.rev ans in
+    let ans = Lines.fold_channel f String.Map.empty ic in
+    let ans = String.Map.map ~f:List.rev ans in
     compact (B ans)
   in
   match fmt with
@@ -197,7 +197,7 @@ let of_channel ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi ic =
     | Some VariableStep -> failwith "parsing of WIG files in variable-step format not yet implemented"
     | Some FixedStep -> failwith "parsing of WIG files in fixed-step format not yet implemented"
         
-let of_file ?fmt ?(chr_map=identity) ?(header=true) ?increment_lo_hi file =
+let of_file ?fmt ?(chr_map=Fn.id) ?(header=true) ?increment_lo_hi file =
   let fend = close_in in
   match fmt,increment_lo_hi with
     | None, None ->
@@ -215,21 +215,21 @@ let to_channel ?fmt t cout =
   let print_as_is = function
     | B bt ->
         let f chr (lo,hi,x) = fprintf cout "%s\t%d\t%d\t%s\n" chr (lo-1) hi (string_of_float x) in
-        let g ~key:chr ~data:l = List.iter (f chr) l in
-        StringMap.iter g bt
+        let g ~key:chr ~data:l = List.iter ~f:(f chr) l in
+        String.Map.iter ~f:g bt
     | V vt ->
         let g ~key:chr ~data:l =
           fprintf cout "variableStep\tchrom=%s\tspan=%d\n" chr vt.vspan;
           let f (lo,x) = fprintf cout "%d\t%s\n" lo (string_of_float x) in
-          List.iter f l
+          List.iter ~f l
         in
-        StringMap.iter g vt.vdata
+        String.Map.iter ~f:g vt.vdata
     | F ft ->
         let g ~key:chr ~data:(start,step,l) =
           fprintf cout "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d\n" chr start step ft.fspan;
-          List.iter (fun x -> fprintf cout "%s\n" (string_of_float x)) l
+          List.iter ~f:(fun x -> fprintf cout "%s\n" (string_of_float x)) l
         in
-        StringMap.iter g ft.fdata
+        String.Map.iter ~f:g ft.fdata
   in
   match fmt with
     | None -> print_as_is (compact t)
