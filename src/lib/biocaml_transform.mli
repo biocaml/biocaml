@@ -65,6 +65,25 @@ object
   method next: [ `output of 'output | `not_ready | `error of 'error ]
 end
 
+val on_input: 
+  ('input_a, 'output, 'error) transform ->
+  f:('input_b -> 'input_a) ->
+  ('input_b, 'output, 'error) transform
+(** Map the input of a transform (pre-processor). *)
+
+val on_output: 
+  ('input, 'output_a, 'error) transform ->
+  f:('output_a -> 'output_b) ->
+  ('input, 'output_b, 'error) transform
+(** Map the output of a transform (post-processor). *)
+
+val on_error: 
+  ('input, 'output, 'error_a) transform ->
+  f:('error_a -> 'error_b) ->
+  ('input, 'output, 'error_b) transform
+(** Map on the errors of a transform (post-processor). *)
+
+  
 val compose:
   ( 'input_left, 'middle, 'error_left) transform ->
   ( 'middle, 'output_right, 'error_right) transform ->

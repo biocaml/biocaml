@@ -97,6 +97,30 @@ object
   method next: [ `output of 'output | `not_ready | `error of 'error ]
 end
 
+let on_input tr ~f =
+object
+  method feed x = tr#feed (f x)
+  method next = tr#next
+end
+let on_output tr ~f =
+object
+  method feed x = tr#feed x
+  method next =
+    match tr#next with
+    | `output o -> `output (f o)
+    | `not_ready -> `not_ready
+    | `error e -> `error e
+end
+let on_error tr ~f = 
+object
+  method feed x = tr#feed x
+  method next =
+    match tr#next with
+    | `output o -> `output o
+    | `not_ready -> `not_ready
+    | `error e -> `error (f e)
+end
+    
 let compose ta tb =
 object
   method feed (i: 'a) : unit =

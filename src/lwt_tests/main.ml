@@ -1,3 +1,4 @@
+open Core.Std
 open Lwt
   
 let print_next_ones parser =
@@ -81,13 +82,24 @@ let test_classy_trimmer file =
             (compose
                (compose
                   (new Biocaml_fastq.fastq_parser ())
-                  (new Biocaml_fastq.trimmer (`beginning 10)))
+                  (on_input (new Biocaml_fastq.trimmer (`beginning 10))
+                     ~f:(fun i ->
+                       Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))
                (new Biocaml_fastq.trimmer (`ending 2)))
             counter_transform
             ~f:(fun r c ->
               { r with Biocaml_fastq.name =
                   Printf.sprintf "%s -- %d" r.Biocaml_fastq.name c }))
-         (new Biocaml_fastq.fastq_printer)))
+         (new Biocaml_fastq.fastq_printer))
+       |!
+      on_error ~f:(function
+      | `left (`left (`left (`left parser_error))) -> "parser_error "
+      | `left (`left (`left (`right (`invalid_size _)))) -> "invalid_size"
+      | `left (`left  (`right (`invalid_size _))) -> "invalid_size"
+      | `left (`right _) -> assert false
+      | `right _ -> assert false
+      )
+    )
 (*  string  ---  fastq-record --- trimmed-fast \
                                                f --- named-fastq --- string 
     unit  ---  count --------------------------/                              *)    
@@ -103,8 +115,8 @@ let test_classy_trimmer file =
         Lwt_list.iter_s (Lwt_io.printf "%s") sl
       | `not_ready ->
         Lwt_io.printf "=====  NOT READY \n"
-      | `error _ -> 
-        Lwt_io.printf "=====  ERROR\n"
+      | `error s -> 
+        Lwt_io.printf "=====  ERROR: %s\n" s
       end
     in
     let rec loop () =
