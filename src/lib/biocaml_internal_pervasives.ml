@@ -1,6 +1,11 @@
 
 include Core.Std
 
+let try_finally_exn ~fend f x =
+  match try `V (f x) with e -> `E e with
+    | `V f_x -> fend x; f_x
+    | `E e -> (try fend x with _ -> ()); raise e
+
 module Xmlm = Biocaml_internal_xmlm
   
 module Stream = struct

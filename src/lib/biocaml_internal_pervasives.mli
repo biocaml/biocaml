@@ -6,6 +6,13 @@
 *)
 include module type of Core.Std
 
+val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
+  (** [try_finally_exn fend f a] will run [x = f a], then run [fend
+      a], and finally return [x]. If [f a] raised an exception that
+      exception will be returned even if [f x] raises an exception too. If
+      [f a] successfully produces [x], then it is possible to get instead
+      an exception raised by [fend a]. *)
+
 (** {{:http://erratique.ch/software/xmlm}Xmlm 1.0.2} (to be deleted). *)
 module Xmlm: module type of Biocaml_internal_xmlm
 
