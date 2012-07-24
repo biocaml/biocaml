@@ -13,6 +13,9 @@ val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
       [f a] successfully produces [x], then it is possible to get instead
       an exception raised by [fend a]. *)
 
+val open_out_safe : string -> out_channel
+  (** Like [open_out] but will not overwrite existing file. *)
+
 (** {{:http://erratique.ch/software/xmlm}Xmlm 1.0.2} (to be deleted). *)
 module Xmlm: module type of Biocaml_internal_xmlm
 

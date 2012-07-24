@@ -6,6 +6,8 @@ let try_finally_exn ~fend f x =
     | `V f_x -> fend x; f_x
     | `E e -> (try fend x with _ -> ()); raise e
 
+let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
+
 module Xmlm = Biocaml_internal_xmlm
   
 module Stream = struct
