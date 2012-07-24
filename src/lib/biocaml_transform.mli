@@ -17,7 +17,12 @@ module Line_oriented: sig
 
     
   val queued_lines: parser -> int
-  (** Get the number of lines in the buffer/queue. *)
+  (** Get the number of lines ready-to-use in the buffer/queue. *)
+
+  val is_empty: parser -> bool
+  (** Tell if the parser's buffers are empty or not. For instance, when there is no
+      more content to feed and [next_line] returns [None], [is_empty p =
+      true] means that the content did not end with a complete line. *)
     
   val next_line: parser -> string option
   (** Get the next line. *)

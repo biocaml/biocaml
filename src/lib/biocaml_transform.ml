@@ -52,6 +52,10 @@ module Line_oriented = struct
 
   let current_position p =
     Biocaml_pos.make ?file:p.filename ~line:p.parsed_lines ()
+
+  let is_empty p =
+    Queue.is_empty p.lines && p.unfinished_line = None
+      
 end
 
 module Printer_queue = struct
