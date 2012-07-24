@@ -80,6 +80,16 @@ val mix :
     [ `left of 'error_left | `right of 'error_right ] ) transform
 (** Create a transformation that merges the output of two transformations.  *) 
 
+val with_termination:
+  ('input, 'output, 'error) transform ->
+  ([`input of 'input | `termination ],
+   [`output of 'output | `terminated of 'output list],
+   'error) transform
+(** Add "termination" to a transformation. [let wt = with_termination
+    t] means that [wt#feed] expects a stream of [`input v] values and a
+    last [`termination] value (like "end-of-file"). After [`termination],
+    [wt#feed] becomes a no-op, and [wt#next] gathers a remaining outputs
+    into [`terminated outputs]. *)
 
 val enum_transformation :
   error_to_exn:('error -> exn) ->

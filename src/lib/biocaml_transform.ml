@@ -151,6 +151,32 @@ object
     end
 end
 
+let with_termination transform =
+object
+  val mutable terminated = false
+  method feed i =
+    begin match i with
+    | `input input ->
+      if not terminated then transform#feed input else ()
+    | `termination -> terminated <- true
+    end
+  method next =
+    if not terminated then (
+      match transform#next with
+      | `output o -> `output (`output o)
+      | `not_ready -> `not_ready
+      | `error e -> `error e
+    ) else (
+      let rec loop acc =
+        match transform#next with
+        | `output o -> loop (o :: acc)
+        | `not_ready -> `output (`terminated (List.rev acc))
+        | `error e -> `error e
+      in
+      loop []
+    )
+end
+   
       
 let enum_transformation ~error_to_exn tr en =
   let rec loop_until_ready tr en =

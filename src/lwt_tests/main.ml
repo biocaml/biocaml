@@ -75,6 +75,7 @@ let test_classy_trimmer file =
         method next = id <- id + 1; `output id
       end in
     Biocaml_transform.(
+      with_termination
       (compose
          (mix
             (compose
@@ -92,38 +93,34 @@ let test_classy_trimmer file =
     unit  ---  count --------------------------/                              *)    
   in
   Lwt_io.(with_file ~mode:input file (fun i ->
+    let rec print_all () =
+      begin match fastq_file_trimmer#next with
+      | `output (`output o) ->
+        Lwt_io.printf "%s" o >>= fun () ->
+        print_all ()
+      | `output (`terminated sl) ->
+        Lwt_io.printf "=====  TERMINATED \n" >>= fun () ->
+        Lwt_list.iter_s (Lwt_io.printf "%s") sl
+      | `not_ready ->
+        Lwt_io.printf "=====  NOT READY \n"
+      | `error _ -> 
+        Lwt_io.printf "=====  ERROR\n"
+      end
+    in
     let rec loop () =
       read i
       >>= fun read_string ->
-      if read_string = "" then
-        return ()
-      else (
-        fastq_file_trimmer#feed (read_string, ());
-        begin match fastq_file_trimmer#next with
-        | `output o ->
-          Lwt_io.printf "%s" o
-        | `not_ready ->
-          Lwt_io.printf "=====  NOT READY \n"
-        | `error _ -> 
-          Lwt_io.printf "=====  ERROR\n"
-        end
+      if read_string = "" then (
+        fastq_file_trimmer#feed `termination;
+        print_all ()
+      ) else (
+        fastq_file_trimmer#feed (`input (read_string, ()));
+        print_all ()
         >>= fun () ->
-        loop ())
+        loop ()
+      )
     in
     loop ()))
-  >>= fun () ->
-  let rec finish_printing () =
-    begin match fastq_file_trimmer#next with
-    | `output o ->
-      Lwt_io.printf "%s" o >>= fun () ->
-      finish_printing ()
-    | `not_ready ->
-      Lwt_io.printf "=====  NOT READY \n"
-    | `error _ -> 
-      Lwt_io.printf "=====  ERROR\n"
-    end
-  in
-  finish_printing ()
   
   
 let () =
