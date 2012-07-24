@@ -34,4 +34,15 @@ module Stream: sig
   val is_empty : 'a t -> bool
   val lines_of_channel : in_channel -> string Stream.t
 end
-  
+
+module Lines : sig
+  exception Error of (Biocaml_pos.t * string)
+  val fold_stream' : ?file:string -> ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
+  val fold_stream : ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
+  val fold_channel' : ?file:string -> ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
+  val fold_channel : ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
+  val fold_file : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a
+  val iter_file : ?strict:bool -> (string -> unit) -> string -> unit
+  val of_stream : ?strict:bool -> (string -> 'a) -> char Stream.t -> 'a List.t
+  val of_channel : ?strict:bool -> (string -> 'a) -> in_channel -> 'a List.t
+end
