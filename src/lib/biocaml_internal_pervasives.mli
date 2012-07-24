@@ -15,5 +15,16 @@ module Stream: sig
   include module type of Stream with type 'a t = 'a Stream.t
   val next: 'a t -> 'a option
   val next_exn: 'a t -> 'a
+  val lines_of_chars : char t -> string t
+  val keep_whilei : (int -> 'a -> bool) -> 'a t -> 'a t
+  val keep_while : ('a -> bool) -> 'a t -> 'a t
+  val truncate : int -> 'a t -> 'a t
+  val skip_whilei : (int -> 'a -> bool) -> 'a t -> unit
+  val skip_while : ('a -> bool) -> 'a t -> unit
+  val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
+  val to_list : 'a t -> 'a list
+  val map : ('a option -> 'b) -> 'a Stream.t -> 'b t
+  val is_empty : 'a t -> bool
+  val lines_of_channel : in_channel -> string Stream.t
 end
   
