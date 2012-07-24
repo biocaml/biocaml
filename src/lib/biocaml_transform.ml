@@ -111,7 +111,12 @@ object
       | `not_ready -> `not_ready
       | `error e -> `error (`right e)
       end
-    | `not_ready -> `not_ready
+    | `not_ready ->
+      begin match tb#next with
+      | `output o -> `output o
+      | `not_ready -> `not_ready
+      | `error e -> `error (`right e)
+      end
     | `error e -> `error (`left e)
 end 
   
