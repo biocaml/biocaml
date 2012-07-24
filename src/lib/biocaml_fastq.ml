@@ -55,6 +55,7 @@ object
     | `record r -> `output r
     | `error e -> `error e
     | `not_ready -> `not_ready
+  method is_empty = is_empty parser
 end
   
 type empty
@@ -67,6 +68,7 @@ object
     match (flush printer) with
     | "" -> `not_ready
     | s -> `output s
+  method is_empty = is_empty printer
 end
 
 class trimmer (specification: [`beginning of int|`ending of int]) =
@@ -92,6 +94,7 @@ object
       end
     | None -> `not_ready
     end
+  method is_empty = Queue.is_empty records
 
 end
 

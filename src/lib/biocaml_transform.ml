@@ -92,6 +92,7 @@ module Printer_queue = struct
     p.clear_buffer p.buffer;
     ret
 
+  let is_empty p = Queue.is_empty p.records
 end
 
 
@@ -99,12 +100,14 @@ class type ['input, 'output, 'error] transform =
 object
   method feed: 'input -> unit
   method next: [ `output of 'output | `not_ready | `error of 'error ]
+  method is_empty: bool
 end
 
 let on_input tr ~f =
 object
   method feed x = tr#feed (f x)
   method next = tr#next
+  method is_empty = tr#is_empty
 end
 let on_output tr ~f =
 object
@@ -114,6 +117,7 @@ object
     | `output o -> `output (f o)
     | `not_ready -> `not_ready
     | `error e -> `error e
+  method is_empty = tr#is_empty
 end
 let on_error tr ~f = 
 object
@@ -123,6 +127,7 @@ object
     | `output o -> `output o
     | `not_ready -> `not_ready
     | `error e -> `error (f e)
+  method is_empty = tr#is_empty
 end
     
 let compose ta tb =
@@ -146,6 +151,7 @@ object
       | `error e -> `error (`right e)
       end
     | `error e -> `error (`left e)
+  method is_empty = ta#is_empty && tb#is_empty
 end 
   
 let mix ta tb ~f =
@@ -177,6 +183,7 @@ object
       | `error e -> `error (`right e)
       end
     end
+  method is_empty = ta#is_empty && tb#is_empty
 end
 
 let with_termination transform =
@@ -203,6 +210,7 @@ object
       in
       loop []
     )
+  method is_empty = transform#is_empty
 end
    
       

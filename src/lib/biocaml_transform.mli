@@ -54,7 +54,10 @@ module Printer_queue: sig
 
   val flush: 'a t -> string
   (** Get the current transformed content. *)
-    
+
+  val is_empty: 'a t -> bool
+(** Check if the printer-queue is empty. *) 
+
 end
 
 (** {3 Classy Transformers} *)
@@ -68,6 +71,7 @@ class type ['input, 'output, 'error] transform =
 object
   method feed: 'input -> unit
   method next: [ `output of 'output | `not_ready | `error of 'error ]
+  method is_empty: bool
 end
 
 val on_input: 

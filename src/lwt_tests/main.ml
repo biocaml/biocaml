@@ -74,6 +74,7 @@ let test_classy_trimmer file =
         val mutable id =  0
         method feed () = ()
         method next = id <- id + 1; `output id
+        method is_empty = true
       end in
     Biocaml_transform.(
       with_termination
@@ -133,6 +134,11 @@ let test_classy_trimmer file =
       )
     in
     loop ()))
+  >>= fun () ->
+  if fastq_file_trimmer#is_empty then
+    Lwt_io.printf "===== END: fastq_file_trimmer is empty\n"
+  else
+    Lwt_io.printf "===== ERROR: fastq_file_trimmer is not empty !!\n"
   
   
 let () =
