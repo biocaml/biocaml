@@ -72,7 +72,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
     | None, None -> []
     | None, Some s ->
         (s
-        |> flip String.nsplit separator
+        |> String.nsplit ~by:separator
         |> List.length |> (fun n -> Enum.(0 -- (n-1)))
         |> Enum.map ~f:(fun i -> "column" ^ string_of_int i)
         |> List.of_enum)
