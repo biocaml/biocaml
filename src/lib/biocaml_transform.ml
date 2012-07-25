@@ -16,12 +16,13 @@ exception Feeding_stopped_transformation of string
 let feed t i = t.feed i
 let next t = t.next ()
 let stop t = t.stop ()
+let name t = t.name
 
 let make_stoppable ?name ~feed ~next () =
   let stopped = ref false in
   make ?name ()
     ~feed:(fun x ->
-      if !stopped then
+      if not !stopped then
         feed x
       else
         raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
@@ -29,8 +30,101 @@ let make_stoppable ?name ~feed ~next () =
     ~stop:(fun () -> stopped := true)
 
 
+let on_input t ~f =
+  { t with feed = fun x -> t.feed (f x) }
+let on_output t ~f =
+  { t with next = fun () ->
+      match t.next () with
+      | `output o -> `output (f o)
+      | `not_ready -> `not_ready
+      | `error e -> `error e
+      | `end_of_stream -> `end_of_stream }
+let on_error t ~f = 
+  { t with next = fun () ->
+    match t.next () with
+    | `output o -> `output o
+    | `not_ready -> `not_ready
+    | `error e -> `error (f e)
+    | `end_of_stream -> `end_of_stream }
 
-  
+let compose ta tb =
+  let name =
+    sprintf "(compose <%s> <%s>)"
+      Option.(value ~default:"" (name ta))
+      Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun i -> feed ta i)
+    ~stop:(fun () -> stop ta)
+    ~next:(fun () ->
+      let call_tb_next () =
+        begin match next tb with
+        | `output o -> `output o
+        | `not_ready -> `not_ready
+        | `error e -> `error (`right e)
+        | `end_of_stream -> `end_of_stream
+        end
+      in
+      match next ta with
+      | `output o -> feed tb o; call_tb_next ()
+      | `not_ready -> call_tb_next ()
+      | `error e -> `error (`left e)
+      | `end_of_stream -> stop tb; call_tb_next ())
+        
+let mix ta tb ~f =
+  let a_buffer = ref None in
+  let name =
+    sprintf "(mix <%s> <%s>)"
+      Option.(value ~default:"" (name ta))
+      Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun (a, b) -> feed ta a; feed tb b)
+    ~stop:(fun () -> stop ta; stop tb)
+    ~next:(fun () ->
+      begin match !a_buffer with
+      | None ->
+        begin match next ta with
+        | `output oa ->
+        begin match next tb with
+        | `output ob -> `output (f oa ob)
+        | `not_ready ->
+          a_buffer := Some oa;
+          `not_ready
+        | `error e -> `error (`right e)
+        | `end_of_stream -> `error (`end_of_left_stream)
+        end
+        | `not_ready -> `not_ready
+        | `error e -> `error (`left e)
+        | `end_of_stream ->
+          begin match next tb with
+          | `end_of_stream -> `end_of_stream
+          |  _ -> `error (`end_of_right_stream)
+          end
+        end
+      | Some oa ->
+        begin match next tb with
+        | `output ob -> `output (f oa ob)
+        | `not_ready -> `not_ready
+        | `error e -> `error (`right e)
+        | `end_of_stream -> `error (`end_of_right_stream)
+        end
+      end)
+    
+let stream_transformation ~error_to_exn tr en =
+  let rec loop_until_ready tr en =
+    match next tr with
+    | `output o -> Some o
+    | `error e -> raise (error_to_exn e)
+    | `end_of_stream -> None
+    | `not_ready ->
+      begin match Stream.next en with
+      | None -> stop tr; loop_until_ready tr en
+      | Some s ->
+        feed tr s;
+        loop_until_ready tr en
+      end
+  in
+  Stream.from (fun _ -> loop_until_ready tr en)
+    
 module Line_oriented = struct
 
   type parser = {
@@ -128,172 +222,6 @@ module Printer_queue = struct
 
   let is_empty p = Queue.is_empty p.records
 end
-
-class type ['input, 'output, 'error] transform =
-object
-  method feed: 'input -> unit
-  method stop: unit
-  method next: [ `output of 'output | `not_ready
-               | `error of 'error
-               | `end_of_stream]
-end
-
-type ('input, 'output, 'error) stream_transform = ('input, 'output, 'error) transform
-let feed t i = t#feed i
-let stop t = t#stop
-let next t = t#next
-        
-let on_input tr ~f =
-object
-  method feed x = tr#feed (f x)
-  method stop = tr#stop
-  method next = tr#next
-end
-let on_output tr ~f =
-object
-  method feed x = tr#feed x
-  method stop = tr#stop
-  method next =
-    match tr#next with
-    | `output o -> `output (f o)
-    | `not_ready -> `not_ready
-    | `error e -> `error e
-    | `end_of_stream -> `end_of_stream
-end
-let on_error tr ~f = 
-object
-  method feed x = tr#feed x
-  method stop = tr#stop
-  method next =
-    match tr#next with
-    | `output o -> `output o
-    | `not_ready -> `not_ready
-    | `error e -> `error (f e)
-    | `end_of_stream -> `end_of_stream
-end
-    
-let compose ta tb =
-object
-  method feed (i: 'a) : unit =
-    ta#feed i
-  method stop = ta#stop
-  method next =
-    (* : [ `output of 'e | `not_ready | `error of [`left of 'c | `right of 'f ] ] = *)
-    let call_tb_next () =
-      begin match tb#next with
-      | `output o -> `output o
-      | `not_ready -> `not_ready
-      | `error e -> `error (`right e)
-      | `end_of_stream -> `end_of_stream
-      end
-    in
-    match ta#next with
-    | `output o -> tb#feed o; call_tb_next ()
-    | `not_ready -> call_tb_next ()
-    | `error e -> `error (`left e)
-    | `end_of_stream -> tb#stop; call_tb_next ()
-      
-end 
-  
-let mix ta tb ~f =
-object 
-  val mutable a_buffer = None
-  method feed (a, b) =
-    ta#feed a;
-    tb#feed b
-  method stop = ta#stop; tb#stop
-  method next =
-    (* : [ `output of 'e | `not_ready | `error of [`left of 'c | `right of 'f ] ] = *)
-    begin match a_buffer with
-    | None ->
-      begin match ta#next with
-      | `output oa ->
-        begin match tb#next with
-        | `output ob -> `output (f oa ob)
-        | `not_ready ->
-          a_buffer <- Some oa;
-          `not_ready
-        | `error e -> `error (`right e)
-        | `end_of_stream -> `error (`end_of_left_stream)
-        end
-      | `not_ready -> `not_ready
-      | `error e -> `error (`left e)
-      | `end_of_stream ->
-        begin match tb#next with
-        | `end_of_stream -> `end_of_stream
-        |  _ -> `error (`end_of_right_stream)
-        end
-      end
-    | Some oa ->
-      begin match tb#next with
-      | `output ob -> `output (f oa ob)
-      | `not_ready -> `not_ready
-      | `error e -> `error (`right e)
-      | `end_of_stream -> `error (`end_of_right_stream)
-      end
-    end
-end
-(*
-let with_termination transform =
-object
-  val mutable terminated = false
-  method feed i =
-    begin match i with
-    | `input input ->
-      if not terminated then transform#feed input else ()
-    | `termination -> terminated <- true
-    end
-  method next =
-    if not terminated then (
-      match transform#next with
-      | `output o -> `output (`output o)
-      | `not_ready -> `not_ready
-      | `error e -> `error e
-    ) else (
-      let rec loop acc =
-        match transform#next with
-        | `output o -> loop (o :: acc)
-        | `not_ready -> `output (`terminated (List.rev acc))
-        | `error e -> `error e
-      in
-      loop []
-    )
-  method is_empty = transform#is_empty
-end
-*) 
-      
-let enum_transformation ~error_to_exn tr en =
-  let rec loop_until_ready tr en =
-    match tr#next with
-    | `output o -> o
-    | `error e -> raise (error_to_exn e)
-    | `end_of_stream -> raise BatEnum.No_more_elements
-    | `not_ready ->
-      begin match BatEnum.get en with
-      | None -> tr#stop; loop_until_ready tr en
-      | Some s ->
-        tr#feed s;
-        loop_until_ready tr en
-      end
-  in
-  BatEnum.from (fun () -> loop_until_ready tr en)
-    
-    
-let stream_transformation ~error_to_exn tr en =
-  let rec loop_until_ready tr en =
-    match tr#next with
-    | `output o -> Some o
-    | `error e -> raise (error_to_exn e)
-    | `end_of_stream -> None
-    | `not_ready ->
-      begin match Stream.next en with
-      | None -> tr#stop; loop_until_ready tr en
-      | Some s ->
-        tr#feed s;
-        loop_until_ready tr en
-      end
-  in
-  Stream.from (fun _ -> loop_until_ready tr en)
     
 
   

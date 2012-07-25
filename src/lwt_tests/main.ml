@@ -71,19 +71,19 @@ let reprint_fastq file =
 let test_classy_trimmer file =
   let fastq_file_trimmer =
     let counter_transform =
-      object
-        val mutable id =  0
-        method feed () = ()
-        method stop = ()
-        method next = id <- id + 1; `output id
-      end in
+      let id = ref 0 in
+      Biocaml_transform.make_stoppable ~name:"counter" ()
+        ~feed:(fun _ -> ())
+        ~next:(fun stopped ->
+          if stopped then `end_of_stream else (id := !id + 1; `output !id))
+    in
     Biocaml_transform.(
       (* with_termination *)
       (compose
          (mix
             (compose
                (compose
-                  (Biocaml_fastq.fastq_parser ())
+                  (Biocaml_fastq.make_fastq_parser ())
                   (on_input (Biocaml_fastq.trimmer (`beginning 10))
                      ~f:(fun i ->
                        Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))

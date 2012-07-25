@@ -31,21 +31,22 @@ val printer:
   
 val make_fastq_parser: ?filename:string -> unit -> (string, record, parser_error) t
 
+  (*
 val fastq_parser: ?filename:string -> unit ->
   (string, record, parser_error) transform
-
+  *)
 type empty
-val fastq_printer: unit -> (record, string, empty) transform
+val fastq_printer: unit -> (record, string, empty) t
   
 val trimmer:
   [ `beginning of int | `ending of int ] ->
-  (record, record, [`invalid_size of int]) transform
-
+  (record, record, [`invalid_size of int]) t
 
 
 (** {3 Non-cooperative functions} *)
 
-
+(*
 exception Error of parser_error 
 val enum_parser: ?filename:string -> string BatEnum.t -> record BatEnum.t
+*)
 (** Stream transformation for [BatEnum.t]. *)

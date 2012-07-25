@@ -22,6 +22,8 @@ val next:
   [ `output of 'output | `end_of_stream | `error of 'error | `not_ready ]
 val stop: 
   ('input, 'output, 'error) t -> unit
+val name:
+  ('input, 'output, 'error) t -> string option
 
 
 val make_stoppable: ?name:string -> 
@@ -32,7 +34,46 @@ val make_stoppable: ?name:string ->
   ('input, 'output, 'error) t
 
 
+val on_input: 
+  ('input_a, 'output, 'error) t ->
+  f:('input_b -> 'input_a) ->
+  ('input_b, 'output, 'error) t
+(** Map the input of a t (pre-processor). *)
 
+val on_output: 
+  ('input, 'output_a, 'error) t ->
+  f:('output_a -> 'output_b) ->
+  ('input, 'output_b, 'error) t
+(** Map the output of a t (post-processor). *)
+
+val on_error: 
+  ('input, 'output, 'error_a) t ->
+  f:('error_a -> 'error_b) ->
+  ('input, 'output, 'error_b) t
+(** Map on the errors of a transform (post-processor). *)
+
+val compose:
+  ( 'input_left, 'middle, 'error_left) t ->
+  ( 'middle, 'output_right, 'error_right) t ->
+  ( 'input_left, 'output_right, [ `left of 'error_left | `right of 'error_right ] )
+    t
+(** Compose (or {i Sequence}) two tations. *)
+    
+val mix :
+  ( 'input_left, 'output_left, 'error_left) t ->
+  ( 'input_right, 'output_right, 'error_right) t ->
+  f:('output_left -> 'output_right -> 'output_f) ->
+  ( 'input_left * 'input_right, 'output_f,
+    [ `left of 'error_left | `right of 'error_right
+    | `end_of_left_stream | `end_of_right_stream ] ) t
+(** Create a transformation that merges the output of two transformations.  *) 
+
+val stream_transformation:
+  error_to_exn:('error -> exn) ->
+  ('input, 'output, 'error) t ->
+  'input Stream.t -> 'output Stream.t
+(** Make a transformation between standard OCaml streams that may
+    raise exceptions. *)
 
 (** A buffering parser for line-oriented formats. *)
 module Line_oriented: sig
@@ -96,74 +137,3 @@ module Printer_queue: sig
 
 end
 
-(** {3 Classy Transformers} *)
-  
-(** Basic type a of a Cryptokit-styled transformation:
-    An [\['input, 'output, 'error\] transform] is an object that can
-    be fed with ['input] values and pulled form giving ['output] values
-    or ['error] values.
-*)
-class type ['input, 'output, 'error] transform =
-object
-  method feed: 'input -> unit
-  method stop: unit
-  method next: [ `output of 'output | `not_ready
-               | `error of 'error
-               | `end_of_stream]
-end
-
-type ('input, 'output, 'error) stream_transform = ('input, 'output, 'error) transform
-
-val feed: ('input, 'output, 'error) stream_transform -> 'input -> unit
-val stop: ('input, 'output, 'error) stream_transform -> unit
-val next: ('input, 'output, 'error) stream_transform ->
-  [ `output of 'output | `not_ready | `error of 'error | `end_of_stream]
-
-
-val on_input: 
-  ('input_a, 'output, 'error) transform ->
-  f:('input_b -> 'input_a) ->
-  ('input_b, 'output, 'error) transform
-(** Map the input of a transform (pre-processor). *)
-
-val on_output: 
-  ('input, 'output_a, 'error) transform ->
-  f:('output_a -> 'output_b) ->
-  ('input, 'output_b, 'error) transform
-(** Map the output of a transform (post-processor). *)
-
-val on_error: 
-  ('input, 'output, 'error_a) transform ->
-  f:('error_a -> 'error_b) ->
-  ('input, 'output, 'error_b) transform
-(** Map on the errors of a transform (post-processor). *)
-
-  
-val compose:
-  ( 'input_left, 'middle, 'error_left) transform ->
-  ( 'middle, 'output_right, 'error_right) transform ->
-  ( 'input_left, 'output_right, [ `left of 'error_left | `right of 'error_right ] )
-    transform
-(** Compose (or {i Sequence}) two transformations. *)
-    
-val mix :
-  ( 'input_left, 'output_left, 'error_left) transform ->
-  ( 'input_right, 'output_right, 'error_right) transform ->
-  f:('output_left -> 'output_right -> 'output_f) ->
-  ( 'input_left * 'input_right, 'output_f,
-    [ `left of 'error_left | `right of 'error_right
-    | `end_of_left_stream | `end_of_right_stream ] ) transform
-(** Create a transformation that merges the output of two transformations.  *) 
-
-val enum_transformation :
-  error_to_exn:('error -> exn) ->
-  ('input, 'output, 'error) transform ->
-  'input BatEnum.t -> 'output BatEnum.t
-(** Make an enum-transformation that may raise exceptions. *)
-    
-val stream_transformation:
-  error_to_exn:('error -> exn) ->
-  ('input, 'output, 'error) transform ->
-  'input Stream.t -> 'output Stream.t
-(** Make a transformation between standard OCaml streams that may
-    raise exceptions. *)

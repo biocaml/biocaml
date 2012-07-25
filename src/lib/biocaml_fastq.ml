@@ -83,81 +83,56 @@ let make_fastq_parser ?filename () =
             `error (`incomplete_input (LOP.current_position lo_parser, l, o))
         ) else
           `not_ready)
-
-open Biocaml_transform.Line_oriented 
-let fastq_parser ?filename ():
-    (string, record, parser_error) Biocaml_transform.transform =
-object
-  val parser = parser ?filename ()
-  val mutable stopped = false
-  method feed s =
-    if not stopped then
-      feed_string parser s
-    else
-      eprintf "fastq_parser: called feed after stop\n%!"
-  method stop = stopped <- true
-  method next =
-    match next parser with
-    | `record r -> `output r
-    | `error e -> `error e
-    | `not_ready ->
-      if stopped then (
-        match finish parser with
-        | `ok -> `end_of_stream
-        | `error (l, o) ->
-          `error (`incomplete_input (current_position parser, l, o))
-      ) else
-        `not_ready
-end
   
 type empty
-open Biocaml_transform.Printer_queue 
-let fastq_printer (): (record, string, empty) Biocaml_transform.transform =
-object
-  val printer = printer ()
-  method feed r = feed printer r
-  method stop = ()
-  method next =
-    match (flush printer) with
-    | "" -> `not_ready
-    | s -> `output s
-end
+let fastq_printer () =
+  let module PQ = Biocaml_transform.Printer_queue in
+  let printer = printer () in
+  Biocaml_transform.make_stoppable ~name:"fastq_printer" ()
+    ~feed:(fun r -> PQ.feed printer r)
+    ~next:(fun stopped ->
+      match (PQ.flush printer) with
+      | "" -> if stopped then `end_of_stream else `not_ready
+      | s -> `output s)
 
 let trimmer (specification: [`beginning of int|`ending of int]) =
-object
-  val records =  Queue.create ()
-  method feed r = Queue.enqueue records r
-  method stop = ()
-  method next = 
-    begin match Queue.dequeue records with
-    | Some r ->
-      let rlgth = String.length r.sequence in
-      begin match specification with
-      | `beginning i when i < rlgth ->
-        `output 
-          { r with sequence = String.sub r.sequence ~pos:i ~len:(rlgth - i);
+  let records =  Queue.create () in
+  let name =
+    sprintf "(fastq_trimmer %s)"
+      (match specification with
+      | `beginning i -> sprintf "B:%d" i
+      | `ending i -> sprintf "E:%d" i) in
+  Biocaml_transform.make_stoppable ~name ()
+    ~feed:(fun r -> Queue.enqueue records r)
+    ~next:(fun stopped ->
+      begin match Queue.dequeue records with
+      | Some r ->
+        let rlgth = String.length r.sequence in
+        begin match specification with
+        | `beginning i when i < rlgth ->
+          `output 
+            { r with sequence = String.sub r.sequence ~pos:i ~len:(rlgth - i);
               qualities = String.sub r.qualities ~pos:i ~len:(rlgth - i) }
-      | `ending i when i < rlgth ->
-        `output 
-          { r with sequence = String.sub r.sequence ~pos:0 ~len:(rlgth - i);
+        | `ending i when i < rlgth ->
+          `output 
+            { r with sequence = String.sub r.sequence ~pos:0 ~len:(rlgth - i);
               qualities = String.sub r.qualities ~pos:0 ~len:(rlgth - i) }
-      | _ ->
-        `error (`invalid_size rlgth)
-      end
-    | None -> `not_ready
-    end
-
-end
+        | _ ->
+          `error (`invalid_size rlgth)
+        end
+      | None -> if stopped then `end_of_stream else `not_ready
+      end)
 
   
 (* ************************************************************************** *)
 (* Non-cooperative / Unix *)
 
-
+(*
 exception Error of parser_error 
 let enum_parser ?filename e =
   let transfo = fastq_parser ?filename () in
   Biocaml_transform.enum_transformation (fun e -> Error e) transfo e
+*)
 (*
 #require "biocaml";;
 open Batteries;;
