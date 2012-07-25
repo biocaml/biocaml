@@ -42,41 +42,56 @@ let printer =
 type parser_error =
 [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
 | `wrong_comment_line of Biocaml_pos.t * string
-| `wrong_name_line of Biocaml_pos.t * string ]
+| `wrong_name_line of Biocaml_pos.t * string
+| `incomplete_input of Biocaml_pos.t * string list * string option]
 
 open Biocaml_transform.Line_oriented 
-class fastq_parser ?filename () =
+let fastq_parser ?filename ():
+    (string, record, parser_error) Biocaml_transform.transform =
 object
   val parser = parser ?filename ()
+  val mutable stopped = false
   method feed s =
-    feed_string parser s
-  method next:  [ `output of record | `not_ready | `error of parser_error ] =
+    if not stopped then
+      feed_string parser s
+    else
+      eprintf "fastq_parser: called feed after stop\n%!"
+  method stop = stopped <- true
+  method next =
     match next parser with
     | `record r -> `output r
     | `error e -> `error e
-    | `not_ready -> `not_ready
+    | `not_ready ->
+      if stopped then (
+        match finish parser with
+        | `ok -> `end_of_stream
+        | `error (l, o) ->
+          `error (`incomplete_input (current_position parser, l, o))
+      ) else
+        `not_ready
   method is_empty = is_empty parser
 end
   
 type empty
 open Biocaml_transform.Printer_queue 
-class fastq_printer =
+let fastq_printer (): (record, string, empty) Biocaml_transform.transform =
 object
   val printer = printer ()
   method feed r = feed printer r
-  method next :  [ `output of string | `not_ready | `error of empty ] =
+  method stop = ()
+  method next =
     match (flush printer) with
     | "" -> `not_ready
     | s -> `output s
   method is_empty = is_empty printer
 end
 
-class trimmer (specification: [`beginning of int|`ending of int]) =
+let trimmer (specification: [`beginning of int|`ending of int]) =
 object
   val records =  Queue.create ()
   method feed r = Queue.enqueue records r
-  method next: 
-    [ `output of record | `not_ready | `error of [`invalid_size of int] ] =
+  method stop = ()
+  method next = 
     begin match Queue.dequeue records with
     | Some r ->
       let rlgth = String.length r.sequence in
@@ -105,7 +120,7 @@ end
 
 exception Error of parser_error 
 let enum_parser ?filename e =
-  let transfo = new fastq_parser ?filename () in
+  let transfo = fastq_parser ?filename () in
   Biocaml_transform.enum_transformation (fun e -> Error e) transfo e
 (*
 #require "biocaml";;

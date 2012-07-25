@@ -10,10 +10,12 @@ type record = {
   qualities: string;
 } 
 
+
 type parser_error =
 [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
 | `wrong_comment_line of Biocaml_pos.t * string
-| `wrong_name_line of Biocaml_pos.t * string ]
+| `wrong_name_line of Biocaml_pos.t * string
+| `incomplete_input of Biocaml_pos.t * string list * string option]
 
 val next :
   Line_oriented.parser ->
@@ -27,15 +29,15 @@ val printer:
 (**  {3 Classy Interface } *)
   
 
-class fastq_parser: ?filename:string -> unit ->
-  [string, record, parser_error] transform
+val fastq_parser: ?filename:string -> unit ->
+  (string, record, parser_error) transform
 
 type empty
-class fastq_printer: [record, string, empty] transform
+val fastq_printer: unit -> (record, string, empty) transform
   
-class trimmer:
+val trimmer:
   [ `beginning of int | `ending of int ] ->
-    [record, record, [`invalid_size of int]] transform
+  (record, record, [`invalid_size of int]) transform
 
 
 

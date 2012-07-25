@@ -36,6 +36,8 @@ module Line_oriented: sig
   val current_position: parser -> Biocaml_pos.t
   (** Get the current position in the stream. *)
 
+  val finish : parser -> [`ok | `error of string list * string option ]
+(** Terminate the parsing, if the buffers are not empty return them as an error. *)
 end
 
 (** A generic buffering printer.  *)
@@ -70,7 +72,10 @@ end
 class type ['input, 'output, 'error] transform =
 object
   method feed: 'input -> unit
-  method next: [ `output of 'output | `not_ready | `error of 'error ]
+  method stop: unit
+  method next: [ `output of 'output | `not_ready
+               | `error of 'error
+               | `end_of_stream]
   method is_empty: bool
 end
 
@@ -105,9 +110,10 @@ val mix :
   ( 'input_right, 'output_right, 'error_right) transform ->
   f:('output_left -> 'output_right -> 'output_f) ->
   ( 'input_left * 'input_right, 'output_f,
-    [ `left of 'error_left | `right of 'error_right ] ) transform
+    [ `left of 'error_left | `right of 'error_right
+    | `end_of_left_stream | `end_of_right_stream ] ) transform
 (** Create a transformation that merges the output of two transformations.  *) 
-
+(*
 val with_termination:
   ('input, 'output, 'error) transform ->
   ([`input of 'input | `termination ],
@@ -118,7 +124,7 @@ val with_termination:
     last [`termination] value (like "end-of-file"). After [`termination],
     [wt#feed] becomes a no-op, and [wt#next] gathers a remaining outputs
     into [`terminated outputs]. *)
-
+*)
 val enum_transformation :
   error_to_exn:('error -> exn) ->
   ('input, 'output, 'error) transform ->

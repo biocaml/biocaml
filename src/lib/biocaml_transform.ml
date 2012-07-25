@@ -55,6 +55,9 @@ module Line_oriented = struct
 
   let is_empty p =
     Queue.is_empty p.lines && p.unfinished_line = None
+
+  let finish p =
+    if is_empty p then `ok else `error (Queue.to_list p.lines, p.unfinished_line)
       
 end
 
@@ -99,34 +102,42 @@ end
 class type ['input, 'output, 'error] transform =
 object
   method feed: 'input -> unit
-  method next: [ `output of 'output | `not_ready | `error of 'error ]
+  method stop: unit
+  method next: [ `output of 'output | `not_ready
+               | `error of 'error
+               | `end_of_stream]
   method is_empty: bool
 end
 
 let on_input tr ~f =
 object
   method feed x = tr#feed (f x)
+  method stop = tr#stop
   method next = tr#next
   method is_empty = tr#is_empty
 end
 let on_output tr ~f =
 object
   method feed x = tr#feed x
+  method stop = tr#stop
   method next =
     match tr#next with
     | `output o -> `output (f o)
     | `not_ready -> `not_ready
     | `error e -> `error e
+    | `end_of_stream -> `end_of_stream
   method is_empty = tr#is_empty
 end
 let on_error tr ~f = 
 object
   method feed x = tr#feed x
+  method stop = tr#stop
   method next =
     match tr#next with
     | `output o -> `output o
     | `not_ready -> `not_ready
     | `error e -> `error (f e)
+    | `end_of_stream -> `end_of_stream
   method is_empty = tr#is_empty
 end
     
@@ -134,23 +145,23 @@ let compose ta tb =
 object
   method feed (i: 'a) : unit =
     ta#feed i
-  method next : [ `output of 'e | `not_ready
-                | `error of [`left of 'c | `right of 'f ] ] =
+  method stop = ta#stop
+  method next =
+    (* : [ `output of 'e | `not_ready | `error of [`left of 'c | `right of 'f ] ] = *)
+    let call_tb_next () =
+      begin match tb#next with
+      | `output o -> `output o
+      | `not_ready -> `not_ready
+      | `error e -> `error (`right e)
+      | `end_of_stream -> `end_of_stream
+      end
+    in
     match ta#next with
-    | `output o ->
-      tb#feed o;
-      begin match tb#next with
-      | `output o -> `output o
-      | `not_ready -> `not_ready
-      | `error e -> `error (`right e)
-      end
-    | `not_ready ->
-      begin match tb#next with
-      | `output o -> `output o
-      | `not_ready -> `not_ready
-      | `error e -> `error (`right e)
-      end
+    | `output o -> tb#feed o; call_tb_next ()
+    | `not_ready -> call_tb_next ()
     | `error e -> `error (`left e)
+    | `end_of_stream -> tb#stop; call_tb_next ()
+      
   method is_empty = ta#is_empty && tb#is_empty
 end 
   
@@ -160,8 +171,9 @@ object
   method feed (a, b) =
     ta#feed a;
     tb#feed b
-  method next : [ `output of 'e | `not_ready
-                | `error of [`left of 'c | `right of 'f ] ] =
+  method stop = ta#stop; tb#stop
+  method next =
+    (* : [ `output of 'e | `not_ready | `error of [`left of 'c | `right of 'f ] ] = *)
     begin match a_buffer with
     | None ->
       begin match ta#next with
@@ -172,20 +184,27 @@ object
           a_buffer <- Some oa;
           `not_ready
         | `error e -> `error (`right e)
+        | `end_of_stream -> `error (`end_of_left_stream)
         end
       | `not_ready -> `not_ready
       | `error e -> `error (`left e)
+      | `end_of_stream ->
+        begin match tb#next with
+        | `end_of_stream -> `end_of_stream
+        |  _ -> `error (`end_of_right_stream)
+        end
       end
     | Some oa ->
       begin match tb#next with
       | `output ob -> `output (f oa ob)
       | `not_ready -> `not_ready
       | `error e -> `error (`right e)
+      | `end_of_stream -> `error (`end_of_right_stream)
       end
     end
   method is_empty = ta#is_empty && tb#is_empty
 end
-
+(*
 let with_termination transform =
 object
   val mutable terminated = false
@@ -212,16 +231,17 @@ object
     )
   method is_empty = transform#is_empty
 end
-   
+*) 
       
 let enum_transformation ~error_to_exn tr en =
   let rec loop_until_ready tr en =
     match tr#next with
     | `output o -> o
     | `error e -> raise (error_to_exn e)
+    | `end_of_stream -> raise BatEnum.No_more_elements
     | `not_ready ->
       begin match BatEnum.get en with
-      | None -> raise BatEnum.No_more_elements
+      | None -> tr#stop; loop_until_ready tr en
       | Some s ->
         tr#feed s;
         loop_until_ready tr en
@@ -235,9 +255,10 @@ let stream_transformation ~error_to_exn tr en =
     match tr#next with
     | `output o -> Some o
     | `error e -> raise (error_to_exn e)
+    | `end_of_stream -> None
     | `not_ready ->
       begin match Stream.next en with
-      | None -> None
+      | None -> tr#stop; loop_until_ready tr en
       | Some s ->
         tr#feed s;
         loop_until_ready tr en

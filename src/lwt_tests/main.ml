@@ -22,6 +22,7 @@ let print_next_ones parser =
       Lwt_io.printf "Syntax error (name line): %s\n" (Biocaml_pos.to_string l)
       >>= fun () ->
       next_m ()
+    | `error _ -> return ()
   in
   next_m ()
         
@@ -73,31 +74,34 @@ let test_classy_trimmer file =
       object
         val mutable id =  0
         method feed () = ()
+        method stop = ()
         method next = id <- id + 1; `output id
         method is_empty = true
       end in
     Biocaml_transform.(
-      with_termination
+      (* with_termination *)
       (compose
          (mix
             (compose
                (compose
-                  (new Biocaml_fastq.fastq_parser ())
-                  (on_input (new Biocaml_fastq.trimmer (`beginning 10))
+                  (Biocaml_fastq.fastq_parser ())
+                  (on_input (Biocaml_fastq.trimmer (`beginning 10))
                      ~f:(fun i ->
                        Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))
-               (new Biocaml_fastq.trimmer (`ending 2)))
+               (Biocaml_fastq.trimmer (`ending 2)))
             counter_transform
             ~f:(fun r c ->
               { r with Biocaml_fastq.name =
                   Printf.sprintf "%s -- %d" r.Biocaml_fastq.name c }))
-         (new Biocaml_fastq.fastq_printer))
+         (Biocaml_fastq.fastq_printer ()))
        |!
       on_error ~f:(function
       | `left (`left (`left (`left parser_error))) -> "parser_error "
       | `left (`left (`left (`right (`invalid_size _)))) -> "invalid_size"
       | `left (`left  (`right (`invalid_size _))) -> "invalid_size"
       | `left (`right _) -> assert false
+      | `left `end_of_left_stream -> "end_of_left_stream"
+      | `left `end_of_right_stream -> "end_of_right_stream"
       | `right _ -> assert false
       )
     )
@@ -108,12 +112,11 @@ let test_classy_trimmer file =
   Lwt_io.(with_file ~mode:input file (fun i ->
     let rec print_all () =
       begin match fastq_file_trimmer#next with
-      | `output (`output o) ->
+      | `output ( o) ->
         Lwt_io.printf "%s" o >>= fun () ->
         print_all ()
-      | `output (`terminated sl) ->
-        Lwt_io.printf "=====  TERMINATED \n" >>= fun () ->
-        Lwt_list.iter_s (Lwt_io.printf "%s") sl
+      | `end_of_stream ->
+        Lwt_io.printf "=====  WELL TERMINATED \n"
       | `not_ready ->
         Lwt_io.printf "=====  NOT READY \n"
       | `error s -> 
@@ -124,16 +127,18 @@ let test_classy_trimmer file =
       read i
       >>= fun read_string ->
       if read_string = "" then (
-        fastq_file_trimmer#feed `termination;
+        fastq_file_trimmer#stop;
         print_all ()
       ) else (
-        fastq_file_trimmer#feed (`input (read_string, ()));
+        fastq_file_trimmer#feed  (read_string, ());
         print_all ()
         >>= fun () ->
         loop ()
       )
     in
     loop ()))
+  >>= fun () ->
+  Lwt_io.(flush stdout)
   >>= fun () ->
   if fastq_file_trimmer#is_empty then
     Lwt_io.printf "===== END: fastq_file_trimmer is empty\n"
