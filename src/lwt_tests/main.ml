@@ -83,7 +83,7 @@ let test_classy_trimmer file =
          (mix
             (compose
                (compose
-                  (Biocaml_fastq.make_fastq_parser ())
+                  (Biocaml_fastq.fastq_parser ())
                   (on_input (Biocaml_fastq.trimmer (`beginning 10))
                      ~f:(fun i ->
                        Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))

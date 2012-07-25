@@ -1,8 +1,6 @@
 (** FASTQ data. *)
 
 
-open Biocaml_transform
-
 type record = {
   name: string;
   sequence: string;
@@ -16,37 +14,30 @@ type parser_error =
 | `wrong_comment_line of Biocaml_pos.t * string
 | `wrong_name_line of Biocaml_pos.t * string
 | `incomplete_input of Biocaml_pos.t * string list * string option]
+
 val string_of_parser_error: parser_error -> string
-  
 val next :
-  Line_oriented.parser ->
+  Biocaml_transform.Line_oriented.parser ->
   [> `error of parser_error | `not_ready | `record of record ]
-    
 
 val printer:
-  ?buffer:[`clear of int | `reset of int] -> unit -> record Printer_queue.t
+  ?buffer:[`clear of int | `reset of int] -> unit ->
+  record Biocaml_transform.Printer_queue.t
 
-
-(**  {3 Classy Interface } *)
   
-val make_fastq_parser: ?filename:string -> unit -> (string, record, parser_error) t
+val fastq_parser:
+  ?filename:string -> unit -> (string, record, parser_error) Biocaml_transform.t
 
-  (*
-val fastq_parser: ?filename:string -> unit ->
-  (string, record, parser_error) transform
-  *)
-type empty
-val fastq_printer: unit -> (record, string, empty) t
+val fastq_printer: unit -> (record, string, [>  ]) Biocaml_transform.t
   
 val trimmer:
   [ `beginning of int | `ending of int ] ->
-  (record, record, [`invalid_size of int]) t
+  (record, record, [`invalid_size of int]) Biocaml_transform.t
 
 
 (** {3 Non-cooperative functions} *)
 
-(*
 exception Error of parser_error 
-val enum_parser: ?filename:string -> string BatEnum.t -> record BatEnum.t
-*)
-(** Stream transformation for [BatEnum.t]. *)
+
+val stream_parser: ?filename:string -> string Stream.t -> record Stream.t
+(** Stream transformation for [Stream.t]. *)

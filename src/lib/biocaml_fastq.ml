@@ -65,7 +65,7 @@ let string_of_parser_error = function
     (Biocaml_pos.to_string pos)
     (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
 
-let make_fastq_parser ?filename () =
+let fastq_parser ?filename () =
   let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
   let module LOP =  Biocaml_transform.Line_oriented  in
   let lo_parser = LOP.parser ?filename () in
@@ -127,17 +127,27 @@ let trimmer (specification: [`beginning of int|`ending of int]) =
 (* ************************************************************************** *)
 (* Non-cooperative / Unix *)
 
-(*
 exception Error of parser_error 
-let enum_parser ?filename e =
+let stream_parser ?filename e =
   let transfo = fastq_parser ?filename () in
-  Biocaml_transform.enum_transformation (fun e -> Error e) transfo e
-*)
-(*
+  Biocaml_transform.stream_transformation (fun e -> Error e) transfo e
+    (*
+
+#thread;;
 #require "biocaml";;
-open Batteries;;
-let i = File.lines_of "01.fastq";;
-let j = Enum.map  (sprintf "%s\n") i;;
-let e = Biocaml_fastq.enum_parser j;;
-List.of_enum e;;
+open Core.Std
+let () =
+  let filename = "01.fastq" in
+  let stream_parser = Biocaml_fastq.stream_parser ~filename  in
+  In_channel.(with_file filename ~f:(fun i ->
+    let instream = Stream.of_channel i in
+    let strstream =
+      Stream.(from (fun _ -> try Some (next instream |! Char.to_string)
+        with _ -> None)) in
+    let outstream = stream_parser strstream in
+  Stream.iter (fun { Biocaml_fastq.sequence } ->
+    printf "::%s\n" sequence) outstream;
+  ))
+  ;;
+    
 *) 
