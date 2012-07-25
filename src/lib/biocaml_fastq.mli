@@ -16,7 +16,8 @@ type parser_error =
 | `wrong_comment_line of Biocaml_pos.t * string
 | `wrong_name_line of Biocaml_pos.t * string
 | `incomplete_input of Biocaml_pos.t * string list * string option]
-
+val string_of_parser_error: parser_error -> string
+  
 val next :
   Line_oriented.parser ->
   [> `error of parser_error | `not_ready | `record of record ]

@@ -45,6 +45,26 @@ type parser_error =
 | `wrong_name_line of Biocaml_pos.t * string
 | `incomplete_input of Biocaml_pos.t * string list * string option]
 
+let string_sample s n =
+  let l = String.length s in
+  if n >= l then s else
+    String.sub s ~pos:0 ~len:n ^ "..."
+  
+let string_of_parser_error = function
+| `sequence_and_qualities_do_not_match (pos, s,q) ->
+  sprintf "[%s]: sequence and qualities do not match (%d Vs %d characters)"
+    (Biocaml_pos.to_string pos) String.(length s) String.(length q)
+| `wrong_comment_line (pos, line) ->
+  sprintf "[%s]: wrong comment line: %S" 
+    (Biocaml_pos.to_string pos) (string_sample line 14)
+| `wrong_name_line (pos, line) ->
+  sprintf "[%s]: wrong name line: %S" 
+    (Biocaml_pos.to_string pos) (string_sample line 14)
+| `incomplete_input (pos, sl, so) ->
+  sprintf "[%s]: end-of-stream reached with incomplete input: %S" 
+    (Biocaml_pos.to_string pos)
+    (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
+
 open Biocaml_transform.Line_oriented 
 let fastq_parser ?filename ():
     (string, record, parser_error) Biocaml_transform.transform =

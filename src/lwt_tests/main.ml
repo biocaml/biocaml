@@ -95,7 +95,8 @@ let test_classy_trimmer file =
          (Biocaml_fastq.fastq_printer ()))
        |!
       on_error ~f:(function
-      | `left (`left (`left (`left parser_error))) -> "parser_error "
+      | `left (`left (`left (`left parser_error))) ->
+        sprintf "parser_error: %s" (Biocaml_fastq.string_of_parser_error parser_error)
       | `left (`left (`left (`right (`invalid_size _)))) -> "invalid_size"
       | `left (`left  (`right (`invalid_size _))) -> "invalid_size"
       | `left (`right _) -> assert false
