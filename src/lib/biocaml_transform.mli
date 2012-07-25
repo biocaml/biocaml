@@ -3,6 +3,20 @@
 
 
 type ('input, 'output, 'error) t 
+(** Basic type a of a Cryptokit-styled transformation:
+    an [('input, 'output, 'error) t] is a buffered transformation
+    that can be fed with ['input]
+    values, stopped, and "pulled form" providing
+    ['output] values or ['error] values.
+    A {i "stoppable"} transformation is a transformation that fulfills
+    the following requirements: {ul
+     {li after [stop] has been called, the [next] should return
+     [`end_of_stream] or [`error _] at some point.}
+     {li calling [feed t] after having called [stop t] is erroneous and
+     should throw [Feeding_stopped_transformation name].}
+    }
+
+*)
 
 val make:
   ?name:string -> 
@@ -12,9 +26,11 @@ val make:
   stop: (unit -> unit) ->
   unit ->
   ('input, 'output, 'error) t
+(** Build a basic transformation. *)
 
 exception Feeding_stopped_transformation of string
-  
+(** Exception thrown by "stoppable" transformations.  *) 
+    
 val feed: 
   ('input, 'output, 'error) t -> 'input -> unit
 val next: 
@@ -32,7 +48,10 @@ val make_stoppable: ?name:string ->
                  | `error of 'error | `not_ready ]) ->
   unit ->
   ('input, 'output, 'error) t
-
+(** Make a "stoppable" transformation easily, [make_stoppable] takes care of
+    raising [Feeding_stopped_transformation] in case of wrong use, and calls the
+    [~next] argument with a boolean value indicating if the transformation
+    has been stopped. *)
 
 val on_input: 
   ('input_a, 'output, 'error) t ->
@@ -57,7 +76,7 @@ val compose:
   ( 'middle, 'output_right, 'error_right) t ->
   ( 'input_left, 'output_right, [ `left of 'error_left | `right of 'error_right ] )
     t
-(** Compose (or {i Sequence}) two tations. *)
+(** Compose (or {i Sequence}) two transforms. *)
     
 val mix :
   ( 'input_left, 'output_left, 'error_left) t ->
