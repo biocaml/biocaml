@@ -10,6 +10,8 @@ exception Bad of string
 
 exception Undefined
   (** Raised when asking for undefined position information. *)
+
+val make: ?file:string -> ?line:int -> ?col:int -> unit -> t
   
 val f : string -> t
 val l : int -> t

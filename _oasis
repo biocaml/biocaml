@@ -8,13 +8,17 @@ License:     LGPL with OCaml linking exception
 Plugins:     META (0.2), DevFiles (0.2)
 BuildTools:  ocamlbuild
 
+Flag lwt
+  Description: Build Lwt dependencies
+  Default: false
+  
 Flag apps
   Description: Build apps
   Default: false
 
 Flag tests
   Description: Build tests
-  Default: true
+  Default: false
 
 Library biocamlxmlm
   Path: src/ext/xmlm-1.0.2/src
@@ -28,6 +32,7 @@ Library biocaml
   BuildDepends: threads, sqlite3, pcre, biocamlxmlm, unix, batteries
   Install: true
   Modules: Biocaml
+           , Biocaml_transform
            , Biocaml_msg
            , Biocaml_pos
            , Biocaml_std
@@ -121,5 +126,13 @@ Executable tests_main
   Build$:		flag(tests)
   BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
 
+Executable lwt_tests
+  Path: src/lwt_tests
+  MainIs: main.ml
+  Install:      	false
+  CompiledObject: 	native
+  Build$:		flag(lwt)
+  BuildDepends: biocaml, lwt.unix
+  
 Test main
   Command: $tests_main

@@ -9,6 +9,8 @@ exception Undefined
 
 let assert_well_formed t =
   if Option.is_some t.col && not (Option.is_some t.line) then raise_bad "cannot set column number without line number"
+
+let make ?file ?line ?col () = {file; line; col}
     
 let f s = {file=Some s; line=None; col=None}
 let l k = {file=None; line=Some k; col=None}
