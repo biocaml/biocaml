@@ -111,7 +111,7 @@ let test_classy_trimmer file =
   in
   Lwt_io.(with_file ~mode:input file (fun i ->
     let rec print_all () =
-      begin match fastq_file_trimmer#next with
+      begin match Biocaml_transform.next fastq_file_trimmer with
       | `output ( o) ->
         Lwt_io.printf "%s" o >>= fun () ->
         print_all ()
@@ -127,10 +127,10 @@ let test_classy_trimmer file =
       read i
       >>= fun read_string ->
       if read_string = "" then (
-        fastq_file_trimmer#stop;
+        Biocaml_transform.stop fastq_file_trimmer;
         print_all ()
       ) else (
-        fastq_file_trimmer#feed  (read_string, ());
+        Biocaml_transform.feed fastq_file_trimmer (read_string, ());
         print_all ()
         >>= fun () ->
         loop ()

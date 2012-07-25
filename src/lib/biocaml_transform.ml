@@ -107,6 +107,11 @@ object
                | `end_of_stream]
 end
 
+type ('input, 'output, 'error) stream_transform = ('input, 'output, 'error) transform
+let feed t i = t#feed i
+let stop t = t#stop
+let next t = t#next
+        
 let on_input tr ~f =
 object
   method feed x = tr#feed (f x)

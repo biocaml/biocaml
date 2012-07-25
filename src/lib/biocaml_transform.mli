@@ -78,6 +78,14 @@ object
                | `end_of_stream]
 end
 
+type ('input, 'output, 'error) stream_transform = ('input, 'output, 'error) transform
+
+val feed: ('input, 'output, 'error) stream_transform -> 'input -> unit
+val stop: ('input, 'output, 'error) stream_transform -> unit
+val next: ('input, 'output, 'error) stream_transform ->
+  [ `output of 'output | `not_ready | `error of 'error | `end_of_stream]
+
+
 val on_input: 
   ('input_a, 'output, 'error) transform ->
   f:('input_b -> 'input_a) ->
