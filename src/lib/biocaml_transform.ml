@@ -1,5 +1,36 @@
 open Biocaml_internal_pervasives
 
+
+type ('input, 'output, 'error) t = {
+  name: string option;
+  next: unit -> [ `output of 'output | `end_of_stream
+                | `error of 'error | `not_ready ];
+  feed: 'input -> unit;
+  stop: unit -> unit;
+}
+
+let make ?name ~next ~feed ~stop () = {name; next; feed; stop }
+
+exception Feeding_stopped_transformation of string
+  
+let feed t i = t.feed i
+let next t = t.next ()
+let stop t = t.stop ()
+
+let make_stoppable ?name ~feed ~next () =
+  let stopped = ref false in
+  make ?name ()
+    ~feed:(fun x ->
+      if !stopped then
+        feed x
+      else
+        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+    ~next:(fun () -> next !stopped)
+    ~stop:(fun () -> stopped := true)
+
+
+
+  
 module Line_oriented = struct
 
   type parser = {

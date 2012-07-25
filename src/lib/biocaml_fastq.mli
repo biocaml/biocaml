@@ -29,6 +29,7 @@ val printer:
 
 (**  {3 Classy Interface } *)
   
+val make_fastq_parser: ?filename:string -> unit -> (string, record, parser_error) t
 
 val fastq_parser: ?filename:string -> unit ->
   (string, record, parser_error) transform

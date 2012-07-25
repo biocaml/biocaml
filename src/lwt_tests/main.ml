@@ -110,17 +110,21 @@ let test_classy_trimmer file =
     unit  ---  count --------------------------/                              *)    
   in
   Lwt_io.(with_file ~mode:input file (fun i ->
-    let rec print_all () =
+    let rec print_all ?(continue_after_not_ready=false) () =
       begin match Biocaml_transform.next fastq_file_trimmer with
       | `output ( o) ->
         Lwt_io.printf "%s" o >>= fun () ->
         print_all ()
       | `end_of_stream ->
-        Lwt_io.printf "=====  WELL TERMINATED \n"
+        Lwt_io.printf "=====  WELL TERMINATED \n%!"
       | `not_ready ->
-        Lwt_io.printf "=====  NOT READY \n"
+        Lwt_io.printf "=====  NOT READY (%b) \n%!" continue_after_not_ready
+        >>= fun () ->
+        if continue_after_not_ready
+        then print_all ~continue_after_not_ready:true ()
+        else return ()
       | `error s -> 
-        Lwt_io.printf "=====  ERROR: %s\n" s
+        Lwt_io.printf "=====  ERROR: %s\n%!" s
       end
     in
     let rec loop () =
@@ -128,7 +132,7 @@ let test_classy_trimmer file =
       >>= fun read_string ->
       if read_string = "" then (
         Biocaml_transform.stop fastq_file_trimmer;
-        print_all ()
+        print_all ~continue_after_not_ready:true ()
       ) else (
         Biocaml_transform.feed fastq_file_trimmer (read_string, ());
         print_all ()

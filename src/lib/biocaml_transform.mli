@@ -1,5 +1,39 @@
 (** Generic stream-transformations for parsing and pretty-printing. *)
 
+
+
+type ('input, 'output, 'error) t 
+
+val make:
+  ?name:string -> 
+  next: (unit -> [ `output of 'output | `end_of_stream
+                | `error of 'error | `not_ready ]) ->
+  feed: ('input -> unit) ->
+  stop: (unit -> unit) ->
+  unit ->
+  ('input, 'output, 'error) t
+
+exception Feeding_stopped_transformation of string
+  
+val feed: 
+  ('input, 'output, 'error) t -> 'input -> unit
+val next: 
+  ('input, 'output, 'error) t ->
+  [ `output of 'output | `end_of_stream | `error of 'error | `not_ready ]
+val stop: 
+  ('input, 'output, 'error) t -> unit
+
+
+val make_stoppable: ?name:string -> 
+  feed: ('input -> unit) ->
+  next: (bool -> [ `output of 'output | `end_of_stream
+                 | `error of 'error | `not_ready ]) ->
+  unit ->
+  ('input, 'output, 'error) t
+
+
+
+
 (** A buffering parser for line-oriented formats. *)
 module Line_oriented: sig
     
@@ -120,18 +154,7 @@ val mix :
     [ `left of 'error_left | `right of 'error_right
     | `end_of_left_stream | `end_of_right_stream ] ) transform
 (** Create a transformation that merges the output of two transformations.  *) 
-(*
-val with_termination:
-  ('input, 'output, 'error) transform ->
-  ([`input of 'input | `termination ],
-   [`output of 'output | `terminated of 'output list],
-   'error) transform
-(** Add "termination" to a transformation. [let wt = with_termination
-    t] means that [wt#feed] expects a stream of [`input v] values and a
-    last [`termination] value (like "end-of-file"). After [`termination],
-    [wt#feed] becomes a no-op, and [wt#next] gathers a remaining outputs
-    into [`terminated outputs]. *)
-*)
+
 val enum_transformation :
   error_to_exn:('error -> exn) ->
   ('input, 'output, 'error) transform ->

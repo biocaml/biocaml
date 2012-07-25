@@ -65,6 +65,25 @@ let string_of_parser_error = function
     (Biocaml_pos.to_string pos)
     (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
 
+let make_fastq_parser ?filename () =
+  let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
+  let module LOP =  Biocaml_transform.Line_oriented  in
+  let lo_parser = LOP.parser ?filename () in
+  Biocaml_transform.make_stoppable ~name ()
+    ~feed:(LOP.feed_string lo_parser)
+    ~next:(fun stopped ->
+      match next lo_parser with
+      | `record r -> `output r
+      | `error e -> `error e
+      | `not_ready ->
+        if stopped then (
+          match LOP.finish lo_parser with
+          | `ok -> `end_of_stream
+          | `error (l, o) ->
+            `error (`incomplete_input (LOP.current_position lo_parser, l, o))
+        ) else
+          `not_ready)
+
 open Biocaml_transform.Line_oriented 
 let fastq_parser ?filename ():
     (string, record, parser_error) Biocaml_transform.transform =
