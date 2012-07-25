@@ -76,7 +76,6 @@ object
   method next: [ `output of 'output | `not_ready
                | `error of 'error
                | `end_of_stream]
-  method is_empty: bool
 end
 
 val on_input: 
