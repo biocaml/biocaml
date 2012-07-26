@@ -10,6 +10,7 @@ The main Biocaml library depends on
 * batteries
 * unix
 * threads
+* xmlm
 
 At compile/install-time, you will also need
 * findlib
