@@ -23,11 +23,10 @@ Flag tests
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: core, threads, sqlite3, pcre, unix, batteries
+  BuildDepends: core, threads, sqlite3, pcre, unix, batteries, xmlm
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
-           , Biocaml_internal_xmlm
            , Biocaml_transform
            , Biocaml_msg
            , Biocaml_pos

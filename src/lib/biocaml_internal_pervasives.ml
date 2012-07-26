@@ -8,8 +8,6 @@ let try_finally_exn ~fend f x =
 
 let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 
-module Xmlm = Biocaml_internal_xmlm
-  
 module Stream = struct
   include Stream
 
