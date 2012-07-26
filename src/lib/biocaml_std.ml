@@ -16,8 +16,6 @@ let ( |> ) = BatPervasives.( |> )
 let ( -| ) = BatPervasives.( -| )
 let ( |- ) = BatPervasives.( |- )
 
-module Xmlm = Biocaml_internal_xmlm
-  
 module List = struct 
   include List
   include BatList
@@ -265,10 +263,9 @@ end
 module IO = BatIO
 
 module StringMap = struct
-  module StringMap = BatMap.Make(String)
-  include StringMap
-  include StringMap.Labels
-  include StringMap.Exceptionless
+  include BatMap.Make(String)
+  include Labels
+  include Exceptionless
 
   let add_with x f m =
     add x (f (find x m)) m

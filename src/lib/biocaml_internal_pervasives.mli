@@ -16,9 +16,6 @@ val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
 val open_out_safe : string -> out_channel
   (** Like [open_out] but will not overwrite existing file. *)
 
-(** {{:http://erratique.ch/software/xmlm}Xmlm 1.0.2} (to be deleted). *)
-module Xmlm: module type of Biocaml_internal_xmlm
-
 (** A more core-styled version of
     {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Stream.html}the stdlib's [Stream] module}. *)
 module Stream: sig

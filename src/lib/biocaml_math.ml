@@ -133,15 +133,24 @@ let quantile_normalization aa =
     (iter ~f:(sort ~cmp:comp1)) aa;
     transpose (map ~f:(map ~f:snd) aa)
 
-let histogram ?(cmp=Pervasives.compare) arr =
-  let module PMap = BatMap.PMap in 
-  let f mp a =
-    match PMap.Exceptionless.find a mp with
-    | Some e -> PMap.add a (e + 1) mp
-    | None -> PMap.add a 1 mp
+let histogram (type t) ?(cmp=Pervasives.compare) arr =
+  let module M = struct
+    include BatMap.Make(struct
+      type t_ = t (* required only because OCaml doesn't have type non-rec definitions *)
+      type t = t_
+      let compare = cmp
+    end)
+    include Labels
+    include Exceptionless
+  end
   in
-  let mp = fold_left ~f ~init:(PMap.create cmp) arr in
-  let ans = PMap.foldi (fun a k ans -> (a,k)::ans) mp [] in
+  let f (mp : int M.t) (a:t) =
+    match M.find a mp with
+    | Some e -> M.add a (e + 1) mp
+    | None -> M.add a 1 mp
+  in
+  let mp = fold_left ~f ~init:M.empty arr in
+  let ans = M.fold ~f:(fun ~key ~data ans -> (key,data)::ans) mp ~init:[] in
   of_list (List.rev ans)
 
 let prediction_values tp tn fp fn =

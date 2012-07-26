@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 79846b3c3a6c2a716cdb8ccbf7237bef)
+# DO NOT EDIT (digest: ffc769bdb5c077b6ccd113818cb8307e)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -25,18 +25,21 @@
 <src/lib/*.ml{,i}>: pkg_core
 <src/lib/*.ml{,i}>: pkg_sqlite3
 <src/lib/*.ml{,i}>: pkg_pcre
+<src/lib/*.ml{,i}>: pkg_xmlm
 "src/lib/biocaml_pwm_stub.c": pkg_threads
 "src/lib/biocaml_pwm_stub.c": pkg_unix
 "src/lib/biocaml_pwm_stub.c": pkg_batteries
 "src/lib/biocaml_pwm_stub.c": pkg_core
 "src/lib/biocaml_pwm_stub.c": pkg_sqlite3
 "src/lib/biocaml_pwm_stub.c": pkg_pcre
+"src/lib/biocaml_pwm_stub.c": pkg_xmlm
 "src/lib/biocaml_mzData_stubs.c": pkg_threads
 "src/lib/biocaml_mzData_stubs.c": pkg_unix
 "src/lib/biocaml_mzData_stubs.c": pkg_batteries
 "src/lib/biocaml_mzData_stubs.c": pkg_core
 "src/lib/biocaml_mzData_stubs.c": pkg_sqlite3
 "src/lib/biocaml_mzData_stubs.c": pkg_pcre
+"src/lib/biocaml_mzData_stubs.c": pkg_xmlm
 # Executable gff_counts
 <src/app/gff_counts.{native,byte}>: use_biocaml
 <src/app/gff_counts.{native,byte}>: pkg_threads
@@ -46,6 +49,7 @@
 <src/app/gff_counts.{native,byte}>: pkg_core
 <src/app/gff_counts.{native,byte}>: pkg_sqlite3
 <src/app/gff_counts.{native,byte}>: pkg_pcre
+<src/app/gff_counts.{native,byte}>: pkg_xmlm
 # Executable gff_to_bed
 <src/app/gff_to_bed.{native,byte}>: use_biocaml
 <src/app/gff_to_bed.{native,byte}>: pkg_threads
@@ -55,6 +59,7 @@
 <src/app/gff_to_bed.{native,byte}>: pkg_core
 <src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
 <src/app/gff_to_bed.{native,byte}>: pkg_pcre
+<src/app/gff_to_bed.{native,byte}>: pkg_xmlm
 # Executable gff_to_table
 <src/app/gff_to_table.{native,byte}>: use_biocaml
 <src/app/gff_to_table.{native,byte}>: pkg_threads
@@ -64,6 +69,7 @@
 <src/app/gff_to_table.{native,byte}>: pkg_core
 <src/app/gff_to_table.{native,byte}>: pkg_sqlite3
 <src/app/gff_to_table.{native,byte}>: pkg_pcre
+<src/app/gff_to_table.{native,byte}>: pkg_xmlm
 # Executable sgr_to_wig
 <src/app/sgr_to_wig.{native,byte}>: use_biocaml
 <src/app/sgr_to_wig.{native,byte}>: pkg_threads
@@ -73,6 +79,7 @@
 <src/app/sgr_to_wig.{native,byte}>: pkg_core
 <src/app/sgr_to_wig.{native,byte}>: pkg_sqlite3
 <src/app/sgr_to_wig.{native,byte}>: pkg_pcre
+<src/app/sgr_to_wig.{native,byte}>: pkg_xmlm
 # Executable wig_correlate
 <src/app/wig_correlate.{native,byte}>: use_biocaml
 <src/app/wig_correlate.{native,byte}>: pkg_threads
@@ -82,6 +89,7 @@
 <src/app/wig_correlate.{native,byte}>: pkg_core
 <src/app/wig_correlate.{native,byte}>: pkg_sqlite3
 <src/app/wig_correlate.{native,byte}>: pkg_pcre
+<src/app/wig_correlate.{native,byte}>: pkg_xmlm
 <src/app/*.ml{,i}>: use_biocaml
 <src/app/*.ml{,i}>: pkg_threads
 <src/app/*.ml{,i}>: pkg_unix
@@ -90,6 +98,7 @@
 <src/app/*.ml{,i}>: pkg_core
 <src/app/*.ml{,i}>: pkg_sqlite3
 <src/app/*.ml{,i}>: pkg_pcre
+<src/app/*.ml{,i}>: pkg_xmlm
 # Executable tests_main
 "src/tests/main.native": use_biocaml
 "src/tests/main.native": pkg_threads
@@ -99,6 +108,7 @@
 "src/tests/main.native": pkg_core
 "src/tests/main.native": pkg_sqlite3
 "src/tests/main.native": pkg_pcre
+"src/tests/main.native": pkg_xmlm
 <src/tests/*.ml{,i}>: use_biocaml
 <src/tests/*.ml{,i}>: pkg_threads
 <src/tests/*.ml{,i}>: pkg_unix
@@ -107,6 +117,7 @@
 <src/tests/*.ml{,i}>: pkg_core
 <src/tests/*.ml{,i}>: pkg_sqlite3
 <src/tests/*.ml{,i}>: pkg_pcre
+<src/tests/*.ml{,i}>: pkg_xmlm
 # Executable lwt_tests
 "src/lwt_tests/main.native": use_biocaml
 "src/lwt_tests/main.native": pkg_lwt.unix
@@ -116,6 +127,7 @@
 "src/lwt_tests/main.native": pkg_core
 "src/lwt_tests/main.native": pkg_sqlite3
 "src/lwt_tests/main.native": pkg_pcre
+"src/lwt_tests/main.native": pkg_xmlm
 <src/lwt_tests/*.ml{,i}>: use_biocaml
 <src/lwt_tests/*.ml{,i}>: pkg_lwt.unix
 <src/lwt_tests/*.ml{,i}>: pkg_threads
@@ -124,5 +136,6 @@
 <src/lwt_tests/*.ml{,i}>: pkg_core
 <src/lwt_tests/*.ml{,i}>: pkg_sqlite3
 <src/lwt_tests/*.ml{,i}>: pkg_pcre
+<src/lwt_tests/*.ml{,i}>: pkg_xmlm
 # OASIS_STOP
 true: annot
