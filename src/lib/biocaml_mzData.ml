@@ -23,8 +23,6 @@ open Bigarray
 type vec = (float, float64_elt, fortran_layout) Array1.t
 type int_vec = (int, int_elt, fortran_layout) Array1.t
 
-module Xmlm = Biocaml_internal_xmlm
-
 module Base64 = struct
 
   external init : unit -> unit = "biocaml_base64_init"
@@ -210,7 +208,7 @@ let empty_vec = Array1.create float64 fortran_layout 0
 
 let of_file fname =
   let fh = open_in fname in
-  let xml = Xmlm.make_input ~enc:`UTF_8 (`Channel fh) in
+  let xml = Xmlm.make_input ~enc:(Some `UTF_8) (`Channel fh) in
   let scans = ref [] in
   while not(Xmlm.eoi xml) do
     match Xmlm.input xml with
