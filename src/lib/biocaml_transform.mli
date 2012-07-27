@@ -156,3 +156,29 @@ module Printer_queue: sig
 
 end
 
+(** {3 Non-cooperative Streams } *)
+
+module Pull_based: sig
+
+  type 'a stream
+
+  val of_feeder:
+    (unit -> 'input option) ->
+    ('input, 'a, 'b) t ->
+    [ `end_of_stream | `error of 'b | `output of 'a ] stream
+
+  val of_in_channel:
+    ?buffer_size:int ->
+    in_channel ->
+    (string, 'a, 'b) t ->
+    [ `end_of_stream | `error of 'b | `output of 'a ] stream
+    
+  val of_file :
+    ?buffer_size:int ->
+    string ->
+    (string, 'a, 'b) t ->
+    [ `end_of_stream | `error of 'b | `output of 'a ] stream
+      
+  val next: 'a stream -> 'a 
+
+end

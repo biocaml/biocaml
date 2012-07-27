@@ -222,6 +222,43 @@ module Printer_queue = struct
 
   let is_empty p = Queue.is_empty p.records
 end
+
+module Pull_based = struct
+
+  type 'a stream = unit -> 'a  
+
+  let of_feeder feeder tr =
+    let rec feed_and_take () =
+      match next tr with
+      | `output o -> `output o
+      | `error e -> `error e
+      | `not_ready ->
+        begin match feeder () with
+        | Some s -> feed tr s; feed_and_take ()
+        | None -> stop tr; feed_and_take ()
+        end
+      | `end_of_stream -> `end_of_stream in
+    feed_and_take
+
     
+  let of_in_channel  ?(buffer_size=4096) ic tr =
+    let buf = String.create buffer_size in
+    let read_string () =
+      match In_channel.input ~buf ic ~pos:0 ~len:buffer_size with
+      | 0 -> None
+      | len -> Some (String.sub buf ~pos:0 ~len) in
+    of_feeder read_string tr
+    
+  let of_file ?buffer_size file tr =
+    let ic = In_channel.create file in
+    let next = of_in_channel ?buffer_size ic tr in
+    (fun () ->
+      let n = next () in
+      if n = `end_of_stream then In_channel.close ic;
+      n)
+
+  let next t = t ()
+
+end
 
   
