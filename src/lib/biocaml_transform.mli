@@ -158,27 +158,37 @@ end
 
 (** {3 Non-cooperative Streams } *)
 
+(** Pull-based streams built out of transforms (inherently
+    non-cooperative). *)
 module Pull_based: sig
 
   type 'a stream
+  (** A stream container. *)
+
+  val next: 'a stream -> 'a 
+  (** Call the basic operation of a stream. *)
 
   val of_feeder:
     (unit -> 'input option) ->
     ('input, 'a, 'b) t ->
     [ `end_of_stream | `error of 'b | `output of 'a ] stream
+  (** Create a stream from a feeding function. The transform is
+      fed with the function's output ([None] means end-of-stream). *)
 
   val of_in_channel:
     ?buffer_size:int ->
     in_channel ->
     (string, 'a, 'b) t ->
     [ `end_of_stream | `error of 'b | `output of 'a ] stream
+  (** Create a stream from an [in_channel]. The transformation is fed
+      with strings of size [buffer_size] ({i or less}). *)
     
   val of_file :
     ?buffer_size:int ->
     string ->
     (string, 'a, 'b) t ->
     [ `end_of_stream | `error of 'b | `output of 'a ] stream
-      
-  val next: 'a stream -> 'a 
+  (** Like [of_in_channel] but internally open the file and close it on
+      [`end_of_stream] ({b Warning:} the channel is not closed on [`error _]. *)
 
 end
