@@ -1,7 +1,7 @@
 (** FASTA files.
 
     The FASTA  family of file formats has different incompatible descriptions
-    {{:https://www.proteomecommons.org/tranche/examples/proteomecommons-fasta/fasta.jsp
+    ({{:https://www.proteomecommons.org/tranche/examples/proteomecommons-fasta/fasta.jsp
     }1},
     {{:http://zhanglab.ccmb.med.umich.edu/FASTA/}2},
     {{:http://en.wikipedia.org/wiki/FASTA_format}3}, etc.).
@@ -54,10 +54,13 @@ type 'a data = [
 | `comment of string | `name of string
 | `partial_sequence of 'a
 ]
+(** The type of the items of FASTA stream data (either [string data]
+    or [float list data]). *)
 
 type parse_error = [
 | `empty_line of Biocaml_pos.t
 | `malformed_partial_sequence of string ]
+(** The possible parsing errors. *)
 
 val sequence_parser :
   ?filename:string ->
@@ -66,6 +69,11 @@ val sequence_parser :
   ?semicolon_comments:bool ->
   unit ->
   (string, string data, parse_error) Biocaml_transform.t
+(** Parse a stream of strings as a sequence FASTA file.
+    The [filename] is used only for error messages. If [pedantic] is [true]
+    (default) the parser will report more errors (empty lines, non
+    standard characters). The comment format is set with
+    [sharp_comments] and/or [semicolon_comments]. *)
 
 val score_parser :
   ?filename:string ->
@@ -74,6 +82,8 @@ val score_parser :
   ?semicolon_comments:bool ->
   unit ->
   (string, float list data, parse_error) Biocaml_transform.t
+(** Parse a stream of strings as a sequence FASTA file.
+    See [sequence_parser]. *)
 
 type empty
 
@@ -81,9 +91,11 @@ val sequence_printer :
   ?comment_char:char ->
   unit ->
   (string data, string, empty) Biocaml_transform.t
+(** Print sequences. If [comment_char] is [None] comments will be ignored. *)
   
 val score_printer :
   ?comment_char:char ->
   unit ->
   (float list data, string, empty) Biocaml_transform.t
+(** Print scores. If [comment_char] is [None] comments will be ignored. *)
   
