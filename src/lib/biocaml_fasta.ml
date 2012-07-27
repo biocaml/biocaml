@@ -92,3 +92,33 @@ let sequence_printer = printer ~to_string:ident
 let score_printer = printer ~to_string:(fun l ->
   String.concat ~sep:" " (List.map l Float.to_string))
 
+let sequence_aggregator () =
+  let current_name = ref None in
+  let current_sequence = Buffer.create 42 in
+  let result = Queue.create () in
+  Biocaml_transform.make_stoppable ~name:"fasta_aggregator" ()
+    ~feed:(function
+    | `name n ->
+      Queue.enqueue result (!current_name, Buffer.contents current_sequence);
+      current_name := Some n;
+      Buffer.clear current_sequence;
+    | `partial_sequence s ->
+      Buffer.add_string current_sequence s
+    | `comment c -> ())
+    ~next:(fun stopped ->
+      match Queue.dequeue result with
+      | None ->
+        if stopped
+        then 
+          begin match !current_name with
+          | None -> `end_of_stream
+          | Some name ->
+            current_name := None;
+            `output (name, Buffer.contents current_sequence)
+          end
+        else `not_ready
+      | Some (None, "") -> `not_ready
+      | Some (None, non_empty) ->
+        `error (`unnamed_sequence non_empty)
+      | Some (Some name, seq) ->
+        `output (name, seq))

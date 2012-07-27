@@ -16,7 +16,7 @@ let test_parsing_01 stream =
   ignore (TS.next stream);
   assert_bool "Name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
   ignore (TS.next stream);
-  ignore (TS.next stream);
+  assert_bool "Non-EOF" (TS.next stream <> `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   assert_bool "EOF again" (TS.next stream = `end_of_stream);
   
@@ -35,7 +35,7 @@ let get_empty_line_error_after_two stream =
   ignore (TS.next stream);
   ignore (TS.next stream);
   ignore (TS.next stream);
-  ignore (TS.next stream);
+  assert_bool "Non-EOF" (TS.next stream <> `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()
   
@@ -47,7 +47,7 @@ let malformed stream =
   ignore (TS.next stream);
   ignore (TS.next stream);
   ignore (TS.next stream);
-  ignore (TS.next stream);
+  assert_bool "Non-EOF" (TS.next stream <> `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()
   
@@ -91,6 +91,35 @@ let score_parser () =
   ()
   
 
+let sequence_aggregator_stream file =
+  let parser = Biocaml_fasta.sequence_parser  () in
+  let aggregator = Biocaml_fasta.sequence_aggregator () in
+  let transform = Biocaml_transform.compose parser aggregator in
+  let stream = TS.of_file ~buffer_size:5 file transform in
+  stream
+  
+let sequence_aggregator () =
+  let stream = sequence_aggregator_stream "src/tests/data/fasta_02.fa" in
+  assert_bool "seqaggr: 1"
+    (TS.next stream = `output ("sequence 1|sid=4",
+                               "ATACTGCATGATCGATCGATCGACTGCTAGTAGTCGATCGAT"));
+  assert_bool "seqaggr: 2"
+    (TS.next stream = `output ("sequence 2|sid=42",
+                               "ATCGTACTGACTGATCGATGCATGCATGACTACGTACGATCAGTCGATCG"));
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+
+  let stream = sequence_aggregator_stream "src/tests/data/fasta_06.fa" in
+
+  assert_bool "Error sequence_aggregator-> unnamed"
+    (match TS.next stream with
+    | `error (`right (`unnamed_sequence "ATACTGCATGATCGATCGATCG")) -> true
+    | _ -> false);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  assert_bool "seqaggr: empty" (TS.next stream = `output ("empty sequence", ""));
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
 
   
 let test_parser () =
@@ -116,4 +145,5 @@ let test_parser () =
 let tests = "Fasta" >::: [
   "Reading FASTA" >:: test_parser;
   "Writing FASTA" >:: test_printer;
+  "FASTA's sequence aggregator" >:: sequence_aggregator;
 ]

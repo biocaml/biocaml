@@ -99,3 +99,6 @@ val score_printer :
   (float list data, string, empty) Biocaml_transform.t
 (** Print scores. If [comment_char] is [None] comments will be ignored. *)
   
+val sequence_aggregator:
+  unit -> 
+  (string data, string * string, [ `unnamed_sequence of string ]) Biocaml_transform.t
