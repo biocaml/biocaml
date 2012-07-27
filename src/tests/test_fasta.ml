@@ -1,14 +1,119 @@
 open OUnit
-open Biocaml_fasta
-open Batteries
+open Core.Std
 
-let test_read_fasta () = 
-  print_endline (Sys.getcwd ()) ;
-  let ic = open_in "src/tests/test.fa" in
-  let fa = enum_input ic |> snd |> List.of_enum in
-  assert_bool "Number of sequences" (List.length fa = 2) ;
-  assert_bool "Sequence length" (List.map (snd |- String.length) fa = [ 42 ; 50 ])
+module TS = Biocaml_transform.Pull_based
+let make_stream file =
+  let parser =
+    Biocaml_fasta.sequence_parser ~pedantic:true 
+      ~sharp_comments:true ~semicolon_comments:true () in
+  let stream = TS.of_file ~buffer_size:10 file parser in
+  stream
 
+let test_parsing_01 stream =
+  assert_bool "Name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "Sequence 1" (TS.next stream =
+      `output (`partial_sequence "ATACTGCATGATCGATCGATCG"));
+  ignore (TS.next stream);
+  assert_bool "Name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  assert_bool "EOF again" (TS.next stream = `end_of_stream);
+  
+  ()
+
+let parse_comments stream =
+  assert_bool "comment 1" (TS.next stream = `output (`comment " with comments"));
+  assert_bool "comment 2" (TS.next stream = `output (`comment " at the beginning"));
+  ()
+
+let get_empty_line_error_after_two stream =
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  assert_bool "Error because of empty line (fasta_03.fa)"
+    (match TS.next stream with `error (`empty_line _) -> true | _ -> false);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
+  
+let malformed stream =
+  assert_bool "Name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "Error because of malformed sequence (fasta_04.fa)"
+    (match TS.next stream with `error (`malformed_partial_sequence _) -> true
+    | _ -> false);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  ignore (TS.next stream);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
+  
+let test_printer () =
+  let stream_02 = make_stream "src/tests/data/fasta_02.fa" in
+  let fasta_printer = Biocaml_fasta.sequence_printer ~comment_char:'#' () in
+  let stream = 
+    TS.of_feeder (fun () ->
+      match TS.next stream_02 with
+      | `output o  -> Some o
+      | `error e -> failwith "Error while parsing fasta_02.fa"
+      | `end_of_stream -> None) fasta_printer in
+  assert_bool "Printer0" (TS.next stream = `output ("# with comments\n"));
+  assert_bool "Printer1" (TS.next stream = `output ("# at the beginning\n"));
+  assert_bool "Printer2" (TS.next stream = `output (">sequence 1|sid=4\n"));
+  assert_bool "Printer3" (TS.next stream = `output ("ATACTGCATGATCGATCGATCG\n"));
+  assert_bool "Printer4" (TS.next stream = `output ("ACTGCTAGTAGTCGATCGAT\n"));
+  assert_bool "Printer5" (TS.next stream = `output (">sequence 2|sid=42\n"));
+  assert_bool "Printer6" (TS.next stream = `output ("ATCGTACTGACTGATCGATGCATGCATG\n"));
+  assert_bool "Printer7" (TS.next stream = `output ("ACTACGTACGATCAGTCGATCG\n"));
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
+  
+let score_parser () =
+  let parser = 
+    Biocaml_fasta.score_parser ~pedantic:true 
+      ~sharp_comments:true ~semicolon_comments:true () in
+  let stream = TS.of_file ~buffer_size:100 "src/tests/data/fasta_05.fa" parser in
+  parse_comments stream;
+  assert_bool "Name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  ignore (TS.next stream);
+  assert_bool "Sequence 2"
+    (TS.next stream = `output (`partial_sequence [42.; 43.]));
+  ignore (TS.next stream);
+  assert_bool "Sequence 3"
+    (TS.next stream = `output (`partial_sequence [32.; 32.; 32.]));
+  assert_bool "Error in sequence (score_parser)"
+    (match TS.next stream with `error (`malformed_partial_sequence _) -> true
+    | _ -> false);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
+  
+
+
+  
+let test_parser () =
+
+  test_parsing_01 (make_stream "src/tests/data/fasta_01.fa");
+
+  let stream_02 = make_stream "src/tests/data/fasta_02.fa" in
+  parse_comments stream_02;
+  test_parsing_01 stream_02;
+
+  let stream_03 = make_stream "src/tests/data/fasta_03.fa" in
+  parse_comments stream_03;
+  get_empty_line_error_after_two stream_03;
+
+  let stream_04 = make_stream "src/tests/data/fasta_04.fa" in
+  parse_comments stream_04;
+  malformed stream_04;
+
+  score_parser ();
+  ()
+    
+    
 let tests = "Fasta" >::: [
-  "Reading FASTA" >:: test_read_fasta;
+  "Reading FASTA" >:: test_parser;
+  "Writing FASTA" >:: test_printer;
 ]

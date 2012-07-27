@@ -1,5 +1,11 @@
 (** FASTA files.
 
+    The FASTA  family of file formats has different incompatible descriptions
+    {{:https://www.proteomecommons.org/tranche/examples/proteomecommons-fasta/fasta.jsp
+    }1},
+    {{:http://zhanglab.ccmb.med.umich.edu/FASTA/}2},
+    {{:http://en.wikipedia.org/wiki/FASTA_format}3}, etc.).
+    
     FASTA files are in the format:
 
     {v
@@ -13,7 +19,8 @@
     ...
     v}
 
-    where the content may span multiple lines.
+    where the content may span multiple lines, and a ';' may be used
+    instead of '#' to start comments..
     
     Header lines begin with the '>' character. It is often considered
     that all characters until the first whitespace define the {i name}
@@ -41,28 +48,42 @@
 
     - and this alternating pair of header/content lines can occur
     repeatedly.
-
-    This module supports the full set of possibilities by providing
-    two record types.
-
 *)
-open Batteries
 
-exception Error of string
+type 'a data = [
+| `comment of string | `name of string
+| `partial_sequence of 'a
+]
 
-type record = string * string
-    (** Header and content. Multiline content is concatenated into a
-        single string. All characters other than newline are
-        retained. *)
+type parse_error = [
+| `empty_line of Biocaml_pos.t
+| `malformed_partial_sequence of string ]
 
-type recordi = string * int list
-    (** Header and integers. Content is assumed to be space-separated
-        integers, possibly spanning multiple lines. *)
+val sequence_parser :
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  ?semicolon_comments:bool ->
+  unit ->
+  (string, string data, parse_error) Biocaml_transform.t
 
-val enum_input : IO.input -> Biocaml_comments.t * record Enum.t
-  (** Returns comments and enumeration of fasta records in given input. *)
+val score_parser :
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  ?semicolon_comments:bool ->
+  unit ->
+  (string, float list data, parse_error) Biocaml_transform.t
 
-val enum_of_file : string -> Biocaml_comments.t * record Enum.t
-  (** Returns comments and enumeration of fasta records in given path. *)
+type empty
 
-val enum_inputi : IO.input -> Biocaml_comments.t * recordi Enum.t
+val sequence_printer :
+  ?comment_char:char ->
+  unit ->
+  (string data, string, empty) Biocaml_transform.t
+  
+val score_printer :
+  ?comment_char:char ->
+  unit ->
+  (float list data, string, empty) Biocaml_transform.t
+  
