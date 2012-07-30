@@ -28,8 +28,23 @@
     [any_overlap] to verify this property when needed.
 *)
 
-open Batteries
 
-val enum_input : IO.input -> (string * int * int) Enum.t
+type t = string * int * int * [`Float of float| `Int of int | `String of string] list
+(** The type of BED data stream items. *)
+  
+type parse_error =
+[ `not_a_float of Biocaml_pos.t * string
+| `not_an_int of Biocaml_pos.t * string
+| `wrong_number_of_columns of Biocaml_pos.t * string list
+| `incomplete_line of Biocaml_pos.t * string
+]
+(** The possible parsing errors. *)
 
-val sqlite_db_of_enum : ?db:string -> ?table:string -> (string * int * int) Enum.t -> Sqlite3.db
+val parser:
+  ?filename:string ->
+  ?more_columns:[`float | `int | `string] list ->
+  unit ->
+  (string, t, parse_error) Biocaml_transform.t
+(** Create a [Biocaml_transform.t] parser, while providing the format of the
+    additional columns (default [[]]). *)
+
