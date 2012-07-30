@@ -163,3 +163,22 @@ let sequence_slicer ?(line_width=80) () =
       | Some s -> `output s
       | None -> if stopped then `end_of_stream else `not_ready)
     
+let score_slicer ?(group_by=10) () =
+  let queue = Queue.create () in
+  Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
+    ~feed:(fun (name, seq) ->
+      Queue.enqueue queue (`name name);
+      let rec loop l =
+        match List.split_n l group_by with
+        | finish, [] -> 
+          Queue.enqueue queue (`partial_sequence finish);
+        | some, rest ->
+          Queue.enqueue queue (`partial_sequence some);
+          loop rest
+      in
+      loop seq)
+    ~next:(fun stopped ->
+      match Queue.dequeue queue with
+      | Some s -> `output s
+      | None -> if stopped then `end_of_stream else `not_ready)
+    

@@ -186,6 +186,36 @@ let sequence_slicer () =
   assert_bool "seq CG  " (TS.next stream = `output (`partial_sequence "CG"));
   ()
     
+let score_slicer () =
+  let parser = 
+    Biocaml_fasta.score_parser ~pedantic:true 
+      ~sharp_comments:true ~semicolon_comments:true () in
+  let aggregator = Biocaml_fasta.score_aggregator () in
+  let slicer = Biocaml_fasta.score_slicer ~group_by:3 () in
+  let transform =
+    Biocaml_transform.(compose (compose parser aggregator) slicer) in
+  let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
+  assert_bool "name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "sco: 1" (TS.next stream = `output (`partial_sequence
+                                                     [42.; 42.; 224354.;]));
+  assert_bool "sco: 2" (TS.next stream = `output (`partial_sequence
+                                                     [54325.543; 543.54544;
+                                                      543554.;]));
+  assert_bool "sco: 3" (TS.next stream = `output (`partial_sequence
+                                                     [42.; 43.]));
+
+  assert_bool "Error score_slicer -> error"
+    (match TS.next stream with
+    | `error (`left (`left (`malformed_partial_sequence _))) -> true
+    | _ -> false);
+  (* After reporting the error the aggregator continues with what it has... *)
+  assert_bool "name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
+  assert_bool "sco: 4" (TS.next stream = `output (`partial_sequence
+                                                     [32.; 32.; 32.]));
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
+
 let test_parser () =
 
   test_parsing_01 (make_stream "src/tests/data/fasta_01.fa");
@@ -212,4 +242,5 @@ let tests = "Fasta" >::: [
   "FASTA's sequence aggregator" >:: sequence_aggregator;
   "FASTA's score aggregator" >:: score_aggregator;
   "FASTA's sequence slicer" >:: sequence_slicer;
+  "FASTA's score slicer" >:: score_slicer;
 ]

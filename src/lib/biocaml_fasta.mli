@@ -118,3 +118,8 @@ val sequence_slicer: ?line_width:int -> unit ->
 (** Cut a stream of [(name, sequence)] into a stream of [string data]
     where line are cut at [line_width] characters (default 80). *)
 
+val score_slicer: ?group_by:int -> unit ->
+  (string * float list, float list data, empty) Biocaml_transform.t
+(** Cut a stream of [(name, scores)] into a stream of [float list data]
+    where lists are cut at [group_by] numbers (default 10). *)
+
