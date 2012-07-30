@@ -122,6 +122,29 @@ let sequence_aggregator () =
   ()
 
   
+let score_aggregator () =
+  let parser = 
+    Biocaml_fasta.score_parser ~pedantic:true 
+      ~sharp_comments:true ~semicolon_comments:true () in
+  let aggregator = Biocaml_fasta.score_aggregator () in
+  let transform = Biocaml_transform.compose parser aggregator in
+  let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
+  assert_bool "scoaggr: 1"
+    (TS.next stream = `output ("sequence 1|sid=4",
+                               [42.; 42.; 224354.; 54325.543;
+                                543.54544; 543554.; 42.; 43.]));
+  assert_bool "Error score_aggregator -> error"
+    (match TS.next stream with
+    | `error (`left (`malformed_partial_sequence _)) -> true
+    | _ -> false);
+  (* After reporting the error the aggregator continues with what it has... *)
+  assert_bool "scoaggr: 2"
+    (TS.next stream = `output ("sequence 2|sid=42", [32.; 32.; 32.]));
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  assert_bool "EOF" (TS.next stream = `end_of_stream);
+  ()
+  
+  
 let test_parser () =
 
   test_parsing_01 (make_stream "src/tests/data/fasta_01.fa");
@@ -146,4 +169,5 @@ let tests = "Fasta" >::: [
   "Reading FASTA" >:: test_parser;
   "Writing FASTA" >:: test_printer;
   "FASTA's sequence aggregator" >:: sequence_aggregator;
+  "FASTA's score aggregator" >:: score_aggregator;
 ]

@@ -102,3 +102,9 @@ val score_printer :
 val sequence_aggregator:
   unit -> 
   (string data, string * string, [ `unnamed_sequence of string ]) Biocaml_transform.t
+
+val score_aggregator:
+  unit -> 
+  (float list data,
+   string * float list,
+   [ `unnamed_sequence of float list ]) Biocaml_transform.t

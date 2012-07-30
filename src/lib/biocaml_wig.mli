@@ -1,13 +1,31 @@
 (** WIG data.
     
-    Internal representation of coordinates always assumes the first position on a chromosome is numbered 1. Also, integer ranges are always closed; the range [\[1, 10\]] is the set of integers from 1 to 10 inclusive of 1 and 10. WIG data can be in three formats---bed, variable-step, or fixed-step---and unfortunately each has different conventions as follows:
-    - Bed format requires half-open intervals [\[low, high\)] and numbers the first base as 0. Thus 1 is added to the low value when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI", 1, 10, 3.14)].
-    - Variable-step format numbers the first position 1 and uses closed intervals. Thus no change is required. The line ["1 3.14"] is parsed to [(1, 3.14)].
-    - Fixed-step format numbers the first position 1 and uses closed intervals. Thus no change is required. The header line ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to [("chrI", 1, 100, 30)].
+    Internal representation of coordinates always assumes the first
+    position on a chromosome is numbered 1. Also, integer ranges are
+    always closed; the range [\[1, 10\]] is the set of integers from 1
+    to 10 inclusive of 1 and 10. WIG data can be in three
+    formats---bed, variable-step, or fixed-step---and unfortunately
+    each has different conventions as follows:
+    - Bed format requires half-open intervals [\[low, high\)] and
+      numbers the first base as 0. Thus 1 is added to the low value
+      when parsing. The line ["chrI 0 10 3.14"] is parsed to [("chrI",
+      1, 10, 3.14)].
+    - Variable-step format numbers the first position 1 and uses
+      closed intervals. Thus no change is required. The line ["1
+      3.14"] is parsed to [(1, 3.14)].
+    - Fixed-step format numbers the first position 1 and uses closed
+      intervals. Thus no change is required. The header line
+      ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to
+      [("chrI", 1, 100, 30)].
     
-    The inverse is done for printing routines. You are freed from these details if you always use this module to parse and print.
+    The inverse is done for printing routines. You are freed from
+    these details if you always use this module to parse and print.
     
-    All parsers allow columns (fields) on a line to be separated by any combination of space, tab, or carriage return characters. Printers always separate columns with a single tab. Tag-value pairs must be in the form "tag=value" with no space around the '='.
+    All parsers allow columns (fields) on a line to be separated by
+    any combination of space, tab, or carriage return
+    characters. Printers always separate columns with a single
+    tab. Tag-value pairs must be in the form "tag=value" with no space
+    around the '='.
 *)
 
 type pt = string * int * int * float
