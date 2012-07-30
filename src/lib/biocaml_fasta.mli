@@ -102,9 +102,13 @@ val score_printer :
 val sequence_aggregator:
   unit -> 
   (string data, string * string, [ `unnamed_sequence of string ]) Biocaml_transform.t
+(** Aggregate a stream of FASTA [string data] into a [(name, sequence)] stream.
+    The error [`unnamed_sequence _] means that the file did start with
+    the name of a sequence. *)
 
 val score_aggregator:
   unit -> 
   (float list data,
    string * float list,
    [ `unnamed_sequence of float list ]) Biocaml_transform.t
+(** Like [sequence_aggregator] but for [float list data]. *)
