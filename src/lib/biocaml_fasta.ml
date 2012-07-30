@@ -142,3 +142,24 @@ let score_aggregator () =
     ~add:(fun l -> Queue.enqueue scores l)
     ~is_empty:((=) [])
     ()  
+
+let sequence_slicer ?(line_width=80) () =
+  let queue = Queue.create () in
+  Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
+    ~feed:(fun (name, seq) ->
+      Queue.enqueue queue (`name name);
+      let rec loop idx =
+        if idx + line_width >= String.length seq then (
+          Queue.enqueue queue
+            (`partial_sequence String.(sub seq idx (length seq - idx)));
+        ) else (
+          Queue.enqueue queue
+            (`partial_sequence String.(sub seq idx line_width));
+          loop (idx + line_width);
+        ) in
+      loop 0)
+    ~next:(fun stopped ->
+      match Queue.dequeue queue with
+      | Some s -> `output s
+      | None -> if stopped then `end_of_stream else `not_ready)
+    

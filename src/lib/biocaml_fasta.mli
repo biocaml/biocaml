@@ -112,3 +112,9 @@ val score_aggregator:
    string * float list,
    [ `unnamed_sequence of float list ]) Biocaml_transform.t
 (** Like [sequence_aggregator] but for [float list data]. *)
+
+val sequence_slicer: ?line_width:int -> unit ->
+  (string * string, string data, empty) Biocaml_transform.t
+(** Cut a stream of [(name, sequence)] into a stream of [string data]
+    where line are cut at [line_width] characters (default 80). *)
+

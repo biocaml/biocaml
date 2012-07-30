@@ -144,7 +144,48 @@ let score_aggregator () =
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()
   
-  
+let sequence_slicer_stream file = 
+  let parser = Biocaml_fasta.sequence_parser  () in
+  let aggregator = Biocaml_fasta.sequence_aggregator () in
+  let slicer = Biocaml_fasta.sequence_slicer ~line_width:4 () in
+  let transform =
+    Biocaml_transform.(
+      compose (compose parser aggregator) slicer
+    ) in
+  let stream = TS.of_file ~buffer_size:5 file transform in
+  stream
+
+let sequence_slicer () =
+  let stream = sequence_slicer_stream "src/tests/data/fasta_02.fa" in
+  assert_bool "name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "seq ATAC" (TS.next stream = `output (`partial_sequence "ATAC"));
+  assert_bool "seq TGCA" (TS.next stream = `output (`partial_sequence "TGCA"));
+  assert_bool "seq TGAT" (TS.next stream = `output (`partial_sequence "TGAT"));
+  assert_bool "seq CGAT" (TS.next stream = `output (`partial_sequence "CGAT"));
+  assert_bool "seq CGAT" (TS.next stream = `output (`partial_sequence "CGAT"));
+  assert_bool "seq CGAC" (TS.next stream = `output (`partial_sequence "CGAC"));
+  assert_bool "seq TGCT" (TS.next stream = `output (`partial_sequence "TGCT"));
+  assert_bool "seq AGTA" (TS.next stream = `output (`partial_sequence "AGTA"));
+  assert_bool "seq GTCG" (TS.next stream = `output (`partial_sequence "GTCG"));
+  assert_bool "seq ATCG" (TS.next stream = `output (`partial_sequence "ATCG"));
+  assert_bool "seq AT  " (TS.next stream = `output (`partial_sequence "AT"));
+
+  assert_bool "name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
+  assert_bool "seq ATCG" (TS.next stream = `output (`partial_sequence "ATCG"));
+  assert_bool "seq TACT" (TS.next stream = `output (`partial_sequence "TACT"));
+  assert_bool "seq GACT" (TS.next stream = `output (`partial_sequence "GACT"));
+  assert_bool "seq GATC" (TS.next stream = `output (`partial_sequence "GATC"));
+  assert_bool "seq GATG" (TS.next stream = `output (`partial_sequence "GATG"));
+  assert_bool "seq CATG" (TS.next stream = `output (`partial_sequence "CATG"));
+  assert_bool "seq CATG" (TS.next stream = `output (`partial_sequence "CATG"));
+  assert_bool "seq ACTA" (TS.next stream = `output (`partial_sequence "ACTA"));
+  assert_bool "seq CGTA" (TS.next stream = `output (`partial_sequence "CGTA"));
+  assert_bool "seq CGAT" (TS.next stream = `output (`partial_sequence "CGAT"));
+  assert_bool "seq CAGT" (TS.next stream = `output (`partial_sequence "CAGT"));
+  assert_bool "seq CGAT" (TS.next stream = `output (`partial_sequence "CGAT"));
+  assert_bool "seq CG  " (TS.next stream = `output (`partial_sequence "CG"));
+  ()
+    
 let test_parser () =
 
   test_parsing_01 (make_stream "src/tests/data/fasta_01.fa");
@@ -170,4 +211,5 @@ let tests = "Fasta" >::: [
   "Writing FASTA" >:: test_printer;
   "FASTA's sequence aggregator" >:: sequence_aggregator;
   "FASTA's score aggregator" >:: score_aggregator;
+  "FASTA's sequence slicer" >:: sequence_slicer;
 ]
