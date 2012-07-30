@@ -5,7 +5,8 @@ let all_tests = [
   Test_intervalTree.tests;
   Test_phredScore.tests;
   Test_pwm.tests;
-  Test_roc.tests
+  Test_roc.tests;
+  Test_bed.tests;
 ]
 
 let () =
