@@ -48,3 +48,7 @@ val parser:
 (** Create a [Biocaml_transform.t] parser, while providing the format of the
     additional columns (default [[]]). *)
 
+type empty
+val printer: unit ->
+  (t, string, empty) Biocaml_transform.t
+

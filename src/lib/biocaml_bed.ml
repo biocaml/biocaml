@@ -83,3 +83,22 @@ let parser ?filename ?(more_columns=[]) () =
         ) else
           `not_ready)
   
+type empty
+let printer () =
+  let module PQ = Biocaml_transform.Printer_queue in
+  let printer =
+    Biocaml_transform.Printer_queue.make ()
+      ~to_string:(fun (n, b, e, l) ->
+        sprintf "%s %d %d %s\n" n b e
+          (List.map l (function
+          | `Float f -> Float.to_string f
+          | `Int i -> Int.to_string i
+          | `String s -> s) |! String.concat ~sep:" ")) in
+  Biocaml_transform.make_stoppable ~name:"bed_printer" ()
+    ~feed:(fun r ->
+      PQ.feed printer r)
+    ~next:(fun stopped ->
+      match (PQ.flush printer) with
+      | "" -> if stopped then `end_of_stream else `not_ready
+      | s -> `output s)
+

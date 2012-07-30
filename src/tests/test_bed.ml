@@ -47,8 +47,30 @@ let test_parser () =
   
   ()
 
+let make_printer_stream ?more_columns file =
+  let filename = "src/tests/data/" ^ file in
+  let parser = Biocaml_bed.parser ?more_columns ~filename () in
+  let printer = Biocaml_bed.printer () in
+  let trans = Biocaml_transform.compose parser printer in
+  let stream = TS.of_file ~buffer_size:10 filename trans in
+  stream
+    
+let test_printer () =
+  let s =
+    make_printer_stream
+      ~more_columns:[`string; `int; `float] "bed_03_more_cols.bed" in
+  let check o =
+    assert_equal ~printer:(function
+    | `output s -> sprintf "Output: %S" s
+    | other -> sprintf "not output") o (TS.next s) in
+  check (`output "chrA 42 45 some_string 42 3.14\n");
+  check (`output "chrB 100 130 some_string 42 3.14\n");
+  check (`output "chrC 200 245 some_string 42 3.14\n");
+  check (`end_of_stream);
+  ()
 
-let tests = "Fasta" >::: [
+let tests = "BED" >::: [
   "Parse BED" >:: test_parser;
+  "Print BED" >:: test_printer;
 
 ]
