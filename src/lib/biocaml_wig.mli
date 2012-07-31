@@ -28,6 +28,41 @@
     around the '='.
 *)
 
+
+type t = [
+| `comment of string
+| `variable_step_state_change of string * int option (* name x span *)
+| `variable_step_value of int * float
+| `fixed_step_state_change of string * int * int * int option
+(* name, start, step, span *)
+| `fixed_step_value of float
+| `bed_graph_value of string * int * int * float
+]
+
+type parse_error = [
+| `cannot_parse_key_values of Biocaml_pos.t * string
+| `empty_line of Biocaml_pos.t
+| `incomplete_line of Biocaml_pos.t * string
+| `missing_chrom_value of Biocaml_pos.t * string
+| `missing_start_value of Biocaml_pos.t * string
+| `missing_step_value of Biocaml_pos.t * string
+| `wrong_start_value of Biocaml_pos.t * string
+| `wrong_step_value of Biocaml_pos.t * string
+| `unrecognizable_line of Biocaml_pos.t * string list
+| `wrong_bed_graph_value of Biocaml_pos.t * string
+| `wrong_fixed_step_value of Biocaml_pos.t * string
+| `wrong_span_value of Biocaml_pos.t * string
+| `wrong_variable_step_value of Biocaml_pos.t * string
+]
+
+val parser :
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  unit ->
+  (string, t, parse_error) Biocaml_transform.t
+
+(*
 type pt = string * int * int * float
     (** A data point is a 4-tuple [(chr,lo,hi,x)], where [x] is the value assigned to interval [\[lo, hi\]], inclusive of end-points, on chromosome [chr]. *)
     
@@ -55,4 +90,4 @@ val to_channel : ?fmt:format -> t -> out_channel -> unit
   (** Like [to_file] but print to channel. *)
 
 val of_channel : ?fmt:format -> ?chr_map:(string -> string) -> ?header:bool -> ?increment_lo_hi:(int * int) -> in_channel -> t
-val of_file : ?fmt:format -> ?chr_map:(string -> string) -> ?header:bool -> ?increment_lo_hi:(int * int) -> string -> t
+val of_file : ?fmt:format -> ?chr_map:(string -> string) -> ?header:bool -> ?increment_lo_hi:(int * int) -> string -> t *)

@@ -103,7 +103,7 @@ let parse_cmdline () : params =
   Getopt.parse_cmdline opts anon_handler;
   t.option_in_files <- List.rev t.option_in_files;
   options_to_params t
-
+(*
 let corr meth wig_file1 wig_file2 : float =
   let wig_of_file file =
     let wig = Wig.of_file ~fmt:Wig.Bed ~header:true file in
@@ -157,4 +157,4 @@ try
 with
     Invalid_argument msg | Failure msg | Getopt.Error msg -> 
       eprintf "%s: %s\n" prog_name msg
-      
+*)

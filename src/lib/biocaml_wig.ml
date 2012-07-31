@@ -1,247 +1,390 @@
 open Biocaml_internal_pervasives
 open Tuple
 
+type t = [
+| `comment of string
+| `variable_step_state_change of string * int option (* name x span *)
+| `variable_step_value of int * float
+| `fixed_step_state_change of string * int * int * int option
+(* name, start, step, span *)
+| `fixed_step_value of float
+| `bed_graph_value of string * int * int * float
+]
+  
 
-exception Bad of string
-let raise_bad msg = raise (Bad msg)
+type parse_error = [
+| `cannot_parse_key_values of Biocaml_pos.t * string
+| `empty_line of Biocaml_pos.t
+| `incomplete_line of Biocaml_pos.t * string
+| `missing_chrom_value of Biocaml_pos.t * string
+| `missing_start_value of Biocaml_pos.t * string
+| `missing_step_value of Biocaml_pos.t * string
+| `wrong_start_value of Biocaml_pos.t * string
+| `wrong_step_value of Biocaml_pos.t * string
+| `unrecognizable_line of Biocaml_pos.t * string list
+| `wrong_bed_graph_value of Biocaml_pos.t * string
+| `wrong_fixed_step_value of Biocaml_pos.t * string
+| `wrong_span_value of Biocaml_pos.t * string
+| `wrong_variable_step_value of Biocaml_pos.t * string
+]
+let explode_key_value loc s =
+  try
+    let by_space =
+      String.split_on_chars s ~on:[' '; '\n'; '\t'; '\r']
+      |! List.filter ~f:((<>) "") in
+    Ok (List.map by_space (fun s ->
+      begin match String.split ~on:'=' s with
+      | [ key; value ] -> (key, value)
+      | anyother -> raise Not_found
+      end))
+  with
+    Not_found -> Error (`cannot_parse_key_values (loc, s))
+      
+let rec next ?(pedantic=true) ?(sharp_comments=true) p =
+  let open Biocaml_transform.Line_oriented in
+  let open Result in
+  let assoc_find ~missing l v =
+    match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
+  let assoc_find_map ~missing ~wrong ~f l v =
+    match List.Assoc.find l v with
+    | Some v -> (try Ok (f v) with e -> Error wrong)
+    | None -> Error missing in
+  let output_result = function  Ok o -> `output o | Error e -> `error e in
+  match next_line p with
+  | Some "" ->
+    if pedantic then `error (`empty_line (current_position p)) else `not_ready
+  | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
+    `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+  | Some l when String.is_prefix l ~prefix:"fixedStep" ->
+    let output_m =
+      explode_key_value (current_position p)
+        String.(chop_prefix_exn l ~prefix:"fixedStep")
+      >>= fun assoc ->
+      assoc_find assoc "chrom" ~missing:(`missing_chrom_value (current_position p, l))
+      >>= fun chrom ->
+      assoc_find_map assoc "start" 
+        ~missing:(`missing_start_value (current_position p, l))
+        ~f:Int.of_string ~wrong:(`wrong_start_value (current_position p, l))
+      >>= fun start ->
+      assoc_find_map assoc "step" 
+        ~missing:(`missing_step_value (current_position p, l))
+        ~f:Int.of_string ~wrong:(`wrong_step_value (current_position p, l))
+      >>= fun step ->
+      begin match List.Assoc.find assoc "span" with
+      | None ->
+        Ok (`fixed_step_state_change (chrom, start, step, None))
+      | Some span ->
+        begin match Option.try_with (fun () -> Int.of_string span) with
+        | Some i ->
+          Ok (`fixed_step_state_change (chrom, start, step, Some i))
+        | None -> Error (`wrong_span_value (current_position p, span))
+        end
+      end
+    in
+    output_result output_m
+  | Some l when String.is_prefix l ~prefix:"variableStep" ->
+    let output_m =
+      explode_key_value (current_position p)
+        String.(chop_prefix_exn l ~prefix:"variableStep")
+      >>= fun assoc ->
+      assoc_find assoc "chrom" ~missing:(`missing_chrom_value (current_position p, l))
+      >>= fun chrom ->
+      begin match List.Assoc.find assoc "span" with
+      | None -> return (`variable_step_state_change (chrom, None))
+      | Some span ->
+        begin match Option.try_with (fun () -> Int.of_string span) with
+        | Some i -> return (`variable_step_state_change (chrom, Some i))
+        | None -> fail (`wrong_span_value (current_position p, span))
+        end
+      end
+    in
+    output_result output_m
+  | Some l ->
+    let by_space =
+      String.split_on_chars l ~on:[' '; '\n'; '\t'; '\r']
+      |! List.filter ~f:((<>) "") in
+    begin match by_space with
+    | [ one_value ] ->
+      (try `output (`fixed_step_value Float.(of_string one_value))
+       with e -> `error (`wrong_fixed_step_value (current_position p, l)))
+    | [ fst_val; snd_val] ->
+      (try `output (`variable_step_value (Int.of_string fst_val,
+                                          Float.of_string snd_val))
+       with e -> `error (`wrong_variable_step_value (current_position p, l)))
+    | [ chr; b; e; v; ] ->
+      (try `output (`bed_graph_value (chr,
+                                      Int.of_string b,
+                                      Int.of_string e,
+                                      Float.of_string v))
+       with e -> `error (`wrong_bed_graph_value (current_position p, l)))
+    | l ->
+      `error (`unrecognizable_line (current_position p, l))
+    end
+  | None -> 
+    `not_ready
+        
+        
+let parser ?filename ?pedantic ?sharp_comments () =
+  let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
+  let module LOP =  Biocaml_transform.Line_oriented  in
+  let lo_parser = LOP.parser ?filename () in
+  Biocaml_transform.make_stoppable ~name ()
+    ~feed:(LOP.feed_string lo_parser)
+    ~next:(fun stopped ->
+      match next ?pedantic ?sharp_comments lo_parser with
+      | `output r -> `output r
+      | `error e -> `error e
+      | `not_ready ->
+        if stopped then (
+          match LOP.finish lo_parser with
+          | `ok -> `end_of_stream
+          | `error ([], Some kind_of_line) ->
+            `error (`incomplete_line (LOP.current_position lo_parser, kind_of_line))
+          | `error (l, o) ->
+            failwithf "incomplete wig input? %S %S"
+              (String.concat ~sep:"<RET>" l) Option.(value ~default:"" o) ()
+        ) else
+          `not_ready)
+    (* exception Bad of string *)
+    (* let raise_bad msg = raise (Bad msg) *)
 
-type bt = (int * int * float) list String.Map.t
+    (* type bt = (int * int * float) list String.Map.t *)
     (* list items are (lo,hi,x) triples *)
     
-type vt = {vspan:int; vdata : (int * float) list String.Map.t}
-    (* list items are (lo,x) pairs, range is [lo, lo + vspan - 1] *)
+(* type vt = {vspan:int; vdata : (int * float) list String.Map.t} *)
+(*     (\* list items are (lo,x) pairs, range is [lo, lo + vspan - 1] *\) *)
     
-type ft = {fspan:int; fdata : (int * int * float list) String.Map.t}
-    (* For each chromosome there is a list of (start,step,xl) triples.
-       For the i'th value in xl, the associated range is [lo,hi] where
-       - lo = start + i*step
-       - hi = lo + fspan - 1
-    *)
+(* type ft = {fspan:int; fdata : (int * int * float list) String.Map.t} *)
+(*     (\* For each chromosome there is a list of (start,step,xl) triples. *)
+(*        For the i'th value in xl, the associated range is [lo,hi] where *)
+(*        - lo = start + i*step *)
+(*        - hi = lo + fspan - 1 *)
+(*     *\) *)
     
-type t = B of bt | V of vt | F of ft
-type pt = string * int * int * float
-type format = Bed | VariableStep | FixedStep
+(* type t = B of bt | V of vt | F of ft *)
+(* type pt = string * int * int * float *)
+(* type format = Bed | VariableStep | FixedStep *)
 
-let get_format = function B _ -> Bed | V _ -> VariableStep | F _ -> FixedStep
+(* let get_format = function B _ -> Bed | V _ -> VariableStep | F _ -> FixedStep *)
 
-(* compact variable-step to fixed-step if possible *)
-let v_to_f vt : ft option =
-  (* get the constant step or return None if step is not constant *)
-  let get_step (l : (int * float) list) : int option =
-    let rec f step = function
-      | [] | _::[] -> Some step
-      | (lo1,_)::((lo2,_)::_ as l) ->
-          if step = lo2 - lo1 then f step l else None
-    in
-    match l with
-      | [] -> assert false
-      | _::[] -> Some vt.vspan (* arbitrarily choosing step to equal span *)
-      | (lo0,_)::(lo1,_)::_ -> f (lo1 - lo0) l
-  in
+(* (\* compact variable-step to fixed-step if possible *\) *)
+(* let v_to_f vt : ft option = *)
+(*   (\* get the constant step or return None if step is not constant *\) *)
+(*   let get_step (l : (int * float) list) : int option = *)
+(*     let rec f step = function *)
+(*       | [] | _::[] -> Some step *)
+(*       | (lo1,_)::((lo2,_)::_ as l) -> *)
+(*           if step = lo2 - lo1 then f step l else None *)
+(*     in *)
+(*     match l with *)
+(*       | [] -> assert false *)
+(*       | _::[] -> Some vt.vspan (\* arbitrarily choosing step to equal span *\) *)
+(*       | (lo0,_)::(lo1,_)::_ -> f (lo1 - lo0) l *)
+(*   in *)
   
-  let convert_one (l : (int * float) list) : (int * int * float list) option =
-    match get_step l with
-      | None -> None
-      | Some step -> Some (fst (List.hd_exn l), step, List.map ~f:snd l)
-  in
+(*   let convert_one (l : (int * float) list) : (int * int * float list) option = *)
+(*     match get_step l with *)
+(*       | None -> None *)
+(*       | Some step -> Some (fst (List.hd_exn l), step, List.map ~f:snd l) *)
+(*   in *)
   
-  let g ~key ~data:l ans =
-    match ans with
-      | None -> None
-      | Some ans ->
-          match convert_one l with
-            | None -> None
-            | Some data -> Some (String.Map.add ~key ~data ans)
-  in
-  match String.Map.fold ~f:g vt.vdata ~init:(Some String.Map.empty) with
-    | None -> None
-    | Some fdat -> Some {fspan = vt.vspan; fdata = fdat}
+(*   let g ~key ~data:l ans = *)
+(*     match ans with *)
+(*       | None -> None *)
+(*       | Some ans -> *)
+(*           match convert_one l with *)
+(*             | None -> None *)
+(*             | Some data -> Some (String.Map.add ~key ~data ans) *)
+(*   in *)
+(*   match String.Map.fold ~f:g vt.vdata ~init:(Some String.Map.empty) with *)
+(*     | None -> None *)
+(*     | Some fdat -> Some {fspan = vt.vspan; fdata = fdat} *)
 
-(* compact bed to variable-step if possible *)
-let b_to_v bt : vt option =
-  (* get the constant span or return None if span is not constant *)
-  let get_span_chr (l : (int * int * float) list) : int option =
-    let rec f span = function
-      | [] -> Some span
-      | (lo,hi,_)::l -> if span = hi - lo + 1 then f span l else None
-    in
-    match l with
-      | [] -> assert false
-      | (lo,hi,_)::l -> f (hi - lo + 1) l
-  in
+(* (\* compact bed to variable-step if possible *\) *)
+(* let b_to_v bt : vt option = *)
+(*   (\* get the constant span or return None if span is not constant *\) *)
+(*   let get_span_chr (l : (int * int * float) list) : int option = *)
+(*     let rec f span = function *)
+(*       | [] -> Some span *)
+(*       | (lo,hi,_)::l -> if span = hi - lo + 1 then f span l else None *)
+(*     in *)
+(*     match l with *)
+(*       | [] -> assert false *)
+(*       | (lo,hi,_)::l -> f (hi - lo + 1) l *)
+(*   in *)
   
-  let get_span bt : int option =
-    let spans = String.Map.fold ~f:(fun ~key ~data:l ans -> (get_span_chr l)::ans) bt ~init:[] in
-    if List.length spans = 0 then
-      None (* if no chromosomes, do not compact *)
-    else if List.exists ~f:Option.is_none spans then
-      None
-    else
-      let spans = List.map ~f:Option.value_exn spans in
-      let span = List.hd_exn spans in
-      if List.for_all ~f:((=) span) spans then
-        Some span
-      else
-        None
-  in
-  match get_span bt with
-    | None -> None
-    | Some span ->
-        let vdat = String.Map.map ~f:(List.map ~f:(fun (x, _, z) -> (x, z))) bt in
-        Some {vspan=span; vdata = vdat}
+(*   let get_span bt : int option = *)
+(*     let spans = String.Map.fold ~f:(fun ~key ~data:l ans -> (get_span_chr l)::ans) bt ~init:[] in *)
+(*     if List.length spans = 0 then *)
+(*       None (\* if no chromosomes, do not compact *\) *)
+(*     else if List.exists ~f:Option.is_none spans then *)
+(*       None *)
+(*     else *)
+(*       let spans = List.map ~f:Option.value_exn spans in *)
+(*       let span = List.hd_exn spans in *)
+(*       if List.for_all ~f:((=) span) spans then *)
+(*         Some span *)
+(*       else *)
+(*         None *)
+(*   in *)
+(*   match get_span bt with *)
+(*     | None -> None *)
+(*     | Some span -> *)
+(*         let vdat = String.Map.map ~f:(List.map ~f:(fun (x, _, z) -> (x, z))) bt in *)
+(*         Some {vspan=span; vdata = vdat} *)
           
-(* compact bed to fixed-step if possible *)
-let b_to_f bt : ft option =
-  match b_to_v bt with None -> None | Some vt -> v_to_f vt
+(* (\* compact bed to fixed-step if possible *\) *)
+(* let b_to_f bt : ft option = *)
+(*   match b_to_v bt with None -> None | Some vt -> v_to_f vt *)
 
-(* compact as much as possible *)
-let rec compact t = match t with
-  | B x -> (match b_to_v x with None -> t | Some vt -> compact (V vt))
-  | V x -> (match v_to_f x with None -> t | Some ft -> F ft)
-  | F x -> F x
+(* (\* compact as much as possible *\) *)
+(* let rec compact t = match t with *)
+(*   | B x -> (match b_to_v x with None -> t | Some vt -> compact (V vt)) *)
+(*   | V x -> (match v_to_f x with None -> t | Some ft -> F ft) *)
+(*   | F x -> F x *)
 
-(* expand variable-step to bed *)
-let v_to_b vt : bt =
-  let f l = List.map ~f:(fun (lo,x) -> lo, lo + vt.vspan - 1, x) l in
-  String.Map.map ~f vt.vdata
+(* (\* expand variable-step to bed *\) *)
+(* let v_to_b vt : bt = *)
+(*   let f l = List.map ~f:(fun (lo,x) -> lo, lo + vt.vspan - 1, x) l in *)
+(*   String.Map.map ~f vt.vdata *)
 
-(* expand fixed-step to variable-step *)
-let f_to_v ft : vt =
-  let f (start,step,xl) = List.mapi ~f:(fun i x -> start + i*step, x) xl in
-  {vspan = ft.fspan; vdata = String.Map.map ~f ft.fdata}
+(* (\* expand fixed-step to variable-step *\) *)
+(* let f_to_v ft : vt = *)
+(*   let f (start,step,xl) = List.mapi ~f:(fun i x -> start + i*step, x) xl in *)
+(*   {vspan = ft.fspan; vdata = String.Map.map ~f ft.fdata} *)
 
-(* expand fixed-step to bed *)
-let f_to_b ft : bt =
-  let f (start,step,l) = 
-    let g i x =
-      let lo = start + i*step in
-      let hi = lo + ft.fspan - 1 in
-      lo,hi,x
-    in
-    List.mapi ~f:g l
-  in
-  String.Map.map ~f ft.fdata
+(* (\* expand fixed-step to bed *\) *)
+(* let f_to_b ft : bt = *)
+(*   let f (start,step,l) =  *)
+(*     let g i x = *)
+(*       let lo = start + i*step in *)
+(*       let hi = lo + ft.fspan - 1 in *)
+(*       lo,hi,x *)
+(*     in *)
+(*     List.mapi ~f:g l *)
+(*   in *)
+(*   String.Map.map ~f ft.fdata *)
     
-(* convert [t] to [fmt] if possible *)
-let to_format fmt t : t option = match fmt,t with
-  | Bed, B _ -> Some t
-  | Bed, V vt -> Some (B (v_to_b vt))
-  | Bed, F ft -> Some (B (f_to_b ft))
-  | VariableStep, B bt -> (match b_to_v bt with None -> None | Some vt -> Some (V vt))
-  | VariableStep, V _ -> Some t
-  | VariableStep, F ft -> Some (V (f_to_v ft))
-  | FixedStep, B bt -> (match b_to_f bt with None -> None | Some ft -> Some (F ft))
-  | FixedStep, V vt -> (match v_to_f vt with None -> None | Some ft -> Some (F ft))
-  | FixedStep, F _ -> Some t
+(* (\* convert [t] to [fmt] if possible *\) *)
+(* let to_format fmt t : t option = match fmt,t with *)
+(*   | Bed, B _ -> Some t *)
+(*   | Bed, V vt -> Some (B (v_to_b vt)) *)
+(*   | Bed, F ft -> Some (B (f_to_b ft)) *)
+(*   | VariableStep, B bt -> (match b_to_v bt with None -> None | Some vt -> Some (V vt)) *)
+(*   | VariableStep, V _ -> Some t *)
+(*   | VariableStep, F ft -> Some (V (f_to_v ft)) *)
+(*   | FixedStep, B bt -> (match b_to_f bt with None -> None | Some ft -> Some (F ft)) *)
+(*   | FixedStep, V vt -> (match v_to_f vt with None -> None | Some ft -> Some (F ft)) *)
+(*   | FixedStep, F _ -> Some t *)
 
-let iter f = function 
-  | B t -> 
-      let g chr (lo,hi,x) = f(chr,lo,hi,x) in
-      let h ~key:chr ~data:l = List.iter ~f:(g chr) l in
-      String.Map.iter ~f:h t
-  | V t ->
-      let g chr (lo,x) = f(chr, lo, lo + t.vspan - 1, x) in
-      let h ~key:chr ~data:l = List.iter ~f:(g chr) l in
-      String.Map.iter ~f:h t.vdata
-  | F t ->
-      let g chr start step i x =
-        let lo = start + i*step in
-        let hi = lo + t.fspan - 1 in
-        f(chr,lo,hi,x)
-      in
-      let h ~key:chr ~data:(start,step,l) = List.iteri ~f:(g chr start step) l in
-      String.Map.iter ~f:h t.fdata
+(* let iter f = function  *)
+(*   | B t ->  *)
+(*       let g chr (lo,hi,x) = f(chr,lo,hi,x) in *)
+(*       let h ~key:chr ~data:l = List.iter ~f:(g chr) l in *)
+(*       String.Map.iter ~f:h t *)
+(*   | V t -> *)
+(*       let g chr (lo,x) = f(chr, lo, lo + t.vspan - 1, x) in *)
+(*       let h ~key:chr ~data:l = List.iter ~f:(g chr) l in *)
+(*       String.Map.iter ~f:h t.vdata *)
+(*   | F t -> *)
+(*       let g chr start step i x = *)
+(*         let lo = start + i*step in *)
+(*         let hi = lo + t.fspan - 1 in *)
+(*         f(chr,lo,hi,x) *)
+(*       in *)
+(*       let h ~key:chr ~data:(start,step,l) = List.iteri ~f:(g chr start step) l in *)
+(*       String.Map.iter ~f:h t.fdata *)
         
-let fold f init t =
-  let ans = ref init in
-  iter (fun pt -> ans := f !ans pt) t;
-  !ans
+(* let fold f init t = *)
+(*   let ans = ref init in *)
+(*   iter (fun pt -> ans := f !ans pt) t; *)
+(*   !ans *)
 
-let rec of_list l =
-  let f ans (chr,lo,hi,x) =
-    if lo > hi then
-      raise_bad (sprintf "invalid interval [%d, %d]" lo hi)
-    else
-      let append prev = match prev with None -> Some [lo,hi,x] | Some l -> Some ((lo,hi,x)::l) in
-      String.Map.change ans chr append
-  in
-  let ans = List.fold_left ~f ~init:String.Map.empty l in
-  let ans = String.Map.map ~f:List.rev ans in
-  compact (B ans)
+(* let rec of_list l = *)
+(*   let f ans (chr,lo,hi,x) = *)
+(*     if lo > hi then *)
+(*       raise_bad (sprintf "invalid interval [%d, %d]" lo hi) *)
+(*     else *)
+(*       let append prev = match prev with None -> Some [lo,hi,x] | Some l -> Some ((lo,hi,x)::l) in *)
+(*       String.Map.change ans chr append *)
+(*   in *)
+(*   let ans = List.fold_left ~f ~init:String.Map.empty l in *)
+(*   let ans = String.Map.map ~f:List.rev ans in *)
+(*   compact (B ans) *)
     
-let of_channel ?fmt ?(chr_map=Fn.id) ?(header=true) ?increment_lo_hi ic = 
-  let of_bed_channel chr_map header increment_lo_hi ic =
-    let inclo,inchi = increment_lo_hi in
-    let f acc l = 
-      let lst = String.split l ~on:'\t' in
-      match List.length lst with
-        | 4 ->
-            let chr = chr_map (List.nth_exn lst 0) in
-            let lo = int_of_string (List.nth_exn lst 1) + inclo in
-            let hi = int_of_string (List.nth_exn lst 2) + inchi in
-            let v = float_of_string (List.nth_exn lst 3) in
-            let insert prev = match prev with None -> Some [lo,hi,v] | Some l -> Some ((lo,hi,v)::l) in
-            String.Map.change acc chr insert
-        | n -> failwith (sprintf "expecting exactly 4 columns but found %d" n) 
-    in
-    if header then (ignore (input_line ic));
-    let ans = Lines.fold_channel f String.Map.empty ic in
-    let ans = String.Map.map ~f:List.rev ans in
-    compact (B ans)
-  in
-  match fmt with
-    | None -> failwith "must specify WIG file format" (* TO DO: infer format automatically *)
-    | Some Bed ->
-        let increment_lo_hi = match increment_lo_hi with Some x -> x | None -> (1,0) in
-        of_bed_channel chr_map header increment_lo_hi ic
-    | Some VariableStep -> failwith "parsing of WIG files in variable-step format not yet implemented"
-    | Some FixedStep -> failwith "parsing of WIG files in fixed-step format not yet implemented"
+(* let of_channel ?fmt ?(chr_map=Fn.id) ?(header=true) ?increment_lo_hi ic =  *)
+(*   let of_bed_channel chr_map header increment_lo_hi ic = *)
+(*     let inclo,inchi = increment_lo_hi in *)
+(*     let f acc l =  *)
+(*       let lst = String.split l ~on:'\t' in *)
+(*       match List.length lst with *)
+(*         | 4 -> *)
+(*             let chr = chr_map (List.nth_exn lst 0) in *)
+(*             let lo = int_of_string (List.nth_exn lst 1) + inclo in *)
+(*             let hi = int_of_string (List.nth_exn lst 2) + inchi in *)
+(*             let v = float_of_string (List.nth_exn lst 3) in *)
+(*             let insert prev = match prev with None -> Some [lo,hi,v] | Some l -> Some ((lo,hi,v)::l) in *)
+(*             String.Map.change acc chr insert *)
+(*         | n -> failwith (sprintf "expecting exactly 4 columns but found %d" n)  *)
+(*     in *)
+(*     if header then (ignore (input_line ic)); *)
+(*     let ans = Lines.fold_channel f String.Map.empty ic in *)
+(*     let ans = String.Map.map ~f:List.rev ans in *)
+(*     compact (B ans) *)
+(*   in *)
+(*   match fmt with *)
+(*     | None -> failwith "must specify WIG file format" (\* TO DO: infer format automatically *\) *)
+(*     | Some Bed -> *)
+(*         let increment_lo_hi = match increment_lo_hi with Some x -> x | None -> (1,0) in *)
+(*         of_bed_channel chr_map header increment_lo_hi ic *)
+(*     | Some VariableStep -> failwith "parsing of WIG files in variable-step format not yet implemented" *)
+(*     | Some FixedStep -> failwith "parsing of WIG files in fixed-step format not yet implemented" *)
         
-let of_file ?fmt ?(chr_map=Fn.id) ?(header=true) ?increment_lo_hi file =
-  let fend = close_in in
-  match fmt,increment_lo_hi with
-    | None, None ->
-      try_finally_exn (of_channel ~chr_map ~header) ~fend (open_in file)
-    | Some fmt, None ->
-        try_finally_exn (of_channel ~fmt ~chr_map ~header) ~fend (open_in file)
-    | None, Some increment_lo_hi ->
-        try_finally_exn (of_channel ~chr_map ~header ~increment_lo_hi) ~fend (open_in file)
-    | Some fmt, Some increment_lo_hi->
-        try_finally_exn (of_channel ~fmt ~chr_map ~header ~increment_lo_hi) ~fend (open_in file)
+(* let of_file ?fmt ?(chr_map=Fn.id) ?(header=true) ?increment_lo_hi file = *)
+(*   let fend = close_in in *)
+(*   match fmt,increment_lo_hi with *)
+(*     | None, None -> *)
+(*       try_finally_exn (of_channel ~chr_map ~header) ~fend (open_in file) *)
+(*     | Some fmt, None -> *)
+(*         try_finally_exn (of_channel ~fmt ~chr_map ~header) ~fend (open_in file) *)
+(*     | None, Some increment_lo_hi -> *)
+(*         try_finally_exn (of_channel ~chr_map ~header ~increment_lo_hi) ~fend (open_in file) *)
+(*     | Some fmt, Some increment_lo_hi-> *)
+(*         try_finally_exn (of_channel ~fmt ~chr_map ~header ~increment_lo_hi) ~fend (open_in file) *)
 
-let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t)
+(* let to_list t = List.rev (fold (fun ans pt -> pt::ans) [] t) *)
   
-let to_channel ?fmt t cout =
-  let print_as_is = function
-    | B bt ->
-        let f chr (lo,hi,x) = fprintf cout "%s\t%d\t%d\t%s\n" chr (lo-1) hi (string_of_float x) in
-        let g ~key:chr ~data:l = List.iter ~f:(f chr) l in
-        String.Map.iter ~f:g bt
-    | V vt ->
-        let g ~key:chr ~data:l =
-          fprintf cout "variableStep\tchrom=%s\tspan=%d\n" chr vt.vspan;
-          let f (lo,x) = fprintf cout "%d\t%s\n" lo (string_of_float x) in
-          List.iter ~f l
-        in
-        String.Map.iter ~f:g vt.vdata
-    | F ft ->
-        let g ~key:chr ~data:(start,step,l) =
-          fprintf cout "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d\n" chr start step ft.fspan;
-          List.iter ~f:(fun x -> fprintf cout "%s\n" (string_of_float x)) l
-        in
-        String.Map.iter ~f:g ft.fdata
-  in
-  match fmt with
-    | None -> print_as_is (compact t)
-    | Some fmt -> match to_format fmt t with
-        | None ->
-            let fmt = match fmt with Bed -> "bed" | VariableStep -> "variable-step" | FixedStep -> "fixed-step" in
-            failwith (sprintf "given data cannot be represented in %s format" fmt)
-        | Some t -> print_as_is t
+(* let to_channel ?fmt t cout = *)
+(*   let print_as_is = function *)
+(*     | B bt -> *)
+(*         let f chr (lo,hi,x) = fprintf cout "%s\t%d\t%d\t%s\n" chr (lo-1) hi (string_of_float x) in *)
+(*         let g ~key:chr ~data:l = List.iter ~f:(f chr) l in *)
+(*         String.Map.iter ~f:g bt *)
+(*     | V vt -> *)
+(*         let g ~key:chr ~data:l = *)
+(*           fprintf cout "variableStep\tchrom=%s\tspan=%d\n" chr vt.vspan; *)
+(*           let f (lo,x) = fprintf cout "%d\t%s\n" lo (string_of_float x) in *)
+(*           List.iter ~f l *)
+(*         in *)
+(*         String.Map.iter ~f:g vt.vdata *)
+(*     | F ft -> *)
+(*         let g ~key:chr ~data:(start,step,l) = *)
+(*           fprintf cout "fixedStep\tchrom=%s\tstart=%d\tstep=%d\tspan=%d\n" chr start step ft.fspan; *)
+(*           List.iter ~f:(fun x -> fprintf cout "%s\n" (string_of_float x)) l *)
+(*         in *)
+(*         String.Map.iter ~f:g ft.fdata *)
+(*   in *)
+(*   match fmt with *)
+(*     | None -> print_as_is (compact t) *)
+(*     | Some fmt -> match to_format fmt t with *)
+(*         | None -> *)
+(*             let fmt = match fmt with Bed -> "bed" | VariableStep -> "variable-step" | FixedStep -> "fixed-step" in *)
+(*             failwith (sprintf "given data cannot be represented in %s format" fmt) *)
+(*         | Some t -> print_as_is t *)
             
-let to_file ?fmt t file =
-  let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in
-  try_finally_exn f ~fend:close_out (open_out_safe file)
+(* let to_file ?fmt t file = *)
+(*   let f = match fmt with None -> to_channel t | Some fmt -> to_channel ~fmt t in *)
+(*   try_finally_exn f ~fend:close_out (open_out_safe file) *)
 
 
 (**** Some parsing functions that could be useful when support for parsing variable-step and fixed-step are added.

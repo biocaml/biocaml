@@ -376,7 +376,7 @@ module BrowserLines = struct
     String.concat "\n" (List.map line_to_string t)
 
 end
-
+(*
 type block =
     | B of BrowserLines.t
     | T of TrackLine.t
@@ -459,4 +459,4 @@ let validate t =
   wig_track_type t
     
 let of_list bl = validate bl; bl
-
+*)

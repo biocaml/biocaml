@@ -89,7 +89,7 @@ module BrowserLines : sig
   val to_string : t -> string
     (** Return string representation of browser lines. All but last line will be followed by newline. *)
 end
-  
+ (* 
 (** A block of information. *)
 type block =
     | B of BrowserLines.t (** sequence of browser lines *)
@@ -107,3 +107,4 @@ val to_channel : ?wig_fmt:Biocaml_wig.format -> t -> out_channel -> unit
 val to_file : ?wig_fmt:Biocaml_wig.format -> t -> string -> unit
 val to_list : t -> block list
 val of_list : block list -> t
+ *)

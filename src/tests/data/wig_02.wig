@@ -1,0 +1,8 @@
+# one comment
+variableStep chrom=chr19
+49304701 10.0
+chrA 49304901 49304902 12.5
+fixedStep chrom=chr19  step=300 span=200
+1000
+ 900s
+ 800
