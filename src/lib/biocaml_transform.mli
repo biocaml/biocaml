@@ -195,7 +195,11 @@ module Pull_based: sig
     error_to_exn:('error -> exn) ->
     [ `end_of_stream | `error of 'error | `output of 'output ] stream ->
     'output Stream.t
-  (** Convert a stream to an OCaml [Stream.t]. *) 
+  (** Convert a stream to an exception-full OCaml [Stream.t]. *) 
 
+  val to_stream_result:
+    [ `end_of_stream | `error of 'error | `output of 'output ] stream ->
+    ('output, 'error) Core.Std.Result.t Stream.t
+  (** Convert a stream to an OCaml [Stream.t] of [Result.t] values. *) 
       
 end
