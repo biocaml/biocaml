@@ -191,4 +191,11 @@ module Pull_based: sig
   (** Like [of_in_channel] but internally open the file and close it on
       [`end_of_stream] ({b Warning:} the channel is not closed on [`error _]. *)
 
+  val to_stream_exn:
+    error_to_exn:('error -> exn) ->
+    [ `end_of_stream | `error of 'error | `output of 'output ] stream ->
+    'output Stream.t
+  (** Convert a stream to an OCaml [Stream.t]. *) 
+
+      
 end

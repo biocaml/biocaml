@@ -59,14 +59,17 @@ let test_printer () =
   let s =
     make_printer_stream
       ~more_columns:[`string; `int; `float] "bed_03_more_cols.bed" in
-  let check o =
-    assert_equal ~printer:(function
-    | `output s -> sprintf "Output: %S" s
-    | other -> sprintf "not output") o (TS.next s) in
-  check (`output "chrA 42 45 some_string 42 3.14\n");
-  check (`output "chrB 100 130 some_string 42 3.14\n");
-  check (`output "chrC 200 245 some_string 42 3.14\n");
-  check (`end_of_stream);
+  let camlstream =
+    Biocaml_transform.Pull_based.to_stream_exn
+      ~error_to_exn:(fun e -> failwith "Unexpected error in camlstream") s in
+  
+  let l = Stream.npeek max_int camlstream in
+  assert_equal
+    ~printer:(fun l -> List.map ~f:(sprintf "Output: %S") l |! String.concat ~sep:", ")
+    l ["chrA 42 45 some_string 42 3.14\n";
+       "chrB 100 130 some_string 42 3.14\n";
+       "chrC 200 245 some_string 42 3.14\n"; ];
+  
   ()
 
 let tests = "BED" >::: [

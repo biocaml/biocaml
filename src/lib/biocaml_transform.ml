@@ -259,6 +259,13 @@ module Pull_based = struct
 
   let next t = t ()
 
+  let to_stream_exn ~error_to_exn t =
+    Stream.from (fun _ ->
+      match t () with
+      | `error e -> raise (error_to_exn e)
+      | `output o -> Some o
+      | `end_of_stream -> None)
+    
 end
 
   
