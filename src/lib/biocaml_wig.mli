@@ -28,24 +28,29 @@
     around the '='.
 *)
 
+(** {3 Basic Types} *)
+
 
 type comment = [
 | `comment of string
 ]
 type variable_step = [
-| `variable_step_state_change of string * int option (* name x span *)
+| `variable_step_state_change of string * int option (** name x span *)
 | `variable_step_value of int * float
 ]
 type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
-(* name, start, step, span *)
+(** name, start, step, span *)
 | `fixed_step_value of float
 ]  
 type bed_graph = [
 | `bed_graph_value of string * int * int * float
 ]
   
+(** {3 Parsing and Printing} *)
+
 type t = [comment | variable_step | fixed_step | bed_graph ]
+(** The most general type that the default parser outputs. *)
 
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
@@ -62,6 +67,7 @@ type parse_error = [
 | `wrong_span_value of Biocaml_pos.t * string
 | `wrong_variable_step_value of Biocaml_pos.t * string
 ]
+(** The parsing errors. *)
 
 val parser :
   ?filename:string ->
@@ -69,40 +75,19 @@ val parser :
   ?sharp_comments:bool ->
   unit ->
   (string, t, parse_error) Biocaml_transform.t
+(** Create the parsing [Biocaml_transform.t]. The parser is
+    "best-effort" and stateless (i.e. a line containing ["1000 42."]
+    will parsed succesfully as a [`variable_step_value (1000, 42.)]
+    even if no ["variableStep"] was line present before). *)
 
 val printer: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
+(** Create the transform that prints [t] values to strings. *)
 
 val to_bed_graph: unit ->
   (t, [bed_graph | comment],
    [`not_in_variable_step_state | `not_in_fixed_step_state]) Biocaml_transform.t
-
+(** Create a transform which converts [`variable_step_value _] and
+    [`fixed_step_value _] values to [`bed_graph_value _] values, using the
+    current state. The [`bed_graph_value _] and [`comment _] values stay
+    untouched. *)
   
-(*
-type pt = string * int * int * float
-    (** A data point is a 4-tuple [(chr,lo,hi,x)], where [x] is the value assigned to interval [\[lo, hi\]], inclusive of end-points, on chromosome [chr]. *)
-    
-type t
-    (** Type of WIG data. Can be thought of as a collection of [pt]'s. Coordinates of data points are not allowed to overlap, for each chromosome. *)
-    
-type format = Bed | VariableStep | FixedStep
-    (** The three formats in which WIG data can be specified. *)
-
-exception Bad of string
-
-val of_list : pt list -> t
-  (** Construct WIG data from given [pt]'s. Raise [Bad] if any [pt]'s are invalid. *)
-
-val to_list : t -> pt list
-  (** Extract data as a flat list. *)
-  
-val iter : (pt -> unit) -> t -> unit
-val fold : ('a -> pt -> 'a) -> 'a -> t -> 'a
-
-val to_file : ?fmt:format -> t -> string -> unit
-  (** [to_file ~fmt t file] prints [t] to [file]. Printing is in most efficient format possible by default. Optional [fmt] argument forces printing in a specific format. Requesting [VariableStep] or [FixedStep] may raise [Failure] if given data cannot be represented in those formats. *)
-
-val to_channel : ?fmt:format -> t -> out_channel -> unit
-  (** Like [to_file] but print to channel. *)
-
-val of_channel : ?fmt:format -> ?chr_map:(string -> string) -> ?header:bool -> ?increment_lo_hi:(int * int) -> in_channel -> t
-val of_file : ?fmt:format -> ?chr_map:(string -> string) -> ?header:bool -> ?increment_lo_hi:(int * int) -> string -> t *)
