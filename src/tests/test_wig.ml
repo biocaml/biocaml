@@ -123,16 +123,15 @@ let test_to_bed_graph () =
     stream in
   
   let s = stream "wig_01.wig" in
-  check_output s "comment line" (`comment " one comment");
 
-  check_output s "" (`bed_graph_value ("chr19", 49304701, 49304850, 10.));
-  check_output s "" (`bed_graph_value ("chr19", 49304901, 49305050, 12.5));
-  check_output s "" (`bed_graph_value ("chr19", 49305401, 49305550, 15.));
-  check_output s "" (`bed_graph_value ("chr19", 49307401, 49307600, 1000.));
-  check_output s "" (`bed_graph_value ("chr19", 49307701, 49307900, 900.));
-  check_output s "" (`bed_graph_value ("chr19", 49308001, 49308200, 800.));
-  check_output s "" (`bed_graph_value ("chr19", 49308301, 49308500, 300.));
-  check_output s "" (`bed_graph_value ("chr19", 49308601, 49308800, 200.));
+  check_output s "" ( ("chr19", 49304701, 49304850, 10.));
+  check_output s "" ( ("chr19", 49304901, 49305050, 12.5));
+  check_output s "" ( ("chr19", 49305401, 49305550, 15.));
+  check_output s "" ( ("chr19", 49307401, 49307600, 1000.));
+  check_output s "" ( ("chr19", 49307701, 49307900, 900.));
+  check_output s "" ( ("chr19", 49308001, 49308200, 800.));
+  check_output s "" ( ("chr19", 49308301, 49308500, 300.));
+  check_output s "" ( ("chr19", 49308601, 49308800, 200.));
 
   check_error s "incomplete_line" (function
   | (`left (`incomplete_line (_, " 100"))) -> true

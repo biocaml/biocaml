@@ -43,13 +43,11 @@ type fixed_step = [
 (** name, start, step, span *)
 | `fixed_step_value of float
 ]  
-type bed_graph = [
-| `bed_graph_value of string * int * int * float
-]
+type bed_graph_value = string * int * int * float
   
 (** {3 Parsing and Printing} *)
 
-type t = [comment | variable_step | fixed_step | bed_graph ]
+type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 (** The most general type that the default parser outputs. *)
 
 type parse_error = [
@@ -84,7 +82,7 @@ val printer: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Create the transform that prints [t] values to strings. *)
 
 val to_bed_graph: unit ->
-  (t, [bed_graph | comment],
+  (t, bed_graph_value,
    [`not_in_variable_step_state | `not_in_fixed_step_state]) Biocaml_transform.t
 (** Create a transform which converts [`variable_step_value _] and
     [`fixed_step_value _] values to [`bed_graph_value _] values, using the

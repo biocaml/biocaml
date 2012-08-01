@@ -13,11 +13,9 @@ type fixed_step = [
 (* name, start, step, span *)
 | `fixed_step_value of float
 ]  
-type bed_graph = [
-| `bed_graph_value of string * int * int * float
-]
+type bed_graph_value = string * int * int * float
   
-type t = [comment | variable_step | fixed_step | bed_graph ]
+type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 
 
 type parse_error = [
@@ -183,8 +181,8 @@ let to_bed_graph () =
   let current_state = ref None in
   Biocaml_transform.make_stoppable ~name:"wig_to_variable_step" ()
     ~feed:(function
-    | `comment _
-    | `bed_graph_value _ as already_done ->
+    | `comment _ -> ()
+    | `bed_graph_value already_done ->
       Queue.enqueue queue (`output already_done)
     | `variable_step_state_change (chrom, span) ->
       current_state := Some (`variable (chrom, span))
@@ -192,7 +190,7 @@ let to_bed_graph () =
       begin match !current_state with
       | Some (`variable (chrom, span)) ->
         let stop = pos + Option.(value ~default:1 span) - 1 in
-        Queue.enqueue queue (`output (`bed_graph_value (chrom, pos, stop, v)))
+        Queue.enqueue queue (`output  (chrom, pos, stop, v))
       | other ->
         Queue.enqueue queue (`error (`not_in_variable_step_state))
       end
@@ -203,7 +201,7 @@ let to_bed_graph () =
       | Some (`fixed (chrom, start, step, span, current)) ->
         let pos = start + (step * current) in
         let stop = pos + Option.(value ~default:1 span) - 1 in
-        Queue.enqueue queue (`output (`bed_graph_value (chrom, pos, stop, v)));
+        Queue.enqueue queue (`output (chrom, pos, stop, v));
         current_state := Some  (`fixed (chrom, start, step , span, current + 1))
       | other ->
         Queue.enqueue queue (`error (`not_in_fixed_step_state))
