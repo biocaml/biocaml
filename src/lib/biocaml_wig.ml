@@ -147,7 +147,6 @@ let parser ?filename ?pedantic ?sharp_comments () =
           `not_ready)
 
 
-type empty
 let printer () =
   let module PQ = Biocaml_transform.Printer_queue in
   let printer =

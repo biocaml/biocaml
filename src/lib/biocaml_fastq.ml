@@ -84,7 +84,6 @@ let fastq_parser ?filename () =
         ) else
           `not_ready)
   
-type empty
 let fastq_printer () =
   let module PQ = Biocaml_transform.Printer_queue in
   let printer = printer () in

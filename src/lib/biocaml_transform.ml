@@ -9,6 +9,8 @@ type ('input, 'output, 'error) t = {
   stop: unit -> unit;
 }
 
+type no_error
+
 let make ?name ~next ~feed ~stop () = {name; next; feed; stop }
 
 exception Feeding_stopped_transformation of string

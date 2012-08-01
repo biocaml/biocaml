@@ -71,7 +71,7 @@ val sequence_parser :
   (string, string data, parse_error) Biocaml_transform.t
 (** Parse a stream of strings as a sequence FASTA file.
     The [filename] is used only for error messages. If [pedantic] is [true]
-    (default) the parser will report more errors (empty lines, non
+    (default) the parser will report more errors (Biocaml_transform.no_error lines, non
     standard characters). The comment format is set with
     [sharp_comments] and/or [semicolon_comments]. *)
 
@@ -85,18 +85,16 @@ val score_parser :
 (** Parse a stream of strings as a sequence FASTA file.
     See [sequence_parser]. *)
 
-type empty
-
 val sequence_printer :
   ?comment_char:char ->
   unit ->
-  (string data, string, empty) Biocaml_transform.t
+  (string data, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Print sequences. If [comment_char] is [None] comments will be ignored. *)
   
 val score_printer :
   ?comment_char:char ->
   unit ->
-  (float list data, string, empty) Biocaml_transform.t
+  (float list data, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Print scores. If [comment_char] is [None] comments will be ignored. *)
   
 val sequence_aggregator:
@@ -114,12 +112,13 @@ val score_aggregator:
 (** Like [sequence_aggregator] but for [float list data]. *)
 
 val sequence_slicer: ?line_width:int -> unit ->
-  (string * string, string data, empty) Biocaml_transform.t
+  (string * string, string data, Biocaml_transform.no_error) Biocaml_transform.t
 (** Cut a stream of [(name, sequence)] into a stream of [string data]
     where line are cut at [line_width] characters (default 80). *)
 
 val score_slicer: ?group_by:int -> unit ->
-  (string * float list, float list data, empty) Biocaml_transform.t
+  (string * float list, float list data, Biocaml_transform.no_error)
+    Biocaml_transform.t
 (** Cut a stream of [(name, scores)] into a stream of [float list data]
     where lists are cut at [group_by] numbers (default 10). *)
 

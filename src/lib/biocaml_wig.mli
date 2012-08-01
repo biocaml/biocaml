@@ -62,8 +62,7 @@ val parser :
   unit ->
   (string, t, parse_error) Biocaml_transform.t
 
-type empty
-val printer: unit -> (t, string, empty) Biocaml_transform.t
+val printer: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
 
 
   

@@ -83,7 +83,6 @@ let parser ?filename ?(more_columns=[]) () =
         ) else
           `not_ready)
   
-type empty
 let printer () =
   let module PQ = Biocaml_transform.Printer_queue in
   let printer =

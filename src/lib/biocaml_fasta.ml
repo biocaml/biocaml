@@ -86,7 +86,6 @@ let printer ~to_string ?comment_char () =
       | "" -> if stopped then `end_of_stream else `not_ready
       | s -> `output s)
 
-type empty
 let sequence_printer = printer ~to_string:ident
 
 let score_printer = printer ~to_string:(fun l ->

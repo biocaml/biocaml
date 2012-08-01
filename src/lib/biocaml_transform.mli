@@ -18,6 +18,9 @@ type ('input, 'output, 'error) t
 
 *)
 
+type no_error
+(** An empty type to express transforms that cannot fail. *)
+
 val make:
   ?name:string -> 
   next: (unit -> [ `output of 'output | `end_of_stream
