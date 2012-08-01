@@ -33,6 +33,36 @@ type parse_error = [
 | `wrong_span_value of Biocaml_pos.t * string
 | `wrong_variable_step_value of Biocaml_pos.t * string
 ]
+let parse_error_to_string =
+  let pos () a = Biocaml_pos.to_string a in
+  function
+  | `cannot_parse_key_values (p, s) ->
+    sprintf "cannot_parse_key_values (%a, %S)" pos p s
+  | `empty_line p -> sprintf "empty_line (%a)" pos p
+  | `incomplete_line (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "incomplete_line (%a, %s)" pos p v
+  | `missing_chrom_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "missing_chrom_value (%a, %s)" pos p v
+  | `missing_start_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "missing_start_value (%a, %s)" pos p v
+  | `missing_step_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "missing_step_value (%a, %s)" pos p v
+  | `wrong_start_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "wrong_start_value (%a, %s)" pos p v
+  | `wrong_step_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "wrong_step_value (%a, %s)" pos p v
+  | `unrecognizable_line (p, v) -> (* Biocaml_pos.t * string list *)
+    sprintf "unrecognizable_line (%a, %s)" pos p (String.concat ~sep:" " v)
+  | `wrong_bed_graph_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "wrong_bed_graph_value (%a, %s)" pos p v
+  | `wrong_fixed_step_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "wrong_fixed_step_value (%a, %s)" pos p v
+  | `wrong_span_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "wrong_span_value (%a, %s)" pos p v
+  | `wrong_variable_step_value (p, v) -> (* Biocaml_pos.t * string *)
+    sprintf "wrong_variable_step_value (%a, %s)" pos p v
+
+      
 let explode_key_value loc s =
   try
     let by_space =

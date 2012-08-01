@@ -67,6 +67,9 @@ type parse_error = [
 ]
 (** The parsing errors. *)
 
+val parse_error_to_string: parse_error -> string
+(** Convert a [parse_error] to a string. *)
+  
 val parser :
   ?filename:string ->
   ?pedantic:bool ->
