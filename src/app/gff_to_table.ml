@@ -96,7 +96,7 @@ type columns = int * int StringMap.t
        first column is numbered 1,
        number of columns guaranteed to equal size of map *)
 
-
+(*
 (* Get the number of columns and the column map for a given gff file *)
 let get_columns gff : columns =
   let columns = [
@@ -202,3 +202,4 @@ try
     
 with
     Failure msg | Getopt.Error msg -> eprintf "%s: %s\n" prog_name msg
+*)

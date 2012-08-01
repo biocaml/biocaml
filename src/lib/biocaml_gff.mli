@@ -6,7 +6,7 @@
     an equal sign, and [2] uses a space. Version [3] also has
     additional requirements, e.g. the [feature] must be a sequence
     ontology term, but these are not checked. *)
-
+(*
 exception Bad of string
   (** Raised if there are any parse errrors. *)
 
@@ -106,4 +106,4 @@ val index_by_attribute : string -> t -> (string, row list) Hashtbl.t
 
       Postconditions:
       - none of the values are the empty list
-      - each key is bound to only one value *)
+      - each key is bound to only one value *)*)

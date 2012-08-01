@@ -1,3 +1,5 @@
+
+(*
 open Biocaml_std
 
 module Range = Biocaml_range
@@ -236,3 +238,4 @@ let index_by_attribute attr t =
   let tbl = Hashtbl.create (StringMap.size map) in
   StringMap.iter ~f:(fun ~key ~data -> Hashtbl.add tbl key (List.rev data)) map;
   tbl
+*)

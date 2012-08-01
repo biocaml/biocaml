@@ -83,6 +83,7 @@ let parse_cmdline () : params =
   options_to_params t
 
 ;;
+(*
 try
   let params = parse_cmdline() in
 
@@ -104,3 +105,4 @@ try
   StringMap.iter ~f:(fun ~key ~data -> printf "%s\t%d\n" key data) counts
 with
     Failure msg | Getopt.Error msg -> eprintf "%s: %s\n" prog_name msg
+*)
