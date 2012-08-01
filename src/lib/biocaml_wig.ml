@@ -1,16 +1,24 @@
 open Biocaml_internal_pervasives
 open Tuple
 
-type t = [
+type comment = [
 | `comment of string
+]
+type variable_step = [
 | `variable_step_state_change of string * int option (* name x span *)
 | `variable_step_value of int * float
+]
+type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (* name, start, step, span *)
 | `fixed_step_value of float
+]  
+type bed_graph = [
 | `bed_graph_value of string * int * int * float
 ]
   
+type t = [comment | variable_step | fixed_step | bed_graph ]
+
 
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
@@ -170,6 +178,41 @@ let printer () =
       | s -> `output s)
 
 
+let to_bed_graph () =
+  let queue = Queue.create () in
+  let current_state = ref None in
+  Biocaml_transform.make_stoppable ~name:"wig_to_variable_step" ()
+    ~feed:(function
+    | `comment _
+    | `bed_graph_value _ as already_done ->
+      Queue.enqueue queue (`output already_done)
+    | `variable_step_state_change (chrom, span) ->
+      current_state := Some (`variable (chrom, span))
+    | `variable_step_value (pos, v) ->
+      begin match !current_state with
+      | Some (`variable (chrom, span)) ->
+        let stop = pos + Option.(value ~default:1 span) - 1 in
+        Queue.enqueue queue (`output (`bed_graph_value (chrom, pos, stop, v)))
+      | other ->
+        Queue.enqueue queue (`error (`not_in_variable_step_state))
+      end
+    | `fixed_step_state_change (chrom, start, step, span) ->
+      current_state := Some (`fixed (chrom, start, step , span, 0))
+    | `fixed_step_value v ->
+      begin match !current_state with
+      | Some (`fixed (chrom, start, step, span, current)) ->
+        let pos = start + (step * current) in
+        let stop = pos + Option.(value ~default:1 span) - 1 in
+        Queue.enqueue queue (`output (`bed_graph_value (chrom, pos, stop, v)));
+        current_state := Some  (`fixed (chrom, start, step , span, current + 1))
+      | other ->
+        Queue.enqueue queue (`error (`not_in_fixed_step_state))
+      end)
+    ~next:(fun stopped ->
+      match Queue.dequeue queue with
+      | None -> if stopped then `end_of_stream else `not_ready
+      | Some v -> v)
+  
 
 
 

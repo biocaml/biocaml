@@ -29,15 +29,23 @@
 *)
 
 
-type t = [
+type comment = [
 | `comment of string
+]
+type variable_step = [
 | `variable_step_state_change of string * int option (* name x span *)
 | `variable_step_value of int * float
+]
+type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (* name, start, step, span *)
 | `fixed_step_value of float
+]  
+type bed_graph = [
 | `bed_graph_value of string * int * int * float
 ]
+  
+type t = [comment | variable_step | fixed_step | bed_graph ]
 
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
@@ -64,6 +72,9 @@ val parser :
 
 val printer: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
 
+val to_bed_graph: unit ->
+  (t, [bed_graph | comment],
+   [`not_in_variable_step_state | `not_in_fixed_step_state]) Biocaml_transform.t
 
   
 (*

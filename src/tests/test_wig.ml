@@ -112,7 +112,37 @@ let test_printer () =
   check_end s;
   ()
 
+let test_to_bed_graph () =
+  let stream file =
+    let filename = "src/tests/data/" ^ file in
+    let parser =
+      Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
+    let to_bg = Biocaml_wig.to_bed_graph () in
+    let transfo = Biocaml_transform.compose parser to_bg in
+    let stream = TS.of_file ~buffer_size:7 filename transfo in
+    stream in
+  
+  let s = stream "wig_01.wig" in
+  check_output s "comment line" (`comment " one comment");
+
+  check_output s "" (`bed_graph_value ("chr19", 49304701, 49304850, 10.));
+  check_output s "" (`bed_graph_value ("chr19", 49304901, 49305050, 12.5));
+  check_output s "" (`bed_graph_value ("chr19", 49305401, 49305550, 15.));
+  check_output s "" (`bed_graph_value ("chr19", 49307401, 49307600, 1000.));
+  check_output s "" (`bed_graph_value ("chr19", 49307701, 49307900, 900.));
+  check_output s "" (`bed_graph_value ("chr19", 49308001, 49308200, 800.));
+  check_output s "" (`bed_graph_value ("chr19", 49308301, 49308500, 300.));
+  check_output s "" (`bed_graph_value ("chr19", 49308601, 49308800, 200.));
+
+  check_error s "incomplete_line" (function
+  | (`left (`incomplete_line (_, " 100"))) -> true
+  | _ -> false);
+  ()
+
+
+  
 let tests = "WIG" >::: [
   "Parse WIG" >:: test_parser;
   "Print WIG" >:: test_printer;
+  "WIG -> bed-graph" >:: test_to_bed_graph;
 ]
