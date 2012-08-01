@@ -145,6 +145,36 @@ let parser ?filename ?pedantic ?sharp_comments () =
               (String.concat ~sep:"<RET>" l) Option.(value ~default:"" o) ()
         ) else
           `not_ready)
+
+
+type empty
+let printer () =
+  let module PQ = Biocaml_transform.Printer_queue in
+  let printer =
+    PQ.make ~to_string:(function
+    | `comment c -> sprintf "#%s\n" c
+    | `variable_step_state_change (chrom, span) ->
+      sprintf "variableStep chrom=%s%s\n" chrom
+        Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
+    | `variable_step_value (pos, v) -> sprintf "%d %g\n" pos v
+    | `fixed_step_state_change (chrom, start, step, span) ->
+      sprintf "fixedStep chrom=%s start=%d step=%d%s\n" chrom start step 
+        Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
+    | `fixed_step_value v -> sprintf "%g\n" v
+    | `bed_graph_value (chrom, start, stop, v) ->
+      sprintf "%s %d %d %g\n" chrom start stop v) () in
+  Biocaml_transform.make_stoppable ~name:"wig_printer" ()
+    ~feed:(fun r -> PQ.feed printer r)
+    ~next:(fun stopped ->
+      match (PQ.flush printer) with
+      | "" -> if stopped then `end_of_stream else `not_ready
+      | s -> `output s)
+
+
+
+
+
+    
     (* exception Bad of string *)
     (* let raise_bad msg = raise (Bad msg) *)
 

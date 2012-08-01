@@ -62,6 +62,11 @@ val parser :
   unit ->
   (string, t, parse_error) Biocaml_transform.t
 
+type empty
+val printer: unit -> (t, string, empty) Biocaml_transform.t
+
+
+  
 (*
 type pt = string * int * int * float
     (** A data point is a 4-tuple [(chr,lo,hi,x)], where [x] is the value assigned to interval [\[lo, hi\]], inclusive of end-points, on chromosome [chr]. *)

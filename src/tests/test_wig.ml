@@ -3,26 +3,37 @@ open OUnit
 open Core.Std
 
 module TS = Biocaml_transform.Pull_based
-let stream_of_file file =
+let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
   let parser =
     Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
   let stream = TS.of_file ~buffer_size:10 filename parser in
   stream
 
+let file_reprinter_stream file =
+  let filename = "src/tests/data/" ^ file in
+  let parser =
+    Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
+  let printer = Biocaml_wig.printer () in
+  let transfo = Biocaml_transform.compose parser printer in
+  let stream = TS.of_file ~buffer_size:4 filename transfo in
+  stream
+
+let check_output s m v =
+  assert_bool (sprintf "check_output: %s" m) (TS.next s = `output v)
+let check_error s m f =
+  assert_bool (sprintf "check_error: %s" m) (
+    match TS.next s with
+    | `error e -> f e
+    | _ -> false)
+let check_end s =
+  assert_bool "check_end 1" (TS.next s = `end_of_stream);
+  assert_bool "check_end 2" (TS.next s = `end_of_stream);
+  assert_bool "check_end 3" (TS.next s = `end_of_stream);
+  ()
+
 let test_parser () =
-  let s = stream_of_file "wig_01.wig" in
-  let check_output s m v =
-    assert_bool (sprintf "check_output: %s" m) (TS.next s = `output v) in
-  let check_error s m f =
-    assert_bool (sprintf "check_error: %s" m) (
-      match TS.next s with
-      | `error e -> f e
-      | _ -> false) in
-  let check_end s =
-    assert_bool "check_end 1" (TS.next s = `end_of_stream);
-    assert_bool "check_end 2" (TS.next s = `end_of_stream);
-    assert_bool "check_end 3" (TS.next s = `end_of_stream); in
+  let s = file_parser_stream "wig_01.wig" in
     
   check_output s "comment line" (`comment " one comment");
   check_output s "variableStep" (`variable_step_state_change ("chr19", Some 150));
@@ -41,7 +52,7 @@ let test_parser () =
   | (`incomplete_line (_, " 100")) -> true
   | _ -> false);
   
-  let s = stream_of_file "wig_02.wig" in
+  let s = file_parser_stream "wig_02.wig" in
 
   check_output s "comment" (`comment " one comment");
   check_output s "variabl" (`variable_step_state_change ("chr19", None));
@@ -62,6 +73,46 @@ let test_parser () =
   ()
 
 
+let test_printer () =
+  let s = file_reprinter_stream "wig_01.wig" in
+  check_output s "comment" "# one comment\n";
+
+  check_output s "variableStep=150" "variableStep chrom=chr19 span=150\n";
+  check_output s "49304701 10" "49304701 10\n";
+  check_output s "49304901 12.5" "49304901 12.5\n";
+  check_output s "49305401 15" "49305401 15\n";
+  check_output s "fixedStep " "fixedStep chrom=chr19 start=49307401 step=300 span=200\n";
+  check_output s "1000" "1000\n";
+  check_output s "900" "900\n";
+  check_output s "800" "800\n";
+  check_output s "300" "300\n";
+  check_output s "200" "200\n";
+  check_error s "incomplete line" (function
+  | `left (`incomplete_line (_, " 100")) -> true
+  | _ -> false);
+  
+  let s = file_reprinter_stream "wig_02.wig" in
+
+  check_output s "comment" "# one comment\n";
+  check_output s "variableStep=150" "variableStep chrom=chr19\n";
+  check_output s "49304701 10" "49304701 10\n";
+  check_output s "bedgraph" "chrA 49304901 49304902 12.5\n";
+  check_error s "missing_start_value" (function
+  | `left (`missing_start_value (_, _)) -> true
+  | _ -> false);
+  
+  check_output s "1000" "1000\n";
+
+  check_error s "wrong_fixed_step_value" (function
+  | `left (`wrong_fixed_step_value (_, " 900s")) -> true
+  | _ -> false);
+
+  check_output s "800" "800\n";
+  
+  check_end s;
+  ()
+
 let tests = "WIG" >::: [
   "Parse WIG" >:: test_parser;
+  "Print WIG" >:: test_printer;
 ]
