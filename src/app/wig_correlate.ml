@@ -1,6 +1,5 @@
 open Biocaml
-open Printf
-open Biocaml_std
+open Core.Std
 
 let prog_name = Sys.argv.(0)
 
@@ -62,7 +61,7 @@ let options_to_params (t:options) : params =
     if List.length t.option_in_files < 2 then
       failwith "must provide at least two input files"
     else (
-      List.iter exists t.option_in_files;
+      List.iter ~f:exists t.option_in_files;
       t.option_in_files
     )
   in
@@ -103,12 +102,29 @@ let parse_cmdline () : params =
   Getopt.parse_cmdline opts anon_handler;
   t.option_in_files <- List.rev t.option_in_files;
   options_to_params t
-(*
 let corr meth wig_file1 wig_file2 : float =
   let wig_of_file file =
-    let wig = Wig.of_file ~fmt:Wig.Bed ~header:true file in
-    let cmp (chr1,lo1,hi1,_) (chr2,lo2,hi2,_) = compare (chr1,lo1,hi1) (chr2,lo2,hi2) in
-    Array.of_list (List.sort ~cmp (Wig.to_list wig))
+    let wig =
+      let transfo =
+        Biocaml_transform.compose 
+          (Biocaml_wig.parser ()) (Biocaml_wig.to_bed_graph ()) in
+      Biocaml_transform.Pull_based.(
+        of_file file transfo
+        |! to_stream_exn
+            ~error_to_exn:(function
+            | `left e ->
+              failwithf "Parsing error %s"
+                (Biocaml_wig.parse_error_to_string e) ()
+            | `right `not_in_variable_step_state ->
+              failwith "Parsing error not_in_variable_step_state"
+            | `right `not_in_fixed_step_state ->
+              failwith "Parsing error not_in_fixed_step_state")
+      )
+      |! Stream.npeek max_int
+    in
+    let cmp (chr1,lo1,hi1,_) (chr2,lo2,hi2,_) =
+      compare (chr1,lo1,hi1) (chr2,lo2,hi2) in
+    Array.of_list (List.sort ~cmp wig)
   in
   let wig1 = wig_of_file wig_file1 in
   let wig2 = wig_of_file wig_file2 in
@@ -157,4 +173,3 @@ try
 with
     Invalid_argument msg | Failure msg | Getopt.Error msg -> 
       eprintf "%s: %s\n" prog_name msg
-*)
