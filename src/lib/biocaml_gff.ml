@@ -19,7 +19,7 @@ type t = {
   score: float option;
   strand: [`plus | `minus | `not_applicable | `unknown ];
   phase: int option;
-  attributes: (string * string) list;
+  attributes: (string * string list) list;
 }
 
 type stream_item = [ `comment of string | `record of t ]
@@ -106,6 +106,13 @@ let parse_attributes_version_3 position i =
   (*   | c -> Buffer.add_char b c); *)
   (*   Buffer.contents b *)
   (* in *)
+  let get_csv s =
+    List.map (String.split ~on:',' s)
+      (fun s -> parse_string "value" position String.(strip s))
+    |! List.partition_map ~f:Result.ok_fst
+    |! (function
+      | (ok, []) -> return ok
+      | (_, notok :: _) -> fail notok) in
   let rec loop pos acc =
     begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> c = '=') with
     | Some equal ->
@@ -115,12 +122,14 @@ let parse_attributes_version_3 position i =
       begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> c = ';') with
       | Some semicolon ->
         let delimited = String.slice whole_thing pos semicolon in
-        parse_string "value" position delimited >>= fun value ->
-        loop (semicolon + 1) ((tag, value) :: acc)
+        get_csv delimited
+        >>= fun values ->
+        loop (semicolon + 1) ((tag, values) :: acc)
       | None ->
         let delimited = String.(sub whole_thing pos (length whole_thing - pos)) in
-        parse_string "value" position delimited >>= fun value ->
-        return ((tag, value) :: acc)
+        get_csv delimited
+        >>= fun values ->
+        return ((tag, values) :: acc)
       end
     | None ->
       if pos >= String.length whole_thing then
@@ -146,7 +155,7 @@ let parse_attributes_version_2 position l =
   let inch = Scanf.Scanning.from_string whole_thing in
   let tokens = Stream.(from (fun _ -> parse_string inch) |! npeek max_int) in
   let rec go_3_by_3 acc = function
-    | k  :: v :: ";" :: rest -> go_3_by_3 ((k, v) :: acc) rest
+    | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
     | [] | [";"] -> return (List.rev acc)
     | problem -> fail (`wrong_attributes (position, whole_thing))
   in
@@ -242,8 +251,12 @@ let printer ?(version=`three) () =
         String.concat ~sep:";"
           (List.map t.attributes (fun (k,v) ->
             match version with
-            | `three -> sprintf "%s=%s" (url_escape k) (url_escape v)
-            | `two -> sprintf "%S %S" k v
+            | `three ->
+              sprintf "%s=%s" (url_escape k)
+                (List.map v url_escape |! String.concat ~sep:",")
+            | `two ->
+              sprintf "%S %s" k
+                (List.map v escape |! String.concat ~sep:",")
            ));
       ] ^ "\n"
     ) in

@@ -23,12 +23,13 @@ let test_parser () =
 
   test_output [
     "\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"; "2";
-    "k=v;big%20k=\"annoying v\""
+    "k=v,v%20v;big%20k=\"annoying v\""
   ] (`output
         (`record
             {seqname = "big\tC style"; source = Some "some"; feature = Some "s";
              pos = (42, 43); score = Some 2.; strand = `plus;
-             phase = Some 2; attributes = ["k", "v"; "big k", "annoying v"]}));
+             phase = Some 2;
+             attributes = ["k", ["v"; "v v"]; "big k", ["annoying v"]]}));
   
   test_line ["\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"]
     (function | `error (`wrong_row (_, _)) -> true | _ -> false);
@@ -74,7 +75,7 @@ let test_parser () =
         (`record
             {seqname = "big\tC style"; source = Some "some"; feature = Some "s";
              pos = (42, 43); score = Some 2.; strand = `plus;
-             phase = Some 2; attributes = ["k", "v"; "big\tk", "annoying v"]}));
+             phase = Some 2; attributes = ["k", ["v"]; "big\tk", ["annoying v"]]}));
   ()
    
 let test_printer () =
@@ -102,7 +103,7 @@ let test_printer () =
             {seqname = "big spaced name"; source = Some "\t"; feature = None;
              pos = (42, 43); score = None; strand = `plus;
              phase = None; attributes = [
-               "k", "v"; "big k", "an;no\ting\nv"
+               "k", ["v"]; "big k", ["an;no\ting\nv"]
              ]});
   let transfo = printer ~version:`two () in
   let test s item =
@@ -121,7 +122,7 @@ let test_printer () =
             {seqname = "big spaced name"; source = Some "\t"; feature = None;
              pos = (42, 43); score = None; strand = `plus;
              phase = None; attributes = [
-               "k", "v"; "big k", "an;no\ting\nv"
+               "k", ["v"]; "big k", ["an;no\ting\nv"]
              ]});
   ()
 

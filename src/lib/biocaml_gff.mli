@@ -18,7 +18,7 @@ type t = {
   score: float option;
   strand: [`plus | `minus | `not_applicable | `unknown ];
   phase: int option;
-  attributes: (string * string) list;
+  attributes: (string * string list) list;
 }
 type stream_item = [ `comment of string | `record of t ]
 
