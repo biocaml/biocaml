@@ -58,6 +58,23 @@ let test_parser () =
             "some=string;djf"]
     (function | `error (`wrong_attributes (_, _)) -> true | _ -> false);
 
+  let transfo = parser ~version:`two () in
+  let test_line l f =
+    let joined = (String.concat ~sep:"\t" l) in
+    Biocaml_transform.feed transfo (joined ^ "\n");
+    assert_bool joined (f (Biocaml_transform.next transfo))
+  in
+  let test_output l o = test_line l (fun oo -> o = oo) in
+  test_output ["# some comment"] (`output (`comment " some comment"));
+
+  test_output [
+    "\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"; "2";
+    "k v ; \"big\\tk\" \"annoying v\"   ; "
+  ] (`output
+        (`record
+            {seqname = "big\tC style"; source = Some "some"; feature = Some "s";
+             pos = (42, 43); score = Some 2.; strand = `plus;
+             phase = Some 2; attributes = ["k", "v"; "big\tk", "annoying v"]}));
   ()
    
 let test_printer () =

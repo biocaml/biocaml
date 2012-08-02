@@ -37,6 +37,7 @@ type parse_error =
 val parser:
   ?filename:string ->
   ?pedantic:bool ->
+  ?version:[ `two | `three ] ->
   unit ->
   (string, stream_item, parse_error) Biocaml_transform.t
 

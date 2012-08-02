@@ -98,7 +98,7 @@ let parse_int_opt msg pos i =
      with e -> fail (`cannot_parse_int (pos, msg)))
   | None -> return None
     
-let parse_attributes position i =
+let parse_attributes_version_3 position i =
   let whole_thing = String.concat ~sep:"\t" i in
   (*   let b = Buffer.create 42 in *)
   (*   String.iter (String.concat ~sep:"\t" i) (function *)
@@ -132,7 +132,28 @@ let parse_attributes position i =
   (try loop 0 [] with e -> fail (`wrong_attributes (position, whole_thing)))
   >>| List.rev
 
-let parse_row pos s =
+let parse_attributes_version_2 position l =
+  let whole_thing = String.(concat ~sep:"\t" l |! strip) in
+  let parse_string i =
+    begin try Some (Scanf.bscanf i "%S " ident) with
+    | e ->
+      begin match (Scanf.bscanf i "%s " ident) with
+      | "" -> None
+      | s -> Some s
+      end
+    end
+  in
+  let inch = Scanf.Scanning.from_string whole_thing in
+  let tokens = Stream.(from (fun _ -> parse_string inch) |! npeek max_int) in
+  let rec go_3_by_3 acc = function
+    | k  :: v :: ";" :: rest -> go_3_by_3 ((k, v) :: acc) rest
+    | [] | [";"] -> return (List.rev acc)
+    | problem -> fail (`wrong_attributes (position, whole_thing))
+  in
+  go_3_by_3 [] tokens
+
+  
+let parse_row ~version pos s =
   let output_result = function  Ok o -> `output o | Error e -> `error e in
   let fields = String.split ~on:'\t' s in
   begin match fields with
@@ -154,7 +175,11 @@ let parse_row pos s =
       | Some s -> fail (`cannot_parse_strand (pos, s)))
       >>= fun strand ->
       parse_int_opt "Phase/Frame" pos phase >>= fun phase ->
-      parse_attributes pos rest >>= fun attributes ->
+      begin match version with
+      | `two -> parse_attributes_version_2 pos rest
+      | `three -> parse_attributes_version_3 pos rest
+      end
+      >>= fun attributes ->
       return (`record {seqname; source; feature; pos = (start, stop); score;
                        strand; phase; attributes})
     in
@@ -164,7 +189,7 @@ let parse_row pos s =
     `error (`wrong_row (pos, s))
   end
   
-let rec next ?(pedantic=true) ?(sharp_comments=true) p =
+let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
   let open Biocaml_transform.Line_oriented in
   let open Result in
   match next_line p with
@@ -173,16 +198,16 @@ let rec next ?(pedantic=true) ?(sharp_comments=true) p =
     if pedantic then `error (`empty_line (current_position p)) else `not_ready
   | Some l when sharp_comments && String.(is_prefix (strip l) ~prefix:"#") ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
-  | Some l -> parse_row (current_position p) l
+  | Some l -> parse_row ~version (current_position p) l
 
-let parser ?filename ?pedantic  () =
+let parser ?filename ?pedantic ?version () =
   let name = sprintf "gff_parser:%s" Option.(value ~default:"<>" filename) in
   let module LOP =  Biocaml_transform.Line_oriented  in
   let lo_parser = LOP.parser ?filename () in
   Biocaml_transform.make_stoppable ~name ()
     ~feed:(LOP.feed_string lo_parser)
     ~next:(fun stopped ->
-      match next ?pedantic lo_parser with
+      match next ?pedantic ?version lo_parser with
       | `output r -> `output r
       | `error e -> `error e
       | `not_ready ->
