@@ -14,13 +14,15 @@ type t = {
   source: string option;
   feature: string option;
   pos: int * int;
-
   score: float option;
   strand: [`plus | `minus | `not_applicable | `unknown ];
   phase: int option;
   attributes: (string * string list) list;
 }
+(** The type of the GFF records/rows. *)
+  
 type stream_item = [ `comment of string | `record of t ]
+(** The items being output by the parser. *)
 
 type parse_error = 
 [ `cannot_parse_float of Biocaml_pos.t * string
@@ -32,7 +34,7 @@ type parse_error =
 | `wrong_attributes of Biocaml_pos.t * string
 | `wrong_row of Biocaml_pos.t * string
 | `wrong_url_escaping of Biocaml_pos.t * string ]
-
+(** The possible parsing errors. *)
   
 val parser:
   ?filename:string ->
@@ -40,9 +42,10 @@ val parser:
   ?version:[ `two | `three ] ->
   unit ->
   (string, stream_item, parse_error) Biocaml_transform.t
+(** Create a parsing [Biocaml_transform.t] for a given version. *)
 
 val printer:
   ?version:[ `two | `three ] ->
   unit ->
   (stream_item, string, Biocaml_transform.no_error) Biocaml_transform.t
-
+(** Create a printer for a given version. *)
