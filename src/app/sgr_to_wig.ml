@@ -44,7 +44,7 @@ type typ = Basepair | BasepairStairstep | Interval
 
 type params = {
   typ : typ;
-  trackline : Track.TrackLine.t;
+  (* trackline : Track.TrackLine.t; *)
   in_file : string
 }
 
@@ -64,13 +64,13 @@ let options_to_params (t:options) : params =
     if not (Sys.file_exists x) then
       failwith (sprintf "%s: no such file or directory" x)
   in
-  
+ (* 
   let trackline = match t.option_trackline with
     | None -> "track type=wiggle_0"
     | Some x -> sprintf "track type=wiggle_0 %s" x
   in
   let trackline = Track.TrackLine.of_string trackline in
-    
+ *)  
   {
     in_file = (match t.option_in_file with
       | None -> failwith "must specify input file"
@@ -88,7 +88,7 @@ let options_to_params (t:options) : params =
               | _ -> failwith (sprintf "%s: invalid type" x)
     );
     
-    trackline = trackline
+    (* trackline = trackline *)
   }
 
 let parse_cmdline () : params =
@@ -97,7 +97,7 @@ let parse_cmdline () : params =
   let opts = [
     Getopt.noshort, "type", None, Some (fun x -> t.option_type <- Some x);
     'i', "", None, Some (fun x -> t.option_in_file <- Some x);
-    Getopt.noshort, "trackline", None, Some (fun x -> t.option_trackline <- Some x);
+    (* Getopt.noshort, "trackline", None, Some (fun x -> t.option_trackline <- Some x); *)
     Getopt.noshort, "help", Some (fun () -> t.option_help <- true), None;
   ]
   in
@@ -132,7 +132,7 @@ let print_wig chr lo hi x =
 try
   let params = parse_cmdline() in
   
-  printf "%s\n" (Track.TrackLine.to_string params.trackline);
+  (* printf "%s\n" (Track.TrackLine.to_string params.trackline); *)
 
   match params.typ with
     | Basepair ->
@@ -230,7 +230,7 @@ try
                   print_wig chr1 (pos1-1) pos1 x1)
                    
 with
-  | Failure msg | Getopt.Error msg | Track.TrackLine.Bad msg ->
+  | Failure msg | Getopt.Error msg (* | Track.TrackLine.Bad msg *) ->
       eprintf "%s: %s\n" prog_name msg
   | Lines.Error(pos,msg) ->
       eprintf "%s: %s\n" prog_name (Msg.err ~pos msg)
