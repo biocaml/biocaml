@@ -104,6 +104,25 @@ let test_printer () =
              phase = None; attributes = [
                "k", "v"; "big k", "an;no\ting\nv"
              ]});
+  let transfo = printer ~version:`two () in
+  let test s item =
+    Biocaml_transform.feed transfo item;
+    let res =  Biocaml_transform.next transfo in
+    match res with
+    | `output o ->
+      if s <> o then eprintf "NOT EQUALS (version 2):\n%S\n%S\n%!" s o;
+      assert_equal ~printer:ident s o 
+    | `not_ready -> assert_bool "not_ready" false
+    | `end_of_stream -> assert_bool "end_of_stream" false
+    | `error _ -> assert_bool "error" false
+  in
+  test "\"big spaced name\"\t\"\\t\"\t.\t42\t43\t.\t+\t.\t\"k\" \"v\";\"big k\" \"an;no\\ting\\nv\"\n"
+        (`record
+            {seqname = "big spaced name"; source = Some "\t"; feature = None;
+             pos = (42, 43); score = None; strand = `plus;
+             phase = None; attributes = [
+               "k", "v"; "big k", "an;no\ting\nv"
+             ]});
   ()
 
   

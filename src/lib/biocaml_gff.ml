@@ -220,15 +220,17 @@ let parser ?filename ?pedantic ?version () =
           `not_ready)
     
     
-let printer () =
+let printer ?(version=`three) () =
   let module PQ = Biocaml_transform.Printer_queue in
   let printer =
     PQ.make () ~to_string:(function
     | `comment c -> sprintf "#%s\n" c
     | `record t ->
-      let optescape o = Option.value_map ~default:"." o ~f:url_escape in
+      let escape =
+        match version with | `three -> url_escape | `two -> sprintf "%S" in
+      let optescape  o =  Option.value_map ~default:"." o ~f:escape in
       String.concat ~sep:"\t" [
-        url_escape t.seqname;
+        escape t.seqname;
         optescape t.source;
         optescape t.feature;
         sprintf "%d" (fst t.pos);
@@ -239,7 +241,10 @@ let printer () =
         Option.value_map ~default:"." ~f:(sprintf "%d") t.phase;
         String.concat ~sep:";"
           (List.map t.attributes (fun (k,v) ->
-            sprintf "%s=%s" (url_escape k) (url_escape v)));
+            match version with
+            | `three -> sprintf "%s=%s" (url_escape k) (url_escape v)
+            | `two -> sprintf "%S %S" k v
+           ));
       ] ^ "\n"
     ) in
   Biocaml_transform.make_stoppable ~name:"gff_printer" ()

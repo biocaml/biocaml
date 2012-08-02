@@ -41,7 +41,9 @@ val parser:
   unit ->
   (string, stream_item, parse_error) Biocaml_transform.t
 
-val printer: unit ->
+val printer:
+  ?version:[ `two | `three ] ->
+  unit ->
   (stream_item, string, Biocaml_transform.no_error) Biocaml_transform.t
 
 (*
