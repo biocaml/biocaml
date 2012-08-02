@@ -8,6 +8,7 @@ let all_tests = [
   Test_roc.tests;
   Test_bed.tests;
   Test_wig.tests;
+  Test_gff.tests;
 ]
 
 let () =
