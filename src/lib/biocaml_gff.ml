@@ -38,6 +38,13 @@ type parse_error =
 
 open Result
 
+let url_escape s =
+  let b = Buffer.create (String.length s) in
+  String.iter s (function
+  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' as c -> Buffer.add_char b c
+  | anyother -> Buffer.add_string b (sprintf "%%%02X" (Char.to_int anyother)));
+  Buffer.contents b
+
 let url_unescape pos s =
   let buf = Buffer.create (String.length s) in
   let rec loop pos = 
@@ -187,6 +194,35 @@ let parser ?filename ?pedantic  () =
         ) else
           `not_ready)
     
+    
+let printer () =
+  let module PQ = Biocaml_transform.Printer_queue in
+  let printer =
+    PQ.make () ~to_string:(function
+    | `comment c -> sprintf "#%s\n" c
+    | `record t ->
+      let optescape o = Option.value_map ~default:"." o ~f:url_escape in
+      String.concat ~sep:"\t" [
+        url_escape t.seqname;
+        optescape t.source;
+        optescape t.feature;
+        sprintf "%d" (fst t.pos);
+        sprintf "%d" (snd t.pos);
+        Option.value_map ~default:"." ~f:(sprintf "%g") t.score;
+        (match t.strand with`plus -> "+" | `minus -> "-"
+        | `not_applicable -> "." | `unknown -> "?");
+        Option.value_map ~default:"." ~f:(sprintf "%d") t.phase;
+        String.concat ~sep:";"
+          (List.map t.attributes (fun (k,v) ->
+            sprintf "%s=%s" (url_escape k) (url_escape v)));
+      ] ^ "\n"
+    ) in
+  Biocaml_transform.make_stoppable ~name:"gff_printer" ()
+    ~feed:(fun r -> PQ.feed printer r)
+    ~next:(fun stopped ->
+      match (PQ.flush printer) with
+      | "" -> if stopped then `end_of_stream else `not_ready
+      | s -> `output s)
 (*
 open Biocaml_std
 
