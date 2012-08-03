@@ -160,3 +160,29 @@ module Url = struct
       
 end
 
+module Parse = struct
+
+  let escapable_string s ~stop_before =
+    let try_escaped s =
+      try Some (Scanf.sscanf s "%S%n" (fun s n -> (s,n))) with e -> None in
+    let lgth_s = String.length s in
+    begin match try_escaped s with
+    | Some (found, chars_read) ->
+      if chars_read < lgth_s then (
+        if List.exists stop_before ((=) s.[chars_read]) then
+          (found, Some s.[chars_read],
+           String.slice s (chars_read + 1) (String.length s))
+        else
+          (found, None, String.slice s chars_read (String.length s))
+      ) else
+        (found, None, "")
+    | None ->
+      begin match String.lfindi s ~f:(fun _ c -> List.exists stop_before ((=) c)) with
+      | Some idx ->
+        (String.sub s 0 idx, Some s.[idx],
+         String.slice s (idx + 1) (String.length s))
+      | None -> (s, None, "")
+      end
+    end
+
+end
