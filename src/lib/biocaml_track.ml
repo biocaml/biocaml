@@ -8,6 +8,11 @@ type 'a t = [
 | `content of 'a
 ]
 
+type parse_error =
+[ `incomplete_input of Biocaml_pos.t * string list * string option
+| `wrong_browser_position of Biocaml_pos.t * string
+| `wrong_key_value_format of (string * string) list * string * string ]
+
 open Result
 
 (*
@@ -52,8 +57,7 @@ let parse_track position stripped =
         if str = "" then return ((tag, value) :: acc)
         else loop str ((tag, value) :: acc)
       end
-    (* | (str, _, rest) -> fail (`wrong_key_value_format (stripped, acc, str, rest)) *)
-    | (str, _, rest) -> fail (`wrong_key_value_format (stripped))
+    | (str, _, rest) -> fail (`wrong_key_value_format (List.rev acc, str, rest))
   in
   loop stripped []
   >>= fun kv ->

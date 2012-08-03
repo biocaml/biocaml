@@ -56,15 +56,13 @@ type 'a t = [
 | `content of 'a
 ]
 
+type parse_error =
+[ `incomplete_input of Biocaml_pos.t * string list * string option
+| `wrong_browser_position of Biocaml_pos.t * string
+| `wrong_key_value_format of (string * string) list * string * string ]
+
 val parser: ?filename:string -> unit ->
-  (string, string t,
-   [> `incomplete_input of
-       Biocaml_pos.t * string list * string option
-   | `wrong_browser_position of
-                 Biocaml_pos.t * Biocaml_internal_pervasives.String.t
-   | `wrong_key_value_format of
-       Biocaml_internal_pervasives.String.t ])
-    Biocaml_transform.t
+  (string, string t, parse_error) Biocaml_transform.t
 (*
 module TrackLine : sig
   type t
