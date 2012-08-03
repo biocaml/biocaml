@@ -68,22 +68,22 @@ module Parse : sig
     (string * char option * string)
   (** Parse a string potentially escaped with OCaml string
       conventions, or stop at [stop_before] character if it is not
-      escaped. Examples: {[
+      escaped.  Examples: {[
       (* Does not stop: *)
-      escapable_string ~stop_before:['='; '@']  "sdf\tsd\000 sdf fdsaf";;
+      escapable_string ~stop_before:\['='; '@'\]  "sdf\tsd\000 sdf fdsaf";;
       = ("sdf\tsd\000 sdf fdsaf", None, "")
       (* Reads an escaped string; *)
-      escapable_string ~stop_before:['='; '@']  "\"sdf\\tsd\\000\" sdf fdsaf";;
+      escapable_string ~stop_before:\['='; '@'\]  "\"sdf\\tsd\\000\" sdf fdsaf";;
       = ("sdf\tsd\000", None, " sdf fdsa")
-      escapable_string ~stop_before:['='; '@']  "\"sdf\\tsd\\000\" s=df @fdsaf";;
-      = ("sdf\tsd\000", None, " s=df @fdsa")
-      escapable_string ~stop_before:['='; '@']  "\"sdf\\tsd\\000\"@ s=df @fdsaf";;
-      = ("sdf\tsd\000", Some '@', " s=df @fdsa")
-      (* Stops at '=' or '@' *)
-      escapable_string ~stop_before:['='; '@']  "sdf\tsd\000 s=df @fdsaf";;
-      = ("sdf\tsd\000 s", Some '=', "df @fdsa")
-      escapable_string ~stop_before:['='; '@']  "sdf\tsd\000 sdf @fdsaf";;
-      = ("sdf\tsd\000 sdf ", Some '@', "fdsa")
+      escapable_string ~stop_before:\['='; '@'\]  "\"sdf\\tsd\\000\" s=df \@fdsaf";;
+      = ("sdf\tsd\000", None, " s=df \@fdsa")
+      escapable_string ~stop_before:\['='; '@'\]  "\"sdf\\tsd\\000\"\@ s=df \@fdsaf";;
+      = ("sdf\tsd\000", Some '\@', " s=df \@fdsa")
+      (* Stops at '=' or '\@' *)
+      escapable_string ~stop_before:\['='; '@'\]  "sdf\tsd\000 s=df \@fdsaf";;
+      = ("sdf\tsd\000 s", Some '=', "df \@fdsa")
+      escapable_string ~stop_before:\['='; '@'\]  "sdf\tsd\000 sdf \@fdsaf";;
+      = ("sdf\tsd\000 sdf ", Some '\@', "fdsa")
       ]} *)
 
 end
