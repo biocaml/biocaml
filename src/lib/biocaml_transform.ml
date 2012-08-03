@@ -71,7 +71,35 @@ let compose ta tb =
       | `not_ready -> call_tb_next ()
       | `error e -> `error (`left e)
       | `end_of_stream -> stop tb; call_tb_next ())
+
+let partially_compose left right ~destruct ~reconstruct =
+  let name =
+    sprintf "(part-compose <%s> <%s>)"
+      Option.(value ~default:"" (name left))
+      Option.(value ~default:"" (name right)) in
+  make ~name ()
+    ~feed:(fun i -> feed left i)
+    ~stop:(fun () -> stop left)
+    ~next:(fun () ->
+      let call_right_next () =
+        begin match next right with
+        | `output o -> `output (reconstruct (`Done o))
+        | `not_ready -> `not_ready
+        | `error e -> `error (`right e)
+        | `end_of_stream -> `end_of_stream
+        end
+      in
+      match next left with
+      | `output o ->
+        begin match destruct o with
+        | `Yes y -> feed right y; call_right_next ()
+        | `No n -> `output (reconstruct (`Filtered n))
+        end
+      | `not_ready -> call_right_next ()
+      | `error e -> `error (`left e)
+      | `end_of_stream -> stop right; call_right_next ())
         
+    
 let mix ta tb ~f =
   let a_buffer = ref None in
   let name =

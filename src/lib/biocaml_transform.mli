@@ -90,6 +90,14 @@ val mix :
     | `end_of_left_stream | `end_of_right_stream ] ) t
 (** Create a transformation that merges the output of two transformations.  *) 
 
+val partially_compose:
+  ('il, 'ol, 'el) t -> ('ir, 'our, 'er) t ->
+  destruct:('ol -> [`Yes of 'ir | `No of 'filtered]) ->
+  reconstruct:([`Filtered of 'filtered | `Done of 'our] -> 'result) ->
+  ('il, 'result, [`left of 'el | `right of 'er]) t
+(** Partially compose two transformations by providing a filtering
+    function ([~destruct]) and a joining function ([~reconstruct]). *)
+
 val stream_transformation:
   error_to_exn:('error -> exn) ->
   ('input, 'output, 'error) t ->
