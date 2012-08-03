@@ -63,6 +63,13 @@ type parse_error =
 
 val parser: ?filename:string -> unit ->
   (string, string t, parse_error) Biocaml_transform.t
+
+type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
+
+val wig_parser: ?filename:string -> unit ->
+  (string, Biocaml_wig.t t, wig_parser_error) Biocaml_transform.t
+
+    
 (*
 module TrackLine : sig
   type t

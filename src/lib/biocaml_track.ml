@@ -101,7 +101,26 @@ let parser ?filename () =
             `error (`incomplete_input (LOP.current_position lo_parser, l, o))
         ) else
           `not_ready)
+type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
   
+let wig_parser ?filename () =
+  let wig_parser =
+    Biocaml_wig.parser ~pedantic:false ~sharp_comments:true ?filename () in
+  let track_parser = parser ?filename () in
+  Biocaml_transform.(
+    on_error ~f:(function
+    | `left l -> (l :> wig_parser_error)
+    | `right r -> (r :> wig_parser_error))
+      (partially_compose
+         track_parser
+         ~destruct:(function
+         | `content s -> `Yes (s ^ "\n")
+         | `track _ | `browser _ | `comment _ as n -> `No n)
+         wig_parser
+         ~reconstruct:(function
+         | `Filtered f -> f
+         | `Done d -> `content d))
+  )
 
 (*
 open Biocaml_std
