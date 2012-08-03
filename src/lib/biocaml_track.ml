@@ -73,6 +73,8 @@ let rec next p =
   | Some "" -> `not_ready
   | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+  | Some l when String.strip l = "track"-> `output (`track [])
+  | Some l when String.strip l = "browser" -> `output (`browser (`unknown l))
   | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
     parse_track (current_position p)
       (String.chop_prefix_exn ~prefix:"track " l |! String.strip)
