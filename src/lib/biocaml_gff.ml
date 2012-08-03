@@ -38,38 +38,13 @@ type parse_error =
 
 open Result
 
-let url_escape s =
-  let b = Buffer.create (String.length s) in
-  String.iter s (function
-  | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' as c -> Buffer.add_char b c
-  | anyother -> Buffer.add_string b (sprintf "%%%02X" (Char.to_int anyother)));
-  Buffer.contents b
-
-let url_unescape pos s =
-  let buf = Buffer.create (String.length s) in
-  let rec loop pos = 
-    match String.lfindi s ~pos ~f:(fun _ c -> (=) '%' c) with
-    | None ->
-      Buffer.add_substring buf s pos String.(length s - pos)
-    | Some idx ->
-      if String.length s >= idx + 2 then (
-        let char = Scanf.sscanf (String.sub s (idx + 1) 2) "%x" ident in
-        Buffer.add_substring buf s pos String.(idx - pos);
-        Buffer.add_char buf (Char.of_int_exn char);
-        loop (idx + 3)
-      ) else (
-        failwith "A"
-      )
-  in
-  try loop 0; Ok (Buffer.contents buf) with
-  | e -> Error (`wrong_url_escaping (pos, s))
   
 let parse_string msg pos i =
   begin try Ok (Scanf.sscanf i "%S " ident) with
   | e ->
     begin match (Scanf.sscanf i "%s " ident) with
     | "" -> Error (`cannot_parse_string (pos, msg))
-    | s -> url_unescape pos s
+    | s -> Url.unescape ~error:(fun s -> `wrong_url_escaping (pos, s)) s
     end
   end
 let parse_string_opt m pos i =
@@ -236,7 +211,7 @@ let printer ?(version=`three) () =
     | `comment c -> sprintf "#%s\n" c
     | `record t ->
       let escape =
-        match version with | `three -> url_escape | `two -> sprintf "%S" in
+        match version with | `three -> Url.escape | `two -> sprintf "%S" in
       let optescape  o =  Option.value_map ~default:"." o ~f:escape in
       String.concat ~sep:"\t" [
         escape t.seqname;
@@ -252,8 +227,8 @@ let printer ?(version=`three) () =
           (List.map t.attributes (fun (k,v) ->
             match version with
             | `three ->
-              sprintf "%s=%s" (url_escape k)
-                (List.map v url_escape |! String.concat ~sep:",")
+              sprintf "%s=%s" (Url.escape k)
+                (List.map v Url.escape |! String.concat ~sep:",")
             | `two ->
               sprintf "%S %s" k
                 (List.map v escape |! String.concat ~sep:",")
