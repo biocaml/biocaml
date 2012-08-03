@@ -1,4 +1,101 @@
+open Biocaml_internal_pervasives
 
+type 'a t = [
+| `track of (string * string) list
+| `comment of string
+| `browser of
+    [ `position of string * int * int | `hide of [`all] | `unknown of string ]
+| `content of 'a
+]
+
+open Result
+
+(*
+  browser position chr19:49304200-49310700
+  browser hide all
+*)
+let parse_chormpos position s =
+  try begin match String.rindex s ':' with
+  | Some colon ->
+    let name = String.slice s 0 colon in
+    begin match String.rindex s '-' with
+    | Some dash ->
+      let start = String.slice s (colon + 1) dash |! Int.of_string in
+      let stop =  String.slice s (dash + 1) (String.length s) |! Int.of_string in
+      return (`browser (`position (name, start, stop)))
+    | None -> failwith "A"
+    end
+  | None -> failwith "B"
+  end
+  with
+    e -> fail (`wrong_browser_position (position, s))
+
+let parse_browser position line =
+  let tokens =
+    String.chop_prefix ~prefix:"browser " line
+    |! Option.value ~default:""
+    |! String.split_on_chars ~on:[' '; '\t'; '\r']
+    |! List.filter ~f:((<>) "") in
+  begin match tokens with
+  | "position" :: pos :: [] -> parse_chormpos position pos
+  | "hide" :: "all" :: [] -> return (`browser (`hide `all))
+  | any -> return (`browser (`unknown line))
+  end
+
+let parse_track position stripped =
+  let rec loop s acc =
+    match Parse.escapable_string s ~stop_before:['='] with
+    | (tag, Some '=', rest) ->
+      begin match Parse.escapable_string rest ~stop_before:[' '; '\t'] with
+      | (value, _, rest) ->
+        let str = String.strip rest in
+        if str = "" then return ((tag, value) :: acc)
+        else loop str ((tag, value) :: acc)
+      end
+    (* | (str, _, rest) -> fail (`wrong_key_value_format (stripped, acc, str, rest)) *)
+    | (str, _, rest) -> fail (`wrong_key_value_format (stripped))
+  in
+  loop stripped []
+  >>= fun kv ->
+  return (`track (List.rev kv))
+
+let rec next p =
+  let open Biocaml_transform.Line_oriented in
+  let output_result = function
+    | Ok o -> `output o
+    | Error e -> `error e in
+  match next_line p with
+  | None -> `not_ready
+  | Some "" -> `not_ready
+  | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
+    `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+  | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
+    parse_track (current_position p)
+      (String.chop_prefix_exn ~prefix:"track " l |! String.strip)
+    |! output_result
+  | Some l when String.(is_prefix (strip l) ~prefix:"browser ") ->
+    parse_browser (current_position p) l |! output_result
+  | Some l -> `output (`content l)
+
+let parser ?filename () =
+  let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in
+  let module LOP =  Biocaml_transform.Line_oriented  in
+  let lo_parser = LOP.parser ?filename () in
+  Biocaml_transform.make_stoppable ~name ()
+    ~feed:(LOP.feed_string lo_parser)
+    ~next:(fun stopped ->
+      match next lo_parser with
+      | `output r -> `output r
+      | `error e -> `error e
+      | `not_ready ->
+        if stopped then (
+          match LOP.finish lo_parser with
+          | `ok -> `end_of_stream
+          | `error (l, o) ->
+            `error (`incomplete_input (LOP.current_position lo_parser, l, o))
+        ) else
+          `not_ready)
+  
 
 (*
 open Biocaml_std

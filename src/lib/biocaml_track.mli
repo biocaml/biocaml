@@ -47,6 +47,24 @@
     - [type] - "wiggle_0" is the only value currently supported,
       leaving this attribute unset handles other track types
 *)    
+
+type 'a t = [
+| `track of (string * string) list
+| `comment of string
+| `browser of
+    [ `position of string * int * int | `hide of [`all] | `unknown of string ]
+| `content of 'a
+]
+
+val parser: ?filename:string -> unit ->
+  (string, string t,
+   [> `incomplete_input of
+       Biocaml_pos.t * string list * string option
+   | `wrong_browser_position of
+                 Biocaml_pos.t * Biocaml_internal_pervasives.String.t
+   | `wrong_key_value_format of
+       Biocaml_internal_pervasives.String.t ])
+    Biocaml_transform.t
 (*
 module TrackLine : sig
   type t
