@@ -48,11 +48,13 @@
       leaving this attribute unset handles other track types
 *)    
 
-type 'a t = [
+type t = [
 | `track of (string * string) list
 | `comment of string
 | `browser of
     [ `position of string * int * int | `hide of [`all] | `unknown of string ]
+]
+type 'a content = [
 | `content of 'a
 ]
 
@@ -62,12 +64,12 @@ type parse_error =
 | `wrong_key_value_format of (string * string) list * string * string ]
 
 val parser: ?filename:string -> unit ->
-  (string, string t, parse_error) Biocaml_transform.t
+  (string, [ t | string content ], parse_error) Biocaml_transform.t
 
 type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
 
 val wig_parser: ?filename:string -> unit ->
-  (string, Biocaml_wig.t t, wig_parser_error) Biocaml_transform.t
+  (string, [ t | Biocaml_wig.t ], wig_parser_error) Biocaml_transform.t
 
     
 (*

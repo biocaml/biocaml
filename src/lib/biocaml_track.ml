@@ -1,13 +1,15 @@
 open Biocaml_internal_pervasives
 
-type 'a t = [
+type t = [
 | `track of (string * string) list
 | `comment of string
 | `browser of
     [ `position of string * int * int | `hide of [`all] | `unknown of string ]
+]
+type 'a content = [
 | `content of 'a
 ]
-
+type track = t
 type parse_error =
 [ `incomplete_input of Biocaml_pos.t * string list * string option
 | `wrong_browser_position of Biocaml_pos.t * string
@@ -102,6 +104,8 @@ let parser ?filename () =
         ) else
           `not_ready)
 type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
+
+type wig_t = [ track | Biocaml_wig.t]
   
 let wig_parser ?filename () =
   let wig_parser =
@@ -119,8 +123,8 @@ let wig_parser ?filename () =
          wig_parser
          ~reconstruct:(function
          | `Filtered f -> f
-         | `Done d -> `content d))
-  )
+         | `Done d -> (d :> wig_t))
+  ))
 
 (*
 open Biocaml_std
