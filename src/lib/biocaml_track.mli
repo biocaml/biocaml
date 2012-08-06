@@ -54,31 +54,40 @@ type t = [
 | `browser of
     [ `position of string * int * int | `hide of [`all] | `unknown of string ]
 ]
+(** The type of the parser "track" lines. *)
+
 type 'a content = [
 | `content of 'a
 ]
+(** The "content" lines of the files. *)
 
 type parse_error =
 [ `incomplete_input of Biocaml_pos.t * string list * string option
 | `wrong_browser_position of Biocaml_pos.t * string
 | `wrong_key_value_format of (string * string) list * string * string ]
+(** The possible parsing errors. *)  
 
 val parser: ?filename:string -> unit ->
   (string, [ t | string content ], parse_error) Biocaml_transform.t
+(** Create a parser that gets the "track", comment, and "browser"
+lines and puts the  other lines in [`content _]. *)
 
-type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
 
 val wig_parser: ?filename:string -> unit ->
-  (string, [ t | Biocaml_wig.t ], wig_parser_error) Biocaml_transform.t
+  (string, [ t | Biocaml_wig.t ],
+   [ parse_error | Biocaml_wig.parse_error ]) Biocaml_transform.t
+(** Create a composite parser for UCSC WIG files.  *)
 
 val gff_parser: ?filename:string -> ?version:[`two | `three] -> unit ->
   (string, [t | Biocaml_gff.stream_item],
    [parse_error | Biocaml_gff.parse_error]) Biocaml_transform.t
+(** Create a composite parser for UCSC GFF files.  *)
 
 val bed_parser: ?filename:string ->
   ?more_columns:[ `float | `int | `string ] list -> unit ->
   (string, [t | Biocaml_bed.t content],
    [parse_error | Biocaml_bed.parse_error]) Biocaml_transform.t
+(** Create a composite parser for UCSC Bed(Graph) files.  *)
     
 (*
 module TrackLine : sig
