@@ -10,6 +10,7 @@ let all_tests = [
   Test_wig.tests;
   Test_gff.tests;
   Test_track.tests;
+  Test_sam.tests;
 ]
 
 let () =
