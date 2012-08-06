@@ -1,5 +1,7 @@
 (** SAM files. *)
 
+
+(*
 open Batteries
 
 exception Bad of string
@@ -36,3 +38,4 @@ val enum_file : string -> (header * alignment Enum.t)
 val header_line_to_string : header_line -> string
 val header_to_string : header -> string
 val alignment_to_string : alignment -> string
+*)
