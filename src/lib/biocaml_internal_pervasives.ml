@@ -129,6 +129,26 @@ module Lines = struct
 
 end
 
+module Result_list = struct
+
+  let while_ok (type error) l ~(f:('a -> ('b, error) Result.t)) =
+    let module M = struct
+      exception E of error 
+      let the_fun () =
+        let run () =
+          List.map l (fun x ->
+            match f x with
+            | Ok o -> o
+            | Error e -> raise (E e))
+        in
+        try Ok (run ())
+        with
+        | E e -> Error e
+    end in
+    M.the_fun ()
+        
+
+end
 module Url = struct
 
   let escape s =
