@@ -44,6 +44,26 @@ let test_parser () =
   test_output "something else" (`content "something else");
   ()
 
+let test_wig_parser () =
+  let transfo = Biocaml_track.wig_parser () in
+  let test_line l f =
+    Biocaml_transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Biocaml_transform.next transfo))
+  in
+  let test_output l o = test_line l (fun oo -> `output o = oo) in
+
+  test_output "# some comment" (`comment " some comment");
+
+  test_output "browser  position   chro:42-51" 
+    (`browser (`position ("chro", 42, 51)));
+  
+  test_output "variableStep chrom=chr19 span=150"
+    (`variable_step_state_change ("chr19", Some 150));
+  test_output "49304701 10.0" (`variable_step_value (49304701, 10.));
+  test_output "49304901 12.5" (`variable_step_value (49304901, 12.5));
+  ()
+    
 let tests = "Track" >::: [
   "Parse Track" >:: test_parser;
+  "Parse WIG Track" >:: test_wig_parser;
 ]
