@@ -140,6 +140,17 @@ let gff_parser ?filename ?version () =
     | `right r -> (r :> gff_parse_error))
     ~coerce_output:(fun o -> (o :> gff_t))
 
+type bed_parse_error = [parse_error| Biocaml_bed.parse_error]
+type bed_t = [track |  Biocaml_bed.t content ]
+let bed_parser ?filename  ?more_columns  () =
+  let bed = Biocaml_bed.parser ?filename ?more_columns () in
+  embed_parser bed ?filename
+    ~coerce_error: (function
+    | `left l -> (l :> bed_parse_error)
+    | `right r -> (r :> bed_parse_error))
+    ~coerce_output:(fun o -> `content o)
+
+  
 (*
 open Biocaml_std
 open Tuple

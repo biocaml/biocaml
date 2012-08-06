@@ -86,8 +86,27 @@ let test_gff_parser () =
   ()
 
 
+let test_bed_parser () =
+  let transfo =
+    Biocaml_track.bed_parser ~more_columns:[`string; `int; `float] () in
+  let test_line l f =
+    Biocaml_transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Biocaml_transform.next transfo))
+  in
+  let test_output l o = test_line l (fun oo -> `output o = oo) in
+
+  test_output "# some comment" (`comment " some comment");
+  test_output "track a=\"b b\" \"c c\"="
+    (`track ["a", "b b"; "c c", ""]);
+  test_output "chrA 42    45  some_string 42 3.14"
+    (`content ("chrA", 42, 45, [ `String "some_string"; `Int 42; `Float 3.14 ]));
+  test_output "chrB 100   130 some_string 42 3.14"
+    (`content ("chrB", 100, 130, [ `String "some_string"; `Int 42; `Float 3.14 ]));
+  ()
+
 let tests = "Track" >::: [
   "Parse Track" >:: test_parser;
   "Parse WIG Track" >:: test_wig_parser;
   "Parse GFF Track" >:: test_gff_parser;
+  "Parse BED Track" >:: test_bed_parser;
 ]

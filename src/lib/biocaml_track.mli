@@ -74,6 +74,11 @@ val wig_parser: ?filename:string -> unit ->
 val gff_parser: ?filename:string -> ?version:[`two | `three] -> unit ->
   (string, [t | Biocaml_gff.stream_item],
    [parse_error | Biocaml_gff.parse_error]) Biocaml_transform.t
+
+val bed_parser: ?filename:string ->
+  ?more_columns:[ `float | `int | `string ] list -> unit ->
+  (string, [t | Biocaml_bed.t content],
+   [parse_error | Biocaml_bed.parse_error]) Biocaml_transform.t
     
 (*
 module TrackLine : sig
