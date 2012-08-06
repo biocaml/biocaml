@@ -44,7 +44,6 @@ val stop:
 val name:
   ('input, 'output, 'error) t -> string option
 
-
 val make_stoppable: ?name:string -> 
   feed: ('input -> unit) ->
   next: (bool -> [ `output of 'output | `end_of_stream
@@ -101,6 +100,16 @@ val partially_compose:
 (** Partially compose two transformations by providing a filtering
     function ([~destruct]) and a joining function ([~reconstruct]). *)
 
+val split_and_merge:
+  ('il, 'ol, 'el) t -> ('ir, 'our, 'er) t ->
+  split:('input -> [`left of 'il | `right of 'ir]) ->
+  merge:([`left of 'ol | `right of 'our] -> 'output) ->
+  ('input, 'output, [`left of 'el | `right of 'er]) t
+(** Split the flow between two transformations thanks to a splitting
+    and a merging functions on their different inputs/outputs. The
+    resulting transformation may not respect the order of the inputs (it
+    depends on the buffering done by the individual input transforms). *)
+    
 val stream_transformation:
   error_to_exn:('error -> exn) ->
   ('input, 'output, 'error) t ->

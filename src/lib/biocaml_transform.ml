@@ -105,8 +105,7 @@ let partially_compose left right ~destruct ~reconstruct =
       | `not_ready -> call_right_next ()
       | `error e -> `error (`left e)
       | `end_of_stream -> stop right; call_right_next ())
-        
-    
+            
 let mix ta tb ~f =
   let a_buffer = ref None in
   let name =
@@ -145,6 +144,29 @@ let mix ta tb ~f =
         | `end_of_stream -> `error (`end_of_right_stream)
         end
       end)
+    
+let split_and_merge ta tb ~split ~merge =
+  let name = sprintf "(merge <%s> <%s>)"
+    Option.(value ~default:"" (name ta))
+    Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun z ->
+      match split z with
+      | `left a -> feed ta a
+      | `right b -> feed tb b)
+    ~stop:(fun () -> stop ta; stop tb)
+    ~next:(fun () ->
+      match next ta with
+      | `output o -> `output (merge (`left o))
+      | `not_ready | `end_of_stream ->
+        begin match next tb with
+        | `output o -> `output (merge (`right o))
+        | `not_ready -> `not_ready
+        | `error e -> `error (`right e)
+        | `end_of_stream -> `end_of_stream
+        end
+      | `error e -> `error (`left e))
+  
     
 let stream_transformation ~error_to_exn tr en =
   let rec loop_until_ready tr en =
