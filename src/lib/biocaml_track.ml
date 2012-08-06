@@ -103,46 +103,42 @@ let parser ?filename () =
             `error (`incomplete_input (LOP.current_position lo_parser, l, o))
         ) else
           `not_ready)
-type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
 
-type wig_t = [ track | Biocaml_wig.t]
-  
-let wig_parser ?filename () =
-  let wig_parser =
-    Biocaml_wig.parser ~pedantic:false ~sharp_comments:true ?filename () in
+let embed_parser embedded ?filename ~coerce_error ~coerce_output =
   let track_parser = parser ?filename () in
   Biocaml_transform.(
-    on_error ~f:(function
-    | `left l -> (l :> wig_parser_error)
-    | `right r -> (r :> wig_parser_error))
+    on_error ~f:coerce_error
       (partially_compose
          track_parser
          ~destruct:(function
          | `content s -> `Yes (s ^ "\n")
          | `track _ | `browser _ | `comment _ as n -> `No n)
-         wig_parser
+         embedded
          ~reconstruct:(function
          | `Filtered f -> f
-         | `Done d -> (d :> wig_t))))
+         | `Done d -> coerce_output d)))
+
+  
+type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
+type wig_t = [ track | Biocaml_wig.t]
+let wig_parser ?filename () =
+  let wig_parser =
+    Biocaml_wig.parser ~pedantic:false ~sharp_comments:true ?filename () in
+  embed_parser wig_parser ?filename 
+    ~coerce_error:(function
+    | `left l -> (l :> wig_parser_error)
+    | `right r ->  (r :> wig_parser_error))
+    ~coerce_output:(fun o -> (o :> wig_t))
 
 type gff_parse_error = [parse_error | Biocaml_gff.parse_error]
 type gff_t = [track | Biocaml_gff.stream_item]
 let gff_parser ?filename ?version () =
   let gff = Biocaml_gff.parser ?filename ?version () in
-  let track = parser ?filename () in
-  Biocaml_transform.(
-    on_error ~f:(function
+  embed_parser gff ?filename
+    ~coerce_error: (function
     | `left l -> (l :> gff_parse_error)
     | `right r -> (r :> gff_parse_error))
-      (partially_compose
-         track
-         ~destruct:(function
-         | `content s -> `Yes (s ^ "\n")
-         | `track _ | `browser _ | `comment _ as n -> `No n)
-         gff
-         ~reconstruct:(function
-         | `Filtered f -> f
-         | `Done d -> (d :> gff_t))))
+    ~coerce_output:(fun o -> (o :> gff_t))
 
 (*
 open Biocaml_std
