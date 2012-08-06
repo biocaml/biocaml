@@ -72,6 +72,9 @@ val parser: ?filename:string -> unit ->
 (** Create a parser that gets the "track", comment, and "browser"
 lines and puts the  other lines in [`content _]. *)
 
+val printer: unit ->
+  ([ t | string content ], string, Biocaml_transform.no_error) Biocaml_transform.t
+(** Create a printer for track files containing [`content line] lines. *)
 
 val wig_parser: ?filename:string -> unit ->
   (string, [ t | Biocaml_wig.t ],

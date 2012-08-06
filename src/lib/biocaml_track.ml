@@ -104,6 +104,36 @@ let parser ?filename () =
         ) else
           `not_ready)
 
+let needs_escaping s =
+  String.exists s
+    ~f:(function 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> false | _ -> true)
+let potentially_escape s =
+  if needs_escaping s then sprintf "%S" s else s
+    
+let printer () =
+  let module PQ = Biocaml_transform.Printer_queue in
+  let printer =
+    PQ.make ~to_string:(function
+    | `comment c -> sprintf "#%s\n" c
+    | `track l ->
+      sprintf "track %s\n"
+        (List.map l (fun (k,v) ->
+         sprintf "%s=%s" (potentially_escape k) (potentially_escape v))
+         |! String.concat ~sep:" ")
+    | `browser (`hide `all) ->
+      "browser hide all\n"
+    | `browser (`position (n, s, e)) ->
+      sprintf "browser position %s:%d-%d\n" n s e
+    | `browser (`unknown s) -> sprintf "browser %s\n" s
+    | `content s ->
+      s ^ "\n") () in
+  Biocaml_transform.make_stoppable ~name:"string_track_printer" ()
+    ~feed:(fun r -> PQ.feed printer r)
+    ~next:(fun stopped ->
+      match (PQ.flush printer) with
+      | "" -> if stopped then `end_of_stream else `not_ready
+      | s -> `output s)
+
 let embed_parser embedded ?filename ~coerce_error ~coerce_output =
   let track_parser = parser ?filename () in
   Biocaml_transform.(

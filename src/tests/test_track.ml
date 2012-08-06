@@ -104,9 +104,23 @@ let test_bed_parser () =
     (`content ("chrB", 100, 130, [ `String "some_string"; `Int 42; `Float 3.14 ]));
   ()
 
+let test_printer () =
+  let transfo = Biocaml_track.printer () in
+  let test_line i l =
+    Biocaml_transform.feed transfo i;
+    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+  in
+  test_line (`comment "foo") "#foo";
+  test_line (`browser (`hide `all)) "browser hide all";
+  test_line (`track ["a", "bb"; "some long", "one even longer"])
+    "track a=bb \"some long\"=\"one even longer\"";
+  test_line (`content "some content") "some content";
+  ()
+
 let tests = "Track" >::: [
   "Parse Track" >:: test_parser;
   "Parse WIG Track" >:: test_wig_parser;
   "Parse GFF Track" >:: test_gff_parser;
   "Parse BED Track" >:: test_bed_parser;
+  "Print Track" >:: test_printer;
 ]
