@@ -123,8 +123,26 @@ let wig_parser ?filename () =
          wig_parser
          ~reconstruct:(function
          | `Filtered f -> f
-         | `Done d -> (d :> wig_t))
-  ))
+         | `Done d -> (d :> wig_t))))
+
+type gff_parse_error = [parse_error | Biocaml_gff.parse_error]
+type gff_t = [track | Biocaml_gff.stream_item]
+let gff_parser ?filename ?version () =
+  let gff = Biocaml_gff.parser ?filename ?version () in
+  let track = parser ?filename () in
+  Biocaml_transform.(
+    on_error ~f:(function
+    | `left l -> (l :> gff_parse_error)
+    | `right r -> (r :> gff_parse_error))
+      (partially_compose
+         track
+         ~destruct:(function
+         | `content s -> `Yes (s ^ "\n")
+         | `track _ | `browser _ | `comment _ as n -> `No n)
+         gff
+         ~reconstruct:(function
+         | `Filtered f -> f
+         | `Done d -> (d :> gff_t))))
 
 (*
 open Biocaml_std

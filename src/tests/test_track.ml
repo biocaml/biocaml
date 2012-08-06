@@ -63,7 +63,31 @@ let test_wig_parser () =
   test_output "49304901 12.5" (`variable_step_value (49304901, 12.5));
   ()
     
+let test_gff_parser () =
+  let transfo = Biocaml_track.gff_parser () in
+  let test_line l f =
+    Biocaml_transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Biocaml_transform.next transfo))
+  in
+  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let open Biocaml_gff in
+
+  test_output "# some comment" (`comment " some comment");
+  test_output "track a=\"b b\" \"c c\"="
+    (`track ["a", "b b"; "c c", ""]);
+
+  test_output (String.concat ~sep:"\t" [
+    "big%20spaced%20name"; ".";  "."; "42"; "43"; "2e12"; "."; "."; ""
+  ])
+    (`record
+        {seqname = "big spaced name"; source = None; feature = None;
+         pos = (42, 43); score = Some (2e12); strand = `not_applicable;
+         phase = None; attributes = []});
+  ()
+
+
 let tests = "Track" >::: [
   "Parse Track" >:: test_parser;
   "Parse WIG Track" >:: test_wig_parser;
+  "Parse GFF Track" >:: test_gff_parser;
 ]
