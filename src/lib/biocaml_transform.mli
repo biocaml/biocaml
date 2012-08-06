@@ -56,6 +56,9 @@ val make_stoppable: ?name:string ->
     [~next] argument with a boolean value indicating if the transformation
     has been stopped. *)
 
+val identity: ?name:string -> unit -> ('a, 'a, no_error) t
+(** Create a stoppable, buffering transform that does nothing else. *)
+
 val on_input: 
   ('input_a, 'output, 'error) t ->
   f:('input_b -> 'input_a) ->

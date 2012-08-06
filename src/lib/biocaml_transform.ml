@@ -31,6 +31,13 @@ let make_stoppable ?name ~feed ~next () =
     ~next:(fun () -> next !stopped)
     ~stop:(fun () -> stopped := true)
 
+let identity ?name () =
+  let q = Queue.create () in
+  make_stoppable ?name ~feed:(Queue.enqueue q) ()
+    ~next:(fun stopped ->
+      match Queue.dequeue q with
+      | Some o -> `output o
+      | None -> if stopped then `end_of_stream else `not_ready)
 
 let on_input t ~f =
   { t with feed = fun x -> t.feed (f x) }
