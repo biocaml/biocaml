@@ -72,7 +72,9 @@ val parser: ?filename:string -> unit ->
 (** Create a parser that gets the "track", comment, and "browser"
 lines and puts the  other lines in [`content _]. *)
 
-val printer: unit ->
+val printer:
+  ?add_content_new_line:bool ->
+  unit ->
   ([ t | string content ], string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Create a printer for track files containing [`content line] lines. *)
 
@@ -81,16 +83,31 @@ val wig_parser: ?filename:string -> unit ->
    [ parse_error | Biocaml_wig.parse_error ]) Biocaml_transform.t
 (** Create a composite parser for UCSC WIG files.  *)
 
+val wig_printer: unit ->
+  ([ t | Biocaml_wig.t ], string, Biocaml_transform.no_error) Biocaml_transform.t
+(** Create a printer for track files containing WIG lines. *)
+
 val gff_parser: ?filename:string -> ?version:[`two | `three] -> unit ->
   (string, [t | Biocaml_gff.stream_item],
    [parse_error | Biocaml_gff.parse_error]) Biocaml_transform.t
 (** Create a composite parser for UCSC GFF files.  *)
 
+val gff_printer: ?version:[`two | `three] -> unit ->
+  ([ t | Biocaml_gff.stream_item ], string,
+   Biocaml_transform.no_error) Biocaml_transform.t
+(** Create a printer for track files containing GFF lines. *)
+  
 val bed_parser: ?filename:string ->
   ?more_columns:[ `float | `int | `string ] list -> unit ->
   (string, [t | Biocaml_bed.t content],
    [parse_error | Biocaml_bed.parse_error]) Biocaml_transform.t
 (** Create a composite parser for UCSC Bed(Graph) files.  *)
+
+val bed_printer: unit ->
+  ([ t | Biocaml_bed.t content ], string,
+   Biocaml_transform.no_error) Biocaml_transform.t
+(** Create a printer for track files containing Bed(Graph) lines. *)
+
     
 (*
 module TrackLine : sig

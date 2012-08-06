@@ -117,10 +117,60 @@ let test_printer () =
   test_line (`content "some content") "some content";
   ()
 
+let test_wig_printer () =
+  let transfo = Biocaml_track.wig_printer () in
+  let test_line i l =
+    Biocaml_transform.feed transfo i;
+    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+  in
+  test_line (`comment "foo") "#foo";
+  test_line (`browser (`hide `all)) "browser hide all";
+  test_line (`track ["a", "bb"; "some long", "one even longer"])
+    "track a=bb \"some long\"=\"one even longer\"";
+  test_line (`fixed_step_value 42.) "42";
+  ()
+
+let test_gff_printer () =
+  let transfo = Biocaml_track.gff_printer () in
+  let test_line i l =
+    Biocaml_transform.feed transfo i;
+    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+  in
+  let open Biocaml_gff in
+  test_line (`comment "foo") "#foo";
+  test_line (`browser (`hide `all)) "browser hide all";
+  test_line (`track ["a", "bb"; "some long", "one even longer"])
+    "track a=bb \"some long\"=\"one even longer\"";
+  test_line 
+    (`record
+        {seqname = "big spaced name"; source = None; feature = None;
+         pos = (42, 43); score = Some (2.); strand = `not_applicable;
+         phase = None; attributes = []})
+    "big%20spaced%20name\t.\t.\t42\t43\t2\t.\t.\t";
+  ()
+
+let test_bed_printer () =
+  let transfo = Biocaml_track.bed_printer () in
+  let test_line i l =
+    Biocaml_transform.feed transfo i;
+    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+  in
+  test_line (`comment "foo") "#foo";
+  test_line (`track ["a", "bb"; "some long", "one even longer"])
+    "track a=bb \"some long\"=\"one even longer\"";
+  test_line (`content ("n", 0, 1, [`Float 3.14; `Int 42]))
+    "n 0 1 3.14 42";
+  ()
+
+
+  
 let tests = "Track" >::: [
   "Parse Track" >:: test_parser;
   "Parse WIG Track" >:: test_wig_parser;
   "Parse GFF Track" >:: test_gff_parser;
   "Parse BED Track" >:: test_bed_parser;
   "Print Track" >:: test_printer;
+  "Print WIG Track" >:: test_wig_printer;
+  "Print GFF Track" >:: test_gff_printer;
+  "Print BED Track" >:: test_bed_printer;
 ]

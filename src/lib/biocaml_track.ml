@@ -110,7 +110,7 @@ let needs_escaping s =
 let potentially_escape s =
   if needs_escaping s then sprintf "%S" s else s
     
-let printer () =
+let printer ?(add_content_new_line=true) () =
   let module PQ = Biocaml_transform.Printer_queue in
   let printer =
     PQ.make ~to_string:(function
@@ -126,7 +126,7 @@ let printer () =
       sprintf "browser position %s:%d-%d\n" n s e
     | `browser (`unknown s) -> sprintf "browser %s\n" s
     | `content s ->
-      s ^ "\n") () in
+      if add_content_new_line then s ^ "\n" else s) () in
   Biocaml_transform.make_stoppable ~name:"string_track_printer" ()
     ~feed:(fun r -> PQ.feed printer r)
     ~next:(fun stopped ->
@@ -180,6 +180,38 @@ let bed_parser ?filename  ?more_columns  () =
     | `right r -> (r :> bed_parse_error))
     ~coerce_output:(fun o -> `content o)
 
+
+let make_printer p ~split () =
+  let track = printer ~add_content_new_line:false () in
+  Biocaml_transform.(
+    (on_error ~f:(function `left x -> x | `right x -> x)
+       (compose
+          (on_error ~f:(function `left x -> x | `right x -> x)
+             (split_and_merge (identity ()) p
+                ~merge:(function `left s -> s | `right r -> `content r)
+                ~split))
+          track))
+  )
+let wig_printer () =
+  let wig = Biocaml_wig.printer () in
+  make_printer wig ()
+    ~split:(function
+    | `comment _ | `track _ | `browser _ as x -> `left x
+    | #Biocaml_wig.t as y -> `right y)
+    
+let gff_printer ?version () =
+  let gff = Biocaml_gff.printer ?version () in
+  make_printer gff ()
+    ~split:(function
+    | `comment _ | `track _ | `browser _ as x -> `left x
+    | #Biocaml_gff.stream_item as y -> `right y)
+    
+let bed_printer () =
+  let bed = Biocaml_bed.printer () in
+  make_printer bed ()
+    ~split:(function
+    | `comment _ | `track _ | `browser _ as x -> `left x
+    | `content y -> `right y)
   
 (*
 open Biocaml_std
