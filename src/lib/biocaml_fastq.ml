@@ -27,14 +27,14 @@ let next p =
         then `error (`sequence_and_qualities_do_not_match (current_position p,
                                                            sequence, qualities))
         else (
-          `record {
+          `output {
             name = String.sub name_line 1 (String.length name_line - 1);
             comment = String.sub comment_line 1 (String.length comment_line - 1);
             sequence; qualities }
     ))
       
 
-let printer =
+let printer_queue =
   Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
     sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities)
 
@@ -65,28 +65,15 @@ let string_of_parser_error = function
     (Biocaml_pos.to_string pos)
     (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
 
-let fastq_parser ?filename () =
+
+let parser ?filename () =
   let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
-  let module LOP =  Biocaml_transform.Line_oriented  in
-  let lo_parser = LOP.parser ?filename () in
-  Biocaml_transform.make_stoppable ~name ()
-    ~feed:(LOP.feed_string lo_parser)
-    ~next:(fun stopped ->
-      match next lo_parser with
-      | `record r -> `output r
-      | `error e -> `error e
-      | `not_ready ->
-        if stopped then (
-          match LOP.finish lo_parser with
-          | `ok -> `end_of_stream
-          | `error (l, o) ->
-            `error (`incomplete_input (LOP.current_position lo_parser, l, o))
-        ) else
-          `not_ready)
+  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
+
   
-let fastq_printer () =
+let printer () =
   let module PQ = Biocaml_transform.Printer_queue in
-  let printer = printer () in
+  let printer = printer_queue () in
   Biocaml_transform.make_stoppable ~name:"fastq_printer" ()
     ~feed:(fun r -> PQ.feed printer r)
     ~next:(fun stopped ->
@@ -128,7 +115,7 @@ let trimmer (specification: [`beginning of int|`ending of int]) =
 
 exception Error of parser_error 
 let stream_parser ?filename e =
-  let transfo = fastq_parser ?filename () in
+  let transfo = parser ?filename () in
   Biocaml_transform.stream_transformation (fun e -> Error e) transfo e
     (*
 

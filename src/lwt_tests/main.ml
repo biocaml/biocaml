@@ -3,9 +3,9 @@ open Lwt
   
 let print_next_ones parser =
   let rec next_m () =
-    match Biocaml_fastq.next parser with
+    match Biocaml_transform.next parser with
     | `not_ready -> Lwt_io.printf "%%"
-    | `record {Biocaml_fastq. name; sequence; comment; qualities; } ->
+    | `output {Biocaml_fastq. name; sequence; comment; qualities; } ->
       Lwt_io.printf "Read %S (%d bp)\n" name (String.length sequence)
       >>= fun () ->
       next_m ()
@@ -23,20 +23,21 @@ let print_next_ones parser =
       >>= fun () ->
       next_m ()
     | `error _ -> return ()
+    | `end_of_stream -> return ()
   in
   next_m ()
         
       
 let test_fastq_lines file =
-  let parser = Biocaml_transform.Line_oriented.parser () in
+  let parser = Biocaml_fastq.parser () in
   let stream_of_lines = Lwt_io.lines_of_file file in
   Lwt_stream.iter_s (fun l ->
-    Biocaml_transform.Line_oriented.feed_line parser l;
+    Biocaml_transform.feed parser (l ^ "\n");
     print_next_ones parser)
     stream_of_lines
 
 let test_fastq_string count file =
-  let parser = Biocaml_transform.Line_oriented.parser () in
+  let parser = Biocaml_fastq.parser () in
   Lwt_io.(with_file ~mode:input file (fun i ->
     let rec loop () =
       read ~count i
@@ -44,7 +45,7 @@ let test_fastq_string count file =
       if read_string = "" then
         return ()
       else (
-        Biocaml_transform.Line_oriented.feed_string parser read_string;
+        Biocaml_transform.feed parser read_string;
         print_next_ones parser
         >>= fun () ->
         loop ())
@@ -52,20 +53,22 @@ let test_fastq_string count file =
     loop ()))
 
 let reprint_fastq file =
-  let parser = Biocaml_transform.Line_oriented.parser () in
+  let parser = Biocaml_fastq.parser () in
   let stream_of_lines = Lwt_io.lines_of_file file in
   let stream_of_records =
     Lwt_stream.filter_map (fun l ->
-      Biocaml_transform.Line_oriented.feed_line parser l;
-      match Biocaml_fastq.next parser with
-      | `record r -> Some r
+      Biocaml_transform.feed parser (l ^ "\n");
+      match Biocaml_transform.next parser with
+      | `output r -> Some r
       | _ -> None) stream_of_lines in
   Lwt_stream.to_list stream_of_records
   >>= fun list_of_records ->
   let printer = Biocaml_fastq.printer () in
   Lwt_list.iter_s (fun r ->
-    Biocaml_transform.Printer_queue.feed printer r;
-    Lwt_io.printf "%s" (Biocaml_transform.Printer_queue.flush printer))
+    Biocaml_transform.feed printer r;
+    match Biocaml_transform.next printer with
+    | `output s -> Lwt_io.printf "%s" s
+    | _ -> return ())
     list_of_records
   
 let test_classy_trimmer file =
@@ -83,7 +86,7 @@ let test_classy_trimmer file =
          (mix
             (compose
                (compose
-                  (Biocaml_fastq.fastq_parser ())
+                  (Biocaml_fastq.parser ())
                   (on_input (Biocaml_fastq.trimmer (`beginning 10))
                      ~f:(fun i ->
                        Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))
@@ -92,7 +95,7 @@ let test_classy_trimmer file =
             ~f:(fun r c ->
               { r with Biocaml_fastq.name =
                   Printf.sprintf "%s -- %d" r.Biocaml_fastq.name c }))
-         (Biocaml_fastq.fastq_printer ()))
+         (Biocaml_fastq.printer ()))
        |!
       on_error ~f:(function
       | `left (`left (`left (`left parser_error))) ->

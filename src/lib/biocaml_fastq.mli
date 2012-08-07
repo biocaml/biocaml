@@ -29,22 +29,12 @@ type parser_error =
 val string_of_parser_error: parser_error -> string
 (** Transform a [parser_error] to a human-readable string. *)
 
-val next :
-  Biocaml_transform.Line_oriented.parser ->
-  [> `error of parser_error | `not_ready | `record of record ]
-(** Do a basic, lowest-level, parsing step. *)
-
-val printer:
-  ?buffer:[`clear of int | `reset of int] -> unit ->
-  record Biocaml_transform.Printer_queue.t
-(** Create a FASTQ printer queue. *)
-  
-val fastq_parser:
+val parser:
   ?filename:string -> unit -> (string, record, parser_error) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] from arbitrary strings to
     [record] values.*)
 
-val fastq_printer: unit -> (record, string, [>  ]) Biocaml_transform.t
+val printer: unit -> (record, string, [>  ]) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] from [record]
     values to strings. *)
   
