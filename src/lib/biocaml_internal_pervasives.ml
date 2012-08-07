@@ -54,6 +54,14 @@ module Stream = struct
 
   let skip_while pred = skip_whilei (fun _ a -> pred a)
 
+  let rec iter2_exn a b ~f = match peek a, peek b with
+    | Some x, Some y -> (
+        junk a; junk b;
+        f x y;
+        iter2_exn a b ~f
+      )
+    | _, _ -> invalid_arg "Stream.iter2_exn given streams of different lengths"
+
   let rec fold f accum s =
     match peek s with
       None -> accum

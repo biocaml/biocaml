@@ -28,6 +28,13 @@ module Stream: sig
   val truncate : int -> 'a t -> 'a t
   val skip_whilei : (int -> 'a -> bool) -> 'a t -> unit
   val skip_while : ('a -> bool) -> 'a t -> unit
+
+  val iter2_exn : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
+    (** [iter2_exn a b ~f] calls in turn [f a1 b1; ...; f an
+        bn]. @raise Invalid_argument if the two streams have different
+        lengths, and no guarantee about which elements were
+        consumed. *)
+
   val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val to_list : 'a t -> 'a list
   val map : ('a option -> 'b) -> 'a Stream.t -> 'b t
