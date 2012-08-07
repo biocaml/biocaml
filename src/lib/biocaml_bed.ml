@@ -6,7 +6,7 @@ type parse_error =
 [ `not_a_float of Biocaml_pos.t * string
 | `not_an_int of Biocaml_pos.t * string
 | `wrong_number_of_columns of Biocaml_pos.t * string list
-| `incomplete_line of Biocaml_pos.t * string
+| `incomplete_input of Biocaml_pos.t * string list * string option
 ]
 
 type parsing_spec = [ `float | `int | `string ] list
@@ -63,25 +63,8 @@ let next how_to_parse =
   
 let parser ?filename ?(more_columns=[]) () =
   let name = sprintf "bed_parser:%s" Option.(value ~default:"<>" filename) in
-  let module LOP =  Biocaml_transform.Line_oriented  in
-  let lo_parser = LOP.parser ?filename () in
-  Biocaml_transform.make_stoppable ~name ()
-    ~feed:(LOP.feed_string lo_parser)
-    ~next:(fun stopped ->
-      match next more_columns lo_parser with
-      | `output r -> `output r
-      | `error e -> `error e
-      | `not_ready ->
-        if stopped then (
-          match LOP.finish lo_parser with
-          | `ok -> `end_of_stream
-          | `error ([], Some kind_of_line) ->
-            `error (`incomplete_line (LOP.current_position lo_parser, kind_of_line))
-          | `error (l, o) ->
-            failwithf "incomplete bed input? %S %S"
-              (String.concat ~sep:"<RET>" l) Option.(value ~default:"" o) ()
-        ) else
-          `not_ready)
+  let next = next more_columns in
+  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
   
 let printer () =
   let module PQ = Biocaml_transform.Printer_queue in

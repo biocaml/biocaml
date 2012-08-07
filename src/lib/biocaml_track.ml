@@ -87,22 +87,7 @@ let rec next p =
 
 let parser ?filename () =
   let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in
-  let module LOP =  Biocaml_transform.Line_oriented  in
-  let lo_parser = LOP.parser ?filename () in
-  Biocaml_transform.make_stoppable ~name ()
-    ~feed:(LOP.feed_string lo_parser)
-    ~next:(fun stopped ->
-      match next lo_parser with
-      | `output r -> `output r
-      | `error e -> `error e
-      | `not_ready ->
-        if stopped then (
-          match LOP.finish lo_parser with
-          | `ok -> `end_of_stream
-          | `error (l, o) ->
-            `error (`incomplete_input (LOP.current_position lo_parser, l, o))
-        ) else
-          `not_ready)
+  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
 
 let needs_escaping s =
   String.exists s

@@ -20,7 +20,7 @@ let test_parser () =
   assert_bool "02 chrA" (TS.next s = `output ("chrA", 42, 45, []));
   assert_bool "02 chrB error "
     (match TS.next s with
-    | `error (`incomplete_line (_, _)) -> true
+    | `error (`incomplete_input (_)) -> true
     | _ -> false);
 
   let s =

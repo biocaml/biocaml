@@ -186,22 +186,8 @@ let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
 
 let parser ?filename ?pedantic ?version () =
   let name = sprintf "gff_parser:%s" Option.(value ~default:"<>" filename) in
-  let module LOP =  Biocaml_transform.Line_oriented  in
-  let lo_parser = LOP.parser ?filename () in
-  Biocaml_transform.make_stoppable ~name ()
-    ~feed:(LOP.feed_string lo_parser)
-    ~next:(fun stopped ->
-      match next ?pedantic ?version lo_parser with
-      | `output r -> `output r
-      | `error e -> `error e
-      | `not_ready ->
-        if stopped then (
-          match LOP.finish lo_parser with
-          | `ok -> `end_of_stream
-          | `error (l, o) ->
-            `error (`incomplete_input (LOP.current_position lo_parser, l, o))
-        ) else
-          `not_ready)
+  let next = next ?pedantic ?version in
+  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
     
     
 let printer ?(version=`three) () =

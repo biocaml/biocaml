@@ -7,6 +7,7 @@ type 'a data = [
   
 type parse_error = [
 | `empty_line of Biocaml_pos.t
+| `incomplete_input of Biocaml_pos.t * string list * string option
 | `malformed_partial_sequence of string ]
 
 let rec next ~parse_sequence
@@ -30,24 +31,8 @@ let rec next ~parse_sequence
 let generic_parser ~parse_sequence
     ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
   let name = sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
-  let module LOP =  Biocaml_transform.Line_oriented  in
-  let lo_parser = LOP.parser ?filename () in
-  Biocaml_transform.make_stoppable ~name ()
-    ~feed:(LOP.feed_string lo_parser)
-    ~next:(fun stopped ->
-      match next ~parse_sequence
-        ?pedantic ?sharp_comments ?semicolon_comments lo_parser with
-      | `output r -> `output r
-      | `error e -> `error e
-      | `not_ready ->
-        if stopped then (
-          match LOP.finish lo_parser with
-          | `ok -> `end_of_stream
-          | `error (l, o) ->
-            failwithf "incomplete fasta input? %S %S"
-              (String.concat ~sep:"<RET>" l) Option.(value ~default:"" o) ()
-        ) else
-          `not_ready)
+  let next = next ~parse_sequence ?pedantic ?sharp_comments ?semicolon_comments in
+  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
     
 
 let parse_string_sequence ~pedantic l =

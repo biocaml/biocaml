@@ -36,7 +36,7 @@ type parse_error =
 [ `not_a_float of Biocaml_pos.t * string
 | `not_an_int of Biocaml_pos.t * string
 | `wrong_number_of_columns of Biocaml_pos.t * string list
-| `incomplete_line of Biocaml_pos.t * string
+| `incomplete_input of Biocaml_pos.t * string list * string option
 ]
 (** The possible parsing errors. *)
 

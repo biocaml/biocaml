@@ -49,7 +49,7 @@ let test_parser () =
   check_output s "fixed_step_value 200" (`fixed_step_value 200.);
 
   check_error s "incomplete line" (function
-  | (`incomplete_line (_, " 100")) -> true
+  | (`incomplete_input (_)) -> true
   | _ -> false);
   
   let s = file_parser_stream "wig_02.wig" in
@@ -88,7 +88,7 @@ let test_printer () =
   check_output s "300" "300\n";
   check_output s "200" "200\n";
   check_error s "incomplete line" (function
-  | `left (`incomplete_line (_, " 100")) -> true
+  | `left (`incomplete_input (_)) -> true
   | _ -> false);
   
   let s = file_reprinter_stream "wig_02.wig" in
@@ -134,7 +134,7 @@ let test_to_bed_graph () =
   check_output s "" ( ("chr19", 49308601, 49308800, 200.));
 
   check_error s "incomplete_line" (function
-  | (`left (`incomplete_line (_, " 100"))) -> true
+  | (`left (`incomplete_input (_))) -> true
   | _ -> false);
   ()
 

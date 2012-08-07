@@ -59,6 +59,7 @@ type 'a data = [
 
 type parse_error = [
 | `empty_line of Biocaml_pos.t
+| `incomplete_input of Biocaml_pos.t * string list * string option
 | `malformed_partial_sequence of string ]
 (** The possible parsing errors. *)
 

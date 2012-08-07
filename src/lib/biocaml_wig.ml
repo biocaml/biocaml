@@ -21,7 +21,7 @@ type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_v
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
 | `empty_line of Biocaml_pos.t
-| `incomplete_line of Biocaml_pos.t * string
+| `incomplete_input of Biocaml_pos.t * string list * string option
 | `missing_chrom_value of Biocaml_pos.t * string
 | `missing_start_value of Biocaml_pos.t * string
 | `missing_step_value of Biocaml_pos.t * string
@@ -39,8 +39,9 @@ let parse_error_to_string =
   | `cannot_parse_key_values (p, s) ->
     sprintf "cannot_parse_key_values (%a, %S)" pos p s
   | `empty_line p -> sprintf "empty_line (%a)" pos p
-  | `incomplete_line (p, v) -> (* Biocaml_pos.t * string *)
-    sprintf "incomplete_line (%a, %s)" pos p v
+  | `incomplete_input (p, vs, vo) -> (* Biocaml_pos.t * string list *string option *)
+    sprintf "incomplete_input (%a, %s, %S)" pos p
+      (String.concat ~sep:"; " vs) (Option.value ~default:"" vo)
   | `missing_chrom_value (p, v) -> (* Biocaml_pos.t * string *)
     sprintf "missing_chrom_value (%a, %s)" pos p v
   | `missing_start_value (p, v) -> (* Biocaml_pos.t * string *)
@@ -162,25 +163,8 @@ let rec next ?(pedantic=true) ?(sharp_comments=true) p =
         
 let parser ?filename ?pedantic ?sharp_comments () =
   let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
-  let module LOP =  Biocaml_transform.Line_oriented  in
-  let lo_parser = LOP.parser ?filename () in
-  Biocaml_transform.make_stoppable ~name ()
-    ~feed:(LOP.feed_string lo_parser)
-    ~next:(fun stopped ->
-      match next ?pedantic ?sharp_comments lo_parser with
-      | `output r -> `output r
-      | `error e -> `error e
-      | `not_ready ->
-        if stopped then (
-          match LOP.finish lo_parser with
-          | `ok -> `end_of_stream
-          | `error ([], Some kind_of_line) ->
-            `error (`incomplete_line (LOP.current_position lo_parser, kind_of_line))
-          | `error (l, o) ->
-            failwithf "incomplete wig input? %S %S"
-              (String.concat ~sep:"<RET>" l) Option.(value ~default:"" o) ()
-        ) else
-          `not_ready)
+  let next = next ?pedantic ?sharp_comments in
+  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
 
 
 let printer () =

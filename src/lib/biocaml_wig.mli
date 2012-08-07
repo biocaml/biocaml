@@ -53,7 +53,7 @@ type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_v
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
 | `empty_line of Biocaml_pos.t
-| `incomplete_line of Biocaml_pos.t * string
+| `incomplete_input of Biocaml_pos.t * string list * string option
 | `missing_chrom_value of Biocaml_pos.t * string
 | `missing_start_value of Biocaml_pos.t * string
 | `missing_step_value of Biocaml_pos.t * string
