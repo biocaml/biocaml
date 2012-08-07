@@ -154,7 +154,16 @@ module Line_oriented: sig
   (** Get the current position in the stream. *)
 
   val finish : parser -> [`ok | `error of string list * string option ]
-(** Terminate the parsing, if the buffers are not empty return them as an error. *)
+  (** Terminate the parsing, if the buffers are not empty return them as an error. *)
+
+  val stoppable_parser : ?name:string -> ?filename:string ->
+    next:(parser ->
+          [< `error of
+              [> `incomplete_input of
+                  Biocaml_pos.t * string list * string option ] as 'a
+          | `not_ready
+          | `output of 'b ]) ->
+    unit -> (string, 'b, 'a) t
 end
 
 (** A generic buffering printer.  *)

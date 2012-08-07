@@ -243,6 +243,22 @@ module Line_oriented = struct
   let finish p =
     if is_empty p then `ok else `error (Queue.to_list p.lines, p.unfinished_line)
       
+  let stoppable_parser ?name ?filename ~next () =
+    let lo_parser = parser ?filename () in
+    make_stoppable ?name ()
+      ~feed:(feed_string lo_parser)
+      ~next:(fun stopped ->
+        match next lo_parser with
+        | `output r -> `output r
+        | `error e -> `error e
+        | `not_ready ->
+          if stopped then (
+            match finish lo_parser with
+            | `ok -> `end_of_stream
+            | `error (l, o) ->
+              `error (`incomplete_input (current_position lo_parser, l, o))
+          ) else
+            `not_ready)
 end
 
 module Printer_queue = struct
