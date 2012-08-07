@@ -164,6 +164,8 @@ module Line_oriented: sig
           | `not_ready
           | `output of 'b ]) ->
     unit -> (string, 'b, 'a) t
+  (** Build a stoppable line-oriented parser. *)
+
 end
 
 (** A generic buffering printer.  *)
