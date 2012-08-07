@@ -114,6 +114,30 @@ let parser ?filename () =
   let name = sprintf "sam_parser:%s" Option.(value ~default:"<>" filename) in
   Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
 
+
+let alignment_to_string x =
+  sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n"
+    x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual
+    (List.map x.optional (fun (a,b,c) -> sprintf "%s:%c:%s" a b c) |!
+        String.concat ~sep:"\t")
+
+let printer () =
+  let module PQ = Biocaml_transform.Printer_queue in
+  let printer =
+    PQ.make ~to_string:(function
+    | `comment c -> sprintf "@CO\t%s\n" c
+    | `header_line (t, l) -> sprintf "@%s\t%s\n" t
+      (List.map l (fun (a,b) -> sprintf "%s:%s" a b) |! String.concat ~sep:"\t")
+    | `alignment a -> alignment_to_string a
+    ) () in
+  Biocaml_transform.make_stoppable ~name:"sam_printer" ()
+    ~feed:(fun r -> PQ.feed printer r)
+    ~next:(fun stopped ->
+      match (PQ.flush printer) with
+      | "" -> if stopped then `end_of_stream else `not_ready
+      | s -> `output s)
+
+    
 (*
 
 open Batteries;; open Printf

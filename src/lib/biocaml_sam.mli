@@ -34,6 +34,9 @@ type parse_error = [
 val parser: ?filename:string -> unit ->
   (string, t, parse_error) Biocaml_transform.t
     
+val printer: unit ->
+  (t, string, Biocaml_transform.no_error) Biocaml_transform.t
+
 (*
 open Batteries
 

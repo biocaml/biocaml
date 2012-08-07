@@ -48,6 +48,27 @@ let test_parser () =
     | _ -> false);
   ()
 
-let tests = "Track" >::: [
+let test_printer () =
+  let transfo = Biocaml_sam.printer () in
+  let test_line i l =
+    Biocaml_transform.feed transfo i;
+    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+  in
+  let open Biocaml_sam in
+
+  test_line
+    (`alignment
+        {qname = "r001"; flag = 83; rname = "ref"; pos = 37; mapq = 30;
+         cigar = "9M"; rnext = "="; pnext = 7; tlen = -39; seq = "CAGCGCCAT";
+         qual = "*"; optional = [("NM", 'i', "0")]})
+    "r001\t83\tref\t37\t30\t9M\t=\t7\t-39\tCAGCGCCAT\t*\tNM:i:0";
+  
+  test_line (`comment "some comment") "@CO\tsome comment" ;
+  test_line (`header_line ("HD", [ "VN", "1.3"; "SO", "coordinate"]))
+    "@HD\tVN:1.3\tSO:coordinate";
+  ()
+
+let tests = "SAM" >::: [
   "Parse SAM" >:: test_parser;
+  "Print SAM" >:: test_printer;
 ]
