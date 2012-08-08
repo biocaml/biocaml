@@ -75,18 +75,25 @@ end
 
 (** {6 Low-level API} *)
 
+
+(** Lowest level items parsed by this module:
+
+    - `comment _ - a single comment line without the final newline
+
+    - `header _ - a single header line without the initial '>',
+    whitespace following this, nor final newline
+
+    - `sequence _ - Either a sequence of characters, represented as a
+    string, or a sequence of space separated integers, represented by
+    an [int list]. The value does not necessarily carry the complete
+    content associated with a header. It may be only part of the
+    sequence, which can be useful for files with large sequences
+    (e.g. genomic sequence files). *)
 type 'a token = [
-| `comment of string (** a single comment line*)
-| `header of string (** a header line *)
-| `sequence of 'a (** sequence, possibly partial *)
+| `comment of string
+| `header of string
+| `sequence of 'a
 ]
-    (** Lowest level items parsed by this module. The sequence data is
-        either a sequence of characters, represented as a string, or a
-        sequence of space separated integers, represented by an [int
-        list]. A [`sequence] value does not necessarily carry the
-        complete content associated with a header. It may be only part
-        of the sequence, which can be useful for files with large
-        sequences (e.g. genomic sequence files). *)
 
 val sequence_parser :
   ?filename:string ->
