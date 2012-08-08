@@ -1,4 +1,6 @@
 open Biocaml_internal_pervasives
+module Pos = Biocaml_pos
+module Transform = Biocaml_transform
 
 type 'a data = [
 | `comment of string | `name of string
@@ -6,14 +8,14 @@ type 'a data = [
 ]
   
 type error = [
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of Biocaml_pos.t * string list * string option
+| `empty_line of Pos.t
+| `incomplete_input of Pos.t * string list * string option
 | `malformed_partial_sequence of string
 | `unnamed_sequence of string ]
 
 let rec next ~parse_sequence
     ?(pedantic=true) ?(sharp_comments=true) ?(semicolon_comments=false) p =
-  let open Biocaml_transform.Line_oriented in
+  let open Transform.Line_oriented in
   match next_line p with
   | Some "" ->
     if pedantic then `error (`empty_line (current_position p)) else `not_ready
@@ -33,7 +35,7 @@ let generic_parser ~parse_sequence
     ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
   let name = sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
   let next = next ~parse_sequence ?pedantic ?sharp_comments ?semicolon_comments in
-  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
+  Transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
     
 
 let parse_string_sequence ~pedantic l =
@@ -58,14 +60,14 @@ let parse_float_sequence ~pedantic l =
 let score_parser = generic_parser ~parse_sequence:parse_float_sequence
   
 let printer ~to_string ?comment_char () =
-  let module PQ = Biocaml_transform.Printer_queue in
+  let module PQ = Transform.Printer_queue in
   let printer =
     PQ.make ~to_string:(function
     | `comment c ->
       Option.value_map comment_char ~default:"" ~f:(fun o -> sprintf "%c%s\n" o c)
     | `name n -> ">" ^ n ^ "\n"
     | `partial_sequence s -> (to_string s) ^ "\n") () in
-  Biocaml_transform.make_stoppable ~name:"fasta_printer" ()
+  Transform.make_stoppable ~name:"fasta_printer" ()
     ~feed:(fun r -> PQ.feed printer r)
     ~next:(fun stopped ->
       match (PQ.flush printer) with
@@ -81,7 +83,7 @@ let score_printer = printer ~to_string:(fun l ->
 let generic_aggregator ~flush ~add ~is_empty () =
   let current_name = ref None in
   let result = Queue.create () in
-  Biocaml_transform.make_stoppable ~name:"fasta_aggregator" ()
+  Transform.make_stoppable ~name:"fasta_aggregator" ()
     ~feed:(function
     | `name n ->
       Queue.enqueue result (!current_name, flush ());
@@ -130,7 +132,7 @@ let score_aggregator () =
 
 let sequence_slicer ?(line_width=80) () =
   let queue = Queue.create () in
-  Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
+  Transform.make_stoppable ~name:"fasta_slicer" ()
     ~feed:(fun (name, seq) ->
       Queue.enqueue queue (`name name);
       let rec loop idx =
@@ -150,7 +152,7 @@ let sequence_slicer ?(line_width=80) () =
     
 let score_slicer ?(group_by=10) () =
   let queue = Queue.create () in
-  Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
+  Transform.make_stoppable ~name:"fasta_slicer" ()
     ~feed:(fun (name, seq) ->
       Queue.enqueue queue (`name name);
       let rec loop l =
@@ -174,9 +176,9 @@ module Excn = struct
   let sequence_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
     let flip f x y = f y x in
     (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-    |! flip Biocaml_transform.compose (sequence_aggregator ())
-    |! Biocaml_transform.on_error ~f:(function `left x -> x | `right x -> x)
-    |! Biocaml_transform.Pull_based.of_in_channel inp
-    |! Biocaml_transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
+    |! flip Transform.compose (sequence_aggregator ())
+    |! Transform.on_error ~f:(function `left x -> x | `right x -> x)
+    |! Transform.Pull_based.of_in_channel inp
+    |! Transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
 
 end
