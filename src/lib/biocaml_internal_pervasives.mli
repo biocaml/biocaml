@@ -16,6 +16,10 @@ val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
 val open_out_safe : string -> out_channel
   (** Like [open_out] but will not overwrite existing file. *)
 
+val flip : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
+  (** [flip f] returns a function [g] that takes its arguments in the
+      opposite order of [f], i.e. [f x y = g y x]. *)
+
 (** A more core-styled version of
     {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Stream.html}the stdlib's [Stream] module}. *)
 module Stream: sig

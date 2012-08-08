@@ -174,7 +174,6 @@ module Excn = struct
   exception Error of error
 
   let sequence_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
-    let flip f x y = f y x in
     (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
     |! flip Transform.compose (sequence_aggregator ())
     |! Transform.on_error ~f:(function `left x -> x | `right x -> x)
