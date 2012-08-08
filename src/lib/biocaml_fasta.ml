@@ -2,9 +2,10 @@ open Biocaml_internal_pervasives
 module Pos = Biocaml_pos
 module Transform = Biocaml_transform
 
-type 'a data = [
-| `comment of string | `name of string
-| `partial_sequence of 'a
+type 'a token = [
+| `comment of string
+| `header of string
+| `sequence of 'a
 ]
   
 type error = [
@@ -24,7 +25,7 @@ let rec next ~parse_sequence
   | Some l when semicolon_comments && String.is_prefix l ~prefix:";" ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l when String.is_prefix l ~prefix:">" ->
-    `output (`name String.(sub l ~pos:1 ~len:(length l - 1)))
+    `output (`header String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l ->
     parse_sequence ~pedantic l
   | None -> 
@@ -42,7 +43,7 @@ let parse_string_sequence ~pedantic l =
   if pedantic && String.exists l
     ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
   then `error (`malformed_partial_sequence l)
-  else `output (`partial_sequence l)
+  else `output (`sequence l)
 
 let sequence_parser = generic_parser ~parse_sequence:parse_string_sequence
 
@@ -50,7 +51,7 @@ let sequence_parser = generic_parser ~parse_sequence:parse_string_sequence
 let parse_float_sequence ~pedantic l =
   let exploded = String.split ~on:' ' l in
   try
-    `output (`partial_sequence 
+    `output (`sequence 
                 (List.filter_map exploded (function
                 | "" -> None
                 | s -> Some (Float.of_string s))))
@@ -65,8 +66,8 @@ let printer ~to_string ?comment_char () =
     PQ.make ~to_string:(function
     | `comment c ->
       Option.value_map comment_char ~default:"" ~f:(fun o -> sprintf "%c%s\n" o c)
-    | `name n -> ">" ^ n ^ "\n"
-    | `partial_sequence s -> (to_string s) ^ "\n") () in
+    | `header n -> ">" ^ n ^ "\n"
+    | `sequence s -> (to_string s) ^ "\n") () in
   Transform.make_stoppable ~name:"fasta_printer" ()
     ~feed:(fun r -> PQ.feed printer r)
     ~next:(fun stopped ->
@@ -85,10 +86,10 @@ let generic_aggregator ~flush ~add ~is_empty () =
   let result = Queue.create () in
   Transform.make_stoppable ~name:"fasta_aggregator" ()
     ~feed:(function
-    | `name n ->
+    | `header n ->
       Queue.enqueue result (!current_name, flush ());
       current_name := Some n;
-    | `partial_sequence s -> add s
+    | `sequence s -> add s
     | `comment c -> ())
     ~next:(fun stopped ->
       match Queue.dequeue result with
@@ -133,15 +134,15 @@ let score_aggregator () =
 let sequence_slicer ?(line_width=80) () =
   let queue = Queue.create () in
   Transform.make_stoppable ~name:"fasta_slicer" ()
-    ~feed:(fun (name, seq) ->
-      Queue.enqueue queue (`name name);
+    ~feed:(fun (hdr, seq) ->
+      Queue.enqueue queue (`header hdr);
       let rec loop idx =
         if idx + line_width >= String.length seq then (
           Queue.enqueue queue
-            (`partial_sequence String.(sub seq idx (length seq - idx)));
+            (`sequence String.(sub seq idx (length seq - idx)));
         ) else (
           Queue.enqueue queue
-            (`partial_sequence String.(sub seq idx line_width));
+            (`sequence String.(sub seq idx line_width));
           loop (idx + line_width);
         ) in
       loop 0)
@@ -153,14 +154,14 @@ let sequence_slicer ?(line_width=80) () =
 let score_slicer ?(group_by=10) () =
   let queue = Queue.create () in
   Transform.make_stoppable ~name:"fasta_slicer" ()
-    ~feed:(fun (name, seq) ->
-      Queue.enqueue queue (`name name);
+    ~feed:(fun (hdr, seq) ->
+      Queue.enqueue queue (`header hdr);
       let rec loop l =
         match List.split_n l group_by with
         | finish, [] -> 
-          Queue.enqueue queue (`partial_sequence finish);
+          Queue.enqueue queue (`sequence finish);
         | some, rest ->
-          Queue.enqueue queue (`partial_sequence some);
+          Queue.enqueue queue (`sequence some);
           loop rest
       in
       loop seq)
@@ -170,7 +171,7 @@ let score_slicer ?(group_by=10) () =
       | None -> if stopped then `end_of_stream else `not_ready)
     
 
-module Excn = struct
+module Exceptionful = struct
   exception Error of error
 
   let sequence_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
