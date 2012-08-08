@@ -104,7 +104,7 @@ let rec next p =
     | Error e -> `error e in
   match next_line p with
   | None -> `not_ready
-  | Some "" -> `not_ready
+  | Some "" -> next p
   | Some l when String.(is_prefix (strip l) ~prefix:"@") ->
     parse_header_line (current_position p) l |! output_result
   | Some l ->

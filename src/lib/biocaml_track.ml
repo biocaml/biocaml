@@ -72,7 +72,7 @@ let rec next p =
     | Error e -> `error e in
   match next_line p with
   | None -> `not_ready
-  | Some "" -> `not_ready
+  | Some "" -> next p
   | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l when String.strip l = "track"-> `output (`track [])
