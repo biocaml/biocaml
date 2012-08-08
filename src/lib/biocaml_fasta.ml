@@ -5,10 +5,11 @@ type 'a data = [
 | `partial_sequence of 'a
 ]
   
-type parse_error = [
+type error = [
 | `empty_line of Biocaml_pos.t
 | `incomplete_input of Biocaml_pos.t * string list * string option
-| `malformed_partial_sequence of string ]
+| `malformed_partial_sequence of string
+| `unnamed_sequence of string ]
 
 let rec next ~parse_sequence
     ?(pedantic=true) ?(sharp_comments=true) ?(semicolon_comments=false) p =
@@ -168,15 +169,14 @@ let score_slicer ?(group_by=10) () =
     
 
 module Excn = struct
-  type foo = [ parse_error | `unnamed_sequence of string ]
-  exception Parse_error of foo
+  exception Error of error
 
   let sequence_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
     let flip f x y = f y x in
     (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
     |! flip Biocaml_transform.compose (sequence_aggregator ())
-    |! Biocaml_transform.on_error ~f:(function `left x -> (x :> foo) | `right x -> (x :> foo))
+    |! Biocaml_transform.on_error ~f:(function `left x -> x | `right x -> x)
     |! Biocaml_transform.Pull_based.of_in_channel inp
-    |! Biocaml_transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Parse_error err)
+    |! Biocaml_transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
 
 end

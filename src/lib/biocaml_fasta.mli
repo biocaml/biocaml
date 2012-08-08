@@ -57,14 +57,15 @@ type 'a data = [
 (** The type of the items of FASTA stream data (either [string data]
     or [float list data]). *)
 
-type parse_error = [
+type error = [
 | `empty_line of Biocaml_pos.t
 | `incomplete_input of Biocaml_pos.t * string list * string option
-| `malformed_partial_sequence of string ]
-(** The possible parsing errors. *)
+| `malformed_partial_sequence of string
+| `unnamed_sequence of string ]
+(** The possible errors. *)
 
 module Excn : sig
-  exception Parse_error of [ parse_error | `unnamed_sequence of string ]
+  exception Error of error
 
   val sequence_stream_of_in_channel :
     ?filename:string ->
@@ -84,7 +85,7 @@ val sequence_parser :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   unit ->
-  (string, string data, parse_error) Biocaml_transform.t
+  (string, string data, error) Biocaml_transform.t
 (** Parse a stream of strings as a sequence FASTA file.
     The [filename] is used only for error messages. If [pedantic] is [true]
     (default) the parser will report more errors (Biocaml_transform.no_error lines, non
@@ -97,7 +98,7 @@ val score_parser :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   unit ->
-  (string, float list data, parse_error) Biocaml_transform.t
+  (string, float list data, error) Biocaml_transform.t
 (** Parse a stream of strings as a sequence FASTA file.
     See [sequence_parser]. *)
 
