@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: ffc769bdb5c077b6ccd113818cb8307e)
+# DO NOT EDIT (digest: dcc0ccffff11e847cfa997c9f74d545f)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -23,22 +23,22 @@
 <src/lib/*.ml{,i}>: pkg_unix
 <src/lib/*.ml{,i}>: pkg_batteries
 <src/lib/*.ml{,i}>: pkg_core
+<src/lib/*.ml{,i}>: pkg_camlzip
 <src/lib/*.ml{,i}>: pkg_sqlite3
-<src/lib/*.ml{,i}>: pkg_pcre
 <src/lib/*.ml{,i}>: pkg_xmlm
 "src/lib/biocaml_pwm_stub.c": pkg_threads
 "src/lib/biocaml_pwm_stub.c": pkg_unix
 "src/lib/biocaml_pwm_stub.c": pkg_batteries
 "src/lib/biocaml_pwm_stub.c": pkg_core
+"src/lib/biocaml_pwm_stub.c": pkg_camlzip
 "src/lib/biocaml_pwm_stub.c": pkg_sqlite3
-"src/lib/biocaml_pwm_stub.c": pkg_pcre
 "src/lib/biocaml_pwm_stub.c": pkg_xmlm
 "src/lib/biocaml_mzData_stubs.c": pkg_threads
 "src/lib/biocaml_mzData_stubs.c": pkg_unix
 "src/lib/biocaml_mzData_stubs.c": pkg_batteries
 "src/lib/biocaml_mzData_stubs.c": pkg_core
+"src/lib/biocaml_mzData_stubs.c": pkg_camlzip
 "src/lib/biocaml_mzData_stubs.c": pkg_sqlite3
-"src/lib/biocaml_mzData_stubs.c": pkg_pcre
 "src/lib/biocaml_mzData_stubs.c": pkg_xmlm
 # Executable gff_counts
 <src/app/gff_counts.{native,byte}>: use_biocaml
@@ -47,8 +47,8 @@
 <src/app/gff_counts.{native,byte}>: pkg_batteries
 <src/app/gff_counts.{native,byte}>: pkg_getopt
 <src/app/gff_counts.{native,byte}>: pkg_core
+<src/app/gff_counts.{native,byte}>: pkg_camlzip
 <src/app/gff_counts.{native,byte}>: pkg_sqlite3
-<src/app/gff_counts.{native,byte}>: pkg_pcre
 <src/app/gff_counts.{native,byte}>: pkg_xmlm
 # Executable gff_to_bed
 <src/app/gff_to_bed.{native,byte}>: use_biocaml
@@ -57,8 +57,8 @@
 <src/app/gff_to_bed.{native,byte}>: pkg_batteries
 <src/app/gff_to_bed.{native,byte}>: pkg_getopt
 <src/app/gff_to_bed.{native,byte}>: pkg_core
+<src/app/gff_to_bed.{native,byte}>: pkg_camlzip
 <src/app/gff_to_bed.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_bed.{native,byte}>: pkg_pcre
 <src/app/gff_to_bed.{native,byte}>: pkg_xmlm
 # Executable gff_to_table
 <src/app/gff_to_table.{native,byte}>: use_biocaml
@@ -67,8 +67,8 @@
 <src/app/gff_to_table.{native,byte}>: pkg_batteries
 <src/app/gff_to_table.{native,byte}>: pkg_getopt
 <src/app/gff_to_table.{native,byte}>: pkg_core
+<src/app/gff_to_table.{native,byte}>: pkg_camlzip
 <src/app/gff_to_table.{native,byte}>: pkg_sqlite3
-<src/app/gff_to_table.{native,byte}>: pkg_pcre
 <src/app/gff_to_table.{native,byte}>: pkg_xmlm
 # Executable sgr_to_wig
 <src/app/sgr_to_wig.{native,byte}>: use_biocaml
@@ -77,8 +77,8 @@
 <src/app/sgr_to_wig.{native,byte}>: pkg_batteries
 <src/app/sgr_to_wig.{native,byte}>: pkg_getopt
 <src/app/sgr_to_wig.{native,byte}>: pkg_core
+<src/app/sgr_to_wig.{native,byte}>: pkg_camlzip
 <src/app/sgr_to_wig.{native,byte}>: pkg_sqlite3
-<src/app/sgr_to_wig.{native,byte}>: pkg_pcre
 <src/app/sgr_to_wig.{native,byte}>: pkg_xmlm
 # Executable wig_correlate
 <src/app/wig_correlate.{native,byte}>: use_biocaml
@@ -87,8 +87,8 @@
 <src/app/wig_correlate.{native,byte}>: pkg_batteries
 <src/app/wig_correlate.{native,byte}>: pkg_getopt
 <src/app/wig_correlate.{native,byte}>: pkg_core
+<src/app/wig_correlate.{native,byte}>: pkg_camlzip
 <src/app/wig_correlate.{native,byte}>: pkg_sqlite3
-<src/app/wig_correlate.{native,byte}>: pkg_pcre
 <src/app/wig_correlate.{native,byte}>: pkg_xmlm
 <src/app/*.ml{,i}>: use_biocaml
 <src/app/*.ml{,i}>: pkg_threads
@@ -96,8 +96,8 @@
 <src/app/*.ml{,i}>: pkg_batteries
 <src/app/*.ml{,i}>: pkg_getopt
 <src/app/*.ml{,i}>: pkg_core
+<src/app/*.ml{,i}>: pkg_camlzip
 <src/app/*.ml{,i}>: pkg_sqlite3
-<src/app/*.ml{,i}>: pkg_pcre
 <src/app/*.ml{,i}>: pkg_xmlm
 # Executable tests_main
 "src/tests/main.native": use_biocaml
@@ -106,8 +106,8 @@
 "src/tests/main.native": pkg_oUnit
 "src/tests/main.native": pkg_batteries
 "src/tests/main.native": pkg_core
+"src/tests/main.native": pkg_camlzip
 "src/tests/main.native": pkg_sqlite3
-"src/tests/main.native": pkg_pcre
 "src/tests/main.native": pkg_xmlm
 <src/tests/*.ml{,i}>: use_biocaml
 <src/tests/*.ml{,i}>: pkg_threads
@@ -115,8 +115,8 @@
 <src/tests/*.ml{,i}>: pkg_oUnit
 <src/tests/*.ml{,i}>: pkg_batteries
 <src/tests/*.ml{,i}>: pkg_core
+<src/tests/*.ml{,i}>: pkg_camlzip
 <src/tests/*.ml{,i}>: pkg_sqlite3
-<src/tests/*.ml{,i}>: pkg_pcre
 <src/tests/*.ml{,i}>: pkg_xmlm
 # Executable lwt_tests
 "src/lwt_tests/main.native": use_biocaml
@@ -125,8 +125,8 @@
 "src/lwt_tests/main.native": pkg_unix
 "src/lwt_tests/main.native": pkg_batteries
 "src/lwt_tests/main.native": pkg_core
+"src/lwt_tests/main.native": pkg_camlzip
 "src/lwt_tests/main.native": pkg_sqlite3
-"src/lwt_tests/main.native": pkg_pcre
 "src/lwt_tests/main.native": pkg_xmlm
 <src/lwt_tests/*.ml{,i}>: use_biocaml
 <src/lwt_tests/*.ml{,i}>: pkg_lwt.unix
@@ -134,8 +134,8 @@
 <src/lwt_tests/*.ml{,i}>: pkg_unix
 <src/lwt_tests/*.ml{,i}>: pkg_batteries
 <src/lwt_tests/*.ml{,i}>: pkg_core
+<src/lwt_tests/*.ml{,i}>: pkg_camlzip
 <src/lwt_tests/*.ml{,i}>: pkg_sqlite3
-<src/lwt_tests/*.ml{,i}>: pkg_pcre
 <src/lwt_tests/*.ml{,i}>: pkg_xmlm
 # OASIS_STOP
 true: annot

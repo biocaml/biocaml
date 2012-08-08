@@ -1,5 +1,7 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 
+module Msg = Biocaml_msg
+module Pos = Biocaml_pos
 module RomanNum = Biocaml_romanNum
 
 type t = 
@@ -17,11 +19,15 @@ module Alpha = struct
   let all = [x;y;m;mt;mtdna]
 end
 
-let rex = Pcre.regexp "^(chr|CHR|Chr)?(.*)$"
+(* let rex = Pcre.regexp "^(chr|CHR|Chr)?(.*\)$" *)
 let of_string s =
   try
-    let ss = Pcre.extract ~full_match:false ~rex s in
-    let c = ss.(1) in
+    (* let ss = Pcre.extract ~full_match:false ~rex s in *)
+    let c =
+      if String.(is_prefix (lowercase s) ~prefix:"chr") then
+        String.(sub s 3 (length s -3))
+      else
+        raise Not_found in
     if c = Alpha.x then
       ChrX
     else if c = Alpha.y then
@@ -54,9 +60,9 @@ let to_roman t =
     | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
     | ChrN n ->
         let n = RomanNum.to_string (RomanNum.of_int_exn n) in
-        if List.mem n Alpha.all
+        if List.mem Alpha.all n
         then failwith (sprintf "chromosome %s cannot be represented in Roman form" (to_arabic t))
         else n
           
-let arabic = to_arabic <<- of_string
-let roman = to_roman <<- of_string
+let arabic s = of_string s |! to_arabic
+let roman s = of_string s |! to_roman

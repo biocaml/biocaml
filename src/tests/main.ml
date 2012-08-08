@@ -11,6 +11,7 @@ let all_tests = [
   Test_gff.tests;
   Test_track.tests;
   Test_sam.tests;
+  Test_zip.tests;
 ]
 
 let () =
