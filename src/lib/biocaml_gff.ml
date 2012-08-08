@@ -179,7 +179,9 @@ let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
   match next_line p with
   | None -> `not_ready
   | Some "" ->
-    if pedantic then `error (`empty_line (current_position p)) else `not_ready
+    if pedantic
+    then `error (`empty_line (current_position p))
+    else next ~pedantic ~sharp_comments ~version p
   | Some l when sharp_comments && String.(is_prefix (strip l) ~prefix:"#") ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l -> parse_row ~version (current_position p) l

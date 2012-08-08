@@ -89,7 +89,9 @@ let rec next ?(pedantic=true) ?(sharp_comments=true) p =
   let output_result = function  Ok o -> `output o | Error e -> `error e in
   match next_line p with
   | Some "" ->
-    if pedantic then `error (`empty_line (current_position p)) else `not_ready
+    if pedantic
+    then `error (`empty_line (current_position p))
+    else next ~pedantic ~sharp_comments p
   | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l when String.is_prefix l ~prefix:"fixedStep" ->

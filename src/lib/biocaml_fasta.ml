@@ -15,7 +15,10 @@ let rec next ~parse_sequence
   let open Biocaml_transform.Line_oriented in
   match next_line p with
   | Some "" ->
-    if pedantic then `error (`empty_line (current_position p)) else `not_ready
+    if pedantic
+    then `error (`empty_line (current_position p))
+    else 
+      next ~parse_sequence ~pedantic ~sharp_comments ~semicolon_comments p
   | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
     `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l when semicolon_comments && String.is_prefix l ~prefix:";" ->
