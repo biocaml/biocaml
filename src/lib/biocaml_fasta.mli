@@ -63,6 +63,21 @@ type parse_error = [
 | `malformed_partial_sequence of string ]
 (** The possible parsing errors. *)
 
+module Excn : sig
+  exception Parse_error of [ parse_error | `unnamed_sequence of string ]
+
+  val sequence_stream_of_in_channel :
+    ?filename:string ->
+    ?pedantic:bool ->
+    ?sharp_comments:bool ->
+    ?semicolon_comments:bool ->
+    in_channel ->
+    (string * string) Stream.t
+      (** [sequence_stream_of_file file] returns a stream of [(name,
+          sequence)] pairs. Initial comments are not provided. @raise
+          Failure in case of any errors. *)
+end
+
 val sequence_parser :
   ?filename:string ->
   ?pedantic:bool ->

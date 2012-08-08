@@ -166,3 +166,17 @@ let score_slicer ?(group_by=10) () =
       | Some s -> `output s
       | None -> if stopped then `end_of_stream else `not_ready)
     
+
+module Excn = struct
+  type foo = [ parse_error | `unnamed_sequence of string ]
+  exception Parse_error of foo
+
+  let sequence_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
+    let flip f x y = f y x in
+    (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
+    |! flip Biocaml_transform.compose (sequence_aggregator ())
+    |! Biocaml_transform.on_error ~f:(function `left x -> (x :> foo) | `right x -> (x :> foo))
+    |! Biocaml_transform.Pull_based.of_in_channel inp
+    |! Biocaml_transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Parse_error err)
+
+end
