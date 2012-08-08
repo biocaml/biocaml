@@ -1,5 +1,5 @@
 OASISFormat: 0.2
-Name:        Biocaml
+Name:        biocaml
 Version:     0.0
 Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
@@ -105,11 +105,14 @@ Executable wig_correlate
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
+Flag installdoc
+  Description: Install documentation
+  Default: false
 
 Document doclib
   Title:                API reference for Biocaml
   Type:                 ocamlbuild (0.2)
-  Install:              false
+  Install$:             flag(installdoc)
   BuildTools+:          ocamldoc
   XOCamlbuildPath:      src/lib
   XOCamlbuildLibraries: biocaml
