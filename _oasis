@@ -3,7 +3,7 @@ Name:        biocaml
 Version:     0.0
 Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
-Authors:     Ashish Agarwal, Christophe Troestler
+Authors:     Biocaml Team
 License:     LGPL with OCaml linking exception
 Plugins:     META (0.2), DevFiles (0.2)
 BuildTools:  ocamlbuild
