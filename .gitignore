@@ -12,3 +12,12 @@ setup.log
 .#*
 #*
 TAGS
+configure
+myocamlbuild.ml
+setup.ml
+src/ext/xmlm-1.0.2/src/META
+src/lib/META
+src/lib/biocaml.mllib
+src/lib/doclib.odocl
+src/ext/xmlm-1.0.2/src/biocamlxmlm.mllib
+src/lib/libbiocaml_stubs.clib
