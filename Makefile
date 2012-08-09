@@ -60,6 +60,3 @@ dist:
 	cd .. ; tar czf $(TARBALL_NAME).tgz $(patsubst %,$(CURR_DIR)/%,$(INSTALL_FILES))
 	cd .. ; md5sum $(TARBALL_NAME).tgz > $(TARBALL_NAME).tgz.md5
 	rm -rf doc
-
-foo:
-	echo $(CURR_DIR)
