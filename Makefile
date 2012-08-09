@@ -44,9 +44,21 @@ veryclean: clean distclean
 TAGS:
 	otags -o TAGS `find src -regex ".*\.ml"`
 
-CURR_DIR := `basename $(CURDIR)`
+CURR_DIR=$(shell basename $(CURDIR))
+PKG=biocaml
+VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
+TARBALL_NAME=$(PKG)-$(VERSION)
+INSTALL_FILES=Changes INSTALL LICENSE Makefile README.md _oasis _tags configure myocamlbuild.ml setup.ml doc src
 .PHONY: dist
-dist: clean distclean
+dist:
+	rm -f ../biocaml.tgz ../biocaml.tgz.md5
 	oasis setup
-	cd .. ; tar czf $(CURR_DIR).tgz $(CURR_DIR)
-	cd .. ; md5sum $(CURR_DIR).tgz > $(CURR_DIR).tgz.md5
+	make doc
+	mkdir doc
+	mv _build/src/lib/doclib.docdir doc/html
+	cd .. ; tar czf $(TARBALL_NAME).tgz $(patsubst %,$(CURR_DIR)/%,$(INSTALL_FILES))
+	cd .. ; md5sum $(TARBALL_NAME).tgz > $(TARBALL_NAME).tgz.md5
+	rm -rf doc
+
+foo:
+	echo $(CURR_DIR)
