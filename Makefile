@@ -39,7 +39,7 @@ setup.data:
 
 veryclean: clean distclean
 	rm -f TAGS configure myocamlbuild.ml setup.ml
-	rm -f src/ext/xmlm-1.0.2/src/META src/lib/META src/lib/biocaml.mllib src/lib/doclib.odocl src/ext/xmlm-1.0.2/src/biocamlxmlm.mllib src/lib/libbiocaml.cli src/lib/libbiocaml_stubs.clib
+	rm -f src/ext/xmlm-1.0.2/src/META src/lib/META src/lib/biocaml.mllib src/lib/doclib.odocl src/ext/xmlm-1.0.2/src/biocamlxmlm.mllib src/lib/libbiocaml_stubs.clib
 
 TAGS:
 	otags -o TAGS `find src -regex ".*\.ml"`
