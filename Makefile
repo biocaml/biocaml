@@ -37,7 +37,7 @@ setup.data:
 
 # OASIS_STOP
 
-tags:
+TAGS:
 	otags -o TAGS `find src -regex ".*\.ml"`
 
 CURR_DIR := `basename $(CURDIR)`
