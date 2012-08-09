@@ -14,7 +14,7 @@ Flag apps
 
 Flag tests
   Description: Build tests
-  Default: true
+  Default: false
 
 Library biocamlxmlm
   Path: src/ext/xmlm-1.0.2/src
