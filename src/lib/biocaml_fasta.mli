@@ -56,7 +56,7 @@ type error = [
 | `incomplete_input of Biocaml_pos.t * string list * string option
 | `malformed_partial_sequence of string
 | `unnamed_sequence of string
-| `unnamed_scores of float list ]
+| `unnamed_scores of int list ]
 
 module Exceptionful : sig
   exception Error of error
@@ -78,7 +78,7 @@ module Exceptionful : sig
     ?sharp_comments:bool ->
     ?semicolon_comments:bool ->
     in_channel ->
-    (string * float list) Stream.t
+    (string * int list) Stream.t
       (** [score_stream_of_file file] returns a stream of [(name,
           scores)] pairs. Initial comments are not provided. @raise
           Failure in case of any errors. *)
@@ -127,7 +127,7 @@ val score_parser :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   unit ->
-  (string, float list token, error) Biocaml_transform.t
+  (string, int list token, error) Biocaml_transform.t
 (** Parse a stream of strings as a sequence FASTA file.
     See [sequence_parser]. *)
 
@@ -140,7 +140,7 @@ val sequence_printer :
 val score_printer :
   ?comment_char:char ->
   unit ->
-  (float list token, string, Biocaml_transform.no_error) Biocaml_transform.t
+  (int list token, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Print scores. If [comment_char] is [None] comments will be ignored. *)
   
 val sequence_aggregator:
@@ -152,10 +152,10 @@ val sequence_aggregator:
 
 val score_aggregator:
   unit -> 
-  (float list token,
-   string * float list,
-   [ `unnamed_sequence of float list ]) Biocaml_transform.t
-(** Like [sequence_aggregator] but for [float list token]. *)
+  (int list token,
+   string * int list,
+   [ `unnamed_sequence of int list ]) Biocaml_transform.t
+(** Like [sequence_aggregator] but for [int list token]. *)
 
 val sequence_slicer: ?line_width:int -> unit ->
   (string * string, string token, Biocaml_transform.no_error) Biocaml_transform.t
@@ -163,8 +163,8 @@ val sequence_slicer: ?line_width:int -> unit ->
     where line are cut at [line_width] characters (default 80). *)
 
 val score_slicer: ?group_by:int -> unit ->
-  (string * float list, float list token, Biocaml_transform.no_error)
+  (string * int list, int list token, Biocaml_transform.no_error)
     Biocaml_transform.t
-(** Cut a stream of [(name, scores)] into a stream of [float list token]
+(** Cut a stream of [(name, scores)] into a stream of [int list token]
     where lists are cut at [group_by] numbers (default 10). *)
 
