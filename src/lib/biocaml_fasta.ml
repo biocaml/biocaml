@@ -12,7 +12,8 @@ type error = [
 | `empty_line of Pos.t
 | `incomplete_input of Pos.t * string list * string option
 | `malformed_partial_sequence of string
-| `unnamed_sequence of string ]
+| `unnamed_sequence of string
+| `unnamed_scores of float list ]
 
 let rec next ~parse_sequence
     ?(pedantic=true) ?(sharp_comments=true) ?(semicolon_comments=false) p =
@@ -181,6 +182,13 @@ module Exceptionful = struct
     (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
     |! flip Transform.compose (sequence_aggregator ())
     |! Transform.on_error ~f:(function `left x -> x | `right x -> x)
+    |! Transform.Pull_based.of_in_channel inp
+    |! Transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
+
+  let score_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
+    (score_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
+    |! flip Transform.compose (score_aggregator ()) (* : (string, string * float list, [`left error | `right [`unnamed_sequence of float list] ]) Transform.t *)
+    |! Transform.on_error ~f:(function `left x -> x | `right (`unnamed_sequence xs) -> `unnamed_scores xs)
     |! Transform.Pull_based.of_in_channel inp
     |! Transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
 

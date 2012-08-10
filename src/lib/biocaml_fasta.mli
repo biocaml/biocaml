@@ -55,7 +55,8 @@ type error = [
 | `empty_line of Biocaml_pos.t
 | `incomplete_input of Biocaml_pos.t * string list * string option
 | `malformed_partial_sequence of string
-| `unnamed_sequence of string ]
+| `unnamed_sequence of string
+| `unnamed_scores of float list ]
 
 module Exceptionful : sig
   exception Error of error
@@ -70,6 +71,18 @@ module Exceptionful : sig
       (** [sequence_stream_of_file file] returns a stream of [(name,
           sequence)] pairs. Initial comments are not provided. @raise
           Failure in case of any errors. *)
+
+  val score_stream_of_in_channel :
+    ?filename:string ->
+    ?pedantic:bool ->
+    ?sharp_comments:bool ->
+    ?semicolon_comments:bool ->
+    in_channel ->
+    (string * float list) Stream.t
+      (** [score_stream_of_file file] returns a stream of [(name,
+          scores)] pairs. Initial comments are not provided. @raise
+          Failure in case of any errors. *)
+
 end
 
 
