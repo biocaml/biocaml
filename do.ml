@@ -47,7 +47,8 @@ let setup_clean () =
   remove "src/lib/libbiocaml_stubs.clib";
   remove "src/lib/doclib.odocl";
   remove "src/lib/biocaml.mllib";
-  remove "setup.ml"
+  remove "setup.ml";
+  remove "TAGS"
 
   
 let setup () =
