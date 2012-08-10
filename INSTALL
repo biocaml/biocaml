@@ -38,9 +38,14 @@ Compile documentation with
 The root of the API documentation will be
 [here](doclib.docdir/index.html).
 
-Run tests with
+A few command line executables are provided. To build them, be sure to
+pass the --enable-apps option to -configure above. In this case, the
+apps will also be built when you run -build.
 
-    ocaml setup.ml test
+To run tests, be sure to pass the --enable-tests option to -configure
+above. Then run
+
+    ocaml setup.ml -test
 
 
 GNU Style Build
