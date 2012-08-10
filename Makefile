@@ -51,7 +51,6 @@ PKG_VERSION=$(PKG)-$(VERSION)
 INSTALL_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags configure myocamlbuild.ml setup.ml doc src
 .PHONY: dist
 dist:
-	rm -f ../biocaml.tgz ../biocaml.tgz.md5
 	oasis setup
 	perl -pi -e 's#$(HOME)##g' myocamlbuild.ml setup.ml
 	make doc
