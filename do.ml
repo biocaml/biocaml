@@ -54,7 +54,8 @@ let setup () =
   check_cwd ();
   setup_clean ();
   command "oasis setup";
-  command "echo 'true: annot' >> _tags"
+  command "echo 'true: annot' >> _tags";
+  command "cat src/etc/Makefile.post >> Makefile"
 
 let ocaml_toplevel () =
   let tmp = Filename.temp_file "ocamlinit" ".ml" in
