@@ -53,6 +53,7 @@ INSTALL_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags confi
 dist:
 	rm -f ../biocaml.tgz ../biocaml.tgz.md5
 	oasis setup
+	perl -pi -e 's#$(HOME)##g' myocamlbuild.ml setup.ml
 	make doc
 	mkdir doc
 	mv _build/src/lib/doclib.docdir doc/html
