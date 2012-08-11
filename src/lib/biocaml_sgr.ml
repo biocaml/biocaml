@@ -24,11 +24,10 @@ let to_chr_lists t =
 
 let of_channel ?(chr_map=identity) ?(increment_bp=0) cin =
   let parse_line' delim line =
-    let sl = String.split line delim in
-    let nth = List.nth sl in
-    match List.length sl with
-      | 3 -> chr_map (nth 0), int_of_string (nth 1) + increment_bp, float_of_string (nth 2)
-      | _ -> raise_bad "ill-formed line"
+    match String.split line delim with
+    | [c; i; f] ->
+       chr_map c, int_of_string i + increment_bp, float_of_string f
+    | _ -> raise_bad "ill-formed line"
   in
   let parse_line line =
     try parse_line' '\t' line
