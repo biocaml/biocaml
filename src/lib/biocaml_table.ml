@@ -31,9 +31,11 @@ let make_getter columns =
 let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let itags = Tags.of_string itags in
   let e = IO.lines_of cin in
-  if not (Tags.tag_is "table" "true" itags) then raise (Tags.Invalid "table=true tag required");
+  if not (Tags.tag_is "table" "true" itags) then
+    raise (Tags.Invalid "table=true tag required");
   let separator = Tags.find "separator" itags in
-
+  let separator = if String.length separator = 1 then separator.[0]
+                  else raise(Tags.Invalid "separator must be a char") in
   (* parse comments if needed and return enumeration starting after comments *)
   let comments, e =
     try
@@ -50,14 +52,14 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
     if Tags.tag_is "header" "true" itags then
       let columns = match Enum.get e with
         | None -> raise (Invalid "expected headers but reached end-of-input")
-        | Some s -> String.nsplit s separator
+        | Some s -> String.split s ~on:separator
       in
       (if Tags.tag_is "header_" "true" itags then
         match Enum.get e with
           | None -> raise (Invalid "expected header underline but reached end-of-input")
           | Some s ->
               let pred c = Char.is_whitespace c || c = '-' in
-              if s |> String.enum |> Enum.for_all ~f:pred then
+              if s |> BatString.enum |> Enum.for_all ~f:pred then
                 ()
               else
                 raise (Invalid "header line must consist of only whitespace or \'-\'") )
@@ -71,7 +73,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let columns = match columns_opt, Enum.peek e with
     | None, None -> []
     | None, Some s ->
-        (String.nsplit s separator
+        (String.split s separator
         |> List.length |> (fun n -> Enum.(0 -- (n-1)))
         |> Enum.map ~f:(fun i -> "column" ^ string_of_int i)
         |> List.of_enum)
@@ -81,7 +83,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   comments,
   columns,
   make_getter columns,
-  Enum.map (fun s -> Array.of_list(String.nsplit s separator)) e
+  Enum.map (fun s -> Array.of_list(String.split s separator)) e
 
 
 let of_string_list ?(itags="table,comment-char=#,header") ?comments ?columns rows =
