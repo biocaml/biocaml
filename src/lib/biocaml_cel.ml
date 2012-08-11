@@ -87,22 +87,21 @@ module Parser = struct
       | Some s -> s = sec_name
 
   let intensity_row s =
-    let sl = String.split s '\t' in
-    let to_int = int_of_string <<- String.strip <<- (List.nth sl) in
-    let to_float = float_of_string <<- String.strip <<- (List.nth sl) in
-      match List.length sl with
-        | 5 ->
+    let to_int s = int_of_string (String.strip s) in
+    let to_float s = float_of_string (String.strip s) in
+      match String.split s '\t' with
+      | [xcoord; ycoord; mean; stdv; npixels] ->
             {
-              xcoord = to_int 0;
-              ycoord = to_int 1;
+              xcoord = to_int xcoord;
+              ycoord = to_int ycoord;
               idata =
                 {
-                  mean = to_float 2;
-                  stdv = to_float 3;
-                  npixels = to_int 4
+                  mean = to_float mean;
+                  stdv = to_float stdv;
+                  npixels = to_int npixels
                 }
             }
-        | _ -> raise_bad "expecting 5 columns"
+      | _ -> raise_bad "expecting 5 columns"
             
   (** lines should point to beginning of intensity section,
       upon return lines will point to first blank line after data rows  *)
@@ -115,7 +114,7 @@ module Parser = struct
     Stream.junk lines;
     
     let sl = String.split (Stream.next lines) '=' in
-    let num_cells = (int_of_string <<- String.strip <<- (List.nth sl)) 1 in
+    let num_cells = int_of_string (String.strip (List.nth sl 1)) in
 
     let sl = String.split (Stream.next lines) '=' in
     let sl = String.split (List.nth sl 1) '\t' in
