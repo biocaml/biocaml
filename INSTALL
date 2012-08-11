@@ -7,10 +7,12 @@ The main Biocaml library depends on
 * ocaml (>= 3.12)
 * sqlite3
 * pcre
+* core
 * batteries
 * unix
 * threads
 * xmlm
+* ocamlzip
 
 At compile/install-time, you will also need
 * findlib
