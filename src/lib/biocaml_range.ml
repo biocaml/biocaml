@@ -14,7 +14,8 @@ let to_pair t = t.lo, t.hi
 let size v = v.hi - v.lo + 1
 let equal u v = u.lo = v.lo && u.hi = v.hi
 let member t k = t.lo <= k && k <= t.hi
-let to_string t = String.concat "" ["["; string_of_int t.lo; ", "; string_of_int t.hi; "]"]
+let to_string t = String.concat ["["; string_of_int t.lo; ", ";
+                                 string_of_int t.hi; "]"]
 let to_list v = List.init (size v) ((+) v.lo)
 let overlap u v = (min u.hi v.hi) - (max u.lo v.lo) + 1
 let gap u v = -(overlap u v)

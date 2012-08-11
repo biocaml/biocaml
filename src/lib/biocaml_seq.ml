@@ -42,13 +42,14 @@ let of_string_unsafe = String.uppercase <<- String.copy
 let to_string = String.copy
 let nth t i = String.get t (i-1)
 let length = String.length
-let fold_left = String.fold_left
-let fold_lefti f s = String.fold_lefti ~f s
-let fold_right = String.fold_right
+(* FIXME: conform Core "t must come first" and have the same names *)
+let fold_left f init s = String.fold s ~init ~f
+let fold_lefti f init s = String.foldi s ~init ~f:(fun i a c -> f a i c)
 
+(* FIXME: should have the same semantics as String.slice (otherwise
+   this is error prone). *)
 let slice first last t =
   if first < 1 || last > String.length t || first > last then
     failwith "requesting invalid slice from sequence"
   else
-    let first = first - 1 in
-    String.slice ~first ~last t
+    String.slice t (first - 1) last
