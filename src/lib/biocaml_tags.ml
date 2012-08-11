@@ -37,7 +37,7 @@ module Cst = struct
               s, "true"
                 
   let of_string s : t =
-    s |> String.nsplit ~by:"," |> List.map parse_tag
+    String.nsplit s "," |> List.map parse_tag
 end
 
 type tag = string * string

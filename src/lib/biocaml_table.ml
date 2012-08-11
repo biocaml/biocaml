@@ -71,8 +71,7 @@ let of_input ?(itags="table,comment-char=#,header,header_,separator=\\t") cin =
   let columns = match columns_opt, Enum.peek e with
     | None, None -> []
     | None, Some s ->
-        (s
-        |> String.nsplit ~by:separator
+        (String.nsplit s separator
         |> List.length |> (fun n -> Enum.(0 -- (n-1)))
         |> Enum.map ~f:(fun i -> "column" ^ string_of_int i)
         |> List.of_enum)
