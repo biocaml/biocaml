@@ -80,10 +80,10 @@ let score_parser () =
   assert_bool "Name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   ignore (TS.next stream);
   assert_bool "Sequence 2"
-    (TS.next stream = `output (`partial_sequence [42.; 43.]));
+    (TS.next stream = `output (`partial_sequence [42; 43]));
   ignore (TS.next stream);
   assert_bool "Sequence 3"
-    (TS.next stream = `output (`partial_sequence [32.; 32.; 32.]));
+    (TS.next stream = `output (`partial_sequence [32; 32; 32]));
   assert_bool "Error in sequence (score_parser)"
     (match TS.next stream with `error (`malformed_partial_sequence _) -> true
     | _ -> false);
@@ -131,15 +131,15 @@ let score_aggregator () =
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "scoaggr: 1"
     (TS.next stream = `output ("sequence 1|sid=4",
-                               [42.; 42.; 224354.; 54325.543;
-                                543.54544; 543554.; 42.; 43.]));
+                               [42; 42; 224354; 54325543;
+                                54354544; 543554; 42; 43]));
   assert_bool "Error score_aggregator -> error"
     (match TS.next stream with
     | `error (`left (`malformed_partial_sequence _)) -> true
     | _ -> false);
   (* After reporting the error the aggregator continues with what it has... *)
   assert_bool "scoaggr: 2"
-    (TS.next stream = `output ("sequence 2|sid=42", [32.; 32.; 32.]));
+    (TS.next stream = `output ("sequence 2|sid=42", [32; 32; 32]));
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()
@@ -197,12 +197,12 @@ let score_slicer () =
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (TS.next stream = `output (`partial_sequence
-                                                     [42.; 42.; 224354.;]));
+                                                     [42; 42; 224354;]));
   assert_bool "sco: 2" (TS.next stream = `output (`partial_sequence
-                                                     [54325.543; 543.54544;
-                                                      543554.;]));
+                                                     [54325543; 54354544;
+                                                      543554;]));
   assert_bool "sco: 3" (TS.next stream = `output (`partial_sequence
-                                                     [42.; 43.]));
+                                                     [42; 43]));
 
   assert_bool "Error score_slicer -> error"
     (match TS.next stream with
@@ -211,7 +211,7 @@ let score_slicer () =
   (* After reporting the error the aggregator continues with what it has... *)
   assert_bool "name 2" (TS.next stream = `output (`header "sequence 2|sid=42"));
   assert_bool "sco: 4" (TS.next stream = `output (`partial_sequence
-                                                     [32.; 32.; 32.]));
+                                                     [32; 32; 32]));
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()
