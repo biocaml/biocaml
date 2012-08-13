@@ -10,11 +10,11 @@ let make_stream file =
   stream
 
 let test_parsing_01 stream =
-  assert_bool "Name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "Name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   assert_bool "Sequence 1" (TS.next stream =
       `output (`partial_sequence "ATACTGCATGATCGATCGATCG"));
   ignore (TS.next stream);
-  assert_bool "Name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
+  assert_bool "Name 2" (TS.next stream = `output (`header "sequence 2|sid=42"));
   ignore (TS.next stream);
   assert_bool "Non-EOF" (TS.next stream <> `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
@@ -40,7 +40,7 @@ let get_empty_line_error_after_two stream =
   ()
   
 let malformed stream =
-  assert_bool "Name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "Name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   assert_bool "Error because of malformed sequence (fasta_04.fa)"
     (match TS.next stream with `error (`malformed_partial_sequence _) -> true
     | _ -> false);
@@ -77,13 +77,13 @@ let score_parser () =
       ~sharp_comments:true ~semicolon_comments:true () in
   let stream = TS.of_file ~buffer_size:100 "src/tests/data/fasta_05.fa" parser in
   parse_comments stream;
-  assert_bool "Name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "Name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   ignore (TS.next stream);
   assert_bool "Sequence 2"
-    (TS.next stream = `output (`partial_sequence [42.; 43.]));
+    (TS.next stream = `output (`partial_sequence [42; 43]));
   ignore (TS.next stream);
   assert_bool "Sequence 3"
-    (TS.next stream = `output (`partial_sequence [32.; 32.; 32.]));
+    (TS.next stream = `output (`partial_sequence [32; 32; 32]));
   assert_bool "Error in sequence (score_parser)"
     (match TS.next stream with `error (`malformed_partial_sequence _) -> true
     | _ -> false);
@@ -131,15 +131,15 @@ let score_aggregator () =
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "scoaggr: 1"
     (TS.next stream = `output ("sequence 1|sid=4",
-                               [42.; 42.; 224354.; 54325.543;
-                                543.54544; 543554.; 42.; 43.]));
+                               [42; 42; 224354; 54325543;
+                                54354544; 543554; 42; 43]));
   assert_bool "Error score_aggregator -> error"
     (match TS.next stream with
     | `error (`left (`malformed_partial_sequence _)) -> true
     | _ -> false);
   (* After reporting the error the aggregator continues with what it has... *)
   assert_bool "scoaggr: 2"
-    (TS.next stream = `output ("sequence 2|sid=42", [32.; 32.; 32.]));
+    (TS.next stream = `output ("sequence 2|sid=42", [32; 32; 32]));
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()
@@ -157,7 +157,7 @@ let sequence_slicer_stream file =
 
 let sequence_slicer () =
   let stream = sequence_slicer_stream "src/tests/data/fasta_02.fa" in
-  assert_bool "name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   assert_bool "seq ATAC" (TS.next stream = `output (`partial_sequence "ATAC"));
   assert_bool "seq TGCA" (TS.next stream = `output (`partial_sequence "TGCA"));
   assert_bool "seq TGAT" (TS.next stream = `output (`partial_sequence "TGAT"));
@@ -170,7 +170,7 @@ let sequence_slicer () =
   assert_bool "seq ATCG" (TS.next stream = `output (`partial_sequence "ATCG"));
   assert_bool "seq AT  " (TS.next stream = `output (`partial_sequence "AT"));
 
-  assert_bool "name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
+  assert_bool "name 2" (TS.next stream = `output (`header "sequence 2|sid=42"));
   assert_bool "seq ATCG" (TS.next stream = `output (`partial_sequence "ATCG"));
   assert_bool "seq TACT" (TS.next stream = `output (`partial_sequence "TACT"));
   assert_bool "seq GACT" (TS.next stream = `output (`partial_sequence "GACT"));
@@ -195,23 +195,23 @@ let score_slicer () =
   let transform =
     Biocaml_transform.(compose (compose parser aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
-  assert_bool "name 1" (TS.next stream = `output (`name "sequence 1|sid=4"));
+  assert_bool "name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (TS.next stream = `output (`partial_sequence
-                                                     [42.; 42.; 224354.;]));
+                                                     [42; 42; 224354;]));
   assert_bool "sco: 2" (TS.next stream = `output (`partial_sequence
-                                                     [54325.543; 543.54544;
-                                                      543554.;]));
+                                                     [54325543; 54354544;
+                                                      543554;]));
   assert_bool "sco: 3" (TS.next stream = `output (`partial_sequence
-                                                     [42.; 43.]));
+                                                     [42; 43]));
 
   assert_bool "Error score_slicer -> error"
     (match TS.next stream with
     | `error (`left (`left (`malformed_partial_sequence _))) -> true
     | _ -> false);
   (* After reporting the error the aggregator continues with what it has... *)
-  assert_bool "name 2" (TS.next stream = `output (`name "sequence 2|sid=42"));
+  assert_bool "name 2" (TS.next stream = `output (`header "sequence 2|sid=42"));
   assert_bool "sco: 4" (TS.next stream = `output (`partial_sequence
-                                                     [32.; 32.; 32.]));
+                                                     [32; 32; 32]));
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   assert_bool "EOF" (TS.next stream = `end_of_stream);
   ()

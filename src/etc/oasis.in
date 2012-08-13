@@ -1,9 +1,9 @@
 OASISFormat: 0.2
 Name:        biocaml
-Version:     0.0
+Version:     0.2-dev
 Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
-Authors:     Ashish Agarwal, Christophe Troestler
+Authors:     Biocaml Team
 License:     LGPL with OCaml linking exception
 Plugins:     META (0.2), DevFiles (0.2)
 BuildTools:  ocamlbuild
@@ -23,7 +23,7 @@ Flag tests
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: core, threads, zip, sqlite3, unix, batteries, xmlm
+  BuildDepends: core, threads, camlzip_findlib, sqlite3, unix, batteries, xmlm
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
