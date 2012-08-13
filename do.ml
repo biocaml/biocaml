@@ -2,7 +2,7 @@
 
 #use "topfind"
 #thread
-#require "core"
+#require "core_extended"
 open Core.Std
 
 open Printf
@@ -11,6 +11,14 @@ let command fmt =
   let f x =
     printf "Running %S\n%!" x;
     ignore (Sys.command x)
+  in
+  ksprintf f fmt
+
+let command_stdout fmt =
+  let f x =
+    printf "Running %S\n%!" x;
+    let res = Core_extended.Shell.sh_full ~echo:false "%s" x in
+    res
   in
   ksprintf f fmt
 
@@ -39,8 +47,8 @@ let help () =
   ()
     
 let check_cwd () =
-  if Sys.file_exists "_oasis" = `No then
-    failwith "Wrong working directory: There is no _oasis file"
+  if Sys.file_exists "src/lib/biocaml.ml" = `No then
+    failwith "Wrong working directory: There is no src/lib/biocaml.ml file"
   
 let setup_clean () =
   check_cwd ();
@@ -56,12 +64,21 @@ let setup_clean () =
   remove "src/lib/doclib.odocl";
   remove "src/lib/biocaml.mllib";
   remove "setup.ml";
+  remove "_oasis";
   remove "TAGS"
 
   
 let setup () =
   check_cwd ();
   setup_clean ();
+  let camlzip_findlib_name =
+    match command_stdout "ocamlfind list | grep zip" with
+    | s when String.is_prefix s ~prefix:"zip" -> "zip"
+    | s when String.is_prefix s ~prefix:"camlzip" -> "camlzip"
+    | any -> failwithf "Cannot find Camlzip findlib name: %S" any ()
+  in
+  command "sed 's/camlzip_findlib/%s/' src/etc/oasis.in > _oasis"
+    camlzip_findlib_name;
   command "oasis setup";
   command "echo 'true: annot' >> _tags";
   command "cat src/etc/Makefile.post >> Makefile"
