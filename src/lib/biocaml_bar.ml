@@ -42,37 +42,36 @@ let to_list (_,sections) =
       
 module Parser = struct
   let junk_blank_lines lines =
-    Stream.skip_while (String.for_all ~f:Char.is_space) lines
+    Stream.skip_while (String.for_all ~f:Char.is_whitespace) lines
 
   let tag_value (s':string) : string * string =
-    let s = String.strip (String.lchop s') in
-    let tv = String.nsplit s "\t" in
-      if List.length tv = 2
-      then (List.nth tv 0, List.nth tv 1)
-      else raise_bad (sprintf "invalid tag-value pair %s" s')
+    let s = String.strip (String.drop_prefix s' 1) in
+    match String.split s '\t' with
+    | [t; v] -> (t, v)
+    | _ -> raise_bad (sprintf "invalid tag-value pair %s" s')
       
   (* lines should point to beginning of file, upon return will point to start of first section *)
   let header lines =
-    let lines' = Stream.keep_while (fun s -> not (String.for_all Char.is_space s)) lines in
+    let lines' = Stream.keep_while
+                   (fun s -> not (String.for_all Char.is_whitespace s)) lines in
     let f accum l = (tag_value l)::accum in
     let ans = List.rev (Stream.fold f [] lines') in
       junk_blank_lines lines; ans
 
   (* lines should point to start of a section, upon return will point to start of next section or end of file *)
   let section lines =
-    let tv lines = tag_value (Stream.next lines) in
-    let seq_num = (int_of_string <<- snd <<- tv) lines in
-    let seq_name = (snd <<- tv) lines in
-    let num_hits = (int_of_string <<- snd <<- tv) lines in
-    let _ = junk_blank_lines lines in
+    let tv lines = snd (tag_value (Stream.next lines)) in
+    let seq_num = int_of_string (tv lines) in
+    let seq_name = tv lines in
+    let num_hits = int_of_string (tv lines) in
+    junk_blank_lines lines;
 
-    let lines' = Stream.keep_while (fun s -> not (String.for_all Char.is_space s)) lines in
+    let lines' = Stream.keep_while
+                   (fun s -> not (String.for_all Char.is_whitespace s)) lines in
     let parse_line s =
-      let sl = String.nsplit s "\t" in
-        if List.length sl = 2 then
-          (int_of_string (List.nth sl 0), float_of_string (List.nth sl 1))
-        else
-          raise_bad ("data row must contain exactly two fields")
+      match String.split s '\t' with
+      | [i; f] -> (int_of_string i, float_of_string f)
+      | _ -> raise_bad ("data row must contain exactly two fields")
     in
     let data = Stream.to_list (Stream.map parse_line lines') in
     let data = List.sort ~cmp:(fun (p1,_) (p2,_) -> Pervasives.compare p1 p2) data in

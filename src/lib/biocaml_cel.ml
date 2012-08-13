@@ -74,7 +74,7 @@ module Parser = struct
     let l = String.length s in
       if l < 2 || not (s.[0] = '[' && s.[l-1] = ']')
       then None
-      else Some (String.slice ~first:1 ~last:(l-1) s)
+      else Some (String.slice s 1 (l-1))
         
   let section_name_exn s =
     match section_name s with 
@@ -87,22 +87,21 @@ module Parser = struct
       | Some s -> s = sec_name
 
   let intensity_row s =
-    let sl = String.nsplit s "\t" in
-    let to_int = int_of_string <<- String.strip <<- (List.nth sl) in
-    let to_float = float_of_string <<- String.strip <<- (List.nth sl) in
-      match List.length sl with
-        | 5 ->
+    let to_int s = int_of_string (String.strip s) in
+    let to_float s = float_of_string (String.strip s) in
+      match String.split s '\t' with
+      | [xcoord; ycoord; mean; stdv; npixels] ->
             {
-              xcoord = to_int 0;
-              ycoord = to_int 1;
+              xcoord = to_int xcoord;
+              ycoord = to_int ycoord;
               idata =
                 {
-                  mean = to_float 2;
-                  stdv = to_float 3;
-                  npixels = to_int 4
+                  mean = to_float mean;
+                  stdv = to_float stdv;
+                  npixels = to_int npixels
                 }
             }
-        | _ -> raise_bad "expecting 5 columns"
+      | _ -> raise_bad "expecting 5 columns"
             
   (** lines should point to beginning of intensity section,
       upon return lines will point to first blank line after data rows  *)
@@ -114,15 +113,17 @@ module Parser = struct
     );
     Stream.junk lines;
     
-    let sl = String.nsplit (Stream.next lines) "=" in
-    let num_cells = (int_of_string <<- String.strip <<- (List.nth sl)) 1 in
+    let sl = String.split (Stream.next lines) '=' in
+    let num_cells = int_of_string (String.strip (List.nth sl 1)) in
 
-    let sl = String.nsplit (Stream.next lines) "=" in
-    let sl = String.nsplit (List.nth sl 1) "\t" in
+    let sl = String.split (Stream.next lines) '=' in
+    let sl = String.split (List.nth sl 1) '\t' in
     let sl = List.map String.strip sl in
-    let _ = if sl <> icolumns then raise_bad "intensity section column names incorrect" else () in
+    let _ = if sl <> icolumns then
+              raise_bad "intensity section column names incorrect" in
 
-    let lines = Stream.keep_while (not <<- (String.for_all ~f:Char.is_space)) lines in
+    let lines = Stream.keep_while
+                  (not <<- (String.for_all ~f:Char.is_whitespace)) lines in
     let lines = Stream.map intensity_row lines in
     let ans = Stream.to_list lines in
     let count = List.length ans in

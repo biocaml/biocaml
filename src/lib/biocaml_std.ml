@@ -46,29 +46,20 @@ module List = struct
 end
 
 module String = struct
-  include StringLabels
-  include BatString
-  include BatString.Exceptionless
+  let strip_final_cr s =
+    let l = String.length s in
+    if l > 0 && s.[l-1] = '\r'
+    then String.sub s 0 (l-1)
+    else s
+
+  include Core.Core_string
 
   (* String.for_all was in Sesame and heavily used in Biocaml. *)
   let for_all ~f s =
-    fold_left (fun b c -> b && f c) true s
+    fold ~f:(fun b c -> b && f c) ~init:true s
 
   let exists ~f s =
-    fold_left (fun ans c -> f c || ans) false s
-
-  let strip_final_cr s =
-    let l = length s in
-    if l > 0 && s.[l-1] = '\r'
-    then sub s 0 (l-1)
-    else s
-
-  let fold_lefti ~f acc str = 
-    let r = ref acc in
-    for i = 0 to (String.length str - 1) do
-      r := f !r i str.[i]
-    done;
-    !r
+    fold ~f:(fun ans c -> f c || ans) ~init:false s
 
 end
 
@@ -87,14 +78,7 @@ module Array = struct
       for_all lengthEqualsFirstLength allLengths
 end
 
-
-module Char = struct
-  include BatChar
-
-  let is_space = is_whitespace
-  let is_alpha_num c = is_letter c || is_digit c
-
-end
+module Char = Core.Core_char
 
 module Enum = struct
   include BatEnum

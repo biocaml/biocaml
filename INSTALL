@@ -7,10 +7,12 @@ The main Biocaml library depends on
 * ocaml (>= 3.12)
 * sqlite3
 * pcre
+* core
 * batteries
 * unix
 * threads
 * xmlm
+* ocamlzip
 
 At compile/install-time, you will also need
 * findlib
@@ -24,44 +26,45 @@ Tests additionally depend on
 
 Installing
 ==========
-
-Quickstart
-----------
-Uncompress the source archive, go to the root of the
-package, then run
+Uncompress the source archive, go to the root of the package, then run
 
     ocaml setup.ml -configure
     ocaml setup.ml -build
-    ocaml setup.ml -doc
     ocaml setup.ml -install
 
-Additional Details
-------------------
-For each of the above commands, add --help to see additional
-options. In particular, unless you are installing as root, you will
-likely need to set --bindir in the -configure step. For example
+For each of the above commands, add --help to see additional options.
 
-    ocaml setup.ml -configure --bindir ~/bin
+Compile documentation with
 
-The -doc step can be omitted if you do not need to generate
-documentation. If you do generate it, the root of the API
-documentation is [here](doclib.docdir/index.html). Documentation is
-not part of the -install step. Simply copy the directory elsewhere if
-you wish.
+    ocaml setup.ml -doc
 
-Makefile:
-Support for make is provided for those who prefer it. Commands
-corresponding directly to the ones above are available.
+The root of the API documentation will be
+[here](doclib.docdir/index.html).
 
-Otags:
-Run 'make otags' to generate a TAGS file for use emacs or vi/vim. In
-this case, you will also need the otags tool to be installed in your
-path.
+A few command line executables are provided. To build them, be sure to
+pass the --enable-apps option to -configure above. In this case, the
+apps will also be built when you run -build.
+
+To run tests, be sure to pass the --enable-tests option to -configure
+above. Then run
+
+    ocaml setup.ml -test
+
+
+GNU Style Build
+---------------
+A configure script and Makefile are provided if you prefer a
+traditional GNU style build system. You can use them instead of the
+above commands, but the options for configuring may not be as
+complete.
+
+Tags
+----
+Run 'make TAGS' to generate a TAGS file for use with emacs or
+vi/vim. In this case, you will also need the otags tool to be
+installed in your path.
 
 
 Uninstalling
 ============
-
-Go to the root of the package, and run
-
-    ocaml setup.ml -uninstall
+Run: ocaml setup.ml -uninstall
