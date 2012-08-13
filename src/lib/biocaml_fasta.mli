@@ -83,7 +83,7 @@ end
     - `header _ - a single header line without the initial '>',
     whitespace following this, nor final newline
 
-    - `sequence _ - Either a sequence of characters, represented as a
+    - `partial_sequence _ - Either a sequence of characters, represented as a
     string, or a sequence of space separated integers, represented by
     an [int list]. The value does not necessarily carry the complete
     content associated with a header. It may be only part of the
@@ -92,7 +92,7 @@ end
 type 'a token = [
 | `comment of string
 | `header of string
-| `sequence of 'a
+| `partial_sequence of 'a
 ]
 
 val sequence_parser :

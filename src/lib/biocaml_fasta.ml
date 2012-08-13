@@ -5,7 +5,7 @@ module Transform = Biocaml_transform
 type 'a token = [
 | `comment of string
 | `header of string
-| `sequence of 'a
+| `partial_sequence of 'a
 ]
   
 type error = [
@@ -46,7 +46,7 @@ let parse_string_sequence ~pedantic l =
   if pedantic && String.exists l
     ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
   then `error (`malformed_partial_sequence l)
-  else `output (`sequence l)
+  else `output (`partial_sequence l)
 
 let sequence_parser = generic_parser ~parse_sequence:parse_string_sequence
 
@@ -54,7 +54,7 @@ let sequence_parser = generic_parser ~parse_sequence:parse_string_sequence
 let parse_float_sequence ~pedantic l =
   let exploded = String.split ~on:' ' l in
   try
-    `output (`sequence 
+    `output (`partial_sequence 
                 (List.filter_map exploded (function
                 | "" -> None
                 | s -> Some (Float.of_string s))))
@@ -70,7 +70,7 @@ let printer ~to_string ?comment_char () =
     | `comment c ->
       Option.value_map comment_char ~default:"" ~f:(fun o -> sprintf "%c%s\n" o c)
     | `header n -> ">" ^ n ^ "\n"
-    | `sequence s -> (to_string s) ^ "\n") () in
+    | `partial_sequence s -> (to_string s) ^ "\n") () in
   Transform.make_stoppable ~name:"fasta_printer" ()
     ~feed:(fun r -> PQ.feed printer r)
     ~next:(fun stopped ->
@@ -92,7 +92,7 @@ let generic_aggregator ~flush ~add ~is_empty () =
     | `header n ->
       Queue.enqueue result (!current_name, flush ());
       current_name := Some n;
-    | `sequence s -> add s
+    | `partial_sequence s -> add s
     | `comment c -> ())
     ~next:(fun stopped ->
       match Queue.dequeue result with
@@ -142,10 +142,10 @@ let sequence_slicer ?(line_width=80) () =
       let rec loop idx =
         if idx + line_width >= String.length seq then (
           Queue.enqueue queue
-            (`sequence String.(sub seq idx (length seq - idx)));
+            (`partial_sequence String.(sub seq idx (length seq - idx)));
         ) else (
           Queue.enqueue queue
-            (`sequence String.(sub seq idx line_width));
+            (`partial_sequence String.(sub seq idx line_width));
           loop (idx + line_width);
         ) in
       loop 0)
@@ -162,9 +162,9 @@ let score_slicer ?(group_by=10) () =
       let rec loop l =
         match List.split_n l group_by with
         | finish, [] -> 
-          Queue.enqueue queue (`sequence finish);
+          Queue.enqueue queue (`partial_sequence finish);
         | some, rest ->
-          Queue.enqueue queue (`sequence some);
+          Queue.enqueue queue (`partial_sequence some);
           loop rest
       in
       loop seq)
@@ -177,7 +177,8 @@ let score_slicer ?(group_by=10) () =
 module Exceptionful = struct
   exception Error of error
 
-  let sequence_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
+  let sequence_stream_of_in_channel ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp =
     (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
     |! flip Transform.compose (sequence_aggregator ())
     |! Transform.on_error ~f:(function `left x -> x | `right x -> x)
