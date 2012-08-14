@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-  
+
 type unzip_error =
 [ `garbage_at_end_of_compressed_data of string
 | `wrong_gzip_header of
@@ -11,11 +11,11 @@ let try_skip_gzip_header_exn buffer =
   let ignore_bytes n = bytes_read := !bytes_read + n in
   let assert_byte f error =
     let byte = (Char.to_int buffer.[!bytes_read]) in
-    if f byte 
+    if f byte
     then (incr bytes_read; return byte)
     else fail (`wrong_gzip_header (error, byte)) in
   let assert_byte_eq b error = assert_byte ((=) b) error in
-  let read_byte () = 
+  let read_byte () =
     let byte = (Char.to_int buffer.[!bytes_read]) in
     (incr bytes_read; return byte) in
   let rec skip_null_terminated () =
@@ -45,7 +45,7 @@ let try_skip_gzip_header_exn buffer =
   return !bytes_read
 
 let inflate_as_much_as_possible in_buffer buffer
-    zstream zlib_write_buffer zlib_buffer_size format = 
+    zstream zlib_write_buffer zlib_buffer_size format =
   let len = String.length buffer in
   let try_to_output  used_out =
     if used_out > 0
@@ -66,7 +66,7 @@ let inflate_as_much_as_possible in_buffer buffer
           Buffer.add_string in_buffer
             String.(sub buffer (used_in + 8) (len - used_in - 8));
         `finished_gzip (try_to_output used_out)
-      | `gzip -> 
+      | `gzip ->
         Buffer.add_string in_buffer
           String.(sub buffer used_in (len - used_in));
         try_to_output used_out
@@ -79,7 +79,7 @@ let inflate_as_much_as_possible in_buffer buffer
       try_to_output used_out
     )
   ) else try_to_output used_out
-  
+
 let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
   let zstream =  ref (Zlib.inflate_init false) in
   let in_buffer = Buffer.create 42 in
@@ -92,7 +92,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
     Buffer.clear in_buffer;
     begin match len with
     | 0 -> if stopped then `end_of_stream else `not_ready
-    | _ -> 
+    | _ ->
       begin match !current_state with
       | `inflate ->
         let inflation =
@@ -111,13 +111,13 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
         begin
           try
             match try_skip_gzip_header_exn buffered with
-            | Ok bytes_read -> 
+            | Ok bytes_read ->
               current_state := `inflate;
               Buffer.add_string in_buffer
                 String.(sub buffered bytes_read (len - bytes_read));
               next stopped
             | Error e -> `error e
-          with 
+          with
             e -> Buffer.add_string in_buffer buffered; `not_ready
         end
       end
