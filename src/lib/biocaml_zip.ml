@@ -42,7 +42,10 @@ let try_skip_gzip_header_exn buffer =
     (* Skip header CRC *)
     ignore_bytes 2;
   end;
-  return !bytes_read
+  if !bytes_read > String.length buffer then
+    failwith "NOT-YET"
+  else
+    return !bytes_read
 
 let inflate_as_much_as_possible in_buffer buffer
     zstream zlib_write_buffer zlib_buffer_size format =
