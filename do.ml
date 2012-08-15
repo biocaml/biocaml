@@ -29,6 +29,10 @@ let remove file =
     printf "Removed %s\n%!" file;
   | `No | `Unknown -> 
     printf "No %s to remove\n%!" file
+
+let rec drop_last = function
+  | [] | [_] -> []
+  | a :: tl -> a :: drop_last tl
       
     
 let usage ch =
@@ -80,7 +84,10 @@ let setup () =
     (camlzip_findlib_name());
   command "oasis setup";
   command "echo 'true: annot' >> _tags";
-  command "cat src/etc/Makefile.post >> Makefile"
+  command "cat src/etc/Makefile.post >> Makefile";
+  let myocamlbuild = drop_last(In_channel.read_lines "myocamlbuild.ml") in
+  let myocamlbuild_post = In_channel.read_lines "myocamlbuild.post.ml" in
+  Out_channel.write_lines "myocamlbuild.ml" (myocamlbuild @ myocamlbuild_post)
 
 let ocaml_toplevel () =
   let tmp = Filename.temp_file "ocamlinit" ".ml" in
