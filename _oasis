@@ -1,0 +1,137 @@
+OASISFormat: 0.2
+Name:        biocaml
+Version:     0.2-dev
+Synopsis:    The OCaml Bioinformatics Library
+Homepage:    http://biocaml.org
+Authors:     Biocaml Team
+License:     LGPL with OCaml linking exception
+Plugins:     META (0.2), DevFiles (0.2)
+BuildTools:  ocamlbuild
+
+Flag lwt
+  Description: Build Lwt dependencies
+  Default: false
+  
+Flag apps
+  Description: Build apps
+  Default: false
+
+Flag tests
+  Description: Build tests
+  Default: false
+
+Library biocaml
+  Path: src/lib
+  FindlibName: biocaml
+  BuildDepends: core, threads, camlzip, sqlite3, unix, batteries, xmlm
+  Install: true
+  Modules: Biocaml
+           , Biocaml_internal_pervasives
+           , Biocaml_transform
+           , Biocaml_msg
+           , Biocaml_zip
+           , Biocaml_pos
+           , Biocaml_std
+           , Biocaml_about
+           , Biocaml_accu
+           , Biocaml_bar
+           , Biocaml_bed
+           , Biocaml_bpmap
+           , Biocaml_cel
+           , Biocaml_chrName
+           , Biocaml_comments
+           , Biocaml_common
+           , Biocaml_fasta
+           , Biocaml_fastq
+           , Biocaml_genomeMap
+           , Biocaml_gff
+           , Biocaml_histogram
+           , Biocaml_intervalTree
+           , Biocaml_invokeCmdline
+           , Biocaml_math
+           , Biocaml_phredScore
+           , Biocaml_pwm
+           , Biocaml_range
+           , Biocaml_roc
+           , Biocaml_romanNum
+           , Biocaml_rSet
+           , Biocaml_sam
+           , Biocaml_sbml
+           , Biocaml_seq
+           , Biocaml_solexaScore
+           , Biocaml_sgr
+           , Biocaml_strandName
+           , Biocaml_table
+           , Biocaml_track
+           , Biocaml_tags
+           , Biocaml_util
+           , Biocaml_wig
+           , Biocaml_mzData
+  CSources: biocaml_pwm_stub.c, biocaml_mzData_stubs.c
+  CCOpt: -O3
+
+Executable gff_counts
+  Path:   src/app
+  MainIs: gff_counts.ml
+  Build$: flag(apps)
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable gff_to_bed
+  Path:   src/app
+  MainIs: gff_to_bed.ml
+  Build$: flag(apps)
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable gff_to_table
+  Path:   src/app
+  MainIs: gff_to_table.ml
+  Build$: flag(apps)
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable sgr_to_wig
+  Path:   src/app
+  MainIs: sgr_to_wig.ml
+  Build$: flag(apps)
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Executable wig_correlate
+  Path:   src/app
+  MainIs: wig_correlate.ml
+  Build$: flag(apps)
+  BuildDepends: getopt, biocaml
+  CompiledObject: best
+
+Flag installdoc
+  Description: Install documentation
+  Default: false
+
+Document doclib
+  Title:                API reference for Biocaml
+  Type:                 ocamlbuild (0.2)
+  Install$:             flag(installdoc)
+  BuildTools+:          ocamldoc
+  XOCamlbuildPath:      src/lib
+  XOCamlbuildLibraries: biocaml
+
+Executable tests_main
+  Path:			src/tests
+  MainIs:       	main.ml
+  Install:      	false
+  CompiledObject: 	native
+  Build$:		flag(tests)
+  BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
+
+Executable lwt_tests
+  Path: src/lwt_tests
+  MainIs: main.ml
+  Install:      	false
+  CompiledObject: 	native
+  Build$:		flag(lwt)
+  BuildDepends: biocaml, lwt.unix
+  
+Test main
+  Command: $tests_main

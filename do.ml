@@ -87,7 +87,7 @@ let setup () =
   command "cat src/etc/Makefile.post >> Makefile";
   let myocamlbuild = keep_until "(* OASIS_STOP *)"
                                 (In_channel.read_lines "myocamlbuild.ml") in
-  let myocamlbuild_post = In_channel.read_lines "myocamlbuild.post.ml" in
+  let myocamlbuild_post = In_channel.read_lines "src/etc/myocamlbuild.post.ml" in
   Out_channel.write_lines "myocamlbuild.ml" (myocamlbuild @ myocamlbuild_post)
 
 let ocaml_toplevel () =
