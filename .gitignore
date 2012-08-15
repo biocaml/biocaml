@@ -12,6 +12,7 @@ setup.log
 .#*
 #*
 TAGS
+myocamlbuild.ml
 _tags
 Makefile
 configure
