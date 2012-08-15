@@ -16,8 +16,7 @@ let column m i =
 
 let transpose a =
   assert (is_rectangular a);
-  if length a = 0 then [||] 
-  else if length a.(0) = 0 then failwith "cannot transpose matrix with empty rows"
+  if length a = 0 || length a.(0) = 0 then [| |]
   else
     let ans = make_matrix (length a.(0)) (length a) a.(0).(0) in
     for i = 0 to length a - 1 do
