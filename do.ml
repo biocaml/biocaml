@@ -29,6 +29,10 @@ let remove file =
     printf "Removed %s\n%!" file;
   | `No | `Unknown -> 
     printf "No %s to remove\n%!" file
+
+let rec keep_until last = function
+  | [] | [_] -> []
+  | a :: tl -> if a = last then [a] else a :: keep_until last tl
       
     
 let usage ch =
@@ -53,7 +57,6 @@ let check_cwd () =
 let setup_clean () =
   check_cwd ();
   command "oasis setup-clean";
-  remove "myocamlbuild.ml";
   remove "setup.data";
   remove "setup.log";
   remove "_tags";
@@ -67,21 +70,25 @@ let setup_clean () =
   remove "_oasis";
   remove "TAGS"
 
-  
+
+let camlzip_findlib_name() =
+  match command_stdout "ocamlfind list | grep zip" with
+  | s when String.is_prefix s ~prefix:"zip" -> "zip"
+  | s when String.is_prefix s ~prefix:"camlzip" -> "camlzip"
+  | any -> failwithf "Cannot find Camlzip findlib name: %S" any ()
+
 let setup () =
   check_cwd ();
   setup_clean ();
-  let camlzip_findlib_name =
-    match command_stdout "ocamlfind list | grep zip" with
-    | s when String.is_prefix s ~prefix:"zip" -> "zip"
-    | s when String.is_prefix s ~prefix:"camlzip" -> "camlzip"
-    | any -> failwithf "Cannot find Camlzip findlib name: %S" any ()
-  in
   command "sed 's/camlzip_findlib/%s/' src/etc/oasis.in > _oasis"
-    camlzip_findlib_name;
+    (camlzip_findlib_name());
   command "oasis setup";
   command "echo 'true: annot' >> _tags";
-  command "cat src/etc/Makefile.post >> Makefile"
+  command "cat src/etc/Makefile.post >> Makefile";
+  let myocamlbuild = keep_until "(* OASIS_STOP *)"
+                                (In_channel.read_lines "myocamlbuild.ml") in
+  let myocamlbuild_post = In_channel.read_lines "src/etc/myocamlbuild.post.ml" in
+  Out_channel.write_lines "myocamlbuild.ml" (myocamlbuild @ myocamlbuild_post)
 
 let ocaml_toplevel () =
   let tmp = Filename.temp_file "ocamlinit" ".ml" in
@@ -89,11 +96,11 @@ let ocaml_toplevel () =
   fprintf o "
 #use \"topfind\";;
 #thread;;
-#require \"core, camlzip, sqlite3, unix, batteries, xmlm\"
+#require \"core, %s, sqlite3, unix, batteries, xmlm\"
 #directory \"_build/src/lib\";;
 #load \"biocaml.cma\";;
 open Core.Std;;
-";
+" (camlzip_findlib_name());
   close_out o;
   command "ocaml -init %s" tmp
     
