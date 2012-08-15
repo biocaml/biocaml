@@ -106,8 +106,10 @@ val column : 'a array array -> int -> 'a array
   (** [column m i] extracts the [i]th column of matrix [m]. Raise [Failure] if every row of [m] does not have at least [i+1] columns. See also {!row}. *)
   
 val transpose : 'a array array -> 'a array array
-  (** Transpose given matrix [m]. Okay if number of rows ({!length} [m]) is 0. If there are rows, they must not be empty; raise [Failure] if they are. Behavior undefined if [m] is not rectangular. *)
-  
+(** [transpose m] transpose the given matrix [m].  If the number of
+    rows [Array.length m] ot the number of columns [Array.length
+    a.(0)] is 0, return the empty matrix [[| |]].  Behavior undefined
+    if [m] is not rectangular. *)
 
 (** {6 More Specialized Operations} *)
   
