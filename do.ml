@@ -53,7 +53,6 @@ let check_cwd () =
 let setup_clean () =
   check_cwd ();
   command "oasis setup-clean";
-  remove "myocamlbuild.ml";
   remove "setup.data";
   remove "setup.log";
   remove "_tags";
