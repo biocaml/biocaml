@@ -66,18 +66,18 @@ let setup_clean () =
   remove "_oasis";
   remove "TAGS"
 
-  
+
+let camlzip_findlib_name() =
+  match command_stdout "ocamlfind list | grep zip" with
+  | s when String.is_prefix s ~prefix:"zip" -> "zip"
+  | s when String.is_prefix s ~prefix:"camlzip" -> "camlzip"
+  | any -> failwithf "Cannot find Camlzip findlib name: %S" any ()
+
 let setup () =
   check_cwd ();
   setup_clean ();
-  let camlzip_findlib_name =
-    match command_stdout "ocamlfind list | grep zip" with
-    | s when String.is_prefix s ~prefix:"zip" -> "zip"
-    | s when String.is_prefix s ~prefix:"camlzip" -> "camlzip"
-    | any -> failwithf "Cannot find Camlzip findlib name: %S" any ()
-  in
   command "sed 's/camlzip_findlib/%s/' src/etc/oasis.in > _oasis"
-    camlzip_findlib_name;
+    (camlzip_findlib_name());
   command "oasis setup";
   command "echo 'true: annot' >> _tags";
   command "cat src/etc/Makefile.post >> Makefile"
@@ -88,11 +88,11 @@ let ocaml_toplevel () =
   fprintf o "
 #use \"topfind\";;
 #thread;;
-#require \"core, camlzip, sqlite3, unix, batteries, xmlm\"
+#require \"core, %s, sqlite3, unix, batteries, xmlm\"
 #directory \"_build/src/lib\";;
 #load \"biocaml.cma\";;
 open Core.Std;;
-";
+" (camlzip_findlib_name());
   close_out o;
   command "ocaml -init %s" tmp
     
