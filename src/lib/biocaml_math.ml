@@ -1,26 +1,27 @@
 open Biocaml_std
-open Array
 
 module Range = Biocaml_range
 
 exception ValueError of string
 
 let row m i =
-  if i < length m then copy m.(i)
+  if i < Array.length m then Array.copy m.(i)
   else failwith (sprintf "invalid row index %d" i)
     
 let column m i =
-  if for_all (fun row -> i < length row) m
-  then init (length m) (fun j -> m.(j).(i))
+  if Array.for_all (fun row -> i < Array.length row) m
+  then Array.init (Array.length m) (fun j -> m.(j).(i))
   else failwith (sprintf "invalid column index %d" i)
 
 let transpose a =
-  assert (is_rectangular a);
-  if length a = 0 || length a.(0) = 0 then [| |]
+  assert (Array.is_rectangular a);
+  let n_rows = Array.length a in
+  if Array.length a = 0 || Array.length a.(0) = 0 then [| |]
   else
-    let ans = make_matrix (length a.(0)) (length a) a.(0).(0) in
-    for i = 0 to length a - 1 do
-      for j = 0 to length a.(i) - 1 do
+    let n_cols = Array.length a.(0) in
+    let ans = Array.make_matrix n_cols n_rows a.(0).(0) in
+    for i = 0 to n_rows - 1 do
+      for j = 0 to Array.length a.(i) - 1 do
         ans.(j).(i) <- a.(i).(j)
       done
     done;
@@ -37,8 +38,8 @@ let log2 = log ~base:2.0
 let even x = (x mod 2) = 0
 let odd x = (x mod 2) <> 0
 
-let min = min
-let max = max
+let min = Array.min
+let max = Array.max
   
 let prange add step lo hi = 
   let rec f acc x = 
@@ -56,47 +57,47 @@ let range_floats = prange (+.)
 let range step first last =
   assert (step > 0.0);
   let n = (int_of_float <<- ceil <<- abs_float) ((last -. first) /. step) + 1 in
-  let a = make n 0.0 in
+  let a = Array.make n 0.0 in
   let (op,comp) = if first <= last then ((+.),(<=)) else ((-.),(>=)) in
-  iteri (fun i _ -> a.(i) <- op first (float_of_int i *. step)) a;
+  Array.iteri (fun i _ -> a.(i) <- op first (float_of_int i *. step)) a;
   if comp a.(n-1) last
   then a
-  else sub a 0 (n-1)
+  else Array.sub a 0 (n-1)
     
 let mean a =
-  let n = length a in
+  let n = Array.length a in
   assert (n > 0);
-  (fold_left ~f:(+.) ~init:0. a) /. (float_of_int n)
+  (Array.fold_left ~f:(+.) ~init:0. a) /. (float_of_int n)
     
 let variance a =
-  let n = length a in
+  let n = Array.length a in
   assert (n > 1);
   let avrg = mean a in
   let f v = let diff = v -. avrg in diff *. diff in
-  let a = map f a in
-  (fold_left ~f:(+.) ~init:0. a) /. (float_of_int (n - 1))
+  let a = Array.map f a in
+  (Array.fold_left ~f:(+.) ~init:0. a) /. (float_of_int (n - 1))
     
-let rms = sqrt <<- mean <<- (map ~f:(fun x -> x *. x))
+let rms = sqrt <<- mean <<- (Array.map ~f:(fun x -> x *. x))
   
 let stdv = sqrt <<- variance
 
 let median a =
-  let n = length a in
+  let n = Array.length a in
   assert (n > 0);
-  let a = copy a in
-  sort Pervasives.compare a;
+  let a = Array.copy a in
+  Array.sort Pervasives.compare a;
   if odd n
   then a.((n+1)/2 - 1)
   else let m = (n+1)/2 in (a.(m-1) +. a.(m)) /. 2.0
                        
 let pseudomedian a =
-  let n = length a in
+  let n = Array.length a in
   assert (n > 0);
   if n = 1 then
     a.(0)
   else
     let nn = n*(n-1)/2 in
-    let averages = make nn 0.0 in
+    let averages = Array.make nn 0.0 in
     let idx = ref 0 in
     for i = 0 to n-2 do
       for j = i+1 to n-1 do
@@ -107,30 +108,33 @@ let pseudomedian a =
     median averages
       
 let mad a =
-  assert (length a > 0);
+  assert (Array.length a > 0);
   let med = median a in
-  let a = map (fun v -> abs_float (v -. med)) a in
+  let a = Array.map (fun v -> abs_float (v -. med)) a in
   median a
 
 let quantile_normalization aa =
-  assert (is_rectangular aa);
-  if length aa = 0 || length aa.(0) = 0 || length aa.(0) = 1 then
+  assert (Array.is_rectangular aa);
+  if Array.length aa = 0 || Array.length aa.(0) = 0
+     || Array.length aa.(0) = 1 then
     Array.copy aa
   else
-    let num_expts = float_of_int (length aa.(0)) in
-    let num_pts = length aa in
+    let num_expts = float_of_int (Array.length aa.(0)) in
+    let num_pts = Array.length aa in
     
     let comp1 (a,_) (b,_) = Pervasives.compare a b in
     let comp2 (_,a) (_,b) = Pervasives.compare a b in
     
     let aa = transpose aa in
-    let aa = map (mapi ~f:Tuple.Pr.make) aa in
-    (iter ~f:(sort ~cmp:comp2)) aa;
-    let avg i = (fold_left ~f:(fun sum expt -> snd expt.(i) +. sum) ~init:0.0 aa) /. num_expts in
-    let norms = init num_pts avg in
-    let aa = map (mapi ~f:(fun i (idx,_) -> idx, norms.(i))) aa in
-    (iter ~f:(sort ~cmp:comp1)) aa;
-    transpose (map ~f:(map ~f:snd) aa)
+    let aa = Array.map (Array.mapi ~f:Tuple.Pr.make) aa in
+    (Array.iter ~f:(Array.sort ~cmp:comp2)) aa;
+    let avg i =
+      (Array.fold_left ~f:(fun sum expt -> snd expt.(i) +. sum) ~init:0.0 aa)
+      /. num_expts in
+    let norms = Array.init num_pts avg in
+    let aa = Array.map (Array.mapi ~f:(fun i (idx,_) -> idx, norms.(i))) aa in
+    Array.iter ~f:(Array.sort ~cmp:comp1) aa;
+    transpose (Array.map ~f:(Array.map ~f:snd) aa)
 
 let histogram (type t) ?(cmp=Pervasives.compare) arr =
   let module M = struct
@@ -148,9 +152,9 @@ let histogram (type t) ?(cmp=Pervasives.compare) arr =
     | Some e -> M.add a (e + 1) mp
     | None -> M.add a 1 mp
   in
-  let mp = fold_left ~f ~init:M.empty arr in
+  let mp = Array.fold_left ~f ~init:M.empty arr in
   let ans = M.fold ~f:(fun ~key ~data ans -> (key,data)::ans) mp ~init:[] in
-  of_list (List.rev ans)
+  Array.of_list (List.rev ans)
 
 let prediction_values tp tn fp fn =
   let tp = float_of_int tp in
@@ -291,13 +295,13 @@ let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 =
   (wilcoxon_rank_sum_to_p arr1 arr2) < alpha
 
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
-  let a = mapi Tuple.Pr.make a in
-  sort (fun a b -> cmp (snd a) (snd b)) a;
-  map fst a
+  let a = Array.mapi Tuple.Pr.make a in
+  Array.sort (fun a b -> cmp (snd a) (snd b)) a;
+  Array.map fst a
 
 let find_regions ?(max_gap=0) pred a =
   if max_gap < 0 then failwith ("max gap must be non-negative but is " ^ (string_of_int max_gap));
-  let size = length a in
+  let size = Array.length a in
   let ans = ref [] in
   
   (* Add region built up thus far, if any, to ans.
@@ -329,10 +333,10 @@ let find_regions ?(max_gap=0) pred a =
       )
   in
   loop 0 (-1) 0;
-  (of_list <<- List.rev) !ans
+  (Array.of_list <<- List.rev) !ans
     
 let find_min_window ?(init_direction="fwd") a pred i =
-  let size = length a in
+  let size = Array.length a in
   if size < 1 then
     [||]
   else
@@ -341,7 +345,7 @@ let find_min_window ?(init_direction="fwd") a pred i =
     let ans = Range.find_min_range ~init_direction v pred i in
     match ans with
       | None -> [||]
-      | Some ans -> sub a ans.Range.lo (ans.Range.hi - ans.Range.lo + 1)
+      | Some ans -> Array.sub a ans.Range.lo (ans.Range.hi - ans.Range.lo + 1)
 
 let factorial n =
   if n < 2 then 1 else
