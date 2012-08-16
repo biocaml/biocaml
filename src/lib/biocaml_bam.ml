@@ -7,7 +7,7 @@ type optional_content = [
 | `int of int
 | `string of string ]
 
-type alignment = {
+type raw_alignment = {
   qname : string;
   flag : int;
   (* rname : string; *)
@@ -19,23 +19,25 @@ type alignment = {
   tlen : int;
   seq : string;
   qual : int array;
-  optional : (string * char * optional_content) list
+  optional : string;
 }
 
-type stream_item =
-[ `alignment of alignment
+type raw_item =
+[ `alignment of raw_alignment
 | `header of string
 | `reference_information of (string * int) array ]
   
+type parse_optional_error = [
+| `wrong_auxiliary_data of
+      [ `array_size of int
+      | `null_terminated_hexarray
+      | `null_terminated_string
+      | `out_of_bounds
+      | `unknown_type of char ] * string
+]
 type bam_parse_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
-| `wrong_auxiliary_data of
-    [ `array_size of int
-    | `null_terminated_hexarray
-    | `null_terminated_string
-    | `out_of_bounds
-    | `unknown_type of char ] * string
 | `wrong_cigar of string
 | `wrong_magic_number of string
 ]
@@ -236,79 +238,7 @@ let parse_alignment buf =
   let aux_data =
     let ofset =
       (4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq in
-    let from () =
-      String.sub buf ofset (block_size + 4 - ofset) in
-    dbg "from: %S" (from ());
-    let rec build ofs acc =
-      let error e = fail (`wrong_auxiliary_data (e, from ())) in
-      if ofs >= block_size + 4 then return acc
-      else (
-        if ofs + 2 >= block_size + 4 then error `out_of_bounds
-        else (
-          let tag = String.sub buf ofs 2 in
-          let typ = buf.[ofs + 2] in
-          let check_size_and_return n r =
-            if ofs + 2 + n >= block_size + 4 then error `out_of_bounds
-            else return (r, n) in
-          let parse_cCsSiIf pos typ =
-            begin match typ with
-            | 'i' -> check_size_and_return 4 (`int (int32 pos))
-            | 'A' | 'c' | 'C' -> check_size_and_return 1 (`char buf.[pos])
-            | 's' ->
-              check_size_and_return 2 (`int (
-                Binary_packing.unpack_signed_16 
-                  ~byte_order:`Little_endian ~buf ~pos))
-            | 'S' -> check_size_and_return 2 (`int (uint16 pos))
-            | 'f' ->
-              let f =
-                Binary_packing.unpack_signed_32
-                  ~byte_order:`Little_endian ~buf ~pos |! Int32.float_of_bits in
-              check_size_and_return 4 (`float f)
-            | _ -> error (`unknown_type typ)
-            end
-          in
-          let pos = ofs + 3 in
-          begin match typ with
-          | 'A' -> check_size_and_return 1 (`char buf.[pos])
-          | 'Z' ->
-            begin match String.index_from buf pos '\000' with
-            | Some e -> return (`string String.(slice buf pos e), e - pos + 1)
-            | None -> error `null_terminated_string
-            end
-          | 'H' ->
-            begin match String.index_from buf pos '\000' with
-            | Some e -> return (`string String.(slice buf pos e), e - pos + 1)
-            | None -> error `null_terminated_hexarray
-            end
-          | 'B' ->
-            check_size_and_return 1 buf.[pos] >>= fun (array_type, _) ->
-            check_size_and_return 4 (int32 (pos + 1)) >>= fun (size, _) ->
-            (if size > 4000 then error (`array_size size) else return ())
-            >>= fun () ->
-            let arr = Array.create size (`char 'B') in
-            let rec loop p = function
-              | 0 -> return p
-              | n -> 
-                parse_cCsSiIf p array_type
-                >>= fun (v, nb) ->
-                arr.(size - n) <- v;
-                loop (p + nb) (n - 1) in
-            loop (pos + 5) size
-            >>= fun newpos ->
-            return (`array arr, newpos - pos)
-          | c -> parse_cCsSiIf pos c
-          end
-          >>= fun (v, nbread) ->
-          build (ofs + 3 + nbread) ((tag, typ, v) :: acc)
-        )
-      )
-    in
-    build ofset []
-    >>= fun result ->
-    return (List.rev result)
-  in
-  aux_data
-  >>= fun optional ->
+    String.sub buf ofset (block_size + 4 - ofset) in
   let alignment = {
     qname;
 
@@ -322,7 +252,7 @@ let parse_alignment buf =
     tlen;
     seq;
     qual;
-    optional } in
+    optional = aux_data } in
   return (`alignment alignment, block_size + 4)
     
 let uncompressed_bam_parser () =
@@ -364,7 +294,7 @@ let uncompressed_bam_parser () =
         | Ok (o, nbread) ->
           dbg "len: %d nbread: %d" len nbread;
           Buffer.add_substring in_buffer buffered nbread (len - nbread);
-          `output (o : stream_item)
+          `output (o : raw_item)
         | Error `no ->
           dbg "(al) rebuffering %d bytes" String.(length buffered);
           Buffer.add_string in_buffer buffered; `not_ready
@@ -388,3 +318,81 @@ let parser ?zlib_buffer_size () =
       (compose
        (Biocaml_zip.unzip ~format:`gzip ?zlib_buffer_size ())
        (uncompressed_bam_parser ())))
+
+let parse_optional ?(pos=0) ?len buf =
+  let len =
+    match len with Some s -> s | None -> String.length buf in
+  let int32 pos = 
+    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
+  let uint16 pos = 
+    Binary_packing.unpack_unsigned_8 ~buf ~pos +
+      Binary_packing.unpack_unsigned_8 ~buf ~pos:(pos + 1) lsl 7 in
+  let from () = String.sub buf pos len in
+  dbg "from: %S" (from ());
+  let rec build ofs acc =
+    let error e = fail (`wrong_auxiliary_data (e, from ())) in
+    if ofs >= len then return acc
+    else (
+      if ofs + 2 >= len then error `out_of_bounds
+      else (
+        let tag = String.sub buf ofs 2 in
+        let typ = buf.[ofs + 2] in
+        let check_size_and_return n r =
+          if ofs + 2 + n >= len then error `out_of_bounds
+          else return (r, n) in
+        let parse_cCsSiIf pos typ =
+          begin match typ with
+          | 'i' -> check_size_and_return 4 (`int (int32 pos))
+          | 'A' | 'c' | 'C' -> check_size_and_return 1 (`char buf.[pos])
+          | 's' ->
+            check_size_and_return 2 (`int (
+              Binary_packing.unpack_signed_16 
+                ~byte_order:`Little_endian ~buf ~pos))
+          | 'S' -> check_size_and_return 2 (`int (uint16 pos))
+          | 'f' ->
+            let f =
+              Binary_packing.unpack_signed_32
+                ~byte_order:`Little_endian ~buf ~pos |! Int32.float_of_bits in
+            check_size_and_return 4 (`float f)
+          | _ -> error (`unknown_type typ)
+          end
+        in
+        let pos = ofs + 3 in
+        begin match typ with
+        | 'A' -> check_size_and_return 1 (`char buf.[pos])
+        | 'Z' ->
+          begin match String.index_from buf pos '\000' with
+          | Some e -> return (`string String.(slice buf pos e), e - pos + 1)
+          | None -> error `null_terminated_string
+          end
+        | 'H' ->
+          begin match String.index_from buf pos '\000' with
+          | Some e -> return (`string String.(slice buf pos e), e - pos + 1)
+          | None -> error `null_terminated_hexarray
+          end
+        | 'B' ->
+          check_size_and_return 1 buf.[pos] >>= fun (array_type, _) ->
+          check_size_and_return 4 (int32 (pos + 1)) >>= fun (size, _) ->
+          (if size > 4000 then error (`array_size size) else return ())
+          >>= fun () ->
+          let arr = Array.create size (`char 'B') in
+          let rec loop p = function
+            | 0 -> return p
+            | n -> 
+              parse_cCsSiIf p array_type
+              >>= fun (v, nb) ->
+              arr.(size - n) <- v;
+              loop (p + nb) (n - 1) in
+          loop (pos + 5) size
+          >>= fun newpos ->
+          return (`array arr, newpos - pos)
+        | c -> parse_cCsSiIf pos c
+        end
+        >>= fun (v, nbread) ->
+        build (ofs + 3 + nbread) ((tag, typ, v) :: acc)
+      )
+    )
+  in
+  build pos []
+  >>= fun result ->
+  return (List.rev result)
