@@ -12,7 +12,7 @@ type raw_alignment = {
   (* rname : string; *)
   pos : int;
   mapq : int;
-  cigar : (char * int) array;
+  cigar : string;
   next_ref_id : int;
   pnext : int;
   tlen : int;
@@ -29,7 +29,6 @@ type raw_item =
 type bam_parse_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
-| `wrong_cigar of string
 | `wrong_magic_number of string
 ]
 
@@ -55,4 +54,21 @@ type parse_optional_error = [
 val parse_optional: ?pos:int -> ?len:int -> string ->
   ((string * char * optional_content) list, parse_optional_error) Core.Result.t
     
+type cigar_op = [
+| `D of int
+| `Eq of int
+| `H of int
+| `I of int
+| `M of int
+| `N of int
+| `P of int
+| `S of int
+| `X of int ]
+
+type parse_cigar_error = [
+| `wrong_cigar of string
+| `wrong_cigar_length of int ]
+
+val parse_cigar: ?pos:int -> ?len:int -> string ->
+  (cigar_op array, parse_cigar_error) Core.Result.t
      

@@ -13,7 +13,7 @@ type raw_alignment = {
   (* rname : string; *)
   pos : int;
   mapq : int;
-  cigar : (char * int) array;
+  cigar : string;
   next_ref_id : int;
   pnext : int;
   tlen : int;
@@ -38,7 +38,6 @@ type parse_optional_error = [
 type bam_parse_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
-| `wrong_cigar of string
 | `wrong_magic_number of string
 ]
 open Result
@@ -166,42 +165,7 @@ let parse_alignment buf =
     (`read_name_not_null_terminated (String.sub buf 36 l_read_name))
   >>= fun () ->
   (* dbg "qname: %S" qname; *)
-  begin try
-    return (Array.init n_cigar_op (fun i ->
-      let open Int64 in
-      let int64 =
-        let int8 pos = 
-          Binary_packing.unpack_unsigned_8 ~buf ~pos |! Int64.of_int in
-        int8 Int.(36 + l_read_name + i * 4)
-        + shift_left (int8 Int.(36 + l_read_name + i * 4 + 1)) 8
-        + shift_left (int8 Int.(36 + l_read_name + i * 4 + 2)) 16
-        + shift_left (int8 Int.(36 + l_read_name + i * 4 + 3)) 24
-      in
-      let op =
-        match bit_and int64 0x0fL with
-        | 0L -> 'M'
-        | 1L -> 'I'
-        | 2L -> 'D'
-        | 3L -> 'N'
-        | 4L -> 'S'
-        | 5L -> 'H'
-        | 6L -> 'P'
-        | 7L -> '='
-        | 8L -> 'X'
-        | any -> failwithf "OP:%Ld" any () in
-      let op_len = shift_right int64 4 |! Int64.to_int_exn in 
-      (op, op_len)))
-    with
-    | e ->
-      fail (`wrong_cigar
-               String.(sub buf (36 + l_read_name)
-                         (36 + l_read_name + n_cigar_op * 4)))
-  end
-  >>= fun cigarray ->
-  (* dbg "cigar: %s" (Array.to_list cigarray *)
-                   (* |! List.map ~f:(fun (op, len) -> sprintf "%c:%d" op len) *)
-                   (* |! String.concat ~sep:"; "); *)
-  
+  let cigar_buf = String.sub buf (36 + l_read_name) (n_cigar_op * 4) in
   let seq = String.make l_seq '*' in
   let letter  = function
     | 0  -> '='
@@ -246,7 +210,7 @@ let parse_alignment buf =
     (* rname = qname; *)
     pos;
     mapq;
-    cigar = cigarray ;
+    cigar = cigar_buf ;
     next_ref_id;
     pnext = next_pos;
     tlen;
@@ -396,3 +360,63 @@ let parse_optional ?(pos=0) ?len buf =
   build pos []
   >>= fun result ->
   return (List.rev result)
+
+type cigar_op = [
+| `D of int
+| `Eq of int
+| `H of int
+| `I of int
+| `M of int
+| `N of int
+| `P of int
+| `S of int
+| `X of int ]
+
+type parse_cigar_error = [
+| `wrong_cigar of string
+| `wrong_cigar_length of int ]
+
+let parse_cigar ?(pos=0) ?len buf =
+  let len =
+    match len with Some s -> s | None -> String.length buf in
+  begin match len mod 4 with
+  | 0 -> return (len / 4)
+  | n -> fail (`wrong_cigar_length len)
+  end
+  >>= fun n_cigar_op ->
+  begin
+    try
+      return (Array.init n_cigar_op (fun i ->
+        let open Int64 in
+        let int64 =
+          let int8 pos = 
+            Binary_packing.unpack_unsigned_8 ~buf ~pos |! Int64.of_int in
+          int8 Int.(pos + i * 4)
+          + shift_left (int8 Int.(pos + i * 4 + 1)) 8
+          + shift_left (int8 Int.(pos + i * 4 + 2)) 16
+          + shift_left (int8 Int.(pos + i * 4 + 3)) 24
+        in
+        let op_len = shift_right int64 4 |! Int64.to_int_exn in 
+        let op =
+          match bit_and int64 0x0fL with
+          | 0L -> `M op_len
+          | 1L -> `I op_len
+          | 2L -> `D op_len
+          | 3L -> `N op_len
+          | 4L -> `S op_len
+          | 5L -> `H op_len
+          | 6L -> `P op_len
+          | 7L -> `Eq op_len
+          | 8L -> `X op_len
+          | any -> failwithf "OP:%Ld" any () in
+        op))
+    with
+    | e ->
+      fail (`wrong_cigar
+               String.(sub buf pos (pos + n_cigar_op * 4)))
+  end
+  (* dbg "cigar: %s" (Array.to_list cigarray *)
+                   (* |! List.map ~f:(fun (op, len) -> sprintf "%c:%d" op len) *)
+                   (* |! String.concat ~sep:"; "); *)
+  
+
