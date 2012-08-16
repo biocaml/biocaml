@@ -125,6 +125,8 @@ let () =
   | "build" :: args
   | "make" :: args ->
     command "make %s" (String.concat ~sep:" " (List.map args (sprintf "%S")))
+  | "doc" :: args ->
+    command "make doc%s" (String.concat ~sep:"" (List.map args (sprintf " %S")))
   | "install" :: [] ->
     command "ocamlfind remove biocaml";
     command "ocaml setup.ml -reinstall";
