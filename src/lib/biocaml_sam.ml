@@ -1,7 +1,7 @@
 open Biocaml_internal_pervasives
 
 
-type alignment = {
+type raw_alignment = {
   qname : string;
   flag : int;
   rname : string;
@@ -16,12 +16,12 @@ type alignment = {
   optional : (string * char * string) list
 }
 
-type t = [
+type raw_item = [
 | `comment of string
-| `header_line of string * (string * string) list
-| `alignment of alignment
+| `header of string * (string * string) list
+| `alignment of raw_alignment
 ]
-type parse_error = [
+type raw_parsing_error = [
 | `incomplete_input of Biocaml_pos.t * string list * string option
 | `invalid_header_tag of Biocaml_pos.t * string
 | `invalid_tag_value_list of Biocaml_pos.t * string list
@@ -56,7 +56,7 @@ let parse_header_line position line =
       | Failure _ -> fail (`invalid_tag_value_list (position, values))
       end
       >>= fun tv ->
-      return (`header_line (tag, tv))
+      return (`header (tag, tv))
     ) else
       fail (`invalid_header_tag (position, tag))
 
@@ -110,7 +110,7 @@ let rec next p =
   | Some l ->
     parse_alignment (current_position p) l |! output_result
   
-let parser ?filename () =
+let raw_parser ?filename () =
   let name = sprintf "sam_parser:%s" Option.(value ~default:"<>" filename) in
   Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
 
@@ -121,12 +121,12 @@ let alignment_to_string x =
     (List.map x.optional (fun (a,b,c) -> sprintf "%s:%c:%s" a b c) |!
         String.concat ~sep:"\t")
 
-let printer () =
+let raw_printer () =
   let module PQ = Biocaml_transform.Printer_queue in
   let printer =
     PQ.make ~to_string:(function
     | `comment c -> sprintf "@CO\t%s\n" c
-    | `header_line (t, l) -> sprintf "@%s\t%s\n" t
+    | `header (t, l) -> sprintf "@%s\t%s\n" t
       (List.map l (fun (a,b) -> sprintf "%s:%s" a b) |! String.concat ~sep:"\t")
     | `alignment a -> alignment_to_string a
     ) () in
