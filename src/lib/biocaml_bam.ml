@@ -13,6 +13,7 @@ type raw_alignment = {
   (* rname : string; *)
   pos : int;
   mapq : int;
+  bin: int;
   cigar : string;
   next_ref_id : int;
   pnext : int;
@@ -210,6 +211,7 @@ let parse_alignment buf =
     (* rname = qname; *)
     pos;
     mapq;
+    bin;
     cigar = cigar_buf ;
     next_ref_id;
     pnext = next_pos;

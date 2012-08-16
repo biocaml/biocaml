@@ -12,6 +12,7 @@ type raw_alignment = {
   (* rname : string; *)
   pos : int;
   mapq : int;
+  bin: int;
   cigar : string;
   next_ref_id : int;
   pnext : int;
