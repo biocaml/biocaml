@@ -12,12 +12,7 @@ setup.log
 .#*
 #*
 TAGS
-_oasis
-myocamlbuild.ml
-_tags
-Makefile
 configure
-setup.ml
 src/lib/META
 src/lib/doclib.odocl
 src/lib/biocaml.mllib
