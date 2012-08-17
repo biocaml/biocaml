@@ -29,14 +29,14 @@ type parse_optional_error = [
       | `out_of_bounds
       | `unknown_type of char ] * string
 ]
-type bam_parse_error = [
+type raw_parsing_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
 | `wrong_magic_number of string
 ]
 open Result
 
-let string_of_bam_parse_error e =
+let string_of_raw_parsing_error e =
   match e with
   | `read_name_not_null_terminated s ->
     sprintf "read_name_not_null_terminated %s" s
@@ -265,7 +265,7 @@ let uncompressed_bam_parser () =
   Biocaml_transform.make_stoppable ()
     ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
-let parser ?zlib_buffer_size () =
+let raw_parser ?zlib_buffer_size () =
   Biocaml_transform.(
     on_error
       ~f:(function
@@ -273,7 +273,7 @@ let parser ?zlib_buffer_size () =
       | `right r ->
         match r with
         | `no -> failwith "got `right `no"
-        | #bam_parse_error as a -> `bam a)
+        | #raw_parsing_error as a -> `bam a)
       (compose
        (Biocaml_zip.unzip ~format:`gzip ?zlib_buffer_size ())
        (uncompressed_bam_parser ())))

@@ -20,19 +20,19 @@ type raw_item =
 | `header of string
 | `reference_information of (string * int) array ]
   
-type bam_parse_error = [
+type raw_parsing_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
 | `wrong_magic_number of string
 ]
 
-val string_of_bam_parse_error : bam_parse_error -> string
+val string_of_raw_parsing_error : raw_parsing_error -> string
 
-val parser:
+val raw_parser:
   ?zlib_buffer_size:int ->
   unit ->
   (string, raw_item,
-   [`unzip of Biocaml_zip.unzip_error | `bam of bam_parse_error ] )
+   [`unzip of Biocaml_zip.unzip_error | `bam of raw_parsing_error ] )
     Biocaml_transform.t
 
 val debug : bool ref
