@@ -23,6 +23,7 @@ Flag tests
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
+  # setup.ml: camlzip_findlib -> (zip | camlzip)
   BuildDepends: core, threads, camlzip_findlib, sqlite3, unix, batteries, xmlm
   Install: true
   Modules: Biocaml
