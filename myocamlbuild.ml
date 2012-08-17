@@ -1,4 +1,8 @@
-(* Appended to myocamlbuild.ml, right after (* OASIS_STOP *) *)
+
+(* OASIS_START *)
+(* OASIS_STOP *)
+
+open Ocamlbuild_plugin
 
 let mydispatch = function
   | After_options ->
@@ -7,5 +11,6 @@ let mydispatch = function
   | _ -> ()
 
 let () =
-  dispatch
-    (MyOCamlbuildBase.dispatch_combine [dispatch_default; mydispatch])
+  dispatch (fun e ->
+            dispatch_default e;
+            mydispatch e)
