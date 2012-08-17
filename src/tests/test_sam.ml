@@ -4,7 +4,7 @@ open Core.Std
 
 
 let test_parser () =
-  let transfo = Biocaml_sam.parser () in
+  let transfo = Biocaml_sam.raw_parser () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
@@ -14,7 +14,7 @@ let test_parser () =
 
   test_output "@CO\tsome comment" (`comment "some comment");
   test_output "@HD\tVN:1.3\tSO:coordinate"
-    (`header_line ("HD", [ "VN", "1.3"; "SO", "coordinate"]));
+    (`header ("HD", [ "VN", "1.3"; "SO", "coordinate"]));
   test_output "r001\t83\tref\t37\t30\t9M\t=\t7\t-39\tCAGCGCCAT\t*"
     (`alignment
         {qname = "r001"; flag = 83; rname = "ref"; pos = 37; mapq = 30;
@@ -49,7 +49,7 @@ let test_parser () =
   ()
 
 let test_printer () =
-  let transfo = Biocaml_sam.printer () in
+  let transfo = Biocaml_sam.raw_printer () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -64,7 +64,7 @@ let test_printer () =
     "r001\t83\tref\t37\t30\t9M\t=\t7\t-39\tCAGCGCCAT\t*\tNM:i:0";
   
   test_line (`comment "some comment") "@CO\tsome comment" ;
-  test_line (`header_line ("HD", [ "VN", "1.3"; "SO", "coordinate"]))
+  test_line (`header ("HD", [ "VN", "1.3"; "SO", "coordinate"]))
     "@HD\tVN:1.3\tSO:coordinate";
   ()
 

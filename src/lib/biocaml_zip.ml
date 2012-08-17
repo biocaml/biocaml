@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-  
+
 type unzip_error =
 [ `garbage_at_end_of_compressed_data of string
 | `wrong_gzip_header of
@@ -11,11 +11,11 @@ let try_skip_gzip_header_exn buffer =
   let ignore_bytes n = bytes_read := !bytes_read + n in
   let assert_byte f error =
     let byte = (Char.to_int buffer.[!bytes_read]) in
-    if f byte 
+    if f byte
     then (incr bytes_read; return byte)
     else fail (`wrong_gzip_header (error, byte)) in
   let assert_byte_eq b error = assert_byte ((=) b) error in
-  let read_byte () = 
+  let read_byte () =
     let byte = (Char.to_int buffer.[!bytes_read]) in
     (incr bytes_read; return byte) in
   let rec skip_null_terminated () =
@@ -42,16 +42,18 @@ let try_skip_gzip_header_exn buffer =
     (* Skip header CRC *)
     ignore_bytes 2;
   end;
-  return !bytes_read
+  if !bytes_read > String.length buffer then
+    failwith "NOT-YET"
+  else
+    return !bytes_read
 
 let inflate_as_much_as_possible in_buffer buffer
-    zstream zlib_write_buffer zlib_buffer_size format = 
+    zstream zlib_write_buffer zlib_buffer_size format =
   let len = String.length buffer in
-  let try_to_output used_out =
-    if used_out > 0 then
-      `output (String.sub zlib_write_buffer 0 used_out)
-    else
-      `not_ready in
+  let try_to_output  used_out =
+    if used_out > 0
+    then (`output (String.sub zlib_write_buffer 0 used_out))
+    else (`not_ready) in
   let (finished, used_in, used_out) =
     Zlib.inflate zstream buffer 0 len
       zlib_write_buffer 0 zlib_buffer_size
@@ -59,7 +61,17 @@ let inflate_as_much_as_possible in_buffer buffer
   if used_in < len then (
     if finished then (
       match format with
-      | `gzip when len - used_in = 8 ->
+      | `gzip when len - used_in >= 8 ->
+        (* The 8-bytes CRC must be skipped then another Gzip header +
+           stream can follow *)
+        let continue_after_gzip = len - used_in > 8 in
+        if continue_after_gzip then
+          Buffer.add_string in_buffer
+            String.(sub buffer (used_in + 8) (len - used_in - 8));
+        `finished_gzip (try_to_output used_out)
+      | `gzip ->
+        Buffer.add_string in_buffer
+          String.(sub buffer used_in (len - used_in));
         try_to_output used_out
       | _ ->
         `error (`garbage_at_end_of_compressed_data
@@ -70,41 +82,50 @@ let inflate_as_much_as_possible in_buffer buffer
       try_to_output used_out
     )
   ) else try_to_output used_out
-  
+
 let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
-  let zstream =  Zlib.inflate_init false in
+  let zstream =  ref (Zlib.inflate_init false) in
   let in_buffer = Buffer.create 42 in
   let zlib_write_buffer = String.create zlib_buffer_size  in
   let current_state =
     ref (match format with `gzip -> `gzip_header | `raw -> `inflate) in
-  Biocaml_transform.make_stoppable ()
-    ~feed:(fun string -> Buffer.add_string in_buffer string;)
-    ~next:(fun stopped ->
-      let buffered = Buffer.contents in_buffer in
-      let len = String.length buffered in
-      Buffer.clear in_buffer;
-      if len > 0
-      then begin
-        begin match !current_state with
-        | `inflate ->
+  let rec next stopped =
+    let buffered = Buffer.contents in_buffer in
+    let len = String.length buffered in
+    Buffer.clear in_buffer;
+    begin match len with
+    | 0 -> if stopped then `end_of_stream else `not_ready
+    | _ ->
+      begin match !current_state with
+      | `inflate ->
+        let inflation =
           inflate_as_much_as_possible in_buffer buffered
-            zstream zlib_write_buffer zlib_buffer_size  format
-        | `gzip_header ->
-          eprintf "Header parsed!\n%!";
-          begin
-            try
-              match try_skip_gzip_header_exn buffered with
-              | Ok bytes_read -> 
-                current_state := `inflate;
-                inflate_as_much_as_possible in_buffer
-                  String.(sub buffered bytes_read (len - bytes_read))
-                  zstream zlib_write_buffer zlib_buffer_size format
-              | Error e -> `error e
-            with 
-              e -> Buffer.add_string in_buffer buffered; `not_ready
-          end
+            !zstream zlib_write_buffer zlib_buffer_size  format in
+        begin match inflation with
+        | `output o -> `output o
+        | `error e -> `error e
+        | `not_ready -> `not_ready
+        | `finished_gzip out ->
+          current_state := `gzip_header;
+          zstream :=  Zlib.inflate_init false;
+          out
+        end
+      | `gzip_header ->
+        begin
+          try
+            match try_skip_gzip_header_exn buffered with
+            | Ok bytes_read ->
+              current_state := `inflate;
+              Buffer.add_string in_buffer
+                String.(sub buffered bytes_read (len - bytes_read));
+              next stopped
+            | Error e -> `error e
+          with
+            e -> Buffer.add_string in_buffer buffered; `not_ready
         end
       end
-      else (if stopped then `end_of_stream else `not_ready)
-    )      
+    end
+  in
+  Biocaml_transform.make_stoppable ()
+    ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 

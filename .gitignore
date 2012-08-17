@@ -12,6 +12,7 @@ setup.log
 .#*
 #*
 TAGS
+_oasis
 myocamlbuild.ml
 _tags
 Makefile

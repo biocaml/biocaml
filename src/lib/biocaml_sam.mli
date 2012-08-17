@@ -1,7 +1,7 @@
 (** SAM files. *)
 
 
-type alignment = {
+type raw_alignment = {
   qname : string;
   flag : int;
   rname : string;
@@ -17,14 +17,14 @@ type alignment = {
 }
 (** The contents of an alignment line. *)
 
-type t = [
+type raw_item = [
 | `comment of string
-| `header_line of string * (string * string) list
-| `alignment of alignment
+| `header of string * (string * string) list
+| `alignment of raw_alignment
 ]
 (** The "items" of a parsed SAM file stream. *)
 
-type parse_error = [
+type raw_parsing_error = [
 | `incomplete_input of Biocaml_pos.t * string list * string option
 | `invalid_header_tag of Biocaml_pos.t * string
 | `invalid_tag_value_list of Biocaml_pos.t * string list
@@ -35,12 +35,12 @@ type parse_error = [
 (** The possible errors one can get while parsing SAM files. *)
 
   
-val parser: ?filename:string -> unit ->
-  (string, t, parse_error) Biocaml_transform.t
+val raw_parser: ?filename:string -> unit ->
+  (string, raw_item, raw_parsing_error) Biocaml_transform.t
 (** Create a parsing "stoppable" transform. *)   
 
     
-val printer: unit ->
-  (t, string, Biocaml_transform.no_error) Biocaml_transform.t
+val raw_printer: unit ->
+  (raw_item, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Create a printing "stoppable" transform. *)   
 

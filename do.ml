@@ -57,7 +57,6 @@ let check_cwd () =
 let setup_clean () =
   check_cwd ();
   command "oasis setup-clean";
-  remove "myocamlbuild.ml";
   remove "setup.data";
   remove "setup.log";
   remove "_tags";
@@ -88,7 +87,7 @@ let setup () =
   command "cat src/etc/Makefile.post >> Makefile";
   let myocamlbuild = keep_until "(* OASIS_STOP *)"
                                 (In_channel.read_lines "myocamlbuild.ml") in
-  let myocamlbuild_post = In_channel.read_lines "myocamlbuild.post.ml" in
+  let myocamlbuild_post = In_channel.read_lines "src/etc/myocamlbuild.post.ml" in
   Out_channel.write_lines "myocamlbuild.ml" (myocamlbuild @ myocamlbuild_post)
 
 let ocaml_toplevel () =
@@ -126,6 +125,8 @@ let () =
   | "build" :: args
   | "make" :: args ->
     command "make %s" (String.concat ~sep:" " (List.map args (sprintf "%S")))
+  | "doc" :: args ->
+    command "make doc%s" (String.concat ~sep:"" (List.map args (sprintf " %S")))
   | "install" :: [] ->
     command "ocamlfind remove biocaml";
     command "ocaml setup.ml -reinstall";

@@ -30,6 +30,7 @@ Library biocaml
            , Biocaml_transform
            , Biocaml_msg
            , Biocaml_zip
+           , Biocaml_bam
            , Biocaml_pos
            , Biocaml_std
            , Biocaml_about
