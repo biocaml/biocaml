@@ -51,7 +51,7 @@ Library biocaml
            , Biocaml_intervalTree
            , Biocaml_invokeCmdline
            , Biocaml_math
-           , Biocaml_phredScore
+           , Biocaml_phred_score
            , Biocaml_pwm
            , Biocaml_range
            , Biocaml_roc

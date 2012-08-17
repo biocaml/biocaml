@@ -1,5 +1,5 @@
 open OUnit
-open Biocaml_phredScore
+open Biocaml_phred_score
 
 let visible_chars = 
   let open BatPervasives in
@@ -15,6 +15,6 @@ let test_ascii_conv () =
 	 (of_int |- to_ascii |- of_ascii |- to_int) x = x)
        visible_chars)
 
-let tests = "PhredScore" >::: [
+let tests = "Phred_score" >::: [
   "ASCII conversion" >:: test_ascii_conv;
 ]

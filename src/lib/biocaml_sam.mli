@@ -107,7 +107,7 @@ type alignment = {
   tamplate_length: int option;
 
   sequence: [ `string of string | `reference | `none];
-  quality: Biocaml_phredScore.t array;
+  quality: Biocaml_phred_score.t array;
   optional_content: optional_content;
 }
 

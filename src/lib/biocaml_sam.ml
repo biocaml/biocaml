@@ -179,7 +179,7 @@ type alignment = {
   tamplate_length: int option;
 
   sequence: [ `string of string | `reference | `none];
-  quality: Biocaml_phredScore.t array;
+  quality: Biocaml_phred_score.t array;
 
   optional_content: optional_content;
 }
@@ -414,9 +414,9 @@ let expand_alignment raw ref_dict =
   (if qual = "*" then return [| |] else begin
     try
       let quality =
-        Array.create (String.length qual) Biocaml_phredScore.(of_int 0) in
+        Array.create (String.length qual) Biocaml_phred_score.(of_int 0) in
       for i = 0 to String.length qual - 1 do
-        quality.(i) <- Biocaml_phredScore.of_ascii qual.[i];
+        quality.(i) <- Biocaml_phred_score.of_ascii qual.[i];
       done;
       Ok quality
     with
