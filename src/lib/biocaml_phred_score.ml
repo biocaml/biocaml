@@ -1,4 +1,4 @@
-open Batteries;; open Printf
+open Biocaml_internal_pervasives
 
 exception Error of string
 
@@ -20,27 +20,47 @@ let to_ascii ?(offset=`offset33) t =
   let offset = int_of_offset offset in
   let x = t + offset in
   if offset <= x && x <= 126 then
-    Char.chr x
+    Some (Char.of_int_exn x)
   else
-    Error (sprintf "%d with offset %d cannot be encoded as a visible ASCII character" t offset) |> raise
+    None
 
-let of_int x =
+let to_ascii_exn ?(offset=`offset33) t =
+  match to_ascii ~offset t with
+  | Some s -> s
+  | None ->
+    Error (sprintf "%d with offset %d cannot be encoded as a visible \
+                    ASCII character" t (int_of_offset offset)) |! raise
+
+let of_int_exn x =
   if x >= 0 then x
-  else Error (sprintf "invalid PHRED score %d" x) |> raise
+  else Error (sprintf "invalid PHRED score %d" x) |! raise
 
 let of_ascii ?(offset=`offset33) x =
   let offset = int_of_offset offset in
-  let c = Char.code x in
+  let c = Char.to_int x in
   if offset <= c && c <= 126 then
-    c - offset
+    Some (c - offset)
   else
-    Error (sprintf "%c with offset %d is not a valid score" x offset) |> raise
+    None
+
+let of_ascii_exn ?(offset=`offset33) x =
+  match of_ascii ~offset x with
+  | Some s -> s
+  | None ->
+    Error (sprintf "%c with offset %d is not a valid score" x
+             (int_of_offset offset)) |! raise
 
 let of_probability ?(f = round_float_to_int) x =
   if 0.0 <= x && x <= 1.0 then
-    f (-10. *. log10 x)
+    Some (f (-10. *. log10 x))
   else
-    Error (sprintf "invalid probability %0.17g" x) |> raise
+    None
+
+let of_probability_exn ?(f = round_float_to_int) x =
+  match of_probability ~f x with
+  | Some s -> s
+  | None ->
+    Error (sprintf "invalid probability %0.17g" x) |! raise
 
 let of_solexa_score ?(f = round_float_to_int) x =
   f (10. *. log10((10. ** (float_of_int x /. 10.)) +. 1.))

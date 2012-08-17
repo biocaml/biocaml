@@ -12,7 +12,7 @@ let test_ascii_conv () =
     (List.for_all 
        (fun i -> 
 	 let x = i - 33 in (* substract default offset *)
-	 (of_int |- to_ascii |- of_ascii |- to_int) x = x)
+	 (of_int_exn |- to_ascii_exn |- of_ascii_exn |- to_int) x = x)
        visible_chars)
 
 let tests = "Phred_score" >::: [

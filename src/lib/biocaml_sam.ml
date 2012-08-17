@@ -414,9 +414,9 @@ let expand_alignment raw ref_dict =
   (if qual = "*" then return [| |] else begin
     try
       let quality =
-        Array.create (String.length qual) Biocaml_phred_score.(of_int 0) in
+        Array.create (String.length qual) Biocaml_phred_score.(of_int_exn 0) in
       for i = 0 to String.length qual - 1 do
-        quality.(i) <- Biocaml_phred_score.of_ascii qual.[i];
+        quality.(i) <- Biocaml_phred_score.of_ascii_exn qual.[i];
       done;
       Ok quality
     with
