@@ -1,12 +1,5 @@
 open Biocaml_internal_pervasives
 
-type optional_content = [
-| `array of optional_content array
-| `char of char
-| `float of float
-| `int of int
-| `string of string ]
-
 type raw_alignment = {
   qname : string;
   flag : int;

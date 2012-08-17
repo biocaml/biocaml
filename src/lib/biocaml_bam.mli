@@ -1,11 +1,4 @@
 
-type optional_content = [
-| `array of optional_content array
-| `char of char
-| `float of float
-| `int of int
-| `string of string ]
-
 type raw_alignment = {
   qname : string;
   flag : int;
@@ -53,23 +46,12 @@ type parse_optional_error = [
       | `unknown_type of char ] * string
 ]
 val parse_optional: ?pos:int -> ?len:int -> string ->
-  ((string * char * optional_content) list, parse_optional_error) Core.Result.t
+  (Biocaml_sam.optional_content, parse_optional_error) Core.Result.t
     
-type cigar_op = [
-| `D of int
-| `Eq of int
-| `H of int
-| `I of int
-| `M of int
-| `N of int
-| `P of int
-| `S of int
-| `X of int ]
-
 type parse_cigar_error = [
 | `wrong_cigar of string
 | `wrong_cigar_length of int ]
 
 val parse_cigar: ?pos:int -> ?len:int -> string ->
-  (cigar_op array, parse_cigar_error) Core.Result.t
+  (Biocaml_sam.cigar_op array, parse_cigar_error) Core.Result.t
      
