@@ -12,8 +12,6 @@ setup.log
 .#*
 #*
 TAGS
-_tags
-Makefile
 configure
 src/lib/META
 src/lib/doclib.odocl
