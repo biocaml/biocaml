@@ -194,9 +194,9 @@ let parse_alignment buf =
         buf.[(4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + i]
     ) in
   let aux_data =
-    let ofset =
+    let offset =
       (4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq in
-    String.sub buf ofset (block_size + 4 - ofset) in
+    String.sub buf offset (block_size + 4 - offset) in
   let alignment = {
     qname;
 
