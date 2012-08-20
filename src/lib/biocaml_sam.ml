@@ -123,6 +123,18 @@ type reference_sequence = {
   ref_uri: string option;
   ref_unknown: (string * string) list;
 }
+let reference_sequence
+    ?assembly_identifier ?checksum ?species ?uri ?(unknown_data=[]) name length =
+  { 
+    ref_name                = name               ;
+    ref_length              = length             ;
+    ref_assembly_identifier = assembly_identifier;
+    ref_checksum            = checksum           ;
+    ref_species             = species            ;
+    ref_uri                 = uri                ;
+    ref_unknown             = unknown_data ;
+  }
+
 module Flags = struct 
   type t = int
 

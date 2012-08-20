@@ -53,6 +53,15 @@ type reference_sequence = {
   ref_uri: string option;
   ref_unknown: (string * string) list;
 }
+
+val reference_sequence :
+  ?assembly_identifier:string ->
+  ?checksum:string ->
+  ?species:string ->
+  ?uri:string ->
+  ?unknown_data:(string * string) list ->
+  string -> int -> reference_sequence
+
 module Flags : sig
   type t = private int
 
