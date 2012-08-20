@@ -3,6 +3,7 @@ open Biocaml_internal_pervasives
 type raw_alignment = {
   qname : string;
   flag : int;
+  ref_id: int;
   (* rname : string; *)
   pos : int;
   mapq : int;
@@ -20,7 +21,7 @@ type raw_item =
 [ `alignment of raw_alignment
 | `header of string
 | `reference_information of (string * int) array ]
-  
+
 type parse_optional_error = [
 | `wrong_auxiliary_data of
       [ `array_size of int
@@ -35,6 +36,8 @@ type raw_parsing_error = [
 | `wrong_magic_number of string
 ]
 open Result
+
+let of_result r = match r with Ok o -> `output o | Error e -> `error e
 
 let string_of_raw_parsing_error e =
   match e with
@@ -66,7 +69,7 @@ let dbg fmt =
   ) fmt
 
 let check b e = if b then return () else fail e
-    
+
 let parse_header buf =
   check (String.length buf >= 12) `no
   >>= fun () ->
@@ -119,14 +122,14 @@ let parse_reference_information buf nb =
   with
   | Failure "NO" -> `no
   | Failure "ERROR" -> `error Option.(value_exn !error)
-  
 
-  
+
+
 let parse_alignment buf =
   check (String.length buf >= 4 * 9) `no >>= fun () ->
-  let int32 pos = 
+  let int32 pos =
     Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
-  let uint16 pos = 
+  let uint16 pos =
     Binary_packing.unpack_unsigned_8 ~buf ~pos +
       Binary_packing.unpack_unsigned_8 ~buf ~pos:(pos + 1) lsl 7 in
   let uint8 pos = Binary_packing.unpack_unsigned_8 ~buf ~pos in
@@ -201,6 +204,7 @@ let parse_alignment buf =
     qname;
 
     flag;
+    ref_id;
     (* rname = qname; *)
     pos;
     mapq;
@@ -213,7 +217,7 @@ let parse_alignment buf =
     qual;
     optional = aux_data } in
   return (`alignment alignment, block_size + 4)
-    
+
 let uncompressed_bam_parser () =
   let in_buffer = Buffer.create 42 in
   let state = ref `header in
@@ -245,10 +249,10 @@ let uncompressed_bam_parser () =
         | `error  e -> `error e
         | `reference_information (refinfo, nbread) ->
           Buffer.add_substring in_buffer buffered nbread (len - nbread);
-          state := `alignements refinfo;
+          state := `alignments refinfo;
           `output (`reference_information refinfo)
         end
-      | `alignements refinfo ->
+      | `alignments refinfo ->
         begin match parse_alignment buffered with
         | Ok (o, nbread) ->
           dbg "len: %d nbread: %d" len nbread;
@@ -281,9 +285,9 @@ let raw_parser ?zlib_buffer_size () =
 let parse_optional ?(pos=0) ?len buf =
   let len =
     match len with Some s -> s | None -> String.length buf in
-  let int32 pos = 
+  let int32 pos =
     Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
-  let uint16 pos = 
+  let uint16 pos =
     Binary_packing.unpack_unsigned_8 ~buf ~pos +
       Binary_packing.unpack_unsigned_8 ~buf ~pos:(pos + 1) lsl 7 in
   let from () = String.sub buf pos len in
@@ -305,7 +309,7 @@ let parse_optional ?(pos=0) ?len buf =
           | 'A' | 'c' | 'C' -> check_size_and_return 1 (`char buf.[pos])
           | 's' ->
             check_size_and_return 2 (`int (
-              Binary_packing.unpack_signed_16 
+              Binary_packing.unpack_signed_16
                 ~byte_order:`Little_endian ~buf ~pos))
           | 'S' -> check_size_and_return 2 (`int (uint16 pos))
           | 'f' ->
@@ -337,7 +341,7 @@ let parse_optional ?(pos=0) ?len buf =
           let arr = Array.create size (`char 'B') in
           let rec loop p = function
             | 0 -> return p
-            | n -> 
+            | n ->
               parse_cCsSiIf p array_type
               >>= fun (v, nb) ->
               arr.(size - n) <- v;
@@ -384,14 +388,14 @@ let parse_cigar ?(pos=0) ?len buf =
       return (Array.init n_cigar_op (fun i ->
         let open Int64 in
         let int64 =
-          let int8 pos = 
+          let int8 pos =
             Binary_packing.unpack_unsigned_8 ~buf ~pos |! Int64.of_int in
           int8 Int.(pos + i * 4)
           + shift_left (int8 Int.(pos + i * 4 + 1)) 8
           + shift_left (int8 Int.(pos + i * 4 + 2)) 16
           + shift_left (int8 Int.(pos + i * 4 + 3)) 24
         in
-        let op_len = shift_right int64 4 |! Int64.to_int_exn in 
+        let op_len = shift_right int64 4 |! Int64.to_int_exn in
         let op =
           match bit_and int64 0x0fL with
           | 0L -> `M op_len
@@ -413,5 +417,97 @@ let parse_cigar ?(pos=0) ?len buf =
   (* dbg "cigar: %s" (Array.to_list cigarray *)
                    (* |! List.map ~f:(fun (op, len) -> sprintf "%c:%d" op len) *)
                    (* |! String.concat ~sep:"; "); *)
-  
+
+let parse_sam_header h =
+  let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
+  Result_list.while_ok lines (fun idx line ->
+    dbg "parse_sam_header %d %s" idx line;
+    Biocaml_sam.parse_header_line idx line
+    >>= fun raw_sam ->
+    begin match raw_sam with
+    | `comment s -> return (`comment s)
+    | `header ("HD", l) ->
+      if idx <> 0
+      then fail (`header_line_not_first idx)
+      else Biocaml_sam.expand_header_line l
+    | `header h -> return (`header h)
+    end)
+
+let expand_alignment refinfo raw =
+  let {
+    qname (* : string *); flag (* : int *); ref_id;
+    pos (* : int *); mapq (* : int *); bin (* : int *); cigar (* : string *);
+    next_ref_id (* : int *); pnext (* : int *); tlen (* : int *);
+    seq (* : string *); qual (* : int array *); optional (* : string *);} = raw in
+  let check c e = if c then return () else fail e in
+  check (1 <= String.length qname && String.length qname <= 255)
+    (`wrong_qname raw)
+  >>= fun () ->
+  check (0 <= flag && flag <= 65535) (`wrong_flag raw) >>= fun () ->
+  let find_ref id =
+    begin match id with
+    | -1 -> return `none
+    | other ->
+      begin try return (`reference_sequence refinfo.(other))
+        with e -> fail (`reference_sequence_not_found raw) end
+    end in
+  find_ref ref_id >>= fun reference_sequence ->
+  check (-1 <= pos && pos <= 536870910) (`wrong_pos raw) >>= fun () ->
+  check (0 <= mapq && mapq <= 255) (`wrong_mapq raw) >>= fun () ->
+  parse_cigar cigar >>= fun cigar_operations ->
+  find_ref next_ref_id >>= fun next_reference_sequence ->
+  check (-1 <= pnext && pnext <= 536870910) (`wrong_pnext raw) >>= fun () ->
+  check (-536870911 <= tlen && tlen <= 536870911) (`wrong_tlen raw)
+  >>= fun () ->
+  parse_optional optional >>= fun optional_content ->
+  return (`alignment {
+    Biocaml_sam.
+    query_template_name = qname;
+    flags = Biocaml_sam.Flags.of_int flag;
+    reference_sequence;
+    position = if pos = -1 then None else Some (pos + 1);
+    mapping_quality =if mapq = 255 then None else Some mapq;
+    cigar_operations;
+    next_ref_name = next_reference_sequence;
+    next_ref_position = if pnext = -1 then None else Some (pnext + 1);
+    tamplate_length  = if tlen = 0 then None else Some tlen;
+    sequence = `string seq;
+    quality = Array.map qual ~f:Biocaml_phred_score.of_int_exn;
+    optional_content;
+  })
+
+
+let item_parser () : (raw_item, Biocaml_sam.item, _) Biocaml_transform.t=
+  let name = "bam_item_parser" in
+  let raw_queue = Dequeue.create ~dummy:(`header "no") () in
+  let raw_items_count = ref 0 in
+  let header_items = ref [] in
+  let reference_information = ref [| |] in
+  let rec next stopped =
+    begin match !header_items with
+    | h :: t -> header_items := t; `output h
+    | [] ->
+      begin match Dequeue.is_empty raw_queue, stopped with
+      | true, true ->`end_of_stream
+      | true, false -> `not_ready
+      | false, _ ->
+        incr raw_items_count;
+        begin match Dequeue.take_front_exn raw_queue with
+        | `header s ->
+          begin match parse_sam_header s with
+          | Ok h -> header_items := h; next stopped
+          | Error e -> `error e
+          end
+        | `reference_information ri ->
+          let make_ref_info (s, i) = Biocaml_sam.reference_sequence s i in
+          reference_information := Array.map ri ~f:make_ref_info;
+          next stopped
+        | `alignment a ->
+          expand_alignment !reference_information a |! of_result
+        end
+      end
+    end
+  in
+  Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
+    ~next
 

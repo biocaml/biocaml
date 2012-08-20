@@ -2,7 +2,7 @@
 type raw_alignment = {
   qname : string;
   flag : int;
-  (* rname : string; *)
+  ref_id: int;
   pos : int;
   mapq : int;
   bin: int;
@@ -55,3 +55,22 @@ type parse_cigar_error = [
 val parse_cigar: ?pos:int -> ?len:int -> string ->
   (Biocaml_sam.cigar_op array, parse_cigar_error) Core.Result.t
      
+
+    
+val item_parser :
+  unit ->
+  (raw_item, Biocaml_sam.item,
+   [> `header_line_not_first of int
+   | `header_line_without_version of (string * string) list
+   | `header_line_wrong_sorting of string
+   | `invalid_header_tag of int * string
+   | `invalid_tag_value_list of int * string list
+   | `reference_sequence_not_found of raw_alignment
+   | parse_optional_error
+   | parse_cigar_error
+   | `wrong_flag of raw_alignment
+   | `wrong_mapq of raw_alignment
+   | `wrong_pnext of raw_alignment
+   | `wrong_pos of raw_alignment
+   | `wrong_qname of raw_alignment
+   | `wrong_tlen of raw_alignment ]) Biocaml_transform.t
