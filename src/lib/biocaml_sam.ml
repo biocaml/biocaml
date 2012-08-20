@@ -134,7 +134,17 @@ let reference_sequence
     ref_uri                 = uri                ;
     ref_unknown             = unknown_data ;
   }
-
+let reference_sequence_to_header rs =
+  ("SN", rs.ref_name)
+  :: ("LN", Int.to_string rs.ref_length)
+  :: (List.filter_opt [
+    Option.map rs.ref_assembly_identifier (fun s -> ("AS", s));
+    Option.map rs.ref_checksum (fun s -> ("M5", s));
+    Option.map rs.ref_species (fun s -> ("SP", s));
+    Option.map rs.ref_uri (fun s -> ("UR", s)); ]
+      @ rs.ref_unknown)
+    
+    
 module Flags = struct 
   type t = int
 
@@ -168,7 +178,7 @@ type cigar_op = [
 
 
 type optional_content_value = [
-| `array of optional_content_value array
+| `array of (char * optional_content_value array)
 | `char of char
 | `float of float
 | `int of int
@@ -188,7 +198,7 @@ type alignment = {
                  | `reference_sequence of reference_sequence ];
   next_ref_position: int option;
 
-  tamplate_length: int option;
+  template_length: int option;
 
   sequence: [ `string of string | `reference | `none];
   quality: Biocaml_phred_score.t array;
@@ -374,7 +384,7 @@ let parse_optional_content raw =
         in
         loop 0 l
         >>= fun a ->
-        return (tag, typ, `array a)
+        return (tag, typ, `array (typs.[0], a))
       end
     | c -> parse_cCsSiIf tag typ raw_v
     end)
@@ -447,7 +457,7 @@ let expand_alignment raw ref_dict =
     cigar_operations;
     next_ref_name;
     next_ref_position = if pnext = 0 then None else Some pnext;
-    tamplate_length  = if tlen = 0 then None else Some tlen;
+    template_length  = if tlen = 0 then None else Some tlen;
     sequence;
     quality;
     optional_content;
@@ -503,6 +513,115 @@ let item_parser () : (raw_item, item, item_parsing_error) Biocaml_transform.t =
   Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
     ~next
   
+let downgrade_alignment al =
+  let qname = al.query_template_name in
+  let flag = al.flags in
+  let rname =
+    match al.reference_sequence with
+    | `none -> "*"
+    | `name s -> s
+    | `reference_sequence rs -> rs.ref_name in
+  let pos = Option.value ~default:0 al.position in
+  let mapq = Option.value ~default:255 al.mapping_quality in
+  let cigar = 
+    match al.cigar_operations with
+    | [| |] -> "*"
+    | some ->
+      Array.map some ~f:(function
+      | `M  v -> sprintf "%d%c" v 'M'
+      | `I  v -> sprintf "%d%c" v 'I'
+      | `D  v -> sprintf "%d%c" v 'D'
+      | `N  v -> sprintf "%d%c" v 'N'
+      | `S  v -> sprintf "%d%c" v 'S'
+      | `H  v -> sprintf "%d%c" v 'H'
+      | `P  v -> sprintf "%d%c" v 'P'
+      | `Eq v -> sprintf "%d%c" v '='
+      | `X  v -> sprintf "%d%c" v 'X')
+      |! String.concat_array ~sep:"" in
+  let rnext = 
+    match al.next_ref_name with
+    | `qname -> "=" | `none -> "*" | `name s -> s
+    | `reference_sequence rs -> rs.ref_name in
+  let pnext = Option.value ~default:0 al.next_ref_position in
+  let tlen =  Option.value ~default:0 al.template_length in
+  let seq =
+    match al.sequence with | `string s -> s | `reference -> "=" | `none -> "*" in
+  begin
+    try
+      Array.map al.quality ~f:(fun q ->
+        Biocaml_phred_score.to_ascii q |! Option.value_exn |! Char.to_string)
+      |! String.concat_array ~sep:""
+      |! return
+    with
+      e -> fail (`wrong_phred_scores al)
+  end
+  >>= fun qual ->
+  let optional =
+    let rec optv = function
+      | `array (t, a) ->
+        sprintf "B%c%s" t String.(Array.map a ~f:optv |! concat_array ~sep:"" )
+      | `char c -> Char.to_string c
+      | `float f -> Float.to_string f
+      | `int i -> Int.to_string i
+      | `string s -> s in
+    List.map al.optional_content (fun (tag, typ, v) -> (tag, typ, optv v))
+  in
+  return (`alignment {qname; flag; rname; pos;
+                          mapq; cigar; rnext; pnext;
+                          tlen; seq; qual; optional; })
+    
+
+let downgrader () =
+  let name = "sam_item_downgrader" in
+  let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
+  let raw_items_count = ref 0 in
+  let of_result r = match r with Ok o -> `output o | Error e -> `error e in
+  let reference_sequence_dictionary = ref [| |] in
+  let reference_sequence_dictionary_to_output = ref 0 in
+  let rec next stopped =
+    begin match !reference_sequence_dictionary_to_output with
+    | 0 ->
+      begin match Dequeue.is_empty raw_queue with
+      | true when stopped -> `end_of_stream
+      | true (* when not stopped *) -> `not_ready
+      | false ->
+        incr raw_items_count;
+        begin match Dequeue.take_front_exn raw_queue with
+        | `comment c -> `output (`comment c)
+        | `header_line (version, sorting, rest) ->
+          `output (`header ("HD",
+                            ("VN", version)
+                            :: ("SO",
+                                match sorting with
+                                | `unknown -> "unknown"
+                                | `unsorted -> "unsorted"
+                                | `queryname -> "queryname"
+                                | `coordinate -> "coordinate")
+                            :: rest))
+        | `reference_sequence_dictionary rsd ->
+          reference_sequence_dictionary := rsd;
+          reference_sequence_dictionary_to_output := Array.length rsd;
+          next stopped
+        | `header ("SQ", _) ->
+          (* we simply skip this one *)
+          next stopped
+        | `header h -> `output (`header h)
+        | `alignment al ->
+          downgrade_alignment al |! of_result
+        end
+      end
+    | n ->
+      let o =
+        !reference_sequence_dictionary.(
+          Array.length !reference_sequence_dictionary - n) in
+      reference_sequence_dictionary_to_output := n - 1;
+      `output (`header ("SQ", reference_sequence_to_header o))
+    end
+  in
+  Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
+    ~next
+
+    
 let alignment_to_string x =
   sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n"
     x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual

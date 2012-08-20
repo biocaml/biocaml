@@ -348,7 +348,7 @@ let parse_optional ?(pos=0) ?len buf =
               loop (p + nb) (n - 1) in
           loop (pos + 5) size
           >>= fun newpos ->
-          return (`array arr, newpos - pos)
+          return (`array (array_type, arr), newpos - pos)
         | c -> parse_cCsSiIf pos c
         end
         >>= fun (v, nbread) ->
@@ -470,7 +470,7 @@ let expand_alignment refinfo raw =
     cigar_operations;
     next_ref_name = next_reference_sequence;
     next_ref_position = if pnext = -1 then None else Some (pnext + 1);
-    tamplate_length  = if tlen = 0 then None else Some tlen;
+    template_length  = if tlen = 0 then None else Some tlen;
     sequence = `string seq;
     quality = Array.map qual ~f:Biocaml_phred_score.of_int_exn;
     optional_content;

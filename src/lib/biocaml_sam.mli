@@ -92,7 +92,7 @@ type cigar_op = [
 | `X of int ]
 
 type optional_content_value = [
-| `array of optional_content_value array
+| `array of char * optional_content_value array
 | `char of char
 | `float of float
 | `int of int
@@ -113,7 +113,7 @@ type alignment = {
                  | `reference_sequence of reference_sequence ];
   next_ref_position: int option;
 
-  tamplate_length: int option;
+  template_length: int option;
 
   sequence: [ `string of string | `reference | `none];
   quality: Biocaml_phred_score.t array;
@@ -189,4 +189,5 @@ val expand_header_line:
 
 val item_parser: unit -> (raw_item, item, item_parsing_error) Biocaml_transform.t
 
-
+val downgrader: unit ->
+  (item, raw_item, [> `wrong_phred_scores of alignment]) Biocaml_transform.t

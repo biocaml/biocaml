@@ -116,7 +116,7 @@ let test_item_parser () =
          reference_sequence = `name "ref"; position = Some 37;
          mapping_quality = Some 30; cigar_operations = [|`M 9|];
          next_ref_name = `qname; next_ref_position = Some 7;
-         tamplate_length = Some (-39); sequence = `string "CAGCGCCAT";
+         template_length = Some (-39); sequence = `string "CAGCGCCAT";
          quality = [| |]; optional_content = [ "NM", 'i', `int 0] });
   Biocaml_transform.stop t;
   (* We still have one to get: *)
@@ -131,7 +131,7 @@ let test_item_parser () =
                          ref_unknown = []};
                    position = Some 37; mapping_quality = Some 30;
                    cigar_operations = [|`M 9|]; next_ref_name = `none;
-                   next_ref_position = Some 7; tamplate_length = Some (-39);
+                   next_ref_position = Some 7; template_length = Some (-39);
                    sequence = `string "CAGCGCCAT"; quality = [| |];
                    optional_content = [ "NM", 'i', `int 0]}));
   assert_bool "EOS" (Biocaml_transform.next t = `end_of_stream);
