@@ -102,7 +102,8 @@ end
 (** Operations with [Result.t] and [list]. *)
 module Result_list: sig
 
-  val while_ok: 'a list -> f:('a -> ('b, 'e) Result.t) -> ('b list, 'e) Result.t
+  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) Result.t) ->
+    ('b list, 'e) Result.t
   (** Map the function [f] on the list until the first error is met. *)
 
 end

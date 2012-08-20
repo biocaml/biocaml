@@ -88,7 +88,7 @@ let parse_alignment position s  =
       int "mapq" mapq >>= fun mapq ->
       int "pnext" pnext >>= fun pnext ->
       int "tlen" tlen >>= fun tlen ->
-      Result_list.while_ok optional (parse_optional_field position)
+      Result_list.while_ok optional (fun _ -> parse_optional_field position)
       >>= fun optional ->
       return (`alignment {
         qname;  flag; rname; pos; mapq; cigar; rnext;
@@ -341,7 +341,7 @@ let parse_optional_content raw =
     | 'f' -> float tag typ raw
     | _ -> error (`unknown_type typ)
     end in
-  Result_list.while_ok raw (fun (tag, typ, raw_v) ->
+  Result_list.while_ok raw (fun _ (tag, typ, raw_v) ->
     begin match typ with
     | 'Z' -> return (tag, typ, `string raw_v)
     | 'H' -> return (tag, typ, `string raw_v)

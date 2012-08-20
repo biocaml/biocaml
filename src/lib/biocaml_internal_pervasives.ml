@@ -141,13 +141,13 @@ end
 
 module Result_list = struct
 
-  let while_ok (type error) l ~(f:('a -> ('b, error) Result.t)) =
+  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) Result.t)) =
     let module M = struct
       exception E of error 
       let the_fun () =
         let run () =
-          List.map l (fun x ->
-            match f x with
+          List.mapi l (fun i x ->
+            match f i x with
             | Ok o -> o
             | Error e -> raise (E e))
         in
