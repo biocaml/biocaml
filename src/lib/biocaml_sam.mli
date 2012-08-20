@@ -172,5 +172,21 @@ type item_parsing_error = [
 | optional_content_parsing_error
 ]
 
+val parse_header_line: 
+  'a -> string ->
+  ([> `comment of string
+   | `header of string * (string * string) list ],
+   [> `invalid_header_tag of 'a * string
+   | `invalid_tag_value_list of 'a * string list ]) Core.Result.t
+
+val expand_header_line:
+  (string * string) list ->
+  ([> `header_line of
+      string * [ `coordinate | `queryname | `unknown | `unsorted ] *
+                 (string * string) list ],
+   [> `header_line_without_version of (string * string) list
+   | `header_line_wrong_sorting of string ]) Core.Result.t
+
 val item_parser: unit -> (raw_item, item, item_parsing_error) Biocaml_transform.t
+
 
