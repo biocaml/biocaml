@@ -109,9 +109,9 @@ type alignment = {
   mapping_quality: int option;
   cigar_operations: cigar_op array;
 
-  next_ref_name: [`qname | `none | `name of string
+  next_reference_sequence: [`qname | `none | `name of string
                  | `reference_sequence of reference_sequence ];
-  next_ref_position: int option;
+  next_position: int option;
 
   template_length: int option;
 

@@ -468,8 +468,8 @@ let expand_alignment refinfo raw =
     position = if pos = -1 then None else Some (pos + 1);
     mapping_quality =if mapq = 255 then None else Some mapq;
     cigar_operations;
-    next_ref_name = next_reference_sequence;
-    next_ref_position = if pnext = -1 then None else Some (pnext + 1);
+    next_reference_sequence = next_reference_sequence;
+    next_position = if pnext = -1 then None else Some (pnext + 1);
     template_length  = if tlen = 0 then None else Some tlen;
     sequence = `string seq;
     quality = Array.map qual ~f:Biocaml_phred_score.of_int_exn;

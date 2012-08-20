@@ -194,9 +194,9 @@ type alignment = {
   mapping_quality: int option;
   cigar_operations: cigar_op array;
 
-  next_ref_name: [`qname | `none | `name of string
+  next_reference_sequence: [`qname | `none | `name of string
                  | `reference_sequence of reference_sequence ];
-  next_ref_position: int option;
+  next_position: int option;
 
   template_length: int option;
 
@@ -424,7 +424,7 @@ let expand_alignment raw ref_dict =
     | Some r -> return (`reference_sequence r)
     end
   end
-  >>= fun next_ref_name ->
+  >>= fun next_reference_sequence ->
   check (0 <= pnext && pnext <= 536870911) (`wrong_pnext raw) >>= fun () ->
   check (-536870911 <= tlen && tlen <= 536870911) (`wrong_tlen raw)
   >>= fun () ->
@@ -455,8 +455,8 @@ let expand_alignment raw ref_dict =
     position = if pos = 0 then None else Some pos;
     mapping_quality =if mapq = 255 then None else Some mapq;
     cigar_operations;
-    next_ref_name;
-    next_ref_position = if pnext = 0 then None else Some pnext;
+    next_reference_sequence;
+    next_position = if pnext = 0 then None else Some pnext;
     template_length  = if tlen = 0 then None else Some tlen;
     sequence;
     quality;
@@ -539,10 +539,10 @@ let downgrade_alignment al =
       | `X  v -> sprintf "%d%c" v 'X')
       |! String.concat_array ~sep:"" in
   let rnext = 
-    match al.next_ref_name with
+    match al.next_reference_sequence with
     | `qname -> "=" | `none -> "*" | `name s -> s
     | `reference_sequence rs -> rs.ref_name in
-  let pnext = Option.value ~default:0 al.next_ref_position in
+  let pnext = Option.value ~default:0 al.next_position in
   let tlen =  Option.value ~default:0 al.template_length in
   let seq =
     match al.sequence with | `string s -> s | `reference -> "=" | `none -> "*" in
