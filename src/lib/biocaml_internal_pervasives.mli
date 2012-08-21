@@ -107,3 +107,13 @@ module Result_list: sig
   (** Map the function [f] on the list until the first error is met. *)
 
 end
+
+
+module Debug: sig
+
+  val enable: string -> unit
+  val disable: string -> unit
+
+  val make : string -> ('a, unit, string, unit) format4 -> 'a
+
+end
