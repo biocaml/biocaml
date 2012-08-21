@@ -1,5 +1,7 @@
 open Biocaml_internal_pervasives
 
+let dbg fmt = Debug.make "ZIP" fmt
+
 type unzip_error =
 [ `garbage_at_end_of_compressed_data of string
 | `wrong_gzip_header of
@@ -93,6 +95,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
     let buffered = Buffer.contents in_buffer in
     let len = String.length buffered in
     Buffer.clear in_buffer;
+    dbg "unzip: len: %d" len;
     begin match len with
     | 0 -> if stopped then `end_of_stream else `not_ready
     | _ ->

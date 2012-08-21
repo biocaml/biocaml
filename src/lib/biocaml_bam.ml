@@ -56,17 +56,7 @@ let string_of_raw_parsing_error e =
   | `wrong_cigar s -> sprintf "wrong_cigar %s" s
   | `wrong_magic_number s -> sprintf "wrong_magic_number %s" s
 
-let debug = ref true
-let dbg fmt =
-  ksprintf (fun s ->
-    if !debug then (
-      eprintf "BAM: ";
-      String.iter s (function
-      | '\n' -> eprintf "\n    "
-      | c -> eprintf "%c" c);
-      eprintf "\n%!"
-    )
-  ) fmt
+let dbg fmt = Debug.make "BAM" fmt
 
 let check b e = if b then return () else fail e
 
@@ -225,6 +215,7 @@ let uncompressed_bam_parser () =
     let buffered = Buffer.contents in_buffer in
     let len = String.length buffered in
     Buffer.clear in_buffer;
+    dbg "uncompressed_bam_parser: len: %d" len;
     begin match len with
     | 0 -> if stopped then `end_of_stream else `not_ready
     | _ ->
@@ -306,7 +297,8 @@ let parse_optional ?(pos=0) ?len buf =
         let parse_cCsSiIf pos typ =
           begin match typ with
           | 'i' -> check_size_and_return 4 (`int (int32 pos))
-          | 'A' | 'c' | 'C' -> check_size_and_return 1 (`char buf.[pos])
+          | 'A' -> check_size_and_return 1 (`char buf.[pos])
+          | 'c' | 'C' -> check_size_and_return 1 (`int (Char.to_int buf.[pos]))
           | 's' ->
             check_size_and_return 2 (`int (
               Binary_packing.unpack_signed_16
@@ -483,7 +475,10 @@ let item_parser () : (raw_item, Biocaml_sam.item, _) Biocaml_transform.t=
   let raw_items_count = ref 0 in
   let header_items = ref [] in
   let reference_information = ref [| |] in
+  let first_alignment = ref true in
   let rec next stopped =
+    dbg "header_items: %d   raw_queue: %d  raw_items_count: %d"
+      (List.length !header_items) (Dequeue.length raw_queue) !raw_items_count;
     begin match !header_items with
     | h :: t -> header_items := t; `output h
     | [] ->
@@ -503,7 +498,13 @@ let item_parser () : (raw_item, Biocaml_sam.item, _) Biocaml_transform.t=
           reference_information := Array.map ri ~f:make_ref_info;
           next stopped
         | `alignment a ->
-          expand_alignment !reference_information a |! of_result
+          if !first_alignment then (
+            first_alignment := false;
+            Dequeue.push_front raw_queue (`alignment a);
+            `output (`reference_sequence_dictionary !reference_information)
+          ) else (
+            expand_alignment !reference_information a |! of_result
+          )
         end
       end
     end

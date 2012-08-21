@@ -1,5 +1,6 @@
 open Biocaml_internal_pervasives
 
+let dbg fmt = Debug.make "SAM" fmt
 
 type raw_alignment = {
   qname : string;
@@ -579,6 +580,10 @@ let downgrader () =
   let reference_sequence_dictionary = ref [| |] in
   let reference_sequence_dictionary_to_output = ref 0 in
   let rec next stopped =
+    dbg "raw_items_count: %d refdict-to-out: %d   raw_queue: %d  "
+      !raw_items_count
+      !reference_sequence_dictionary_to_output
+      (Dequeue.length raw_queue);
     begin match !reference_sequence_dictionary_to_output with
     | 0 ->
       begin match Dequeue.is_empty raw_queue with
@@ -587,8 +592,10 @@ let downgrader () =
       | false ->
         incr raw_items_count;
         begin match Dequeue.take_front_exn raw_queue with
-        | `comment c -> `output (`comment c)
+        | `comment c ->
+          dbg "comment"; `output (`comment c)
         | `header_line (version, sorting, rest) ->
+          dbg "header";
           `output (`header ("HD",
                             ("VN", version)
                             :: ("SO",
@@ -599,14 +606,19 @@ let downgrader () =
                                 | `coordinate -> "coordinate")
                             :: rest))
         | `reference_sequence_dictionary rsd ->
+          dbg "reference_sequence_dictionary %d" (Array.length rsd);
           reference_sequence_dictionary := rsd;
           reference_sequence_dictionary_to_output := Array.length rsd;
           next stopped
         | `header ("SQ", _) ->
+          dbg "skipping SQ line";
           (* we simply skip this one *)
           next stopped
-        | `header h -> `output (`header h)
+        | `header h ->
+          dbg "header %s" (fst h);
+          `output (`header h)
         | `alignment al ->
+          dbg "alignment";
           downgrade_alignment al |! of_result
         end
       end

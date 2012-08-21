@@ -35,8 +35,6 @@ val raw_parser:
    [`unzip of Biocaml_zip.unzip_error | `bam of raw_parsing_error ] )
     Biocaml_transform.t
 
-val debug : bool ref
-
 type parse_optional_error = [
 | `wrong_auxiliary_data of
       [ `array_size of int
