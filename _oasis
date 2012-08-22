@@ -5,7 +5,7 @@ Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
 Authors:     Biocaml Team
 License:     LGPL with OCaml linking exception
-Plugins:     META (0.2), DevFiles (0.2)
+Plugins:     META (0.2)
 BuildTools:  ocamlbuild
 
 Flag lwt
