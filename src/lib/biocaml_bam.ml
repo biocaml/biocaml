@@ -512,3 +512,188 @@ let item_parser () : (raw_item, Biocaml_sam.item, _) Biocaml_transform.t=
   Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
     ~next
 
+let downgrade_alignement al ref_dict =
+  let module S = Biocaml_sam in
+  let find_ref s =
+    begin match Array.findi ref_dict (fun _ n -> n.S.ref_name = s) with
+    | Some (i, _) -> return i
+    | None -> fail (`reference_name_not_found (al, s))
+    end
+  in
+    
+  let qname = al.S.query_template_name in
+  let flag = (al.S.flags :> int) in
+  begin match al.S.reference_sequence with
+  | `name s -> find_ref s
+  | `none -> return (-1)
+  | `reference_sequence rs -> find_ref rs.S.ref_name
+  end
+  >>= fun ref_id ->
+  let pos = (Option.value ~default:0 al.S.position) - 1 in
+  let mapq = Option.value ~default:(-1) al.S.mapping_quality in
+  begin match al.S.sequence with
+  | `string s -> return s
+  | `none -> return ""
+  | `reference -> fail (`cannot_get_sequence al)
+  end
+  >>= fun seq ->
+  let bin =
+    let beg = pos in
+    let end_close (* open interval but then '--pos;' *) =
+      pos + String.(length seq) in
+    match beg, end_close with
+    | b,e when b lsr 14 = e lsr 14 ->
+      ((1 lsl 15) - 1) / 7  +  (beg lsr 14)
+    | b,e when b lsr 17 = e lsr 17 ->
+      ((1 lsl 12) - 1) / 7  +  (beg lsr 17)
+    | b,e when b lsr 20 = e lsr 20 ->
+      ((1 lsl 9) - 1) / 7  +  (beg lsr 20)
+    | b,e when b lsr 23 = e lsr 23 ->
+      ((1 lsl 6) - 1) / 7  +  (beg lsr 23)
+    | b,e when b lsr 26 = e lsr 26 ->
+      ((1 lsl 3) - 1) / 7  +  (beg lsr 26)
+    | _ -> 0 in
+  dbg "bin: %d" bin;
+  let cigar =
+    let buf = String.create (Array.length al.S.cigar_operations * 4) in
+    let write ith i32 =
+      let pos = ith * 4 in
+      Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32 in
+    let open Int32 in
+    let op c = of_int_exn (Char.to_int c) in
+    Array.iteri al.S.cigar_operations ~f:(fun idx -> function
+    | `D  i -> bit_or (op 'D') (of_int_exn i) |! write idx
+    | `Eq i -> bit_or (op '=') (of_int_exn i) |! write idx
+    | `H  i -> bit_or (op 'H') (of_int_exn i) |! write idx
+    | `I  i -> bit_or (op 'I') (of_int_exn i) |! write idx
+    | `M  i -> bit_or (op 'M') (of_int_exn i) |! write idx
+    | `N  i -> bit_or (op 'N') (of_int_exn i) |! write idx
+    | `P  i -> bit_or (op 'P') (of_int_exn i) |! write idx
+    | `S  i -> bit_or (op 'S') (of_int_exn i) |! write idx
+    | `X  i -> bit_or (op 'X') (of_int_exn i) |! write idx);
+    buf
+  in
+  dbg "cigar: %S" cigar;
+  begin match al.S.next_reference_sequence with
+  | `qname -> find_ref qname
+  | `none -> return (-1)
+  | `name s -> find_ref s
+  | `reference_sequence rs -> find_ref rs.S.ref_name
+  end
+  >>= fun next_ref_id ->
+  let pnext = Option.value ~default:0 al.S.next_position - 1 in
+  let tlen = Option.value ~default:0 al.S.template_length in
+  let qual = Array.map al.S.quality ~f:Biocaml_phred_score.to_int in
+  let optional =
+    let rec content typ = function
+      | `array (t, v) ->
+        sprintf "%c%s" t (Array.map ~f:(content t) v |! String.concat_array ~sep:"")
+      | `char c -> Char.to_string c
+      | `float f ->
+        let bits = Int32.bits_of_float f in
+        let buf = String.create 4 in
+        Binary_packing.pack_signed_32
+          ~byte_order:`Little_endian bits ~buf ~pos:0;
+        buf
+      | `int i ->
+        begin match typ with
+        | 'c' | 'C' -> 
+          let buf = String.create 1 in
+          Binary_packing.pack_unsigned_8 (0xff land i) ~buf ~pos:0;
+          buf
+        | 's' | 'S' ->
+          let buf = String.create 2 in
+          Binary_packing.pack_signed_16 (0xffff land i)
+            ~byte_order:`Little_endian ~buf ~pos:0;
+          buf
+        | _ -> 
+          let buf = String.create 4 in
+          Binary_packing.pack_signed_32_int i
+            ~byte_order:`Little_endian ~buf ~pos:0;
+          buf
+        end
+      | `string s ->
+        begin match typ with
+        | 'H' ->
+          let r = ref [] in
+          String.iter s (fun c ->
+            r := sprintf "%02x" (Char.to_int c) :: !r
+          );
+          String.concat ~sep:"" (List.rev !r) ^ "\000"
+        | _ -> s ^ "\000"
+        end
+    in
+    List.map al.S.optional_content (fun (tag, typ, c) ->
+      sprintf "%s%c%s" tag typ (content typ c))
+    |! String.concat ~sep:""
+  in
+  return {
+    qname; flag; ref_id; pos; mapq; bin; cigar;
+    next_ref_id; pnext; tlen; seq; qual; optional;}
+
+let downgrader () : (Biocaml_sam.item, raw_item, _) Biocaml_transform.t =
+  let name = "bam_item_downgrader" in
+  let queue = Dequeue.create ~dummy:(`header ("no", [])) () in
+  let items_count = ref 0 in
+  let ref_dict = ref [| |] in
+  let ref_dict_done = ref false in
+  let header = Buffer.create 256 in
+  let rec next stopped =
+    dbg "  queue: %d  items_count: %d"
+      (Dequeue.length queue) !items_count;
+    begin match Dequeue.is_empty queue, stopped with
+    | true, true ->`end_of_stream
+    | true, false -> `not_ready
+    | false, _ ->
+      incr items_count;
+      begin match Dequeue.take_front_exn queue with
+      | `comment c ->
+        Buffer.add_string header "@CO\t";
+        Buffer.add_string header c;
+        Buffer.add_string header "\n";
+        next stopped
+      | `header_line (version, ordering, rest) ->
+        if Buffer.contents header <> "" then
+          `error (`header_line_not_first (Buffer.contents header))
+        else begin
+          ksprintf (Buffer.add_string header) "@HD\tVN:%s\tSO:%s%s\n"
+            version
+            (match ordering with
+            | `unknown -> "unknown"
+            | `unsorted -> "unsorted"
+            | `queryname -> "queryname"
+            | `coordinate -> "coordinate")
+            (List.map rest (fun (t, v) -> sprintf "\t%s:%s" t v)
+             |! String.concat ~sep:"");
+          next stopped
+        end
+      | `header (pretag, l) ->
+        ksprintf (Buffer.add_string header) "@%s" pretag;
+        List.iter l (fun (t, v) ->
+          ksprintf (Buffer.add_string header) "\t%s:%s" t v;
+        );
+        Buffer.add_string header "\n";
+        next stopped
+      | `reference_sequence_dictionary r ->
+        ref_dict := r;
+        `output (`header (Buffer.contents header))
+      | `alignment al ->
+        if not !ref_dict_done 
+        then begin
+          dbg "reference_information: %d" Array.(length !ref_dict);
+          ref_dict_done := true;
+          Dequeue.push_front queue (`alignment al);
+          `output (`reference_information (Array.map !ref_dict ~f:(fun rs ->
+            let open Biocaml_sam in
+            (rs.ref_name, rs.ref_length))))
+        end
+        else begin
+          match downgrade_alignement al !ref_dict with
+          | Ok o -> `output (`alignment o)
+          | Error e -> `error e
+        end
+      end
+    end
+  in
+  Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back queue) ()
+    ~next

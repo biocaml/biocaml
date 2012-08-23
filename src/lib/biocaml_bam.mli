@@ -72,3 +72,11 @@ val item_parser :
    | `wrong_pos of raw_alignment
    | `wrong_qname of raw_alignment
    | `wrong_tlen of raw_alignment ]) Biocaml_transform.t
+
+val downgrader :
+  unit ->
+  (Biocaml_sam.item, raw_item,
+   [> `cannot_get_sequence of Biocaml_sam.alignment
+   | `header_line_not_first of string
+   | `reference_name_not_found of Biocaml_sam.alignment * string ])
+    Biocaml_transform.t
