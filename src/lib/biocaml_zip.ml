@@ -4,6 +4,7 @@ let dbg fmt = Debug.make "ZIP" fmt
 
 type unzip_error =
 [ `garbage_at_end_of_compressed_data of string
+| `zlib of exn
 | `wrong_gzip_header of
     [ `compression_method | `flags | `magic_number ] * int ]
 
@@ -60,6 +61,7 @@ let inflate_as_much_as_possible in_buffer buffer
     Zlib.inflate zstream buffer 0 len
       zlib_write_buffer 0 zlib_buffer_size
       Zlib.Z_SYNC_FLUSH in
+  dbg "finished: %b, used_in: %d, used_out: %d" finished used_in used_out;
   if used_in < len then (
     if finished then (
       match format with
@@ -101,17 +103,24 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
     | _ ->
       begin match !current_state with
       | `inflate ->
-        let inflation =
-          inflate_as_much_as_possible in_buffer buffered
-            !zstream zlib_write_buffer zlib_buffer_size  format in
-        begin match inflation with
-        | `output o -> `output o
-        | `error e -> `error e
-        | `not_ready -> `not_ready
-        | `finished_gzip out ->
-          current_state := `gzip_header;
-          zstream :=  Zlib.inflate_init false;
-          out
+        begin
+          try 
+            let inflation =
+              inflate_as_much_as_possible in_buffer buffered
+                !zstream zlib_write_buffer zlib_buffer_size  format in
+            begin match inflation with
+            | `output o -> `output o
+            | `error e -> `error e
+            | `not_ready -> `not_ready
+            | `finished_gzip out ->
+              current_state := `gzip_header;
+              zstream :=  Zlib.inflate_init false;
+              out
+            end
+          with
+          | e ->
+            dbg "E: %s; len: %d" (Exn.to_string e) len;
+            `error (`zlib e)
         end
       | `gzip_header ->
         begin
@@ -119,6 +128,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
             match try_skip_gzip_header_exn buffered with
             | Ok bytes_read ->
               current_state := `inflate;
+              dbg "header bytes_read: %d" bytes_read;
               Buffer.add_string in_buffer
                 String.(sub buffered bytes_read (len - bytes_read));
               next stopped
@@ -131,4 +141,83 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
   in
   Biocaml_transform.make_stoppable ()
     ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
+
+let gzip_default_header =
+  (* ID1, Id2, compr meth, flags,
+     mtime (4 bytes),
+     xflags, OS (unknown) *)
+  "\x1F\x8B\x08\x00\
+   \x00\x00\x00\x00\
+   \x00\xff"
+
+let zip ?(format=`raw) ?(level=8) ?(zlib_buffer_size=4096) () =
+  let zstream =  ref (Zlib.deflate_init level false) in
+  let in_buffer = Buffer.create 42 in
+  let zlib_write_buffer = String.create zlib_buffer_size  in
+  let state =
+    ref (match format with `raw -> `deflating | `gzip -> `gzip_header) in
+  let this_is_the_end = ref false in
+  let update_crc, output_crc =
+    match format with
+    | `raw -> ((fun _ _ -> ()), (fun () -> ""))
+    | `gzip ->
+      let gzip_crc = ref 0l in
+      let gzip_size = ref 0l in
+      ((fun buf used_in  ->
+        gzip_crc := Zlib.update_crc !gzip_crc buf 0 used_in;
+        gzip_size := Int32.(!gzip_size + (of_int_exn used_in));
+        ()),
+      (fun () ->
+        let buf = String.create 8 in
+        dbg "crc: %ld, size: %ld" !gzip_crc !gzip_size;
+        Binary_packing.pack_signed_32
+          ~byte_order:`Little_endian ~pos:0 ~buf !gzip_crc;
+        Binary_packing.pack_signed_32
+          ~byte_order:`Little_endian ~pos:4 ~buf !gzip_size;
+        buf))
+  in
+  let next stopped =
+    match state.contents with
+    | `gzip_header -> state := `deflating; `output gzip_default_header
+    | `deflating ->
+      let buffered = Buffer.contents in_buffer in
+      begin match String.length buffered with
+      | 0 ->
+        if stopped
+        then begin
+          if !this_is_the_end then `end_of_stream
+          else begin
+            let (_, _, used_out) =
+              Zlib.deflate !zstream "" 0 0
+                zlib_write_buffer 0 zlib_buffer_size Zlib.Z_FINISH in
+            let to_output =
+              if used_out < zlib_buffer_size then (
+                this_is_the_end := true;
+                Zlib.deflate_end !zstream;
+                String.(sub zlib_write_buffer 0 used_out ^ output_crc ())
+              ) else (
+                String.(sub zlib_write_buffer 0 used_out)
+              ) in
+            dbg "at the pseudo-end... used_out: %d, outputting %d bytes"
+              used_out String.(length to_output);
+            `output to_output
+          end
+        end
+        else `not_ready
+      | len ->
+        Buffer.clear in_buffer;
+        dbg "zip: len: %d" len;
+        let (_, used_in, used_out) =
+          Zlib.deflate !zstream buffered 0 len
+            zlib_write_buffer 0 zlib_buffer_size Zlib.Z_NO_FLUSH in
+        dbg "used_in: %d -- used_out: %d" used_in used_out;
+        update_crc buffered used_in;
+        if used_in < len
+        then (Buffer.add_substring in_buffer
+                buffered used_in (String.length buffered - used_in));
+        `output String.(sub zlib_write_buffer 0 used_out)
+      end
+  in
+  Biocaml_transform.make_stoppable ()
+    ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next 
 
