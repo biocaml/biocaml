@@ -558,7 +558,7 @@ let downgrade_alignement al ref_dict =
   end
   >>= fun ref_id ->
   let pos = (Option.value ~default:0 al.S.position) - 1 in
-  let mapq = Option.value ~default:(-1) al.S.mapping_quality in
+  let mapq = Option.value ~default:255 al.S.mapping_quality in
   begin match al.S.sequence with
   | `string s -> return s
   | `none -> return ""
