@@ -23,6 +23,7 @@ type raw_item =
 type raw_parsing_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
+| `reference_information_overflow of int * string
 | `wrong_magic_number of string
 | `wrong_int32 of string
 ]

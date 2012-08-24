@@ -34,6 +34,7 @@ type parse_optional_error = [
 type raw_parsing_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
+| `reference_information_overflow of int * string
 | `wrong_magic_number of string
 | `wrong_int32 of string
 ]
@@ -49,6 +50,8 @@ let string_of_raw_parsing_error e =
     sprintf "read_name_not_null_terminated %s" s
   | `reference_information_name_not_null_terminated s ->
     sprintf "reference_information_name_not_null_terminated %s" s
+  | `reference_information_overflow (len, buff) ->
+    sprintf "reference_information_overflow %d" len
   | `wrong_auxiliary_data (wad, s) ->
     sprintf "wrong_auxiliary_data (%s, %S)" s
       (match wad with
@@ -254,8 +257,12 @@ let uncompressed_bam_parser () =
         begin match parse_reference_information buffered nb with
         | `no ->
           dbg "(ri) rebuffering %d bytes" String.(length buffered);
-          if len > 10000 then failwith "too much";
-          Buffer.add_string in_buffer buffered; `not_ready
+          if len > 50000
+          then `error (`reference_information_overflow (len, buffered))
+          else begin
+            Buffer.add_string in_buffer buffered;
+            `not_ready
+          end
         | `error  e -> `error e
         | `reference_information (refinfo, nbread) ->
           Buffer.add_substring in_buffer buffered nbread (len - nbread);
