@@ -808,7 +808,10 @@ let uncompressed_bam_printer () : (raw_item, string, _) Biocaml_transform.t =
   let rec next stopped =
     match Buffer.contents buffer with
     | "" -> if stopped then `end_of_stream else `not_ready
-    | s -> Buffer.clear buffer; `output s in
+    | s ->
+      dbg "s: %d" (String.length s);
+      Buffer.clear buffer;
+      `output s in
   Biocaml_transform.make_stoppable ~name ~feed ~next ()
     
 let raw_printer ?zlib_buffer_size () =

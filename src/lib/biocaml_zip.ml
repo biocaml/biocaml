@@ -215,7 +215,10 @@ let zip ?(format=`raw) ?(level=8) ?(zlib_buffer_size=4096) () =
         if used_in < len
         then (Buffer.add_substring in_buffer
                 buffered used_in (String.length buffered - used_in));
-        `output String.(sub zlib_write_buffer 0 used_out)
+        if used_out > 0 then
+          `output String.(sub zlib_write_buffer 0 used_out)
+        else
+          `not_ready
       end
   in
   Biocaml_transform.make_stoppable ()
