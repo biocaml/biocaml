@@ -24,6 +24,7 @@ type raw_parsing_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
 | `wrong_magic_number of string
+| `wrong_int32 of string
 ]
 
 val string_of_raw_parsing_error : raw_parsing_error -> string
@@ -41,6 +42,7 @@ type parse_optional_error = [
       | `null_terminated_hexarray
       | `null_terminated_string
       | `out_of_bounds
+      | `wrong_int32 of string
       | `unknown_type of char ] * string
 ]
 val parse_optional: ?pos:int -> ?len:int -> string ->

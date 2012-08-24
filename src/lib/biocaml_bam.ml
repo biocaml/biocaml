@@ -27,6 +27,7 @@ type parse_optional_error = [
       [ `array_size of int
       | `null_terminated_hexarray
       | `null_terminated_string
+      | `wrong_int32 of string
       | `out_of_bounds
       | `unknown_type of char ] * string
 ]
@@ -34,6 +35,7 @@ type raw_parsing_error = [
 | `read_name_not_null_terminated of string
 | `reference_information_name_not_null_terminated of string
 | `wrong_magic_number of string
+| `wrong_int32 of string
 ]
 open Result
 
@@ -41,6 +43,8 @@ let of_result r = match r with Ok o -> `output o | Error e -> `error e
 
 let string_of_raw_parsing_error e =
   match e with
+  | `wrong_int32 s ->
+    sprintf "wrong_int32 %S" (String.sub s 0 4)
   | `read_name_not_null_terminated s ->
     sprintf "read_name_not_null_terminated %s" s
   | `reference_information_name_not_null_terminated s ->
@@ -48,6 +52,8 @@ let string_of_raw_parsing_error e =
   | `wrong_auxiliary_data (wad, s) ->
     sprintf "wrong_auxiliary_data (%s, %S)" s
       (match wad with
+      | `wrong_int32 s ->
+        sprintf "wrong_int32 %S" (String.sub s 0 4)
       | `array_size d -> sprintf "array_size %d" d
       | `null_terminated_hexarray -> "null_terminated_hexarray"
       | `null_terminated_string -> "null_terminated_string"
@@ -60,29 +66,39 @@ let dbg fmt = Debug.make "BAM" fmt
 
 let check b e = if b then return () else fail e
 
+let signed_int ~buf ~pos =
+  let b1 = Char.to_int buf.[pos + 0] |! Int32.of_int_exn in
+  let b2 = Char.to_int buf.[pos + 1] |! Int32.of_int_exn in
+  let b3 = Char.to_int buf.[pos + 2] |! Int32.of_int_exn in
+  let b4 = Char.to_int buf.[pos + 3] |! Int32.of_int_exn in
+  let i32 =
+    Int32.(bit_or  b1
+             (bit_or (shift_left b2 8)
+                (bit_or (shift_left b3 16)
+                   (shift_left b4 24)))) in
+  try return (Int32.to_int_exn i32) with e -> fail (`wrong_int32 buf)
+    
 let parse_header buf =
   check (String.length buf >= 12) `no
   >>= fun () ->
   check (String.sub buf 0 4 = "BAM\001")
     (`wrong_magic_number (String.sub buf 0 4))
   >>= fun () ->
-  let length =
-    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos:4 in
+  signed_int ~buf ~pos:4 >>= fun length ->
   dbg "header length: %d" length;
   check (String.length buf >= 4 + 4 + length + 4) `no
   >>= fun () ->
   let sam_header = String.sub buf 8 length in
   dbg "sam header: %S" sam_header;
-  let nb_refs =
-    let pos = 8 + length in
-    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
+  signed_int ~buf ~pos:(8 + length)
+  >>= fun nb_refs ->
   dbg "nb refs: %d" nb_refs;
   return (`header sam_header, nb_refs, 4 + 4 + length + 4)
 
 let parse_reference_information_item buf pos =
   check (String.length buf - pos >= 4) `no >>= fun () ->
-  let l_name =
-    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
+  signed_int ~buf ~pos
+  >>= fun l_name ->
   dbg "l_name: %d" l_name;
   check (String.length buf - pos >= 4 + l_name + 4) `no >>= fun () ->
   let name = String.sub buf (pos + 4) (l_name - 1) in
@@ -90,9 +106,8 @@ let parse_reference_information_item buf pos =
   check (buf.[pos + 4 + l_name - 1] = '\000')
     (`reference_information_name_not_null_terminated (String.sub buf 4 l_name))
   >>= fun () ->
-  let l_ref =
-    let pos = pos + 4 + l_name in
-    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
+  signed_int ~buf ~pos:(pos + 4 + l_name)
+  >>= fun l_ref ->
   return (4 + l_name + 4, name, l_ref)
 
 let parse_reference_information buf nb =
@@ -117,15 +132,15 @@ let parse_reference_information buf nb =
 
 let parse_alignment buf =
   check (String.length buf >= 4 * 9) `no >>= fun () ->
-  let int32 pos =
-    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
   let uint16 pos =
     Binary_packing.unpack_unsigned_8 ~buf ~pos +
       Binary_packing.unpack_unsigned_8 ~buf ~pos:(pos + 1) lsl 7 in
   let uint8 pos = Binary_packing.unpack_unsigned_8 ~buf ~pos in
-  let block_size = int32 0 in
-  let ref_id = int32 4 in
-  let pos = int32 8 in
+  signed_int ~buf ~pos:0 >>= fun block_size ->
+  signed_int ~buf ~pos: 4
+  >>= fun  ref_id ->
+  signed_int ~buf ~pos: 8
+  >>= fun  pos ->
   (* bin mq nl would be packed in a little-endian uint32, so we unpack
      its contents "in reverse order": *)
   let l_read_name = uint8 12 in
@@ -135,10 +150,14 @@ let parse_alignment buf =
   let n_cigar_op = uint16 16 in
   let flag = uint16 18 in
   (* back to "normal" *)
-  let l_seq = int32 20 in
-  let next_ref_id = int32 24 in
-  let next_pos = int32 28 in
-  let tlen = int32 32 in
+  signed_int ~buf ~pos: 20
+  >>= fun  l_seq ->
+  signed_int ~buf ~pos:24
+  >>= fun  next_ref_id ->
+  signed_int ~buf ~pos:28
+  >>= fun  next_pos ->
+  signed_int ~buf ~pos:32
+  >>= fun  tlen ->
   dbg " block_size: %d ref_id: %d pos: %d l_read_name: %d mapq: %d
   bin: %d n_cigar_op: %d flag: %d l_seq: %d next_ref_id: %d next_pos: %d tlen: %d"
     block_size ref_id pos l_read_name mapq bin n_cigar_op flag l_seq next_ref_id
@@ -276,8 +295,6 @@ let raw_parser ?zlib_buffer_size () =
 let parse_optional ?(pos=0) ?len buf =
   let len =
     match len with Some s -> s | None -> String.length buf in
-  let int32 pos =
-    Binary_packing.unpack_signed_32_int ~byte_order:`Little_endian ~buf ~pos in
   let uint16 pos =
     Binary_packing.unpack_unsigned_8 ~buf ~pos +
       Binary_packing.unpack_unsigned_8 ~buf ~pos:(pos + 1) lsl 7 in
@@ -296,7 +313,9 @@ let parse_optional ?(pos=0) ?len buf =
           else return (r, n) in
         let parse_cCsSiIf pos typ =
           begin match typ with
-          | 'i' -> check_size_and_return 4 (`int (int32 pos))
+          | 'i' ->
+            signed_int ~buf ~pos >>= fun v ->
+            check_size_and_return 4 (`int v)
           | 'A' -> check_size_and_return 1 (`char buf.[pos])
           | 'c' | 'C' -> check_size_and_return 1 (`int (Char.to_int buf.[pos]))
           | 's' ->
@@ -327,7 +346,8 @@ let parse_optional ?(pos=0) ?len buf =
           end
         | 'B' ->
           check_size_and_return 1 buf.[pos] >>= fun (array_type, _) ->
-          check_size_and_return 4 (int32 (pos + 1)) >>= fun (size, _) ->
+          signed_int ~buf ~pos:(pos + 1) >>= fun i32 ->
+          check_size_and_return 4 i32 >>= fun (size, _) ->
           (if size > 4000 then error (`array_size size) else return ())
           >>= fun () ->
           let arr = Array.create size (`char 'B') in
@@ -348,9 +368,10 @@ let parse_optional ?(pos=0) ?len buf =
       )
     )
   in
-  build pos []
-  >>= fun result ->
-  return (List.rev result)
+  match build pos [] with
+  | Ok r -> return (List.rev r)
+  | Error (`wrong_auxiliary_data e) -> fail (`wrong_auxiliary_data e)
+  | Error (`wrong_int32 e) -> fail (`wrong_auxiliary_data (`wrong_int32 e, from ()))
 
 type cigar_op = [
 | `D of int
