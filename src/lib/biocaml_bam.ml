@@ -724,3 +724,99 @@ let downgrader () : (Biocaml_sam.item, raw_item, _) Biocaml_transform.t =
   in
   Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back queue) ()
     ~next
+    
+let uncompressed_bam_printer () : (raw_item, string, _) Biocaml_transform.t =
+  let name = "uncompressed_bam_printer" in
+  let buffer = Buffer.create 4096  in
+  let write buffer s = Buffer.add_string buffer s in
+  let write_little_endian_int n buffer i =
+    let r = ref i in
+    for i = 1 to n do
+      Buffer.add_char buffer (Char.of_int_exn (0xff land !r));
+      r := !r lsr 8
+    done in
+  let write_32_int = write_little_endian_int 4 in
+  let feed = function
+  
+    | `alignment ra ->
+      dbg "raw_printing alignment";
+      
+      let l_read_name = String.length ra.qname in
+      let n_cigar_op = (String.length ra.cigar / 4) in
+      let l_seq = (String.length ra.seq) in
+      let size =
+        (4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq
+        + (String.length ra.optional) in
+
+      write_32_int buffer size;
+      write_32_int buffer ra.ref_id;
+      write_32_int buffer ra.pos;
+      write_little_endian_int 1 buffer l_read_name;
+      write_little_endian_int 1 buffer ra.mapq;
+      write_little_endian_int 2 buffer ra.bin ;
+      write_little_endian_int 2 buffer n_cigar_op;
+      write_little_endian_int 2 buffer ra.flag;
+      write_32_int buffer l_seq;
+      write_32_int buffer ra.next_ref_id;
+      write_32_int buffer ra.pnext;
+      write_32_int buffer ra.tlen;
+      write buffer ra.qname; write_little_endian_int 1 buffer 0;
+      write buffer ra.cigar;
+      let base4 = function
+        | '=' -> 0
+        | 'A' -> 1
+        | 'C' -> 2
+        | 'M' -> 3
+        | 'G' -> 4
+        | 'R' -> 5
+        | 'S' -> 6
+        | 'V' -> 7
+        | 'T' -> 8
+        | 'W' -> 9
+        | 'Y' -> 10
+        | 'H' -> 11
+        | 'K' -> 12
+        | 'D' -> 13
+        | 'B' -> 14
+        | 'N' | _ -> 15 in
+      for i = 0 to ((String.length ra.seq + 1) / 2) - 1 do
+        write_little_endian_int 1 buffer
+          (base4 ra.seq.[2 * i] lsl 4 +
+             (try base4 ra.seq.[2 * i + 1] with _ -> 0))
+      done;
+      for i = 0 to String.length ra.seq - 1 do
+        (* the spec says that if qual is absent, the qualities must be
+           0xff anyway *)
+        write_little_endian_int 1 buffer
+          (try ra.qual.(i) with _ -> 0xff)
+      done;
+      write buffer ra.optional;
+        
+    | `header h ->
+      dbg "raw_printing the header";
+      write buffer "BAM\x01";
+      write_32_int buffer (String.length h);
+      write buffer h
+    | `reference_information sia ->
+      dbg "raw_printing the reference_information %d" (Array.length sia);
+      write_32_int buffer (Array.length sia);
+      Array.iter sia ~f:(fun (name, lgth) ->
+        write_32_int buffer (String.length name);
+        write buffer name;
+        write_32_int buffer lgth);
+  in
+  let rec next stopped =
+    match Buffer.contents buffer with
+    | "" -> if stopped then `end_of_stream else `not_ready
+    | s -> Buffer.clear buffer; `output s in
+  Biocaml_transform.make_stoppable ~name ~feed ~next ()
+    
+let raw_printer ?zlib_buffer_size () =
+  Biocaml_transform.(
+    on_error
+      ~f:(function
+      | `right r
+      | `left r -> r)
+      (compose
+         (uncompressed_bam_printer ())
+         (Biocaml_zip.zip ~format:`gzip ?zlib_buffer_size ())))

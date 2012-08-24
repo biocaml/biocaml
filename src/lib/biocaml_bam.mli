@@ -83,3 +83,10 @@ val downgrader :
    | `header_line_not_first of string
    | `reference_name_not_found of Biocaml_sam.alignment * string ])
     Biocaml_transform.t
+
+    
+val raw_printer :
+  ?zlib_buffer_size:int ->
+  unit ->
+  (raw_item, string, Biocaml_transform.no_error) Biocaml_transform.t
+    
