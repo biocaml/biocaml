@@ -101,9 +101,20 @@ let cmd_bam_to_sam =
       bam_to_sam ?input_buffer_size bam ?output_buffer_size sam
       |! Lwt_main.run)
     
+let cmd_bam_to_bam =
+  Command.basic ~summary:"convert from BAM to BAM again (after parsing everything)"
+    Command.Spec.(
+      file_to_file_flags
+      ++ anon ("BAM-FILE" %: string)
+      ++ anon ("BAM-FILE" %: string)
+    )
+    (fun ?input_buffer_size ?output_buffer_size bam bam2 ->
+      bam_to_bam ?input_buffer_size bam ?output_buffer_size bam2
+      |! Lwt_main.run)
 let () =
   Command.(
     group ~summary:"fcommand examples"
-      [ ("b2s", cmd_bam_to_sam) ]
+      [ ("b2s", cmd_bam_to_sam);
+        ("b2b", cmd_bam_to_bam)]
     |! run)
 
