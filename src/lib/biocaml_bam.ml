@@ -588,17 +588,16 @@ let downgrade_alignement al ref_dict =
       let pos = ith * 4 in
       Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32 in
     let open Int32 in
-    let op c = of_int_exn (Char.to_int c) in
     Array.iteri al.S.cigar_operations ~f:(fun idx -> function
-    | `D  i -> bit_or (op 'D') (of_int_exn i) |! write idx
-    | `Eq i -> bit_or (op '=') (of_int_exn i) |! write idx
-    | `H  i -> bit_or (op 'H') (of_int_exn i) |! write idx
-    | `I  i -> bit_or (op 'I') (of_int_exn i) |! write idx
-    | `M  i -> bit_or (op 'M') (of_int_exn i) |! write idx
-    | `N  i -> bit_or (op 'N') (of_int_exn i) |! write idx
-    | `P  i -> bit_or (op 'P') (of_int_exn i) |! write idx
-    | `S  i -> bit_or (op 'S') (of_int_exn i) |! write idx
-    | `X  i -> bit_or (op 'X') (of_int_exn i) |! write idx);
+    | `M  i -> bit_or 0l (of_int_exn (i lsl 4)) |! write idx
+    | `I  i -> bit_or 1l (of_int_exn (i lsl 4)) |! write idx
+    | `D  i -> bit_or 2l (of_int_exn (i lsl 4)) |! write idx
+    | `N  i -> bit_or 3l (of_int_exn (i lsl 4)) |! write idx
+    | `S  i -> bit_or 4l (of_int_exn (i lsl 4)) |! write idx
+    | `H  i -> bit_or 5l (of_int_exn (i lsl 4)) |! write idx
+    | `P  i -> bit_or 6l (of_int_exn (i lsl 4)) |! write idx
+    | `Eq i -> bit_or 7l (of_int_exn (i lsl 4)) |! write idx
+    | `X  i -> bit_or 8l (of_int_exn (i lsl 4)) |! write idx);
     buf
   in
   dbg "cigar: %S" cigar;
