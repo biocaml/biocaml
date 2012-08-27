@@ -105,7 +105,7 @@ let parse_reference_information_item buf pos =
   dbg "l_name: %d" l_name;
   check (String.length buf - pos >= 4 + l_name + 4) `no >>= fun () ->
   let name = String.sub buf (pos + 4) (l_name - 1) in
-  dbg "name: %S" name;
+  dbg "name: %S, (String.sub buf 4 l_name): %S" name (String.sub buf 4 l_name);
   check (buf.[pos + 4 + l_name - 1] = '\000')
     (`reference_information_name_not_null_terminated (String.sub buf 4 l_name))
   >>= fun () ->
@@ -801,8 +801,9 @@ let uncompressed_bam_printer () : (raw_item, string, _) Biocaml_transform.t =
       dbg "raw_printing the reference_information %d" (Array.length sia);
       write_32_int buffer (Array.length sia);
       Array.iter sia ~f:(fun (name, lgth) ->
-        write_32_int buffer (String.length name);
+        write_32_int buffer (String.length name + 1);
         write buffer name;
+        write_little_endian_int 1 buffer 0;
         write_32_int buffer lgth);
   in
   let rec next stopped =
