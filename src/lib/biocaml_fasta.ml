@@ -40,7 +40,7 @@ let generic_parser ~parse_sequence
     ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
   let name = sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
   let next = next ~parse_sequence ?pedantic ?sharp_comments ?semicolon_comments in
-  Transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
+  Transform.Line_oriented.make_stoppable ~name ?filename ~next ()
     
 
 let parse_string_sequence ~pedantic l =

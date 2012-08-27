@@ -70,25 +70,28 @@ type parse_error = [
 val parse_error_to_string: parse_error -> string
 (** Convert a [parse_error] to a string. *)
   
-val parser :
-  ?filename:string ->
-  ?pedantic:bool ->
-  ?sharp_comments:bool ->
-  unit ->
-  (string, t, parse_error) Biocaml_transform.t
-(** Create the parsing [Biocaml_transform.t]. The parser is
-    "best-effort" and stateless (i.e. a line containing ["1000 42."]
-    will parsed succesfully as a [`variable_step_value (1000, 42.)]
-    even if no ["variableStep"] was line present before). *)
+module Transform: sig
 
-val printer: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
+  val string_to_t :
+    ?filename:string ->
+    ?pedantic:bool ->
+    ?sharp_comments:bool ->
+    unit ->
+    (string, t, parse_error) Biocaml_transform.t
+  (** Create the parsing [Biocaml_transform.t]. The parser is
+      "best-effort" and stateless (i.e. a line containing ["1000 42."]
+      will parsed succesfully as a [`variable_step_value (1000, 42.)]
+      even if no ["variableStep"] was line present before). *)
+      
+  val t_to_string: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Create the transform that prints [t] values to strings. *)
 
-val to_bed_graph: unit ->
-  (t, bed_graph_value,
-   [`not_in_variable_step_state | `not_in_fixed_step_state]) Biocaml_transform.t
-(** Create a transform which converts [`variable_step_value _] and
-    [`fixed_step_value _] values to [`bed_graph_value _] values, using the
-    current state. The [`bed_graph_value _] and [`comment _] values stay
-    untouched. *)
+  val t_to_bed_graph: unit ->
+    (t, bed_graph_value,
+     [`not_in_variable_step_state | `not_in_fixed_step_state]) Biocaml_transform.t
+  (** Create a transform which converts [`variable_step_value _] and
+      [`fixed_step_value _] values to [`bed_graph_value _] values, using the
+      current state. The [`bed_graph_value _] and [`comment _] values stay
+      untouched. *)
+end
   

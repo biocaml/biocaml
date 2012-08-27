@@ -11,7 +11,7 @@ let make_stream () =
   let unzip_and_parse =
     Biocaml_transform.compose
       (Biocaml_zip.unzip ~format:`gzip ~zlib_buffer_size:24 ())
-      (Biocaml_bed.parser ~more_columns:[`string; `int; `float] ()) in
+      (Biocaml_bed.Transform.string_to_t ~more_columns:[`string; `int; `float] ()) in
   let stream =
     Biocaml_transform.Pull_based.(of_file tmp unzip_and_parse
                                   |! to_stream_result) in

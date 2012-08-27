@@ -23,8 +23,8 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
           | `not_ready ->
             dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
-          | `error e -> 
-            Lwt_io.eprintf "=====  ERROR: TODO\n%!"
+          | `error (`string e) -> 
+            Lwt_io.eprintf "=====  ERROR: %s\n%!" e
         in
         let rec loop () =
           read ~count:input_buffer_size i
@@ -48,19 +48,38 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
 let bam_to_sam ?input_buffer_size =
   file_to_file ?input_buffer_size
     Biocaml_transform.(
-      compose 
-        (compose (Biocaml_bam.raw_parser ?zlib_buffer_size:input_buffer_size ())
-           (Biocaml_bam.item_parser ()))
-        (compose (Biocaml_sam.downgrader ()) (Biocaml_sam.raw_printer ())))
+      on_error ~f:(function `left e -> e | `right e -> e)
+        (compose 
+           (on_error ~f:(function
+           | `left (`bam rpe) ->
+             `string (sprintf "(bam_raw_parsing_error %s)"
+                        (Biocaml_bam.string_of_raw_parsing_error rpe))
+           | `left (`unzip ue) ->
+             `string ("unzip_error")
+           | `right ipe -> `string "item_parsing_error")
+              (compose (Biocaml_bam.raw_parser ?zlib_buffer_size:input_buffer_size ())
+                 (Biocaml_bam.item_parser ())))
+           (on_error ~f:(function
+           | `left de -> `string "downgrader_error"
+           | `right ipe -> `string "raw_printing_error")
+              (compose (Biocaml_sam.downgrader ()) (Biocaml_sam.raw_printer ())))))
 
 let bam_to_bam ~input_buffer_size ?output_buffer_size =
   file_to_file ~input_buffer_size ?output_buffer_size
     Biocaml_transform.(
-      compose 
-        (compose (Biocaml_bam.raw_parser ~zlib_buffer_size:(10 * input_buffer_size) ())
-           (Biocaml_bam.item_parser ()))
-        (compose (Biocaml_bam.downgrader ())
-           (Biocaml_bam.raw_printer ?zlib_buffer_size:output_buffer_size ())))
+      on_error ~f:(function `left e -> e | `right e -> e)
+        (compose 
+           (on_error ~f:(function
+           | `left rpe -> `string "raw_parsing_error"
+           | `right ipe -> `string "item_parsing_error")
+              (compose (Biocaml_bam.raw_parser
+                          ~zlib_buffer_size:(10 * input_buffer_size) ())
+                 (Biocaml_bam.item_parser ())))
+           (on_error ~f:(function
+           | `left de -> `string "downgrader_error"
+           | `right ipe -> `string "raw_printing_error")
+              (compose (Biocaml_bam.downgrader ())
+                 (Biocaml_bam.raw_printer ?zlib_buffer_size:output_buffer_size ())))))
     
 module Command = Core_extended.Std.Core_command
 

@@ -4,7 +4,7 @@ open Core.Std
 
 
 let test_parser () =
-  let transfo = Biocaml_track.parser () in
+  let transfo = Biocaml_track.Transform.string_to_string_content () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
@@ -45,7 +45,7 @@ let test_parser () =
   ()
 
 let test_wig_parser () =
-  let transfo = Biocaml_track.wig_parser () in
+  let transfo = Biocaml_track.Transform.string_to_wig () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
@@ -64,7 +64,7 @@ let test_wig_parser () =
   ()
     
 let test_gff_parser () =
-  let transfo = Biocaml_track.gff_parser () in
+  let transfo = Biocaml_track.Transform.string_to_gff () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
@@ -88,7 +88,8 @@ let test_gff_parser () =
 
 let test_bed_parser () =
   let transfo =
-    Biocaml_track.bed_parser ~more_columns:[`string; `int; `float] () in
+    Biocaml_track.Transform.string_to_bed
+      ~more_columns:[`string; `int; `float] () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
@@ -105,7 +106,7 @@ let test_bed_parser () =
   ()
 
 let test_printer () =
-  let transfo = Biocaml_track.printer () in
+  let transfo = Biocaml_track.Transform.string_content_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -118,7 +119,7 @@ let test_printer () =
   ()
 
 let test_wig_printer () =
-  let transfo = Biocaml_track.wig_printer () in
+  let transfo = Biocaml_track.Transform.wig_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -131,7 +132,7 @@ let test_wig_printer () =
   ()
 
 let test_gff_printer () =
-  let transfo = Biocaml_track.gff_printer () in
+  let transfo = Biocaml_track.Transform.gff_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -150,7 +151,7 @@ let test_gff_printer () =
   ()
 
 let test_bed_printer () =
-  let transfo = Biocaml_track.bed_printer () in
+  let transfo = Biocaml_track.Transform.bed_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))

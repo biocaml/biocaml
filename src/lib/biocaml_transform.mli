@@ -117,54 +117,54 @@ val stream_transformation:
 (** Make a transformation between standard OCaml streams that may
     raise exceptions. *)
 
-(** A buffering parser for line-oriented formats. *)
+(** A buffering parsing_buffer for line-oriented formats. *)
 module Line_oriented: sig
     
-  type parser
+  type parsing_buffer
   
-  val parser: ?filename:string -> unit -> parser
+  val parsing_buffer: ?filename:string -> unit -> parsing_buffer
   (** Create a "parser"; the optional [filename] is used only to
       create error locations. *)
     
-  val feed_line: parser -> string -> unit
+  val feed_line: parsing_buffer -> string -> unit
   (** Feed the parser with a line. *)
 
-  val feed_string: parser -> string -> unit
+  val feed_string: parsing_buffer -> string -> unit
   (** Feed the parser with an arbitrary string buffer. *)
 
     
-  val queued_lines: parser -> int
+  val queued_lines: parsing_buffer -> int
   (** Get the number of lines ready-to-use in the buffer/queue. *)
 
-  val is_empty: parser -> bool
+  val is_empty: parsing_buffer -> bool
   (** Tell if the parser's buffers are empty or not. For instance, when there is no
       more content to feed and [next_line] returns [None], [is_empty p =
       true] means that the content did not end with a complete line. *)
     
-  val next_line: parser -> string option
+  val next_line: parsing_buffer -> string option
   (** Get the next line. *)
 
   exception No_next_line
   (** The exception thrown by [next_line_exn]. *)
 
-  val next_line_exn: parser -> string
+  val next_line_exn: parsing_buffer -> string
   (** Get the next line, but throw [No_next_line] if there is no line to return. *)
     
-  val current_position: parser -> Biocaml_pos.t
+  val current_position: parsing_buffer -> Biocaml_pos.t
   (** Get the current position in the stream. *)
 
-  val finish : parser -> [`ok | `error of string list * string option ]
+  val finish : parsing_buffer -> [`ok | `error of string list * string option ]
   (** Terminate the parsing, if the buffers are not empty return them as an error. *)
 
-  val stoppable_parser : ?name:string -> ?filename:string ->
-    next:(parser ->
+  val make_stoppable : ?name:string -> ?filename:string ->
+    next:(parsing_buffer ->
           [< `error of
               [> `incomplete_input of
                   Biocaml_pos.t * string list * string option ] as 'a
           | `not_ready
           | `output of 'b ]) ->
     unit -> (string, 'b, 'a) t
-  (** Build a stoppable line-oriented parser. *)
+  (** Build a stoppable line-oriented parsing_buffer. *)
 
 end
 

@@ -7,13 +7,15 @@ module Range = Biocaml_range
 module Accu = Biocaml_accu
 
 let rec iset_intersects_range i j s = ISet.(BatAvlTree.(
-  if i > j then raise (Invalid_argument "iset_intersects_range") ;
-  if is_empty s then false
-  else
-    let v1, v2 = root s in
-    if j < v1 then iset_intersects_range i j (left_branch s)
-    else if v2 < i then iset_intersects_range i j (right_branch s)
-    else true
+  begin
+    if i > j then raise (Invalid_argument "iset_intersects_range") ;
+    if is_empty s then false
+    else
+      let v1, v2 = root s in
+      if j < v1 then iset_intersects_range i j (left_branch s)
+      else if v2 < i then iset_intersects_range i j (right_branch s)
+      else true
+  end
 ))
 
 module Selection = struct

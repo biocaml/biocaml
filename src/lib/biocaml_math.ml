@@ -56,7 +56,7 @@ let range_floats = prange (+.)
 
 let range step first last =
   assert (step > 0.0);
-  let n = (int_of_float <<- ceil <<- abs_float) ((last -. first) /. step) + 1 in
+  let n = (int_of_float <-- ceil <-- abs_float) ((last -. first) /. step) + 1 in
   let a = Array.make n 0.0 in
   let (op,comp) = if first <= last then ((+.),(<=)) else ((-.),(>=)) in
   Array.iteri (fun i _ -> a.(i) <- op first (float_of_int i *. step)) a;
@@ -77,9 +77,9 @@ let variance a =
   let a = Array.map f a in
   (Array.fold_left ~f:(+.) ~init:0. a) /. (float_of_int (n - 1))
     
-let rms = sqrt <<- mean <<- (Array.map ~f:(fun x -> x *. x))
+let rms = sqrt <-- mean <-- (Array.map ~f:(fun x -> x *. x))
   
-let stdv = sqrt <<- variance
+let stdv = sqrt <-- variance
 
 let median a =
   let n = Array.length a in
@@ -333,7 +333,7 @@ let find_regions ?(max_gap=0) pred a =
       )
   in
   loop 0 (-1) 0;
-  (Array.of_list <<- List.rev) !ans
+  (Array.of_list <-- List.rev) !ans
     
 let find_min_window ?(init_direction="fwd") a pred i =
   let size = Array.length a in

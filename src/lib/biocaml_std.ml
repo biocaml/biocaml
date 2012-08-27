@@ -1,6 +1,6 @@
 
 include Printf
-let (<<-) f g = fun x -> f (g x)
+let (<--) f g = fun x -> f (g x)
 let identity = fun x -> x
 
 let try_finally_exn ~fend f x =

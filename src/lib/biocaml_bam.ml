@@ -47,7 +47,7 @@ let string_of_raw_parsing_error e =
   | `wrong_int32 s ->
     sprintf "wrong_int32 %S" (String.sub s 0 4)
   | `read_name_not_null_terminated s ->
-    sprintf "read_name_not_null_terminated %s" s
+    sprintf "read_name_not_null_terminated %S" s
   | `reference_information_name_not_null_terminated s ->
     sprintf "reference_information_name_not_null_terminated %s" s
   | `reference_information_overflow (len, buff) ->
@@ -739,15 +739,16 @@ let uncompressed_bam_printer () : (raw_item, string, _) Biocaml_transform.t =
   let feed = function
   
     | `alignment ra ->
-      dbg "raw_printing alignment";
       
-      let l_read_name = String.length ra.qname in
+      let l_read_name = String.length ra.qname + 1 in
       let n_cigar_op = (String.length ra.cigar / 4) in
       let l_seq = (String.length ra.seq) in
       let size =
         (4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq
         + (String.length ra.optional) in
 
+      dbg "raw_printing alignment: l_read_name: %d (qname: %S)"
+        l_read_name ra.qname;
       write_32_int buffer size;
       write_32_int buffer ra.ref_id;
       write_32_int buffer ra.pos;

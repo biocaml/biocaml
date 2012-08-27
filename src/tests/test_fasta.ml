@@ -3,10 +3,10 @@ open Core.Std
 
 module TS = Biocaml_transform.Pull_based
 let make_stream file =
-  let parser =
+  let t =
     Biocaml_fasta.sequence_parser ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
-  let stream = TS.of_file ~buffer_size:10 file parser in
+  let stream = TS.of_file ~buffer_size:10 file t in
   stream
 
 let test_parsing_01 stream =
@@ -72,10 +72,10 @@ let test_printer () =
   ()
   
 let score_parser () =
-  let parser = 
+  let t = 
     Biocaml_fasta.score_parser ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
-  let stream = TS.of_file ~buffer_size:100 "src/tests/data/fasta_05.fa" parser in
+  let stream = TS.of_file ~buffer_size:100 "src/tests/data/fasta_05.fa" t in
   parse_comments stream;
   assert_bool "Name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   ignore (TS.next stream);
@@ -92,9 +92,9 @@ let score_parser () =
   
 
 let sequence_aggregator_stream file =
-  let parser = Biocaml_fasta.sequence_parser  () in
+  let t = Biocaml_fasta.sequence_parser  () in
   let aggregator = Biocaml_fasta.sequence_aggregator () in
-  let transform = Biocaml_transform.compose parser aggregator in
+  let transform = Biocaml_transform.compose t aggregator in
   let stream = TS.of_file ~buffer_size:5 file transform in
   stream
   
@@ -123,11 +123,11 @@ let sequence_aggregator () =
 
   
 let score_aggregator () =
-  let parser = 
+  let t = 
     Biocaml_fasta.score_parser ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
   let aggregator = Biocaml_fasta.score_aggregator () in
-  let transform = Biocaml_transform.compose parser aggregator in
+  let transform = Biocaml_transform.compose t aggregator in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "scoaggr: 1"
     (TS.next stream = `output ("sequence 1|sid=4",
@@ -145,13 +145,11 @@ let score_aggregator () =
   ()
   
 let sequence_slicer_stream file = 
-  let parser = Biocaml_fasta.sequence_parser  () in
+  let t = Biocaml_fasta.sequence_parser  () in
   let aggregator = Biocaml_fasta.sequence_aggregator () in
   let slicer = Biocaml_fasta.sequence_slicer ~line_width:4 () in
   let transform =
-    Biocaml_transform.(
-      compose (compose parser aggregator) slicer
-    ) in
+    Biocaml_transform.(compose (compose t aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:5 file transform in
   stream
 
@@ -187,13 +185,13 @@ let sequence_slicer () =
   ()
     
 let score_slicer () =
-  let parser = 
+  let t = 
     Biocaml_fasta.score_parser ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
   let aggregator = Biocaml_fasta.score_aggregator () in
   let slicer = Biocaml_fasta.score_slicer ~group_by:3 () in
   let transform =
-    Biocaml_transform.(compose (compose parser aggregator) slicer) in
+    Biocaml_transform.(compose (compose t aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "name 1" (TS.next stream = `output (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (TS.next stream = `output (`partial_sequence

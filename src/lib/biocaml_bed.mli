@@ -40,14 +40,15 @@ type parse_error =
 ]
 (** The possible parsing errors. *)
 
-val parser:
-  ?filename:string ->
-  ?more_columns:[`float | `int | `string] list ->
-  unit ->
-  (string, t, parse_error) Biocaml_transform.t
+module Transform: sig
+  val string_to_t:
+    ?filename:string ->
+    ?more_columns:[`float | `int | `string] list ->
+    unit ->
+    (string, t, parse_error) Biocaml_transform.t
 (** Create a [Biocaml_transform.t] parser, while providing the format of the
     additional columns (default [[]]). *)
 
-val printer: unit ->
-  (t, string, Biocaml_transform.no_error) Biocaml_transform.t
-
+  val t_to_string: unit ->
+    (t, string, Biocaml_transform.no_error) Biocaml_transform.t
+end 

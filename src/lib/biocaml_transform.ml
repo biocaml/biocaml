@@ -186,14 +186,14 @@ let stream_transformation ~error_to_exn tr en =
     
 module Line_oriented = struct
 
-  type parser = {
+  type parsing_buffer = {
     mutable unfinished_line : string option;
     lines : string Queue.t;
     mutable parsed_lines : int;
     filename : string option;
   }
 
-  let parser ?filename () =
+  let parsing_buffer ?filename () =
     {unfinished_line = None;
      lines = Queue.create ();
      parsed_lines = 0;
@@ -243,8 +243,8 @@ module Line_oriented = struct
   let finish p =
     if is_empty p then `ok else `error (Queue.to_list p.lines, p.unfinished_line)
       
-  let stoppable_parser ?name ?filename ~next () =
-    let lo_parser = parser ?filename () in
+  let make_stoppable ?name ?filename ~next () =
+    let lo_parser = parsing_buffer ?filename () in
     make_stoppable ?name ()
       ~feed:(feed_string lo_parser)
       ~next:(fun stopped ->

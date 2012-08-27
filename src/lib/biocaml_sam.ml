@@ -113,7 +113,7 @@ let rec next p =
   
 let raw_parser ?filename () =
   let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
-  Biocaml_transform.Line_oriented.stoppable_parser ~name ?filename ~next ()
+  Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
 
 type reference_sequence = {
   ref_name: string;

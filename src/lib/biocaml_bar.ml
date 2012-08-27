@@ -14,13 +14,13 @@ type t = header * section list (* section list in ascending order by sec_name *)
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
     
-let num_sections = List.length <<- snd
-let data_type = List.assoc_exn "Data" <<- fst
-let scale = List.assoc_exn "Scale" <<- fst
-let genomic_map = List.assoc_exn "Genomic_Map" <<- fst
-let alg_name = List.assoc_exn "AlgName" <<- fst
-let alg_version = List.assoc_exn "AlgVersion" <<- fst
-let coord_convention = List.assoc_exn "probe_coordinate_convention" <<- fst
+let num_sections = List.length <-- snd
+let data_type = List.assoc_exn "Data" <-- fst
+let scale = List.assoc_exn "Scale" <-- fst
+let genomic_map = List.assoc_exn "Genomic_Map" <-- fst
+let alg_name = List.assoc_exn "AlgName" <-- fst
+let alg_version = List.assoc_exn "AlgVersion" <-- fst
+let coord_convention = List.assoc_exn "probe_coordinate_convention" <-- fst
 let sections = snd
 
 let section (_,secs) nm =

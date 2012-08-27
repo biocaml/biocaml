@@ -5,8 +5,8 @@ open Core.Std
 module TS = Biocaml_transform.Pull_based
 let make_stream ?more_columns file =
   let filename = "src/tests/data/" ^ file in
-  let parser = Biocaml_bed.parser ?more_columns ~filename () in
-  let stream = TS.of_file ~buffer_size:10 filename parser in
+  let bed_parser = Biocaml_bed.Transform.string_to_t ?more_columns ~filename () in
+  let stream = TS.of_file ~buffer_size:10 filename bed_parser in
   stream
     
 let test_parser () =
@@ -49,9 +49,9 @@ let test_parser () =
 
 let make_printer_stream ?more_columns file =
   let filename = "src/tests/data/" ^ file in
-  let parser = Biocaml_bed.parser ?more_columns ~filename () in
-  let printer = Biocaml_bed.printer () in
-  let trans = Biocaml_transform.compose parser printer in
+  let bed_parser = Biocaml_bed.Transform.string_to_t ?more_columns ~filename () in
+  let printer = Biocaml_bed.Transform.t_to_string () in
+  let trans = Biocaml_transform.compose bed_parser printer in
   let stream = TS.of_file ~buffer_size:10 filename trans in
   stream
     

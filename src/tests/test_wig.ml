@@ -5,17 +5,19 @@ open Core.Std
 module TS = Biocaml_transform.Pull_based
 let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
-  let parser =
-    Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
-  let stream = TS.of_file ~buffer_size:10 filename parser in
+  let t =
+    Biocaml_wig.Transform.string_to_t
+      ~pedantic:true ~sharp_comments:true ~filename () in
+  let stream = TS.of_file ~buffer_size:10 filename t in
   stream
 
 let file_reprinter_stream file =
   let filename = "src/tests/data/" ^ file in
-  let parser =
-    Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
-  let printer = Biocaml_wig.printer () in
-  let transfo = Biocaml_transform.compose parser printer in
+  let t =
+    Biocaml_wig.Transform.string_to_t
+      ~pedantic:true ~sharp_comments:true ~filename () in
+  let printer = Biocaml_wig.Transform.t_to_string () in
+  let transfo = Biocaml_transform.compose t printer in
   let stream = TS.of_file ~buffer_size:4 filename transfo in
   stream
 
@@ -115,10 +117,11 @@ let test_printer () =
 let test_to_bed_graph () =
   let stream file =
     let filename = "src/tests/data/" ^ file in
-    let parser =
-      Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
-    let to_bg = Biocaml_wig.to_bed_graph () in
-    let transfo = Biocaml_transform.compose parser to_bg in
+    let t =
+      Biocaml_wig.Transform.string_to_t
+        ~pedantic:true ~sharp_comments:true ~filename () in
+    let to_bg = Biocaml_wig.Transform.t_to_bed_graph () in
+    let transfo = Biocaml_transform.compose t to_bg in
     let stream = TS.of_file ~buffer_size:7 filename transfo in
     stream in
   

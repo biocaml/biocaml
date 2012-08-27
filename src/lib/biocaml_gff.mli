@@ -36,16 +36,19 @@ type parse_error =
 | `wrong_url_escaping of Biocaml_pos.t * string ]
 (** The possible parsing errors. *)
   
-val parser:
-  ?filename:string ->
-  ?pedantic:bool ->
-  ?version:[ `two | `three ] ->
-  unit ->
-  (string, stream_item, parse_error) Biocaml_transform.t
+module Transform: sig
+  val string_to_item:
+    ?filename:string ->
+    ?pedantic:bool ->
+    ?version:[ `two | `three ] ->
+    unit ->
+    (string, stream_item, parse_error) Biocaml_transform.t
 (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
-val printer:
-  ?version:[ `two | `three ] ->
-  unit ->
-  (stream_item, string, Biocaml_transform.no_error) Biocaml_transform.t
+  val item_to_string:
+    ?version:[ `two | `three ] ->
+    unit ->
+    (stream_item, string, Biocaml_transform.no_error) Biocaml_transform.t
 (** Create a printer for a given version. *)
+
+end
