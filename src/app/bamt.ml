@@ -2,9 +2,10 @@
 open Core.Std
 open Lwt
   
-let dbg verbose fmt =
+let verbose = ref false
+let dbg fmt =
   ksprintf (fun s ->
-    if verbose
+    if !verbose
     then (eprintf "bamt: %s\n%!" s; return ())
     else return ()) fmt
 
@@ -20,7 +21,7 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
           | `end_of_stream ->
             Lwt_io.printf "=====  WELL TERMINATED \n%!"
           | `not_ready ->
-            (* dbg verbose "NOT READY" >>= fun () -> *)
+            dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
           | `error e -> 
             Lwt_io.eprintf "=====  ERROR: TODO\n%!"
@@ -52,13 +53,14 @@ let bam_to_sam ?input_buffer_size =
            (Biocaml_bam.item_parser ()))
         (compose (Biocaml_sam.downgrader ()) (Biocaml_sam.raw_printer ())))
 
-let bam_to_bam ?input_buffer_size =
-  file_to_file ?input_buffer_size
+let bam_to_bam ~input_buffer_size ?output_buffer_size =
+  file_to_file ~input_buffer_size ?output_buffer_size
     Biocaml_transform.(
       compose 
-        (compose (Biocaml_bam.raw_parser ?zlib_buffer_size:input_buffer_size ())
+        (compose (Biocaml_bam.raw_parser ~zlib_buffer_size:(10 * input_buffer_size) ())
            (Biocaml_bam.item_parser ()))
-        (compose (Biocaml_bam.downgrader ()) (Biocaml_bam.raw_printer ())))
+        (compose (Biocaml_bam.downgrader ())
+           (Biocaml_bam.raw_printer ?zlib_buffer_size:output_buffer_size ())))
     
 module Command = Core_extended.Std.Core_command
 
@@ -68,6 +70,7 @@ let file_to_file_flags =
       if v then Biocaml_internal_pervasives.Debug.enable "BAM";
       if v then Biocaml_internal_pervasives.Debug.enable "SAM";
       if v then Biocaml_internal_pervasives.Debug.enable "ZIP";
+      verbose := v;
       k)
     ++ flag "verbose-all" ~aliases:["V"] no_arg ~doc:" make everything over-verbose"
     ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "BAM"; k)
@@ -76,13 +79,17 @@ let file_to_file_flags =
     ++ flag "verbose-sam"  no_arg ~doc:" make Biocaml_sam verbose"
     ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "ZIP"; k)
     ++ flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
-    ++ step (fun k v -> k ?input_buffer_size:v)
-    ++ flag "input-buffer" ~aliases:["ib"] (optional int)
-      ~doc:"<int> input buffer size"
-    ++ step (fun k v -> k ?output_buffer_size:v)
-    ++ flag "output-buffer" ~aliases:["ob"] (optional int)
-      ~doc:"<int> output buffer size"
+    ++ step (fun k v ->  verbose := v; k)
+    ++ flag "verbose-bamt"  no_arg ~doc:" make 'bamt' itself verbose"
+
+    ++ step (fun k v -> k ~input_buffer_size:v)
+    ++ flag "input-buffer" ~aliases:["ib"] (optional_with_default 42_000 int)
+      ~doc:"<int> input buffer size (Default: 42_000)"
+    ++ step (fun k v -> k ~output_buffer_size:v)
+    ++ flag "output-buffer" ~aliases:["ob"] (optional_with_default 42_000 int)
+      ~doc:"<int> output buffer size (Default: 42_000)"
   )
+
 let verbosity verbose_all vbam vsam vzip =
   List.filter_opt [
     if verbose_all || vbam then Some `bam else None;
@@ -97,8 +104,8 @@ let cmd_bam_to_sam =
       ++ anon ("BAM-FILE" %: string)
       ++ anon ("SAM-FILE" %: string)
     )
-    (fun ?input_buffer_size ?output_buffer_size bam sam ->
-      bam_to_sam ?input_buffer_size bam ?output_buffer_size sam
+    (fun ~input_buffer_size ~output_buffer_size bam sam ->
+      bam_to_sam ~input_buffer_size bam ~output_buffer_size sam
       |! Lwt_main.run)
     
 let cmd_bam_to_bam =
@@ -108,8 +115,8 @@ let cmd_bam_to_bam =
       ++ anon ("BAM-FILE" %: string)
       ++ anon ("BAM-FILE" %: string)
     )
-    (fun ?input_buffer_size ?output_buffer_size bam bam2 ->
-      bam_to_bam ?input_buffer_size bam ?output_buffer_size bam2
+    (fun ~input_buffer_size ~output_buffer_size bam bam2 ->
+      bam_to_bam ~input_buffer_size bam ~output_buffer_size bam2
       |! Lwt_main.run)
 let () =
   Command.(
