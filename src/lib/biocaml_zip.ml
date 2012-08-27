@@ -61,7 +61,8 @@ let inflate_as_much_as_possible in_buffer buffer
     Zlib.inflate zstream buffer 0 len
       zlib_write_buffer 0 zlib_buffer_size
       Zlib.Z_SYNC_FLUSH in
-  dbg "finished: %b, used_in: %d, used_out: %d" finished used_in used_out;
+  dbg "unzip len: %d, finished: %b, used_in: %d, used_out: %d" len
+    finished used_in used_out;
   if used_in < len then (
     if finished then (
       match format with
@@ -91,6 +92,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
   let zstream =  ref (Zlib.inflate_init false) in
   let in_buffer = Buffer.create 42 in
   let zlib_write_buffer = String.create zlib_buffer_size  in
+  dbg "unzip init: zlib_buffer_size: %d" zlib_buffer_size;
   let current_state =
     ref (match format with `gzip -> `gzip_header | `raw -> `inflate) in
   let rec next stopped =
@@ -154,6 +156,7 @@ let zip ?(format=`raw) ?(level=8) ?(zlib_buffer_size=4096) () =
   let zstream =  ref (Zlib.deflate_init level false) in
   let in_buffer = Buffer.create 42 in
   let zlib_write_buffer = String.create zlib_buffer_size  in
+  dbg "zip init: level: %d, zlib_buffer_size: %d" level zlib_buffer_size;
   let state =
     ref (match format with `raw -> `deflating | `gzip -> `gzip_header) in
   let this_is_the_end = ref false in
@@ -209,7 +212,10 @@ let zip ?(format=`raw) ?(level=8) ?(zlib_buffer_size=4096) () =
         dbg "zip: len: %d" len;
         let (_, used_in, used_out) =
           Zlib.deflate !zstream buffered 0 len
-            zlib_write_buffer 0 zlib_buffer_size Zlib.Z_NO_FLUSH in
+            zlib_write_buffer 0 zlib_buffer_size
+            (* Zlib.Z_NO_FLUSH *)
+            Zlib.Z_SYNC_FLUSH
+        in
         dbg "used_in: %d -- used_out: %d" used_in used_out;
         update_crc buffered used_in;
         if used_in < len
