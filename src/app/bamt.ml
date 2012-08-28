@@ -53,12 +53,17 @@ let bam_to_sam ?input_buffer_size =
            (on_error ~f:(function
            | `left (`bam rpe) ->
              `string (sprintf "(bam_raw_parsing_error %s)"
-                        (Biocaml_bam.string_of_raw_parsing_error rpe))
+                        (Biocaml_bam.Transform.string_of_raw_parsing_error rpe))
            | `left (`unzip ue) ->
              `string ("unzip_error")
-           | `right ipe -> `string "item_parsing_error")
-              (compose (Biocaml_bam.raw_parser ?zlib_buffer_size:input_buffer_size ())
-                 (Biocaml_bam.item_parser ())))
+           | `right ipe ->
+             `string (sprintf "item_parsing_error %s"
+                        Sexp.(to_string_hum
+                                (Biocaml_bam.Transform.sexp_of_raw_to_item_error
+                                   ipe))))
+              (compose (Biocaml_bam.Transform.string_to_raw
+                          ?zlib_buffer_size:input_buffer_size ())
+                 (Biocaml_bam.Transform.raw_to_item ())))
            (on_error ~f:(function
            | `left de -> `string "downgrader_error"
            | `right ipe -> `string "raw_printing_error")
@@ -72,14 +77,15 @@ let bam_to_bam ~input_buffer_size ?output_buffer_size =
            (on_error ~f:(function
            | `left rpe -> `string "raw_parsing_error"
            | `right ipe -> `string "item_parsing_error")
-              (compose (Biocaml_bam.raw_parser
+              (compose (Biocaml_bam.Transform.string_to_raw
                           ~zlib_buffer_size:(10 * input_buffer_size) ())
-                 (Biocaml_bam.item_parser ())))
+                 (Biocaml_bam.Transform.raw_to_item ())))
            (on_error ~f:(function
            | `left de -> `string "downgrader_error"
            | `right ipe -> `string "raw_printing_error")
-              (compose (Biocaml_bam.downgrader ())
-                 (Biocaml_bam.raw_printer ?zlib_buffer_size:output_buffer_size ())))))
+              (compose (Biocaml_bam.Transform.item_to_raw ())
+                 (Biocaml_bam.Transform.raw_to_string
+                    ?zlib_buffer_size:output_buffer_size ())))))
     
 module Command = Core_extended.Std.Core_command
 
