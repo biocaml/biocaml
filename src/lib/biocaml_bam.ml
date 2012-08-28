@@ -759,11 +759,12 @@ module Transform = struct
         let n_cigar_op = (String.length ra.cigar / 4) in
         let l_seq = (String.length ra.seq) in
         let size =
-          (4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq
+          (4 * 8) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq
           + (String.length ra.optional) in
 
         dbg "raw_printing alignment: l_read_name: %d (qname: %S)"
           l_read_name ra.qname;
+        dbg "starting buffer: %d size: %d" (Buffer.length buffer) size;
         write_32_int buffer size;
         write_32_int buffer ra.ref_id;
         write_32_int buffer ra.pos;
@@ -807,6 +808,7 @@ module Transform = struct
             (try ra.qual.(i) with _ -> 0xff)
         done;
         write buffer ra.optional;
+        dbg "ending buffer: %d size: %d" (Buffer.length buffer) size;
         
       | `header h ->
         dbg "raw_printing the header";
