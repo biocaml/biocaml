@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open With_result
 
 type t = [
 | `track of (string * string) list
@@ -16,7 +17,6 @@ type parse_error =
 | `wrong_key_value_format of (string * string) list * string * string ]
 
 module Transform = struct
-  open Result
 
   (*
     browser position chr19:49304200-49310700
@@ -68,27 +68,25 @@ module Transform = struct
 
   let rec next p =
     let open Biocaml_transform.Line_oriented in
-    let output_result = function
-      | Ok o -> `output o
-      | Error e -> `error e in
     match next_line p with
     | None -> `not_ready
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
-      `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l when String.strip l = "track"-> `output (`track [])
-    | Some l when String.strip l = "browser" -> `output (`browser (`unknown l))
+      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+    | Some l when String.strip l = "track"-> output_ok (`track [])
+    | Some l when String.strip l = "browser" -> output_ok (`browser (`unknown l))
     | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
       parse_track (current_position p)
         (String.chop_prefix_exn ~prefix:"track " l |! String.strip)
       |! output_result
     | Some l when String.(is_prefix (strip l) ~prefix:"browser ") ->
       parse_browser (current_position p) l |! output_result
-    | Some l -> `output (`content l)
+    | Some l -> output_ok (`content l)
 
   let string_to_string_content ?filename () =
     let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+      ~name ?filename ~next ()
 
   let needs_escaping s =
     String.exists s
@@ -120,65 +118,69 @@ module Transform = struct
         | "" -> if stopped then `end_of_stream else `not_ready
         | s -> `output s)
 
-  let embed_parser embedded ?filename ~coerce_error ~coerce_output =
+  let embed_parser ?filename =
     let track_parser = string_to_string_content ?filename () in
-    Biocaml_transform.(
-      on_error ~f:coerce_error
-        (partially_compose
-           track_parser
-           ~destruct:(function
-           | `content s -> `Yes (s ^ "\n")
-           | `track _ | `browser _ | `comment _ as n -> `No n)
-           embedded
-           ~reconstruct:(function
-           | `Filtered f -> f
-           | `Done d -> coerce_output d)))
-
-
+    Biocaml_transform.partially_compose
+      track_parser
+      ~destruct:(function
+      | Ok (`content s) -> `Yes (s ^ "\n")
+      | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
+      | Error _ as n -> `No n)
+      
   type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
   type wig_t = [ track | Biocaml_wig.t]
   let string_to_wig ?filename () =
     let wig_parser =
       Biocaml_wig.Transform.string_to_t
         ~pedantic:false ~sharp_comments:true ?filename () in
-    embed_parser wig_parser ?filename
-      ~coerce_error:(function
-      | `left l -> (l :> wig_parser_error)
-      | `right r ->  (r :> wig_parser_error))
-      ~coerce_output:(fun o -> (o :> wig_t))
+    embed_parser ?filename
+      (*
+    let track_parser = string_to_string_content ?filename () in
+    Biocaml_transform.partially_compose
+      track_parser
+      ~destruct:(function
+      | Ok (`content s) -> `Yes (s ^ "\n")
+      | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
+      | Error _ as n -> `No n) *)
+      wig_parser
+      ~reconstruct:(function
+      | `Filtered (Ok f) -> Ok (f :> wig_t)
+      | `Filtered (Error f) -> Error (f :> wig_parser_error)
+      | `Done (Ok o) -> Ok (o :> wig_t)
+      | `Done (Error e) -> Error (e :> wig_parser_error))
 
   type gff_parse_error = [parse_error | Biocaml_gff.parse_error]
   type gff_t = [track | Biocaml_gff.stream_item]
   let string_to_gff ?filename ?version () =
     let gff = Biocaml_gff.Transform.string_to_item ?filename ?version () in
-    embed_parser gff ?filename
-      ~coerce_error: (function
-      | `left l -> (l :> gff_parse_error)
-      | `right r -> (r :> gff_parse_error))
-      ~coerce_output:(fun o -> (o :> gff_t))
+    embed_parser  ?filename gff
+      ~reconstruct:(function
+      | `Filtered (Ok f) -> Ok (f :> gff_t)
+      | `Filtered (Error f) -> Error (f :> gff_parse_error)
+      | `Done (Ok o) -> Ok (o :> gff_t)
+      | `Done (Error e) -> Error (e :> gff_parse_error))
 
   type bed_parse_error = [parse_error| Biocaml_bed.parse_error]
   type bed_t = [track |  Biocaml_bed.t content ]
-  let string_to_bed ?filename  ?more_columns  () : (string, bed_t, _) Biocaml_transform.t =
+  let string_to_bed ?filename  ?more_columns  () =
     let bed = Biocaml_bed.Transform.string_to_t ?filename ?more_columns () in
-    embed_parser bed ?filename
-      ~coerce_error: (function
-      | `left l -> (l :> bed_parse_error)
-      | `right r -> (r :> bed_parse_error))
-      ~coerce_output:(fun o -> `content o)
+    embed_parser  ?filename bed
+      ~reconstruct:(function
+      | `Filtered (Ok f) -> Ok (f :> bed_t)
+      | `Filtered (Error f) -> Error (f :> bed_parse_error)
+      | `Done (Ok o) -> Ok (`content o :> bed_t)
+      | `Done (Error e) -> Error (e :> bed_parse_error))
 
 
   let make_printer p ~split () =
     let track = string_content_to_string ~add_content_new_line:false () in
     Biocaml_transform.(
-      (on_error ~f:(function `left x -> x | `right x -> x)
-         (compose
-            (on_error ~f:(function `left x -> x | `right x -> x)
-               (split_and_merge (identity ()) p
-                  ~merge:(function `left s -> s | `right r -> `content r)
-                  ~split))
-            track))
-    )
+      compose
+        (split_and_merge (identity ()) p
+           ~merge:(function `left s -> s | `right r -> `content r)
+           ~split)
+        track)
+
   let wig_to_string () =
     let wig = Biocaml_wig.Transform.t_to_string () in
     make_printer wig ()

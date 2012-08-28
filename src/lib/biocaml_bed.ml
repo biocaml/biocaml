@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open With_result
 
 type t = string * int * int * [`Float of float| `Int of int | `String of string] list
 
@@ -15,7 +16,6 @@ module Transform = struct
   let next how_to_parse =
     let more_columns = List.length how_to_parse in
     let open Biocaml_transform.Line_oriented in
-    let open Result in
     fun p ->
       let parse_string s = Ok s in
       let parse_int s =
@@ -51,12 +51,9 @@ module Transform = struct
             loop l how_to_parse [] >>= fun l ->
             return (name, start, stop, List.rev l)
           in
-          begin match m with
-          | Ok l -> `output l
-          | Error e -> `error e
-          end
+          `output m
         | l ->
-          `error (`wrong_number_of_columns (current_position p, l))
+          output_error (`wrong_number_of_columns (current_position p, l))
         end
       | None -> `not_ready
       end
@@ -66,6 +63,8 @@ module Transform = struct
     let name = sprintf "bed_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next more_columns in
     Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+      ~on_error:(function `next n -> n
+      | `incomplete_input e -> `incomplete_input e)
       
   let t_to_string () =
     let module PQ = Biocaml_transform.Printer_queue in

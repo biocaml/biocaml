@@ -114,7 +114,7 @@ val sequence_parser :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   unit ->
-  (string, string token, error) Biocaml_transform.t
+  (string, (string token, error) Core.Result.t) Biocaml_transform.t
     (** Parse a stream of strings as a sequence FASTA file.
         The [filename] is used only for error messages. If [pedantic] is [true]
         (default) the parser will report more errors (Biocaml_transform.no_error lines, non
@@ -127,25 +127,27 @@ val score_parser :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   unit ->
-  (string, int list token, error) Biocaml_transform.t
+  (string, (int list token, error) Core.Result.t) Biocaml_transform.t
 (** Parse a stream of strings as a sequence FASTA file.
     See [sequence_parser]. *)
 
 val sequence_printer :
   ?comment_char:char ->
   unit ->
-  (string token, string, Biocaml_transform.no_error) Biocaml_transform.t
+  (string token, string) Biocaml_transform.t
 (** Print sequences. If [comment_char] is [None] comments will be ignored. *)
   
 val score_printer :
   ?comment_char:char ->
   unit ->
-  (int list token, string, Biocaml_transform.no_error) Biocaml_transform.t
+  (int list token, string) Biocaml_transform.t
 (** Print scores. If [comment_char] is [None] comments will be ignored. *)
   
 val sequence_aggregator:
   unit -> 
-  (string token, string * string, [ `unnamed_sequence of string ]) Biocaml_transform.t
+  (string token,
+   (string * string, [ `unnamed_sequence of string ]) Core.Result.t)
+    Biocaml_transform.t
 (** Aggregate a stream of FASTA [string token] into a [(name, sequence)] stream.
     The error [`unnamed_sequence _] means that the file did start with
     the name of a sequence. *)
@@ -153,18 +155,17 @@ val sequence_aggregator:
 val score_aggregator:
   unit -> 
   (int list token,
-   string * int list,
-   [ `unnamed_sequence of int list ]) Biocaml_transform.t
+   (string * int list, [ `unnamed_sequence of int list ]) Core.Result.t)
+    Biocaml_transform.t
 (** Like [sequence_aggregator] but for [int list token]. *)
 
 val sequence_slicer: ?line_width:int -> unit ->
-  (string * string, string token, Biocaml_transform.no_error) Biocaml_transform.t
+  (string * string, string token) Biocaml_transform.t
 (** Cut a stream of [(name, sequence)] into a stream of [string token]
     where line are cut at [line_width] characters (default 80). *)
 
 val score_slicer: ?group_by:int -> unit ->
-  (string * int list, int list token, Biocaml_transform.no_error)
-    Biocaml_transform.t
+  (string * int list, int list token) Biocaml_transform.t
 (** Cut a stream of [(name, scores)] into a stream of [int list token]
     where lists are cut at [group_by] numbers (default 10). *)
 

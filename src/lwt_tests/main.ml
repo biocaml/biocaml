@@ -5,24 +5,28 @@ let print_next_ones parser_transform =
   let rec next_m () =
     match Biocaml_transform.next parser_transform with
     | `not_ready -> Lwt_io.printf "%%"
-    | `output {Biocaml_fastq. name; sequence; comment; qualities; } ->
+    | `output (Ok {Biocaml_fastq. name; sequence; comment; qualities; }) ->
       Lwt_io.printf "Read %S (%d bp)\n" name (String.length sequence)
       >>= fun () ->
       next_m ()
-    | `error (`sequence_and_qualities_do_not_match (l, seq, qs)) ->
+    | `output (Error (`sequence_and_qualities_do_not_match (l, seq, qs))) ->
       Lwt_io.printf "Error %s: %d bp Vs %d q-scores\n" (Biocaml_pos.to_string l)
         (String.length seq) (String.length qs)
       >>= fun () ->
       next_m ()
-    | `error (`wrong_comment_line (l, _)) ->
+    | `output (Error (`wrong_comment_line (l, _))) ->
       Lwt_io.printf "Syntax error (comment line): %s\n" (Biocaml_pos.to_string l)
       >>= fun () ->
       next_m ()
-    | `error (`wrong_name_line (l, _)) ->
+    | `output (Error (`wrong_name_line (l, _))) ->
       Lwt_io.printf "Syntax error (name line): %s\n" (Biocaml_pos.to_string l)
       >>= fun () ->
       next_m ()
-    | `error _ -> return ()
+    | `output (Error (`incomplete_input (l, _, _))) ->
+      Lwt_io.printf "Syntax error (incomplete input): %s\n" (Biocaml_pos.to_string l)
+      >>= fun () ->
+      next_m ()
+    (* | `error _ -> return () *)
     | `end_of_stream -> return ()
   in
   next_m ()
@@ -59,7 +63,7 @@ let reprint_fastq file =
     Lwt_stream.filter_map (fun l ->
       Biocaml_transform.feed p (l ^ "\n");
       match Biocaml_transform.next p with
-      | `output r -> Some r
+      | `output (Ok r) -> Some r
       | _ -> None) stream_of_lines in
   Lwt_stream.to_list stream_of_records
   >>= fun list_of_records ->
@@ -67,10 +71,11 @@ let reprint_fastq file =
   Lwt_list.iter_s (fun r ->
     Biocaml_transform.feed printer r;
     match Biocaml_transform.next printer with
-    | `output s -> Lwt_io.printf "%s" s
+    | `output  s -> Lwt_io.printf "%s" s
     | _ -> return ())
     list_of_records
   
+    (*
 let test_classy_trimmer file =
   let fastq_file_trimmer =
     let counter_transform =
@@ -84,8 +89,8 @@ let test_classy_trimmer file =
       (* with_termination *)
       (compose
          (mix
-            (compose
-               (compose
+            (bind_result_merge_error
+               (bind_result_merge_error
                   (Biocaml_fastq.Transform.string_to_record ())
                   (on_input (Biocaml_fastq.Transform.trim (`beginning 10))
                      ~f:(fun i ->
@@ -146,7 +151,7 @@ let test_classy_trimmer file =
     loop ()))
   >>= fun () ->
   Lwt_io.(flush stdout)
-  
+    *)  
   
 let () =
   Lwt_main.run (
@@ -158,7 +163,8 @@ let () =
     test_fastq_string 4200 Sys.argv.(1) >>= fun () ->
     Lwt_io.printf "\nRe-print the FASTQ:\n" >>= fun () ->
     reprint_fastq Sys.argv.(1) >>= fun () ->
-    Lwt_io.printf "\nTrim the FASTQ:\n" >>= fun () ->
-    test_classy_trimmer Sys.argv.(1)
+    (* Lwt_io.printf "\nTrim the FASTQ:\n" >>= fun () -> *)
+    (* test_classy_trimmer Sys.argv.(1) *)
+    return ()
 
   )

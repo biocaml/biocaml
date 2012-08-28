@@ -139,8 +139,10 @@ module Lines = struct
 
 end
 
-module Result_list = struct
+module With_result = struct
 
+  include Result
+    
   let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) Result.t)) =
     let module M = struct
       exception E of error 
@@ -156,9 +158,13 @@ module Result_list = struct
         | E e -> Error e
     end in
     M.the_fun ()
-        
+    
+  let output_result r = `output r
+  let output_ok o = `output (Ok o)
+  let output_error e = `output (Error e)
 
 end
+  
 module Url = struct
 
   let escape s =

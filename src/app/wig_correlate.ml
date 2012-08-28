@@ -106,7 +106,8 @@ let corr meth wig_file1 wig_file2 : float =
   let wig_of_file file =
     let wig =
       let transfo =
-        Biocaml_transform.compose 
+        Biocaml_transform.bind_result 
+          ~on_error:ident
           (Biocaml_wig.Transform.string_to_t ())
           (Biocaml_wig.Transform.t_to_bed_graph ()) in
       Biocaml_transform.Pull_based.(

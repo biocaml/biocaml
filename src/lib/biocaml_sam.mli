@@ -36,12 +36,12 @@ type raw_parsing_error = [
 
   
 val raw_parser: ?filename:string -> unit ->
-  (string, raw_item, raw_parsing_error) Biocaml_transform.t
+  (string, (raw_item, raw_parsing_error) Core.Result.t) Biocaml_transform.t
 (** Create a parsing "stoppable" transform. *)   
 
     
 val raw_printer: unit ->
-  (raw_item, string, Biocaml_transform.no_error) Biocaml_transform.t
+  (raw_item, string) Biocaml_transform.t
 (** Create a printing "stoppable" transform. *)   
 
 type reference_sequence = {
@@ -187,7 +187,9 @@ val expand_header_line:
    [> `header_line_without_version of (string * string) list
    | `header_line_wrong_sorting of string ]) Core.Result.t
 
-val item_parser: unit -> (raw_item, item, item_parsing_error) Biocaml_transform.t
+val item_parser: unit ->
+  (raw_item, (item, item_parsing_error) Core.Result.t) Biocaml_transform.t
 
 val downgrader: unit ->
-  (item, raw_item, [> `wrong_phred_scores of alignment]) Biocaml_transform.t
+  (item, (raw_item, [> `wrong_phred_scores of alignment]) Core.Result.t)
+    Biocaml_transform.t

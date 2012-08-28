@@ -42,13 +42,13 @@ module Transform: sig
     ?pedantic:bool ->
     ?version:[ `two | `three ] ->
     unit ->
-    (string, stream_item, parse_error) Biocaml_transform.t
+    (string, (stream_item, parse_error) Core.Result.t) Biocaml_transform.t
 (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
   val item_to_string:
     ?version:[ `two | `three ] ->
     unit ->
-    (stream_item, string, Biocaml_transform.no_error) Biocaml_transform.t
+    (stream_item, string) Biocaml_transform.t
 (** Create a printer for a given version. *)
 
 end

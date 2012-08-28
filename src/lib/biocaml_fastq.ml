@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open With_result
 
 type record = {
   name: string;
@@ -15,19 +16,20 @@ let next p =
   else (
     let name_line    = next_line_exn p in
     if String.length name_line = 0 || name_line.[0] <> '@'
-    then `error (`wrong_name_line (current_position p, name_line))
+    then output_error (`wrong_name_line (current_position p, name_line))
     else
       let sequence     = next_line_exn p in
       let comment_line = next_line_exn p in
       if String.length comment_line = 0 || comment_line.[0] <> '+'
-      then `error (`wrong_comment_line (current_position p, comment_line))
+      then output_error (`wrong_comment_line (current_position p, comment_line))
       else
         let qualities    = next_line_exn p in
         if String.length sequence <> String.length qualities
-        then `error (`sequence_and_qualities_do_not_match (current_position p,
-                                                           sequence, qualities))
+        then output_error
+          (`sequence_and_qualities_do_not_match (current_position p,
+                                                 sequence, qualities))
         else (
-          `output {
+          output_ok {
             name = String.sub name_line 1 (String.length name_line - 1);
             comment = String.sub comment_line 1 (String.length comment_line - 1);
             sequence; qualities }
@@ -68,7 +70,7 @@ let string_of_parser_error = function
 module Transform = struct
   let string_to_record ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_stoppable
+    Biocaml_transform.Line_oriented.make_stoppable_merge_error
       ~name ?filename ~next ()
 
 
@@ -97,44 +99,17 @@ module Transform = struct
           let rlgth = String.length r.sequence in
           begin match specification with
           | `beginning i when i < rlgth ->
-            `output
+            output_ok
               { r with sequence = String.sub r.sequence ~pos:i ~len:(rlgth - i);
                 qualities = String.sub r.qualities ~pos:i ~len:(rlgth - i) }
           | `ending i when i < rlgth ->
-            `output
+            output_ok
               { r with sequence = String.sub r.sequence ~pos:0 ~len:(rlgth - i);
                 qualities = String.sub r.qualities ~pos:0 ~len:(rlgth - i) }
           | _ ->
-            `error (`invalid_size rlgth)
+            output_error (`invalid_size rlgth)
           end
         | None -> if stopped then `end_of_stream else `not_ready
         end)
 end
 
-(* ************************************************************************** *)
-(* Non-cooperative / Unix *)
-
-exception Error of parser_error
-let stream_parser ?filename e =
-  let transfo = Transform.string_to_record ?filename () in
-  Biocaml_transform.stream_transformation (fun e -> Error e) transfo e
-    (*
-
-#thread;;
-#require "biocaml";;
-open Core.Std
-let () =
-  let filename = "01.fastq" in
-  let stream_parser = Biocaml_fastq.stream_parser ~filename  in
-  In_channel.(with_file filename ~f:(fun i ->
-    let instream = Stream.of_channel i in
-    let strstream =
-      Stream.(from (fun _ -> try Some (next instream |! Char.to_string)
-        with _ -> None)) in
-    let outstream = stream_parser strstream in
-  Stream.iter (fun { Biocaml_fastq.sequence } ->
-    printf "::%s\n" sequence) outstream;
-  ))
-  ;;
-
-*)

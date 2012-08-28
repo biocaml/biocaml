@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open With_result
 
 type raw_alignment = {
   qname : string;
@@ -66,9 +67,7 @@ module Transform = struct
   | `wrong_tlen of raw_alignment ]
   with sexp
 
-  open Result
 
-  let of_result r = match r with Ok o -> `output o | Error e -> `error e
 
   let string_of_raw_parsing_error e =
     match e with
@@ -276,38 +275,38 @@ module Transform = struct
           | Ok (o, nbrefs, nbread) ->
             state := `reference_information nbrefs;
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
-            `output o
+            output_ok  o
           | Error `no ->
             dbg "rebuffering %d bytes" String.(length buffered);
             Buffer.add_string in_buffer buffered; `not_ready
-          | Error e -> `error e
+          | Error e -> `output (Error e)
           end
         | `reference_information nb ->
           begin match parse_reference_information buffered nb with
           | `no ->
             dbg "(ri) rebuffering %d bytes" String.(length buffered);
             if len > 50000
-            then `error (`reference_information_overflow (len, buffered))
+            then output_error (`reference_information_overflow (len, buffered))
             else begin
               Buffer.add_string in_buffer buffered;
               `not_ready
             end
-          | `error  e -> `error e
+          | `error  e -> `output (Error e)
           | `reference_information (refinfo, nbread) ->
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
             state := `alignments refinfo;
-            `output (`reference_information refinfo)
+            output_ok (`reference_information refinfo)
           end
         | `alignments refinfo ->
           begin match parse_alignment buffered with
           | Ok (o, nbread) ->
             dbg "len: %d nbread: %d" len nbread;
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
-            `output (o : raw_item)
+            output_ok (o : raw_item)
           | Error `no ->
             dbg "(al) rebuffering %d bytes" String.(length buffered);
             Buffer.add_string in_buffer buffered; `not_ready
-          | Error  e -> `error e
+          | Error  e -> output_error e
           end
         end
       end
@@ -316,17 +315,15 @@ module Transform = struct
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
   let string_to_raw ?zlib_buffer_size () =
-    Biocaml_transform.(
-      on_error
-        ~f:(function
-        | `left l -> `unzip l
-        | `right r ->
-          match r with
-          | `no -> failwith "got `right `no"
-          | #raw_parsing_error as a -> `bam a)
-        (compose
-           (Biocaml_zip.unzip ~format:`gzip ?zlib_buffer_size ())
-           (uncompressed_bam_parser ())))
+    Biocaml_transform.bind_result 
+      ~on_error:(function
+      | `left l -> `unzip l
+      | `right r ->
+        match r with
+        | `no -> failwith "got `right `no"
+        | #raw_parsing_error as a -> `bam a)
+      (Biocaml_zip.unzip ~format:`gzip ?zlib_buffer_size ())
+      (uncompressed_bam_parser ())
 
   let parse_optional ?(pos=0) ?len buf =
     let len =
@@ -455,7 +452,7 @@ module Transform = struct
 
   let parse_sam_header h =
     let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
-    Result_list.while_ok lines (fun idx line ->
+    while_ok lines (fun idx line ->
       dbg "parse_sam_header %d %s" idx line;
       Biocaml_sam.parse_header_line idx line
       >>= fun raw_sam ->
@@ -512,7 +509,8 @@ module Transform = struct
     })
 
 
-  let raw_to_item () : (raw_item, Biocaml_sam.item, _) Biocaml_transform.t=
+  let raw_to_item () :
+      (raw_item, (Biocaml_sam.item, _) Result.t) Biocaml_transform.t=
     let name = "bam_item_parser" in
     let raw_queue = Dequeue.create ~dummy:(`header "no") () in
     let raw_items_count = ref 0 in
@@ -523,7 +521,7 @@ module Transform = struct
       dbg "header_items: %d   raw_queue: %d  raw_items_count: %d"
         (List.length !header_items) (Dequeue.length raw_queue) !raw_items_count;
       begin match !header_items with
-      | h :: t -> header_items := t; `output h
+      | h :: t -> header_items := t; output_ok h
       | [] ->
         begin match Dequeue.is_empty raw_queue, stopped with
         | true, true ->`end_of_stream
@@ -534,7 +532,7 @@ module Transform = struct
           | `header s ->
             begin match parse_sam_header s with
             | Ok h -> header_items := h; next stopped
-            | Error e -> `error e
+            | Error e -> output_error e
             end
           | `reference_information ri ->
             let make_ref_info (s, i) = Biocaml_sam.reference_sequence s i in
@@ -544,9 +542,9 @@ module Transform = struct
             if !first_alignment then (
               first_alignment := false;
               Dequeue.push_front raw_queue (`alignment a);
-              `output (`reference_sequence_dictionary !reference_information)
+              output_ok (`reference_sequence_dictionary !reference_information)
             ) else (
-              expand_alignment !reference_information a |! of_result
+              expand_alignment !reference_information a |! output_result
             )
           end
         end
@@ -673,7 +671,8 @@ module Transform = struct
       qname; flag; ref_id; pos; mapq; bin; cigar;
       next_ref_id; pnext; tlen; seq; qual; optional;}
 
-  let item_to_raw () : (Biocaml_sam.item, raw_item, _) Biocaml_transform.t =
+  let item_to_raw () :
+      (Biocaml_sam.item, (raw_item, _) Result.t) Biocaml_transform.t =
     let name = "bam_item_downgrader" in
     let queue = Dequeue.create ~dummy:(`header ("no", [])) () in
     let items_count = ref 0 in
@@ -696,7 +695,7 @@ module Transform = struct
           next stopped
         | `header_line (version, ordering, rest) ->
           if Buffer.contents header <> "" then
-            `error (`header_line_not_first (Buffer.contents header))
+            output_error (`header_line_not_first (Buffer.contents header))
           else begin
             ksprintf (Buffer.add_string header) "@HD\tVN:%s\tSO:%s%s\n"
               version
@@ -706,7 +705,7 @@ module Transform = struct
               | `queryname -> "queryname"
               | `coordinate -> "coordinate")
               (List.map rest (fun (t, v) -> sprintf "\t%s:%s" t v)
-                                            |! String.concat ~sep:"");
+               |! String.concat ~sep:"");
             next stopped
           end
         | `header (pretag, l) ->
@@ -718,21 +717,21 @@ module Transform = struct
           next stopped
         | `reference_sequence_dictionary r ->
           ref_dict := r;
-          `output (`header (Buffer.contents header))
+          output_ok (`header (Buffer.contents header))
         | `alignment al ->
           if not !ref_dict_done 
           then begin
             dbg "reference_information: %d" Array.(length !ref_dict);
             ref_dict_done := true;
             Dequeue.push_front queue (`alignment al);
-            `output (`reference_information (Array.map !ref_dict ~f:(fun rs ->
+            output_ok (`reference_information (Array.map !ref_dict ~f:(fun rs ->
               let open Biocaml_sam in
               (rs.ref_name, rs.ref_length))))
           end
           else begin
             match downgrade_alignement al !ref_dict with
-            | Ok o -> `output (`alignment o)
-            | Error e -> `error e
+            | Ok o -> output_ok (`alignment o)
+            | Error e -> output_error e
           end
         end
       end
@@ -740,7 +739,7 @@ module Transform = struct
     Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back queue) ()
       ~next
       
-  let uncompressed_bam_printer () : (raw_item, string, _) Biocaml_transform.t =
+  let uncompressed_bam_printer () : (raw_item, string) Biocaml_transform.t =
     let name = "uncompressed_bam_printer" in
     let buffer = Buffer.create 4096  in
     let write buffer s = Buffer.add_string buffer s in
@@ -834,12 +833,7 @@ module Transform = struct
     Biocaml_transform.make_stoppable ~name ~feed ~next ()
       
   let raw_to_string ?zlib_buffer_size () =
-    Biocaml_transform.(
-      on_error
-        ~f:(function
-        | `right r
-        | `left r -> r)
-        (compose
-           (uncompressed_bam_printer ())
-           (Biocaml_zip.zip ~format:`gzip ?zlib_buffer_size ())))
+    Biocaml_transform.compose
+      (uncompressed_bam_printer ())
+      (Biocaml_zip.zip ~format:`gzip ?zlib_buffer_size ())
 end

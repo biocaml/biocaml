@@ -16,15 +16,15 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
       with_file ~mode:output ~buffer_size:output_buffer_size samfile (fun o ->
         let rec print_all stopped =
           match Biocaml_transform.next transfo with
-          | `output s ->
+          | `output (Ok s) ->
             write o s >>= fun () -> print_all stopped
           | `end_of_stream ->
             Lwt_io.printf "=====  WELL TERMINATED \n%!"
           | `not_ready ->
             dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
-          | `error (`string e) -> 
-            Lwt_io.eprintf "=====  ERROR: %s\n%!" e
+          | `output (Error (_)) -> 
+            Lwt_io.eprintf "=====  ERROR: TODO\n%!" 
         in
         let rec loop () =
           read ~count:input_buffer_size i
@@ -48,44 +48,42 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
 let bam_to_sam ?input_buffer_size =
   file_to_file ?input_buffer_size
     Biocaml_transform.(
-      on_error ~f:(function `left e -> e | `right e -> e)
-        (compose 
-           (on_error ~f:(function
-           | `left (`bam rpe) ->
-             `string (sprintf "(bam_raw_parsing_error %s)"
-                        (Biocaml_bam.Transform.string_of_raw_parsing_error rpe))
-           | `left (`unzip ue) ->
-             `string ("unzip_error")
-           | `right ipe ->
+      bind_result_merge_error
+        (bind_result_merge_error
+           (Biocaml_bam.Transform.string_to_raw
+              ?zlib_buffer_size:input_buffer_size ())
+           (Biocaml_bam.Transform.raw_to_item ()))
+        (map_result
+           (Biocaml_sam.downgrader ()) (Biocaml_sam.raw_printer ())))
+   (* 
+        ~on_error:(function
+        | (`bam rpe) ->
+          `string (sprintf "(bam_raw_parsing_error %s)"
+                     (Biocaml_bam.Transform.string_of_raw_parsing_error rpe))
+        | (`unzip ue) ->
+          `string ("unzip_error")
+        | `right ipe ->
              `string (sprintf "item_parsing_error %s"
                         Sexp.(to_string_hum
                                 (Biocaml_bam.Transform.sexp_of_raw_to_item_error
                                    ipe))))
-              (compose (Biocaml_bam.Transform.string_to_raw
-                          ?zlib_buffer_size:input_buffer_size ())
-                 (Biocaml_bam.Transform.raw_to_item ())))
            (on_error ~f:(function
            | `left de -> `string "downgrader_error"
            | `right ipe -> `string "raw_printing_error")
-              (compose (Biocaml_sam.downgrader ()) (Biocaml_sam.raw_printer ())))))
+   *)
 
 let bam_to_bam ~input_buffer_size ?output_buffer_size =
   file_to_file ~input_buffer_size ?output_buffer_size
     Biocaml_transform.(
-      on_error ~f:(function `left e -> e | `right e -> e)
-        (compose 
-           (on_error ~f:(function
-           | `left rpe -> `string "raw_parsing_error"
-           | `right ipe -> `string "item_parsing_error")
-              (compose (Biocaml_bam.Transform.string_to_raw
-                          ~zlib_buffer_size:(10 * input_buffer_size) ())
-                 (Biocaml_bam.Transform.raw_to_item ())))
-           (on_error ~f:(function
-           | `left de -> `string "downgrader_error"
-           | `right ipe -> `string "raw_printing_error")
-              (compose (Biocaml_bam.Transform.item_to_raw ())
-                 (Biocaml_bam.Transform.raw_to_string
-                    ?zlib_buffer_size:output_buffer_size ())))))
+      bind_result_merge_error
+        (bind_result_merge_error
+           (Biocaml_bam.Transform.string_to_raw
+              ~zlib_buffer_size:(10 * input_buffer_size) ())
+           (Biocaml_bam.Transform.raw_to_item ()))
+        (map_result 
+           (Biocaml_bam.Transform.item_to_raw ())
+           (Biocaml_bam.Transform.raw_to_string
+              ?zlib_buffer_size:output_buffer_size ())))
     
 module Command = Core_extended.Std.Core_command
 

@@ -36,8 +36,9 @@ module Transform: sig
   val string_to_raw:
     ?zlib_buffer_size:int ->
     unit ->
-    (string, raw_item,
-     [`unzip of Biocaml_zip.unzip_error | `bam of raw_parsing_error ] )
+    (string,
+     (raw_item, [`unzip of Biocaml_zip.unzip_error | `bam of raw_parsing_error ] )
+       Core.Result.t)
       Biocaml_transform.t
 
   type parse_optional_error = [
@@ -81,20 +82,23 @@ module Transform: sig
     
   val raw_to_item :
     unit ->
-    (raw_item, Biocaml_sam.item, raw_to_item_error) Biocaml_transform.t
+    (raw_item, (Biocaml_sam.item, raw_to_item_error) Core.Result.t)
+      Biocaml_transform.t
 
   val item_to_raw :
     unit ->
-    (Biocaml_sam.item, raw_item,
-     [> `cannot_get_sequence of Biocaml_sam.alignment
-     | `header_line_not_first of string
-     | `reference_name_not_found of Biocaml_sam.alignment * string ])
+    (Biocaml_sam.item,
+     (raw_item,
+      [> `cannot_get_sequence of Biocaml_sam.alignment
+      | `header_line_not_first of string
+      | `reference_name_not_found of Biocaml_sam.alignment * string ])
+       Core.Result.t)
       Biocaml_transform.t
-
-    
+       
+      
   val raw_to_string :
     ?zlib_buffer_size:int ->
     unit ->
-    (raw_item, string, Biocaml_transform.no_error) Biocaml_transform.t
+    (raw_item, string) Biocaml_transform.t
 end
     

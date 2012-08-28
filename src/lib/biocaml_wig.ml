@@ -1,5 +1,6 @@
 open Biocaml_internal_pervasives
 open Tuple
+open With_result
 
 type comment = [
 | `comment of string
@@ -79,21 +80,19 @@ module Transform = struct
         
   let rec next ?(pedantic=true) ?(sharp_comments=true) p =
     let open Biocaml_transform.Line_oriented in
-    let open Result in
     let assoc_find ~missing l v =
       match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
     let assoc_find_map ~missing ~wrong ~f l v =
       match List.Assoc.find l v with
       | Some v -> (try Ok (f v) with e -> Error wrong)
       | None -> Error missing in
-    let output_result = function  Ok o -> `output o | Error e -> `error e in
     match next_line p with
     | Some "" ->
       if pedantic
-      then `error (`empty_line (current_position p))
+      then output_error (`empty_line (current_position p))
       else next ~pedantic ~sharp_comments p
     | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
-      `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l when String.is_prefix l ~prefix:"fixedStep" ->
       let output_m =
         explode_key_value (current_position p)
@@ -146,20 +145,20 @@ module Transform = struct
         |! List.filter ~f:((<>) "") in
       begin match by_space with
       | [ one_value ] ->
-        (try `output (`fixed_step_value Float.(of_string one_value))
-         with e -> `error (`wrong_fixed_step_value (current_position p, l)))
+        (try output_ok (`fixed_step_value Float.(of_string one_value))
+         with e -> output_error (`wrong_fixed_step_value (current_position p, l)))
       | [ fst_val; snd_val] ->
-        (try `output (`variable_step_value (Int.of_string fst_val,
+        (try output_ok (`variable_step_value (Int.of_string fst_val,
                                             Float.of_string snd_val))
-         with e -> `error (`wrong_variable_step_value (current_position p, l)))
+         with e -> output_error (`wrong_variable_step_value (current_position p, l)))
       | [ chr; b; e; v; ] ->
-        (try `output (`bed_graph_value (chr,
+        (try output_ok (`bed_graph_value (chr,
                                         Int.of_string b,
                                         Int.of_string e,
                                         Float.of_string v))
-         with e -> `error (`wrong_bed_graph_value (current_position p, l)))
+         with e -> output_error (`wrong_bed_graph_value (current_position p, l)))
       | l ->
-        `error (`unrecognizable_line (current_position p, l))
+        output_error (`unrecognizable_line (current_position p, l))
       end
     | None -> 
       `not_ready
@@ -168,7 +167,8 @@ module Transform = struct
   let string_to_t ?filename ?pedantic ?sharp_comments () =
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next ?pedantic ?sharp_comments in
-    Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+      ~name ?filename ~next ()
 
 
   let t_to_string () =
@@ -200,16 +200,16 @@ module Transform = struct
       ~feed:(function
       | `comment _ -> ()
       | `bed_graph_value already_done ->
-        Queue.enqueue queue (`output already_done)
+        Queue.enqueue queue (output_ok already_done)
       | `variable_step_state_change (chrom, span) ->
         current_state := Some (`variable (chrom, span))
       | `variable_step_value (pos, v) ->
         begin match !current_state with
         | Some (`variable (chrom, span)) ->
           let stop = pos + Option.(value ~default:1 span) - 1 in
-          Queue.enqueue queue (`output  (chrom, pos, stop, v))
+          Queue.enqueue queue (output_ok  (chrom, pos, stop, v))
         | other ->
-          Queue.enqueue queue (`error (`not_in_variable_step_state))
+          Queue.enqueue queue (output_error (`not_in_variable_step_state))
         end
       | `fixed_step_state_change (chrom, start, step, span) ->
         current_state := Some (`fixed (chrom, start, step , span, 0))
@@ -218,10 +218,10 @@ module Transform = struct
         | Some (`fixed (chrom, start, step, span, current)) ->
           let pos = start + (step * current) in
           let stop = pos + Option.(value ~default:1 span) - 1 in
-          Queue.enqueue queue (`output (chrom, pos, stop, v));
+          Queue.enqueue queue (output_ok (chrom, pos, stop, v));
           current_state := Some  (`fixed (chrom, start, step , span, current + 1))
         | other ->
-          Queue.enqueue queue (`error (`not_in_fixed_step_state))
+          Queue.enqueue queue (output_error (`not_in_fixed_step_state))
         end)
       ~next:(fun stopped ->
         match Queue.dequeue queue with

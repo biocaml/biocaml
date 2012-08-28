@@ -9,7 +9,7 @@ let test_parser () =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
   
@@ -23,7 +23,7 @@ let test_parser () =
   test_output "browser" (`browser (`unknown "browser"));
 
   test_line "browser  position   chro:f42-51"  (function
-  | `error (`wrong_browser_position _) -> true
+  | `output (Error (`wrong_browser_position _)) -> true
   | _ -> false);
   
   test_output "track a=b c=d" (`track ["a", "b"; "c", "d"]);
@@ -34,7 +34,7 @@ let test_parser () =
   test_output "track   \t" (`track []);
 
   test_line "track a=\"b b\" \"c\tc c\"=d  \t someguyalone" (function
-  | `error (`wrong_key_value_format _) -> true
+  | `output (Error (`wrong_key_value_format _)) -> true
   | _ -> false);
   test_output "track a=\"b b\" \"c c\"="
     (`track ["a", "b b"; "c c", ""]);
@@ -50,7 +50,7 @@ let test_wig_parser () =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
 
@@ -69,7 +69,7 @@ let test_gff_parser () =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
   let open Biocaml_gff in
 
   test_output "# some comment" (`comment " some comment");
@@ -94,7 +94,7 @@ let test_bed_parser () =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
   test_output "track a=\"b b\" \"c c\"="

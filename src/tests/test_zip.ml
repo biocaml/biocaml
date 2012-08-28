@@ -9,7 +9,7 @@ let make_stream () =
   Unix.system (sprintf "gzip -c %s > %s" file tmp) |! ignore;
 
   let unzip_and_parse =
-    Biocaml_transform.compose
+    Biocaml_transform.bind_result_merge_error
       (Biocaml_zip.unzip ~format:`gzip ~zlib_buffer_size:24 ())
       (Biocaml_bed.Transform.string_to_t ~more_columns:[`string; `int; `float] ()) in
   let stream =

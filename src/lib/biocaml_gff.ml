@@ -37,7 +37,7 @@ type parse_error =
 | `wrong_url_escaping of Biocaml_pos.t * string ]
 
 module Transform = struct
-  open Result
+  open With_result
 
     
   let parse_string msg pos i =
@@ -139,7 +139,6 @@ module Transform = struct
 
       
   let parse_row ~version pos s =
-    let output_result = function  Ok o -> `output o | Error e -> `error e in
     let fields = String.split ~on:'\t' s in
     begin match fields with
     | seqname :: source :: feature :: start :: stop :: score :: strand :: phase
@@ -171,7 +170,7 @@ module Transform = struct
       output_result result
 
     | other ->
-      `error (`wrong_row (pos, s))
+      output_error (`wrong_row (pos, s))
     end
       
   let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
@@ -181,16 +180,17 @@ module Transform = struct
     | None -> `not_ready
     | Some "" ->
       if pedantic
-      then `error (`empty_line (current_position p))
+      then output_error (`empty_line (current_position p))
       else next ~pedantic ~sharp_comments ~version p
     | Some l when sharp_comments && String.(is_prefix (strip l) ~prefix:"#") ->
-      `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l -> parse_row ~version (current_position p) l
 
   let string_to_item ?filename ?pedantic ?version () =
     let name = sprintf "gff_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next ?pedantic ?version in
-    Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+      ~name ?filename ~next ()
       
       
   let item_to_string ?(version=`three) () =

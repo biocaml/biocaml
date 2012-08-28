@@ -31,26 +31,22 @@ val string_of_parser_error: parser_error -> string
 
 module Transform: sig
   val string_to_record:
-    ?filename:string -> unit -> (string, record, parser_error) Biocaml_transform.t
+    ?filename:string -> unit ->
+    (string, (record, parser_error) Core.Result.t) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] from arbitrary strings to
     [record] values.*)
 
-  val record_to_string: unit -> (record, string, [>  ]) Biocaml_transform.t
+  val record_to_string: unit -> (record, string) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] from [record]
     values to strings. *)
 
   val trim:
     [ `beginning of int | `ending of int ] ->
-    (record, record, [`invalid_size of int]) Biocaml_transform.t
+    (record, (record, [`invalid_size of int]) Core.Result.t) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] that trims FASTQ
     records. *)
 end
 
-(** {3 Non-cooperative functions} *)
-
-exception Error of parser_error
-(** The parsing-error exception. *)
 
 
-val stream_parser: ?filename:string -> string Stream.t -> record Stream.t
-(** Create a stream-transformation for parsing. *)
+

@@ -24,7 +24,7 @@ val unzip:
   ?format:[ `gzip | `raw ] ->
   ?zlib_buffer_size:int ->
   unit ->
-  (string, string, unzip_error) Biocaml_transform.t
+  (string, (string, unzip_error) Core.Result.t) Biocaml_transform.t
 (** Create a transform that uncompresses a stream.
     The default [format] is [`raw] (i.e. only apply the "deflate"
     algorithm to the stream); [`gzip] means that the transform must first
@@ -35,4 +35,4 @@ val zip :
   ?level:int ->
   ?zlib_buffer_size:int ->
   unit ->
-  (string, string, Biocaml_transform.no_error) Biocaml_transform.t
+  (string, string) Biocaml_transform.t

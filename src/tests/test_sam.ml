@@ -9,7 +9,7 @@ let test_parser () =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
   let open Biocaml_sam in
 
   test_output "@CO\tsome comment" (`comment "some comment");
@@ -32,19 +32,19 @@ let test_parser () =
          qual = "*"; optional = [("NM", 'i', "0"); ("KJ", 'A', "a")]});
   test_line "r001\t83\tref\t37\t30\t9M\t=\t7\t-39\tCAGCGCCAT\t*\tNM:i:0\tKJ:A"
     (function
-    | `error (`wrong_optional_field (_, _)) -> true
+    | `output (Error (`wrong_optional_field (_, _))) -> true
     | _ -> false);
   test_line "r001\t83\tref\t37\t30\t9M\t=\t7h\t-39\tCAGCGCCAT\t*\tNM:i:0\tKJ:A:a"
     (function
-    | `error (`not_an_int (_, "pnext", "7h"))  -> true
+    | `output (Error (`not_an_int (_, "pnext", "7h")))  -> true
     | _ -> false);
   test_line  "r001\t83\tref\t37\t30\t9M\t=\t7\t-39\tCAGCGCCAT"
     (function
-    | `error (`wrong_alignment (_, _)) -> true
+    | `output (Error (`wrong_alignment (_, _))) -> true
     | _ -> false);
   test_line "@HD\tT"
     (function
-    | `error (`invalid_tag_value_list (_, ["T"])) -> true
+    | `output (Error (`invalid_tag_value_list (_, ["T"]))) -> true
     | _ -> false);
   ()
 
@@ -63,25 +63,25 @@ let test_item_parser () =
         ); 
     assert_bool (sprintf "test_item_parser.check %d" !c) res
   in
-  let check_output t v o = check t v ((=) (`output o)) in
+  let check_output t v o = check t v ((=) (`output (Ok o))) in
 
   let t = item_parser () in
   check_output t (`comment "comment") (`comment "comment");
   check t (`header ("HD", ["VN", "42.1"])) (function
-  | `error (`header_line_not_first 2) -> true
+  | `output (Error (`header_line_not_first 2)) -> true
   | _ -> false);
 
   let t = item_parser () in
   check_output t (`header ("HD", ["VN", "42.1"]))
     (`header_line ("42.1", `unknown, []));
   check t (`header ("SQ", [])) (function
-  | `error (`missing_ref_sequence_name []) -> true
+  | `output (Error (`missing_ref_sequence_name [])) -> true
   | _ -> false);
   check t (`header ("SQ", ["SN", "chr0"])) (function
-  | `error (`missing_ref_sequence_length [("SN", "chr0")]) -> true
+  | `output (Error (`missing_ref_sequence_length [("SN", "chr0")])) -> true
   | _ -> false);
   check t (`header ("SQ", ["SN", "chr0"; "LN", "not an int"])) (function
-  | `error (`wrong_ref_sequence_length _)  -> true
+  | `output (Error (`wrong_ref_sequence_length _))  -> true
   | _ -> false);
 
   let t = item_parser () in
@@ -121,19 +121,20 @@ let test_item_parser () =
   Biocaml_transform.stop t;
   (* We still have one to get: *)
   assert_bool "last alignment" (Biocaml_transform.next t =
-      `output (`alignment
-                  {query_template_name = "chr0"; flags = Flags.of_int 83;
-                   reference_sequence =
-                      `reference_sequence
-                        {ref_name = "chr0"; ref_length = 42;
-                         ref_assembly_identifier = None;
-                         ref_checksum = None; ref_species = None; ref_uri = None;
-                         ref_unknown = []};
-                   position = Some 37; mapping_quality = Some 30;
-                   cigar_operations = [|`M 9|]; next_reference_sequence = `none;
-                   next_position = Some 7; template_length = Some (-39);
-                   sequence = `string "CAGCGCCAT"; quality = [| |];
-                   optional_content = [ "NM", 'i', `int 0]}));
+      `output (Ok
+                 (`alignment
+                     {query_template_name = "chr0"; flags = Flags.of_int 83;
+                      reference_sequence =
+                         `reference_sequence
+                           {ref_name = "chr0"; ref_length = 42;
+                            ref_assembly_identifier = None;
+                            ref_checksum = None; ref_species = None; ref_uri = None;
+                            ref_unknown = []};
+                      position = Some 37; mapping_quality = Some 30;
+                      cigar_operations = [|`M 9|]; next_reference_sequence = `none;
+                      next_position = Some 7; template_length = Some (-39);
+                      sequence = `string "CAGCGCCAT"; quality = [| |];
+                      optional_content = [ "NM", 'i', `int 0]})));
   assert_bool "EOS" (Biocaml_transform.next t = `end_of_stream);
     
 (* 

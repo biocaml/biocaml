@@ -55,7 +55,7 @@ let inflate_as_much_as_possible in_buffer buffer
   let len = String.length buffer in
   let try_to_output  used_out =
     if used_out > 0
-    then (`output (String.sub zlib_write_buffer 0 used_out))
+    then (`output (Ok (String.sub zlib_write_buffer 0 used_out)))
     else (`not_ready) in
   let (finished, used_in, used_out) =
     Zlib.inflate zstream buffer 0 len
@@ -112,7 +112,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
                 !zstream zlib_write_buffer zlib_buffer_size  format in
             begin match inflation with
             | `output o -> `output o
-            | `error e -> `error e
+            | `error e -> `output (Error e)
             | `not_ready -> `not_ready
             | `finished_gzip out ->
               current_state := `gzip_header;
@@ -122,7 +122,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
           with
           | e ->
             dbg "E: %s; len: %d" (Exn.to_string e) len;
-            `error (`zlib e)
+            `output (Error (`zlib e))
         end
       | `gzip_header ->
         begin
@@ -134,7 +134,7 @@ let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
               Buffer.add_string in_buffer
                 String.(sub buffered bytes_read (len - bytes_read));
               next stopped
-            | Error e -> `error e
+            | Error e -> `output (Error e)
           with
             e -> Buffer.add_string in_buffer buffered; `not_ready
         end

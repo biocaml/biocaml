@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open With_result
 module Pos = Biocaml_pos
 module Transform = Biocaml_transform
 
@@ -21,15 +22,15 @@ let rec next ~parse_sequence
   match next_line p with
   | Some "" ->
     if pedantic
-    then `error (`empty_line (current_position p))
+    then output_error (`empty_line (current_position p))
     else 
       next ~parse_sequence ~pedantic ~sharp_comments ~semicolon_comments p
   | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
-    `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+    output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l when semicolon_comments && String.is_prefix l ~prefix:";" ->
-    `output (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+    output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l when String.is_prefix l ~prefix:">" ->
-    `output (`header String.(sub l ~pos:1 ~len:(length l - 1)))
+    output_ok (`header String.(sub l ~pos:1 ~len:(length l - 1)))
   | Some l ->
     parse_sequence ~pedantic l
   | None -> 
@@ -41,13 +42,14 @@ let generic_parser ~parse_sequence
   let name = sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
   let next = next ~parse_sequence ?pedantic ?sharp_comments ?semicolon_comments in
   Transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+    ~on_error:(function `next e -> e | `incomplete_input e -> `incomplete_input e)
     
 
 let parse_string_sequence ~pedantic l =
   if pedantic && String.exists l
     ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
-  then `error (`malformed_partial_sequence l)
-  else `output (`partial_sequence l)
+  then output_error (`malformed_partial_sequence l)
+  else output_ok (`partial_sequence l)
 
 let sequence_parser = generic_parser ~parse_sequence:parse_string_sequence
 
@@ -55,12 +57,12 @@ let sequence_parser = generic_parser ~parse_sequence:parse_string_sequence
 let parse_int_sequence ~pedantic l =
   let exploded = String.split ~on:' ' l in
   try
-    `output (`partial_sequence 
-                (List.filter_map exploded (function
-                | "" -> None
-                | s -> Some (Int.of_string s))))
+    output_ok (`partial_sequence 
+                  (List.filter_map exploded (function
+                  | "" -> None
+                  | s -> Some (Int.of_string s))))
   with
-    e -> `error (`malformed_partial_sequence l)
+    e -> output_error (`malformed_partial_sequence l)
 
 let score_parser = generic_parser ~parse_sequence:parse_int_sequence
   
@@ -104,14 +106,14 @@ let generic_aggregator ~flush ~add ~is_empty () =
           | None -> `end_of_stream
           | Some name ->
             current_name := None;
-            `output (name, flush ())
+            output_ok (name, flush ())
           end
         else `not_ready
       | Some (None, stuff) when is_empty stuff -> `not_ready
       | Some (None, non_empty) ->
-        `error (`unnamed_sequence non_empty)
+        output_error (`unnamed_sequence non_empty)
       | Some (Some name, seq) ->
-        `output (name, seq))
+        output_ok (name, seq))
 
 let sequence_aggregator () =
   let current_sequence = Buffer.create 42 in
@@ -180,16 +182,20 @@ module Exceptionful = struct
 
   let sequence_stream_of_in_channel ?filename ?pedantic
       ?sharp_comments ?semicolon_comments inp =
-    (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-    |! flip Transform.compose (sequence_aggregator ())
-    |! Transform.on_error ~f:(function `left x -> x | `right x -> x)
+    Transform.bind_result
+      (sequence_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
+      (sequence_aggregator ())
+      ~on_error:(function `left x -> x | `right x -> x)
     |! Transform.Pull_based.of_in_channel inp
     |! Transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
 
-  let score_stream_of_in_channel ?filename ?pedantic ?sharp_comments ?semicolon_comments inp =
-    (score_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-    |! flip Transform.compose (score_aggregator ())
-    |! Transform.on_error ~f:(function `left x -> x | `right (`unnamed_sequence xs) -> `unnamed_scores xs)
+  let score_stream_of_in_channel ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp =
+    Transform.bind_result
+      (score_parser ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
+      (score_aggregator ())
+      ~on_error:(function `left x -> x
+      | `right (`unnamed_sequence xs) -> `unnamed_scores xs)
     |! Transform.Pull_based.of_in_channel inp
     |! Transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
 

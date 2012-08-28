@@ -99,12 +99,18 @@ module Parse : sig
 
 end
 
-(** Operations with [Result.t] and [list]. *)
-module Result_list: sig
+(** More operations for the [Result.t] monad. *)
+module With_result: sig
+
+  include module type of Result
 
   val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) Result.t) ->
     ('b list, 'e) Result.t
   (** Map the function [f] on the list until the first error is met. *)
+
+  val output_result : 'a -> [> `output of 'a ]
+  val output_ok : 'a -> [> `output of ('a, 'b) t ]
+  val output_error : 'a -> [> `output of ('b, 'a) t ]
 
 end
 

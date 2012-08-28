@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open With_result
 
 let dbg fmt = Debug.make "SAM" fmt
 
@@ -89,7 +90,7 @@ let parse_alignment position s  =
       int "mapq" mapq >>= fun mapq ->
       int "pnext" pnext >>= fun pnext ->
       int "tlen" tlen >>= fun tlen ->
-      Result_list.while_ok optional (fun _ -> parse_optional_field position)
+      while_ok optional (fun _ -> parse_optional_field position)
       >>= fun optional ->
       return (`alignment {
         qname;  flag; rname; pos; mapq; cigar; rnext;
@@ -100,9 +101,6 @@ let parse_alignment position s  =
   
 let rec next p =
   let open Biocaml_transform.Line_oriented in
-  let output_result = function
-    | Ok o -> `output o
-    | Error e -> `error e in
   match next_line p with
   | None -> `not_ready
   | Some "" -> next p
@@ -113,7 +111,8 @@ let rec next p =
   
 let raw_parser ?filename () =
   let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
-  Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+  Biocaml_transform.Line_oriented.make_stoppable_merge_error
+    ~name ?filename ~next ()
 
 type reference_sequence = {
   ref_name: string;
@@ -364,7 +363,7 @@ let parse_optional_content raw =
     | 'f' -> float tag typ raw
     | _ -> error (`unknown_type typ)
     end in
-  Result_list.while_ok raw (fun _ (tag, typ, raw_v) ->
+  while_ok raw (fun _ (tag, typ, raw_v) ->
     begin match typ with
     | 'Z' -> return (tag, typ, `string raw_v)
     | 'H' -> return (tag, typ, `string raw_v)
@@ -464,12 +463,12 @@ let expand_alignment raw ref_dict =
     optional_content;
   }
 
-let item_parser () : (raw_item, item, item_parsing_error) Biocaml_transform.t =
+let item_parser () :
+    (raw_item, (item, item_parsing_error) Result.t) Biocaml_transform.t =
   let name = "sam_item_parser" in
   let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
   let raw_items_count = ref 0 in
   let refseq_line, refseq_end = reference_sequence_aggregator () in
-  let of_result r = match r with Ok o -> `output o | Error e -> `error e in
   let header_finished = ref false in
   let ref_dictionary = ref None in
   let rec next stopped =
@@ -479,33 +478,33 @@ let item_parser () : (raw_item, item, item_parsing_error) Biocaml_transform.t =
       incr raw_items_count;
       begin match Dequeue.take_front_exn raw_queue with
       | `comment c when !header_finished ->
-        `error (`comment_after_end_of_header (!raw_items_count, c))
+        output_error (`comment_after_end_of_header (!raw_items_count, c))
       | `header c when !header_finished ->
-        `error (`header_after_end_of_header (!raw_items_count, c))
-      | `comment c ->  `output (`comment c)
+        output_error (`header_after_end_of_header (!raw_items_count, c))
+      | `comment c ->  output_ok (`comment c)
       | `header ("HD", l) ->
         if !raw_items_count <> 1
-        then `error (`header_line_not_first !raw_items_count)
-        else of_result (expand_header_line l)
+        then output_error (`header_line_not_first !raw_items_count)
+        else output_result (expand_header_line l)
       | `header ("SQ", l) ->
         begin match refseq_line l with
-        | Error e -> `error e
+        | Error e -> output_error e
         | Ok () ->  next stopped
         end
-      | `header _ as other -> `output other
+      | `header _ as other -> output_ok other
       | `alignment a ->
         if !header_finished then (
           expand_alignment a !ref_dictionary
           >>| (fun a -> `alignment a)
-          |! of_result
+          |! output_result
         ) else begin
           header_finished := true;
           Dequeue.push_front raw_queue (`alignment a);
           begin match refseq_end () with
           | Ok rd ->
             ref_dictionary := Some rd;
-            `output (`reference_sequence_dictionary rd)
-          | Error e -> `error e
+            output_ok (`reference_sequence_dictionary rd)
+          | Error e -> output_error e
           end
         end
       end
@@ -576,7 +575,6 @@ let downgrader () =
   let name = "sam_item_downgrader" in
   let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
   let raw_items_count = ref 0 in
-  let of_result r = match r with Ok o -> `output o | Error e -> `error e in
   let reference_sequence_dictionary = ref [| |] in
   let reference_sequence_dictionary_to_output = ref 0 in
   let rec next stopped =
@@ -593,18 +591,18 @@ let downgrader () =
         incr raw_items_count;
         begin match Dequeue.take_front_exn raw_queue with
         | `comment c ->
-          dbg "comment"; `output (`comment c)
+          dbg "comment"; output_ok (`comment c)
         | `header_line (version, sorting, rest) ->
           dbg "header";
-          `output (`header ("HD",
-                            ("VN", version)
-                            :: ("SO",
-                                match sorting with
-                                | `unknown -> "unknown"
-                                | `unsorted -> "unsorted"
-                                | `queryname -> "queryname"
-                                | `coordinate -> "coordinate")
-                            :: rest))
+          output_ok (`header ("HD",
+                              ("VN", version)
+                              :: ("SO",
+                                  match sorting with
+                                  | `unknown -> "unknown"
+                                  | `unsorted -> "unsorted"
+                                  | `queryname -> "queryname"
+                                  | `coordinate -> "coordinate")
+                              :: rest))
         | `reference_sequence_dictionary rsd ->
           dbg "reference_sequence_dictionary %d" (Array.length rsd);
           reference_sequence_dictionary := rsd;
@@ -616,10 +614,10 @@ let downgrader () =
           next stopped
         | `header h ->
           dbg "header %s" (fst h);
-          `output (`header h)
+          output_ok (`header h)
         | `alignment al ->
           dbg "alignment";
-          downgrade_alignment al |! of_result
+          downgrade_alignment al |! output_result
         end
       end
     | n ->
@@ -627,7 +625,7 @@ let downgrader () =
         !reference_sequence_dictionary.(
           Array.length !reference_sequence_dictionary - n) in
       reference_sequence_dictionary_to_output := n - 1;
-      `output (`header ("SQ", reference_sequence_to_header o))
+      output_ok (`header ("SQ", reference_sequence_to_header o))
     end
   in
   Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
