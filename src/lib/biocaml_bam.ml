@@ -454,14 +454,14 @@ module Transform = struct
     let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
     while_ok lines (fun idx line ->
       dbg "parse_sam_header %d %s" idx line;
-      Biocaml_sam.parse_header_line idx line
+      Biocaml_sam.Low_level_parsing.parse_header_line idx line
       >>= fun raw_sam ->
       begin match raw_sam with
       | `comment s -> return (`comment s)
       | `header ("HD", l) ->
         if idx <> 0
         then fail (`header_line_not_first idx)
-        else Biocaml_sam.expand_header_line l
+        else Biocaml_sam.Low_level_parsing.expand_header_line l
       | `header h -> return (`header h)
       end)
 

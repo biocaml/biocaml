@@ -1,6 +1,7 @@
-module Option = BatOption
+open Core.Std
 
 type t = {file:string option; line:int option; col:int option}
+with sexp
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)

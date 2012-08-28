@@ -5,6 +5,7 @@ type t = private {
   line:int option; (** line number *)
   col:int option; (** column number, can be defined only if line number is too *)
 }
+with sexp
     
 exception Bad of string
 

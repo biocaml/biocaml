@@ -54,7 +54,8 @@ let bam_to_sam ?input_buffer_size =
               ?zlib_buffer_size:input_buffer_size ())
            (Biocaml_bam.Transform.raw_to_item ()))
         (map_result
-           (Biocaml_sam.downgrader ()) (Biocaml_sam.raw_printer ())))
+           (Biocaml_sam.Transform.item_to_raw ())
+           (Biocaml_sam.Transform.raw_to_string ())))
    (* 
         ~on_error:(function
         | (`bam rpe) ->

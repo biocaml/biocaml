@@ -3,6 +3,7 @@ open Biocaml_internal_pervasives
 exception Error of string
 
 type t = int
+with sexp
 
 let round_float_to_int x =
   if mod_float x 1.0 < 0.5

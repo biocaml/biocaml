@@ -4,7 +4,7 @@ open Core.Std
 
 
 let test_parser () =
-  let transfo = Biocaml_sam.raw_parser () in
+  let transfo = Biocaml_sam.Transform.string_to_raw () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
@@ -52,7 +52,7 @@ let test_item_parser () =
   let open Biocaml_sam in
   let c = ref 0 in
   let check t v f =
-    let p = raw_printer () in
+    let p = Transform.raw_to_string () in
     incr c;
     Biocaml_transform.feed t v;
     let res = f (Biocaml_transform.next t) in
@@ -65,13 +65,13 @@ let test_item_parser () =
   in
   let check_output t v o = check t v ((=) (`output (Ok o))) in
 
-  let t = item_parser () in
+  let t = Transform.raw_to_item () in
   check_output t (`comment "comment") (`comment "comment");
   check t (`header ("HD", ["VN", "42.1"])) (function
   | `output (Error (`header_line_not_first 2)) -> true
   | _ -> false);
 
-  let t = item_parser () in
+  let t = Transform.raw_to_item () in
   check_output t (`header ("HD", ["VN", "42.1"]))
     (`header_line ("42.1", `unknown, []));
   check t (`header ("SQ", [])) (function
@@ -84,7 +84,7 @@ let test_item_parser () =
   | `output (Error (`wrong_ref_sequence_length _))  -> true
   | _ -> false);
 
-  let t = item_parser () in
+  let t = Transform.raw_to_item () in
   check_output t (`header ("HD", ["VN", "42.1";
                                   "SO", "coordinate"; "HP", "some other"]))
     (`header_line ("42.1", `coordinate, [("HP", "some other")]));
@@ -161,7 +161,7 @@ check (`alignment
   ()
 
 let test_printer () =
-  let transfo = Biocaml_sam.raw_printer () in
+  let transfo = Biocaml_sam.Transform.raw_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))

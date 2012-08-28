@@ -22,6 +22,7 @@
 exception Error of string
 
 type t
+with sexp
 
 val of_ascii : ?offset:[`offset33 | `offset64] -> char -> t option
 (** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
