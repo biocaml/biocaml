@@ -19,7 +19,13 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
           | `output (Ok s) ->
             write o s >>= fun () -> print_all stopped
           | `end_of_stream ->
-            Lwt_io.printf "=====  WELL TERMINATED \n%!"
+            if stopped then
+              Lwt_io.eprintf "=====  WELL TERMINATED \n%!"
+            else begin
+              Lwt_io.eprintf "=====  PREMATURE TERMINATION \n%!"
+              >>= fun () ->
+              fail (Failure "End")
+            end
           | `not_ready ->
             dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
