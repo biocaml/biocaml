@@ -22,7 +22,7 @@ type raw_item =
 with sexp
   
 module Transform: sig
-  type raw_parsing_error = [
+  type raw_bam_error = [
   | `read_name_not_null_terminated of string
   | `reference_information_name_not_null_terminated of string
   | `reference_information_overflow of int * string
@@ -31,13 +31,12 @@ module Transform: sig
   ]
   with sexp
 
-  val string_of_raw_parsing_error : raw_parsing_error -> string
-
   val string_to_raw:
     ?zlib_buffer_size:int ->
     unit ->
     (string,
-     (raw_item, [`unzip of Biocaml_zip.unzip_error | `bam of raw_parsing_error ] )
+     (raw_item, [`unzip of Biocaml_zip.Transform.unzip_error
+                | `bam of raw_bam_error ] )
        Core.Result.t)
       Biocaml_transform.t
 
@@ -85,15 +84,16 @@ module Transform: sig
     (raw_item, (Biocaml_sam.item, raw_to_item_error) Core.Result.t)
       Biocaml_transform.t
 
+  type item_to_raw_error =
+  [ `cannot_get_sequence of Biocaml_sam.alignment
+  | `header_line_not_first of string
+  | `reference_name_not_found of Biocaml_sam.alignment * string ]
+  with sexp
+
   val item_to_raw :
     unit ->
     (Biocaml_sam.item,
-     (raw_item,
-      [> `cannot_get_sequence of Biocaml_sam.alignment
-      | `header_line_not_first of string
-      | `reference_name_not_found of Biocaml_sam.alignment * string ])
-       Core.Result.t)
-      Biocaml_transform.t
+     (raw_item, item_to_raw_error) Core.Result.t) Biocaml_transform.t
        
       
   val raw_to_string :

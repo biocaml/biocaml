@@ -205,10 +205,13 @@ module Transform: sig
   with sexp
 
   val raw_to_item: unit ->
-    (raw_item, (item, raw_to_item_error) Core.Result.t) Biocaml_transform.t
+    (raw_item, (item,  raw_to_item_error) Core.Result.t) Biocaml_transform.t
+
+  type item_to_raw_error = 
+  [ `wrong_phred_scores of alignment]
+  with sexp
 
   val item_to_raw: unit ->
-    (item, (raw_item, [> `wrong_phred_scores of alignment]) Core.Result.t)
-      Biocaml_transform.t
+    (item, (raw_item, item_to_raw_error) Core.Result.t) Biocaml_transform.t
 
 end

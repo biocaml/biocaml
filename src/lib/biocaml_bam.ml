@@ -36,7 +36,7 @@ module Transform = struct
   ]
   with sexp
 
-  type raw_parsing_error = [
+  type raw_bam_error = [
   | `read_name_not_null_terminated of string
   | `reference_information_name_not_null_terminated of string
   | `reference_information_overflow of int * string
@@ -68,29 +68,11 @@ module Transform = struct
   with sexp
 
 
-
-  let string_of_raw_parsing_error e =
-    match e with
-    | `wrong_int32 s ->
-      sprintf "wrong_int32 %S" (String.sub s 0 4)
-    | `read_name_not_null_terminated s ->
-      sprintf "read_name_not_null_terminated %S" s
-    | `reference_information_name_not_null_terminated s ->
-      sprintf "reference_information_name_not_null_terminated %s" s
-    | `reference_information_overflow (len, buff) ->
-      sprintf "reference_information_overflow %d" len
-    | `wrong_auxiliary_data (wad, s) ->
-      sprintf "wrong_auxiliary_data (%s, %S)" s
-        (match wad with
-        | `wrong_int32 s ->
-          sprintf "wrong_int32 %S" (String.sub s 0 4)
-        | `array_size d -> sprintf "array_size %d" d
-        | `null_terminated_hexarray -> "null_terminated_hexarray"
-        | `null_terminated_string -> "null_terminated_string"
-        | `out_of_bounds -> "out_of_bounds"
-        | `unknown_type c -> sprintf "unknown_type '%c'" c)
-    | `wrong_cigar s -> sprintf "wrong_cigar %s" s
-    | `wrong_magic_number s -> sprintf "wrong_magic_number %s" s
+  type item_to_raw_error =
+  [ `cannot_get_sequence of Biocaml_sam.alignment
+  | `header_line_not_first of string
+  | `reference_name_not_found of Biocaml_sam.alignment * string ]
+  with sexp
 
   let dbg fmt = Debug.make "BAM" fmt
 
@@ -321,8 +303,8 @@ module Transform = struct
       | `right r ->
         match r with
         | `no -> failwith "got `right `no"
-        | #raw_parsing_error as a -> `bam a)
-      (Biocaml_zip.unzip ~format:`gzip ?zlib_buffer_size ())
+        | #raw_bam_error as a -> `bam a)
+      (Biocaml_zip.Transform.unzip ~format:`gzip ?zlib_buffer_size ())
       (uncompressed_bam_parser ())
 
   let parse_optional ?(pos=0) ?len buf =
@@ -835,5 +817,5 @@ module Transform = struct
   let raw_to_string ?zlib_buffer_size () =
     Biocaml_transform.compose
       (uncompressed_bam_printer ())
-      (Biocaml_zip.zip ~format:`gzip ?zlib_buffer_size ())
+      (Biocaml_zip.Transform.zip ~format:`gzip ?zlib_buffer_size ())
 end

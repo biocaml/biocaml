@@ -23,8 +23,8 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
           | `not_ready ->
             dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
-          | `output (Error (_)) -> 
-            Lwt_io.eprintf "=====  ERROR: TODO\n%!" 
+          | `output (Error (`string s)) -> 
+            Lwt_io.eprintf "=====  ERROR: %s\n%!" s
         in
         let rec loop () =
           read ~count:input_buffer_size i
@@ -45,46 +45,58 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
       )
     )
   )
+let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
+
 let bam_to_sam ?input_buffer_size =
   file_to_file ?input_buffer_size
     Biocaml_transform.(
-      bind_result_merge_error
+      on_output
         (bind_result_merge_error
-           (Biocaml_bam.Transform.string_to_raw
-              ?zlib_buffer_size:input_buffer_size ())
-           (Biocaml_bam.Transform.raw_to_item ()))
-        (map_result
-           (Biocaml_sam.Transform.item_to_raw ())
-           (Biocaml_sam.Transform.raw_to_string ())))
-   (* 
-        ~on_error:(function
-        | (`bam rpe) ->
-          `string (sprintf "(bam_raw_parsing_error %s)"
-                     (Biocaml_bam.Transform.string_of_raw_parsing_error rpe))
-        | (`unzip ue) ->
-          `string ("unzip_error")
-        | `right ipe ->
-             `string (sprintf "item_parsing_error %s"
-                        Sexp.(to_string_hum
-                                (Biocaml_bam.Transform.sexp_of_raw_to_item_error
-                                   ipe))))
-           (on_error ~f:(function
-           | `left de -> `string "downgrader_error"
-           | `right ipe -> `string "raw_printing_error")
-   *)
+           (bind_result_merge_error
+              (Biocaml_bam.Transform.string_to_raw
+                 ?zlib_buffer_size:input_buffer_size ())
+              (Biocaml_bam.Transform.raw_to_item ()))
+           (map_result
+              (Biocaml_sam.Transform.item_to_raw ())
+              (Biocaml_sam.Transform.raw_to_string ())))
+        ~f:(function
+        | Ok o -> Ok o
+        | Error (`left (`left (`bam e))) ->
+          err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+        | Error (`left (`left (`unzip e))) ->
+          err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+        | Error (`left (`right e)) ->
+          err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
+        | Error (`right  e) ->
+          err_to_string Biocaml_sam.Transform.sexp_of_item_to_raw_error e
+        )
+    )
 
 let bam_to_bam ~input_buffer_size ?output_buffer_size =
   file_to_file ~input_buffer_size ?output_buffer_size
     Biocaml_transform.(
-      bind_result_merge_error
+      on_output
         (bind_result_merge_error
-           (Biocaml_bam.Transform.string_to_raw
-              ~zlib_buffer_size:(10 * input_buffer_size) ())
-           (Biocaml_bam.Transform.raw_to_item ()))
-        (map_result 
-           (Biocaml_bam.Transform.item_to_raw ())
-           (Biocaml_bam.Transform.raw_to_string
-              ?zlib_buffer_size:output_buffer_size ())))
+           (bind_result_merge_error
+              (Biocaml_bam.Transform.string_to_raw
+                 ~zlib_buffer_size:(10 * input_buffer_size) ())
+              (Biocaml_bam.Transform.raw_to_item ()))
+           (map_result 
+              (Biocaml_bam.Transform.item_to_raw ())
+              (Biocaml_bam.Transform.raw_to_string
+                 ?zlib_buffer_size:output_buffer_size ())))
+        ~f:(function
+        | Ok o -> Ok o
+        | Error (`left (`left (`bam e))) ->
+          err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+        | Error (`left (`left (`unzip e))) ->
+          err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+        | Error (`left (`right e)) ->
+          err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
+        | Error (`right  e) ->
+          err_to_string Biocaml_bam.Transform.sexp_of_item_to_raw_error e
+        )
+    )
     
 module Command = Core_extended.Std.Core_command
 

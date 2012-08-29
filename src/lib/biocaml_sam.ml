@@ -442,6 +442,10 @@ module Transform = struct
   ]
   with sexp
 
+  type item_to_raw_error = 
+  [ `wrong_phred_scores of alignment]
+  with sexp
+
   let reference_sequence_aggregator () =
     let refs = ref [] in
     let get_line line = 
