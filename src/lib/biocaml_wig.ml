@@ -1,5 +1,4 @@
 open Biocaml_internal_pervasives
-open Tuple
 open With_result
 
 type comment = [
