@@ -51,12 +51,18 @@
     repeatedly.
 *)
 
-type error = [
+type string_to_item_error = [
 | `empty_line of Biocaml_pos.t
 | `incomplete_input of Biocaml_pos.t * string list * string option
 | `malformed_partial_sequence of string
+]
+with sexp
+
+type error = [
+  string_to_item_error
 | `unnamed_sequence of string
 | `unnamed_scores of int list ]
+with sexp
 
 module Exceptionful : sig
   exception Error of error
@@ -88,84 +94,90 @@ end
 
 (** {6 Low-level API} *)
 
+module Transform: sig
 
-(** Lowest level items parsed by this module:
+    
 
-    - `comment _ - a single comment line without the final newline
+  type 'a item = [
+  | `comment of string
+  | `header of string
+  | `partial_sequence of 'a
+  ]
+  with sexp
+  (** Lowest level items parsed by this module:
+      
+      - [`comment _] - a single comment line without the final newline
+      
+      - [`header _] - a single header line without the initial '>',
+      whitespace following this, nor final newline
+      
+      - [`partial_sequence _] - Either a sequence of characters, represented as a
+      string, or a sequence of space separated integers, represented by
+      an [int list]. The value does not necessarily carry the complete
+      content associated with a header. It may be only part of the
+      sequence, which can be useful for files with large sequences
+      (e.g. genomic sequence files). *)
 
-    - `header _ - a single header line without the initial '>',
-    whitespace following this, nor final newline
+  val string_to_sequence_item:
+    ?filename:string ->
+    ?pedantic:bool ->
+    ?sharp_comments:bool ->
+    ?semicolon_comments:bool ->
+    unit ->
+    (string, (string item, error) Core.Result.t) Biocaml_transform.t
+  (** Parse a stream of strings as a sequence FASTA file.
+      The [filename] is used only for error messages. If [pedantic] is
+      [true] (default) the parser will report more errors
+      (Biocaml_transform.no_error lines, non standard characters). The
+      comment format is set with [sharp_comments] and/or
+      [semicolon_comments]. *)
 
-    - `partial_sequence _ - Either a sequence of characters, represented as a
-    string, or a sequence of space separated integers, represented by
-    an [int list]. The value does not necessarily carry the complete
-    content associated with a header. It may be only part of the
-    sequence, which can be useful for files with large sequences
-    (e.g. genomic sequence files). *)
-type 'a token = [
-| `comment of string
-| `header of string
-| `partial_sequence of 'a
-]
+  val string_to_score_item:
+    ?filename:string ->
+    ?pedantic:bool ->
+    ?sharp_comments:bool ->
+    ?semicolon_comments:bool ->
+    unit ->
+    (string, (int list item, error) Core.Result.t) Biocaml_transform.t
+  (** Parse a stream of strings as a sequence FASTA file.
+      See [sequence_parser]. *)
 
-val sequence_parser :
-  ?filename:string ->
-  ?pedantic:bool ->
-  ?sharp_comments:bool ->
-  ?semicolon_comments:bool ->
-  unit ->
-  (string, (string token, error) Core.Result.t) Biocaml_transform.t
-    (** Parse a stream of strings as a sequence FASTA file.
-        The [filename] is used only for error messages. If [pedantic] is [true]
-        (default) the parser will report more errors (Biocaml_transform.no_error lines, non
-        standard characters). The comment format is set with
-        [sharp_comments] and/or [semicolon_comments]. *)
+  val sequence_item_to_string:
+    ?comment_char:char ->
+    unit ->
+    (string item, string) Biocaml_transform.t
+  (** Print sequences. If [comment_char] is [None] comments will be ignored. *)
+      
+  val score_item_to_string:
+    ?comment_char:char ->
+    unit ->
+    (int list item, string) Biocaml_transform.t
+  (** Print scores. If [comment_char] is [None] comments will be ignored. *)
+      
+  val sequence_item_to_aggregated:
+    unit -> 
+    (string item,
+     (string * string, [ `unnamed_sequence of string ]) Core.Result.t)
+      Biocaml_transform.t
+  (** Aggregate a stream of FASTA [string item] into a [(name, sequence)] stream.
+      The error [`unnamed_sequence _] means that the file did start with
+      the name of a sequence. *)
 
-val score_parser :
-  ?filename:string ->
-  ?pedantic:bool ->
-  ?sharp_comments:bool ->
-  ?semicolon_comments:bool ->
-  unit ->
-  (string, (int list token, error) Core.Result.t) Biocaml_transform.t
-(** Parse a stream of strings as a sequence FASTA file.
-    See [sequence_parser]. *)
+  val score_item_to_aggregated:
+    unit -> 
+    (int list item,
+     (string * int list, [ `unnamed_sequence of int list ]) Core.Result.t)
+      Biocaml_transform.t
+  (** Like [sequence_aggregator] but for [int list item]. *)
 
-val sequence_printer :
-  ?comment_char:char ->
-  unit ->
-  (string token, string) Biocaml_transform.t
-(** Print sequences. If [comment_char] is [None] comments will be ignored. *)
-  
-val score_printer :
-  ?comment_char:char ->
-  unit ->
-  (int list token, string) Biocaml_transform.t
-(** Print scores. If [comment_char] is [None] comments will be ignored. *)
-  
-val sequence_aggregator:
-  unit -> 
-  (string token,
-   (string * string, [ `unnamed_sequence of string ]) Core.Result.t)
-    Biocaml_transform.t
-(** Aggregate a stream of FASTA [string token] into a [(name, sequence)] stream.
-    The error [`unnamed_sequence _] means that the file did start with
-    the name of a sequence. *)
+  val aggregated_to_sequence_item: ?line_width:int -> unit ->
+    (string * string, string item) Biocaml_transform.t
+  (** Cut a stream of [(name, sequence)] into a stream of [string item]
+      where line are cut at [line_width] characters (default 80). *)
 
-val score_aggregator:
-  unit -> 
-  (int list token,
-   (string * int list, [ `unnamed_sequence of int list ]) Core.Result.t)
-    Biocaml_transform.t
-(** Like [sequence_aggregator] but for [int list token]. *)
-
-val sequence_slicer: ?line_width:int -> unit ->
-  (string * string, string token) Biocaml_transform.t
-(** Cut a stream of [(name, sequence)] into a stream of [string token]
-    where line are cut at [line_width] characters (default 80). *)
-
-val score_slicer: ?group_by:int -> unit ->
-  (string * int list, int list token) Biocaml_transform.t
-(** Cut a stream of [(name, scores)] into a stream of [int list token]
+  val aggregated_to_score_item: ?group_by:int -> unit ->
+    (string * int list, int list item) Biocaml_transform.t
+(** Cut a stream of [(name, scores)] into a stream of [int list item]
     where lists are cut at [group_by] numbers (default 10). *)
+end
 

@@ -4,7 +4,7 @@ open Core.Std
 module TS = Biocaml_transform.Pull_based
 let make_stream file =
   let t =
-    Biocaml_fasta.sequence_parser ~pedantic:true 
+    Biocaml_fasta.Transform.string_to_sequence_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
   let stream = TS.of_file ~buffer_size:10 file t in
   stream
@@ -58,7 +58,8 @@ let malformed stream =
   
 let test_printer () =
   let stream_02 = make_stream "src/tests/data/fasta_02.fa" in
-  let fasta_printer = Biocaml_fasta.sequence_printer ~comment_char:'#' () in
+  let fasta_printer =
+    Biocaml_fasta.Transform.sequence_item_to_string ~comment_char:'#' () in
   let stream = 
     TS.of_feeder (fun () ->
       match TS.next stream_02 with
@@ -79,7 +80,7 @@ let test_printer () =
   
 let score_parser () =
   let t = 
-    Biocaml_fasta.score_parser ~pedantic:true 
+    Biocaml_fasta.Transform.string_to_score_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
   let stream = TS.of_file ~buffer_size:100 "src/tests/data/fasta_05.fa" t in
   parse_comments stream;
@@ -98,8 +99,8 @@ let score_parser () =
   
 
 let sequence_aggregator_stream file =
-  let t = Biocaml_fasta.sequence_parser  () in
-  let aggregator = Biocaml_fasta.sequence_aggregator () in
+  let t = Biocaml_fasta.Transform.string_to_sequence_item  () in
+  let aggregator = Biocaml_fasta.Transform.sequence_item_to_aggregated () in
   let transform = Biocaml_transform.bind_result_merge_error t aggregator in
   let stream = TS.of_file ~buffer_size:5 file transform in
   stream
@@ -130,9 +131,9 @@ let sequence_aggregator () =
   
 let score_aggregator () =
   let t = 
-    Biocaml_fasta.score_parser ~pedantic:true 
+    Biocaml_fasta.Transform.string_to_score_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
-  let aggregator = Biocaml_fasta.score_aggregator () in
+  let aggregator = Biocaml_fasta.Transform.score_item_to_aggregated () in
   let transform = Biocaml_transform.bind_result_merge_error t aggregator in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "scoaggr: 1"
@@ -151,9 +152,10 @@ let score_aggregator () =
   ()
   
 let sequence_slicer_stream file = 
-  let t = Biocaml_fasta.sequence_parser  () in
-  let aggregator = Biocaml_fasta.sequence_aggregator () in
-  let slicer = Biocaml_fasta.sequence_slicer ~line_width:4 () in
+  let t = Biocaml_fasta.Transform.string_to_sequence_item  () in
+  let aggregator = Biocaml_fasta.Transform.sequence_item_to_aggregated () in
+  let slicer =
+    Biocaml_fasta.Transform.aggregated_to_sequence_item ~line_width:4 () in
   let transform =
     Biocaml_transform.(map_result
                          (bind_result_merge_error t aggregator) slicer) in
@@ -193,10 +195,10 @@ let sequence_slicer () =
     
 let score_slicer () =
   let t = 
-    Biocaml_fasta.score_parser ~pedantic:true 
+    Biocaml_fasta.Transform.string_to_score_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
-  let aggregator = Biocaml_fasta.score_aggregator () in
-  let slicer = Biocaml_fasta.score_slicer ~group_by:3 () in
+  let aggregator = Biocaml_fasta.Transform.score_item_to_aggregated () in
+  let slicer = Biocaml_fasta.Transform.aggregated_to_score_item ~group_by:3 () in
   let transform =
     Biocaml_transform.(map_result
                          (bind_result_merge_error t aggregator) slicer) in
