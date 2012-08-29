@@ -7,6 +7,7 @@ type record = {
   comment: string;
   qualities: string;
 }
+with sexp
 
 
 let next p =
@@ -41,11 +42,12 @@ let printer_queue =
     sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities)
 
 
-type parser_error =
+type string_to_record_error =
 [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
 | `wrong_comment_line of Biocaml_pos.t * string
 | `wrong_name_line of Biocaml_pos.t * string
 | `incomplete_input of Biocaml_pos.t * string list * string option]
+with sexp
 
 let string_sample s n =
   let l = String.length s in
