@@ -293,7 +293,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make_stoppable ()
+    Biocaml_transform.make_stoppable_with_error ()
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
   let string_to_raw ?zlib_buffer_size () =
