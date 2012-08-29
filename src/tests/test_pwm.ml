@@ -57,8 +57,9 @@ let test_reverse_complement () =
   let m = make balmer_counts bg in
   let m' = reverse_complement m in
   let m'' = reverse_complement m' in
-  let a, a', a'' =
-    Tuple3.mapn (fun x -> (x : t :> float array array)) (m, m', m'') in
+  let a = (m :> float array array)
+  and a' = (m' :> float array array)
+  and a'' = (m'' :> float array array) in
   assert_bool 
     "Reverse complement should be idempotent" 
     (a = a'') ;

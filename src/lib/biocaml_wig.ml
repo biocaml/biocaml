@@ -1,5 +1,4 @@
 open Biocaml_internal_pervasives
-open Tuple
 
 type comment = [
 | `comment of string
