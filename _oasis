@@ -23,9 +23,8 @@ Flag tests
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  # zip & camlzip: setup.ml remove the one that does not exist
   BuildDepends: core, sexplib.syntax, threads,
-                zip,camlzip, sqlite3, unix, batteries, xmlm
+                zip, sqlite3, unix, batteries, xmlm
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
