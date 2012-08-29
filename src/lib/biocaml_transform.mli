@@ -47,6 +47,15 @@ val make_stoppable: ?name:string ->
     [~next] argument with a boolean value indicating if the transformation
     has been stopped. *)
 
+val make_stoppable_with_error: ?name:string -> 
+  feed: ('input -> unit) ->
+  next: (bool -> [ `output of ('a, 'b) Core.Result.t
+                 | `end_of_stream | `not_ready ]) ->
+  unit ->
+  ('input, ('a, 'b) Core.Result.t) t
+(** Make a stoppable transformation like [make_stoppable] but also
+    stop the stream after the first error is detected. *)
+    
 val identity: ?name:string -> unit -> ('a, 'a) t
 (** Create a stoppable, buffering transform that does nothing else. *)
 

@@ -29,6 +29,25 @@ let make_stoppable ?name ~feed ~next () =
     ~next:(fun () -> next !stopped)
     ~stop:(fun () -> stopped := true)
 
+let make_stoppable_with_error ?name ~feed ~next () =
+  let stopped = ref false in
+  let one_error_has_occured = ref false in
+  make ?name ()
+    ~feed:(fun x ->
+      if not !stopped then
+        feed x
+      else
+        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+    ~next:(fun () ->
+      if !one_error_has_occured
+      then `end_of_stream
+      else 
+        begin match next !stopped with
+        | `output (Error _) as e -> one_error_has_occured := true;  e
+        | other -> other
+        end)
+    ~stop:(fun () -> stopped := true)
+
 let identity ?name () =
   let q = Queue.create () in
   make_stoppable ?name ~feed:(Queue.enqueue q) ()
