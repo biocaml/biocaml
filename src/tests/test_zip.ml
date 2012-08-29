@@ -10,7 +10,7 @@ let make_stream () =
 
   let unzip_and_parse =
     Biocaml_transform.bind_result_merge_error
-      (Biocaml_zip.unzip ~format:`gzip ~zlib_buffer_size:24 ())
+      (Biocaml_zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
       (Biocaml_bed.Transform.string_to_t ~more_columns:[`string; `int; `float] ()) in
   let stream =
     Biocaml_transform.Pull_based.(of_file tmp unzip_and_parse
@@ -43,7 +43,7 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   cmd "gzip %s" tmp1;
   cmd "gzip %s" tmp2;
   cmd "cat %s.gz %s.gz > %s.gz" tmp1 tmp2 tmp3;
-  let t = Biocaml_zip.unzip ~format:`gzip ~zlib_buffer_size () in
+  let t = Biocaml_zip.Transform.unzip ~format:`gzip ~zlib_buffer_size () in
   let s =
     Biocaml_transform.Pull_based.(of_file ~buffer_size
                                     (sprintf "%s.gz" tmp3) t |! to_stream_result)
