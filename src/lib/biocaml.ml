@@ -1,5 +1,6 @@
 module About          = Biocaml_about        
 module Accu           = Biocaml_accu
+module Bam            = Biocaml_bam
 module Bar            = Biocaml_bar          
 module Bed            = Biocaml_bed          
 module Bpmap          = Biocaml_bpmap        
@@ -31,4 +32,4 @@ module Table          = Biocaml_table
 module Tags           = Biocaml_tags         
 module Util           = Biocaml_util         
 module Wig            = Biocaml_wig          
-
+module Zip            = Biocaml_zip
