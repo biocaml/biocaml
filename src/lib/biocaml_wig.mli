@@ -34,20 +34,25 @@
 type comment = [
 | `comment of string
 ]
+with sexp
 type variable_step = [
 | `variable_step_state_change of string * int option (** name x span *)
 | `variable_step_value of int * float
 ]
+with sexp
 type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (** name, start, step, span *)
 | `fixed_step_value of float
 ]  
+with sexp
 type bed_graph_value = string * int * int * float
+with sexp
   
 (** {3 Parsing and Printing} *)
 
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
+with sexp
 (** The most general type that the default parser outputs. *)
 
 type parse_error = [
@@ -65,6 +70,7 @@ type parse_error = [
 | `wrong_span_value of Biocaml_pos.t * string
 | `wrong_variable_step_value of Biocaml_pos.t * string
 ]
+with sexp
 (** The parsing errors. *)
 
 val parse_error_to_string: parse_error -> string
