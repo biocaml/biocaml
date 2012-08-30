@@ -31,7 +31,7 @@
     nucleotides or amino acids. However, sometimes FASTA files provide
     quality scores, either as ASCII encoded, e.g. as supported by
     modules {!module: Biocaml_phredScore} and {!module:
-    Biocaml_solexaScore}, or as space-separated integers.
+    Biocaml_solexa_score}, or as space-separated integers.
 
     Thus, the FASTA format is really a family of formats with a fairly
     loose specification of the header and content formats. The only
