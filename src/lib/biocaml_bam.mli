@@ -3,7 +3,7 @@ type raw_alignment = {
   qname : string;
   flag : int;
   ref_id: int;
-  pos : int;
+  pos : int; (** 0-based, -1 if undefined*)
   mapq : int;
   bin: int;
   cigar : string;
@@ -35,7 +35,7 @@ module Transform: sig
     ?zlib_buffer_size:int ->
     unit ->
     (string,
-     (raw_item, [`unzip of Biocaml_zip.Transform.unzip_error
+     (raw_item, [> `unzip of Biocaml_zip.Transform.unzip_error
                 | `bam of raw_bam_error ] )
        Core.Result.t)
       Biocaml_transform.t
@@ -81,7 +81,7 @@ module Transform: sig
     
   val raw_to_item :
     unit ->
-    (raw_item, (Biocaml_sam.item, raw_to_item_error) Core.Result.t)
+    (raw_item, (Biocaml_sam.item, [> raw_to_item_error]) Core.Result.t)
       Biocaml_transform.t
 
   type item_to_raw_error =
