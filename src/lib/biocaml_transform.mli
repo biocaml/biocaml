@@ -195,6 +195,11 @@ module Line_oriented: sig
 (** Do like [make_stoppable] but merge [`incomplete_input _] with the
     errors of [~next] (which must be polymorphic variants). *)
 
+  val lines : unit -> (string, string) t
+    (** Return a transform that converts a stream of arbitrary strings
+        to a stream of lines. If the input terminates without a
+        newline, the trailing string is still considered a line. *)
+
 end
 
 (** A generic buffering printer.  *)
