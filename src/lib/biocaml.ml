@@ -30,6 +30,7 @@ module StrandName     = Biocaml_strandName
 module Track          = Biocaml_track        
 module Table          = Biocaml_table        
 module Tags           = Biocaml_tags         
+module Transform      = Biocaml_transform
 module Util           = Biocaml_util         
 module Wig            = Biocaml_wig          
 module Zip            = Biocaml_zip
