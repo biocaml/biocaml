@@ -158,6 +158,7 @@ module With_set = struct
             beds := Bed_set.add !beds (key, !c_idx, c, float !c_val);
           c_idx := c;
         end;
+        decr c_val
       ));
     !beds
 
