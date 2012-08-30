@@ -162,8 +162,13 @@ module Line_oriented: sig
   val current_position: parsing_buffer -> Biocaml_pos.t
   (** Get the current position in the stream. *)
 
-  val finish : parsing_buffer -> [`ok | `error of string list * string option ]
-  (** Terminate the parsing, if the buffers are not empty return them as an error. *)
+  val contents : parsing_buffer -> string list * string option
+    (** Return any remaining lines and the unfinished string, without
+        removing them from the buffer. *)
+
+  val empty : parsing_buffer -> unit
+    (** Empty the buffer. Subsequent call to [contents] will return
+        [(\[\], None)]. *)
 
   val make_stoppable : ?name:string -> ?filename:string ->
     next:(parsing_buffer ->
