@@ -2,7 +2,7 @@
 
     A Solexa score is defined as -10*log(p/(1-p)) rounded to an
     integer, where p is a probability. Phred scores are far more
-    widely used, and the {!module: PhredScore} module supports
+    widely used, and the {!module: Biocaml_phred_score} module supports
     converting Solexa scores to Phred scores.
     
     For details see {{:http://dx.doi.org/10.1093/nar/gkp1137}The

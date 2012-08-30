@@ -30,7 +30,7 @@
     Sequence are most often a sequence of characters denoting
     nucleotides or amino acids. However, sometimes FASTA files provide
     quality scores, either as ASCII encoded, e.g. as supported by
-    modules {!module: Biocaml_phredScore} and {!module:
+    modules {!module: Biocaml_phred_score} and {!module:
     Biocaml_solexa_score}, or as space-separated integers.
 
     Thus, the FASTA format is really a family of formats with a fairly
