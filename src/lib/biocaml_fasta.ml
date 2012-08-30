@@ -2,18 +2,21 @@ open Biocaml_internal_pervasives
 open With_result
 module Pos = Biocaml_pos
 
-type string_to_item_error = [
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of Biocaml_pos.t * string list * string option
-| `malformed_partial_sequence of string
-]
-with sexp
+module Error = struct
+  type string_to_item = [
+  | `empty_line of Biocaml_pos.t
+  | `incomplete_input of Biocaml_pos.t * string list * string option
+  | `malformed_partial_sequence of string
+  ]
+  with sexp
 
-type error = [
-  string_to_item_error
-| `unnamed_sequence of string
-| `unnamed_scores of int list ]
-with sexp
+  type t = [
+    string_to_item
+  | `unnamed_sequence of string
+  | `unnamed_scores of int list
+  ]
+  with sexp
+end
 
 module Transform = struct
   type 'a item = [
@@ -189,7 +192,7 @@ module Transform = struct
 end      
 
 module Exceptionful = struct
-  exception Error of error
+  exception Error of Error.t
   open Transform
   
   let sequence_stream_of_in_channel ?filename ?pedantic

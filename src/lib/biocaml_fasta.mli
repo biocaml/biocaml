@@ -30,8 +30,8 @@
     Sequence are most often a sequence of characters denoting
     nucleotides or amino acids. However, sometimes FASTA files provide
     quality scores, either as ASCII encoded, e.g. as supported by
-    modules {!module: Biocaml_phredScore} and {!module:
-    Biocaml_solexaScore}, or as space-separated integers.
+    modules {!module: Biocaml_phred_score} and {!module:
+    Biocaml_solexa_score}, or as space-separated integers.
 
     Thus, the FASTA format is really a family of formats with a fairly
     loose specification of the header and content formats. The only
@@ -51,21 +51,26 @@
     repeatedly.
 *)
 
-type string_to_item_error = [
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of Biocaml_pos.t * string list * string option
-| `malformed_partial_sequence of string
-]
-with sexp
+module Error : sig
 
-type error = [
-  string_to_item_error
-| `unnamed_sequence of string
-| `unnamed_scores of int list ]
-with sexp
+  type string_to_item = [
+  | `empty_line of Biocaml_pos.t
+  | `incomplete_input of Biocaml_pos.t * string list * string option
+  | `malformed_partial_sequence of string
+  ]
+  with sexp
+
+  type t = [
+    string_to_item
+  | `unnamed_sequence of string
+  | `unnamed_scores of int list
+  ]
+  with sexp
+
+end
 
 module Exceptionful : sig
-  exception Error of error
+  exception Error of Error.t
 
   val sequence_stream_of_in_channel :
     ?filename:string ->
@@ -124,7 +129,7 @@ module Transform: sig
     ?sharp_comments:bool ->
     ?semicolon_comments:bool ->
     unit ->
-    (string, (string item, error) Core.Result.t) Biocaml_transform.t
+    (string, (string item, Error.t) Core.Result.t) Biocaml_transform.t
   (** Parse a stream of strings as a sequence FASTA file.
       The [filename] is used only for error messages. If [pedantic] is
       [true] (default) the parser will report more errors
@@ -138,7 +143,7 @@ module Transform: sig
     ?sharp_comments:bool ->
     ?semicolon_comments:bool ->
     unit ->
-    (string, (int list item, error) Core.Result.t) Biocaml_transform.t
+    (string, (int list item, Error.t) Core.Result.t) Biocaml_transform.t
   (** Parse a stream of strings as a sequence FASTA file.
       See [sequence_parser]. *)
 

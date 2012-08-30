@@ -45,7 +45,7 @@ CURR_DIR=$(shell basename $(CURDIR))
 PKG=biocaml
 VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
 PKG_VERSION=$(PKG)-$(VERSION)
-INSTALL_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags configure myocamlbuild.ml setup.ml doc src
+DIST_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags configure myocamlbuild.ml setup.ml doc src
 .PHONY: dist
 dist:
 	oasis setup
@@ -54,6 +54,6 @@ dist:
 	mkdir doc
 	mv _build/src/lib/doclib.docdir doc/html
 	make TAGS
-	cd .. ; mv $(CURR_DIR) $(PKG_VERSION); tar czf $(PKG_VERSION).tgz $(patsubst %,$(PKG_VERSION)/%,$(INSTALL_FILES)); mv $(PKG_VERSION) $(CURR_DIR)
+	cd .. ; mv $(CURR_DIR) $(PKG_VERSION); tar czf $(PKG_VERSION).tgz $(patsubst %,$(PKG_VERSION)/%,$(DIST_FILES)); mv $(PKG_VERSION) $(CURR_DIR)
 	cd .. ; md5sum $(PKG_VERSION).tgz > $(PKG_VERSION).tgz.md5
 	rm -rf doc

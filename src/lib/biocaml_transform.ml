@@ -282,9 +282,31 @@ module Line_oriented = struct
   let is_empty p =
     Queue.is_empty p.lines && p.unfinished_line = None
 
-  let finish p =
-    if is_empty p then `ok else `error (Queue.to_list p.lines, p.unfinished_line)
-      
+  let contents p = Queue.to_list p.lines, p.unfinished_line
+
+  let empty p = (Queue.clear p.lines; p.unfinished_line <- None) 
+
+  let lines () =
+    let buf = parsing_buffer () in
+    make_stoppable ~name:"lines"
+      ~feed:(feed_string buf)
+      ~next:(function
+        | true -> (match next_line buf with
+            | Some line -> `output line
+            | None -> (match contents buf with
+                | [], None -> `end_of_stream
+                | [], Some unfinished_line ->
+                    (empty buf; `output unfinished_line)
+                | _ -> assert false
+              )
+          )
+        | false -> (match next_line buf with
+            | None -> `not_ready
+            | Some line -> `output line
+          )
+      )
+      ()
+
   let make_stoppable ?name ?filename ~next ~on_error () =
     let lo_parser = parsing_buffer ?filename () in
     make_stoppable ?name ()
@@ -295,9 +317,10 @@ module Line_oriented = struct
         | `output (Error r) -> `output (Error (on_error (`next r)))
         | `not_ready ->
           if stopped then (
-            match finish lo_parser with
-            | `ok -> `end_of_stream
-            | `error (l, o) ->
+            if is_empty lo_parser then
+              `end_of_stream
+            else
+              let l,o = contents lo_parser in
               `output
                 (Error
                    (on_error
@@ -310,6 +333,7 @@ module Line_oriented = struct
       ~on_error:(function
       | `next e -> e
       | `incomplete_input e -> `incomplete_input e)
+
 end
 
 module Printer_queue = struct
