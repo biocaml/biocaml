@@ -247,6 +247,12 @@ let build_wig ?(max_read_bytes=max_int)
     
 module Command = Core_extended.Std.Core_command
 
+
+let lwts_to_run = ref ([]: unit Lwt.t list)
+let uses_lwt () =
+  Command.Spec.step (fun lwt -> lwts_to_run := lwt :: !lwts_to_run)
+
+  
 let input_buffer_size_flag () =
   Command.Spec.(
     step (fun k v -> k ~input_buffer_size:v)
@@ -288,10 +294,10 @@ let cmd_bam_to_sam =
       file_to_file_flags ()
       ++ anon ("BAM-FILE" %: string)
       ++ anon ("SAM-FILE" %: string)
+      ++ uses_lwt ()
     )
     (fun ~input_buffer_size ~output_buffer_size bam sam ->
-      bam_to_sam ~input_buffer_size bam ~output_buffer_size sam
-      |! Lwt_main.run)
+      bam_to_sam ~input_buffer_size bam ~output_buffer_size sam)
     
 let cmd_bam_to_bam =
   Command.basic ~summary:"convert from BAM to BAM again (after parsing everything)"
@@ -299,10 +305,10 @@ let cmd_bam_to_bam =
       file_to_file_flags ()
       ++ anon ("BAM-FILE" %: string)
       ++ anon ("BAM-FILE" %: string)
+      ++ uses_lwt ()
     )
     (fun ~input_buffer_size ~output_buffer_size bam bam2 ->
-      bam_to_bam ~input_buffer_size bam ~output_buffer_size bam2
-      |! Lwt_main.run)
+      bam_to_bam ~input_buffer_size bam ~output_buffer_size bam2)
 
 let cmd_bam_to_wig =
   Command.basic ~summary:"get the WIG out of a BAM"
@@ -312,17 +318,19 @@ let cmd_bam_to_wig =
         ~doc:"<n> Stop after reading <n> bytes"
       ++ anon ("BAM-FILE" %: string)
       ++ anon ("WIG-FILE" %: string)
+      ++ uses_lwt ()
     )
     (fun ~input_buffer_size ~output_buffer_size max_read_bytes bam wig ->
-      build_wig ~input_buffer_size bam ~output_buffer_size ?max_read_bytes wig
-      |! Lwt_main.run)
+      build_wig ~input_buffer_size bam ~output_buffer_size ?max_read_bytes wig)
   
 let () =
   Command.(
     group ~summary:"fcommand examples" [
       ("b2s", cmd_bam_to_sam);
       ("b2b", cmd_bam_to_bam);
+      ("b2bam", cmd_bam_to_bam);
       ("wig", cmd_bam_to_wig);
     ]
-    |! run)
+    |! run);
+  List.iter !lwts_to_run Lwt_main.run
 
