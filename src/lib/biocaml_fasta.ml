@@ -4,8 +4,8 @@ module Pos = Biocaml_pos
 
 module Error = struct
   type string_to_item = [
-  | `empty_line of Biocaml_pos.t
-  | `incomplete_input of Biocaml_pos.t * string list * string option
+  | `empty_line of Pos.t
+  | `incomplete_input of Pos.t * string list * string option
   | `malformed_partial_sequence of string
   ]
   with sexp
