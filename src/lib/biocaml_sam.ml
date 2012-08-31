@@ -494,7 +494,7 @@ module Transform = struct
 
 
   let raw_to_item () :
-      (raw_item, (item, raw_to_item_error) Result.t) Biocaml_transform.t =
+      (raw_item, (item, [> raw_to_item_error]) Result.t) Biocaml_transform.t =
     let name = "sam_item_parser" in
     let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
     let raw_items_count = ref 0 in
