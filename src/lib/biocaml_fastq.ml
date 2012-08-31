@@ -116,3 +116,9 @@ module Transform = struct
         end)
 end
 
+let in_channel_to_item_stream ?filename inp =
+  Biocaml_transform.(
+    Transform.string_to_item ?filename ()
+    |! Pull_based.of_in_channel inp
+    |! Pull_based.to_stream_result
+  )

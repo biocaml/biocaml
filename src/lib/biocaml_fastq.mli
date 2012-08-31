@@ -42,6 +42,9 @@ module Error : sig
 
 end
 
+val in_channel_to_item_stream : ?filename:string -> in_channel ->
+  (item, Error.t) Core.Result.t Stream.t
+
 module Transform: sig
   val string_to_item:
     ?filename:string -> unit ->
