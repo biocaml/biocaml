@@ -40,11 +40,6 @@ module Error = struct
 
 end
 
-
-let printer_queue =
-  Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
-    sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities)
-
 module Transform = struct
   let string_to_item ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
@@ -79,7 +74,10 @@ module Transform = struct
 
   let item_to_string () =
     let module PQ = Biocaml_transform.Printer_queue in
-    let printer = printer_queue () in
+    let printer =
+      Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
+        sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
+      ) () in
     Biocaml_transform.make_stoppable ~name:"fastq_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
