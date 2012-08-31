@@ -2,30 +2,40 @@ open Biocaml_internal_pervasives
 open With_result
 module Pos = Biocaml_pos
 
+type char_seq = string with sexp
+type int_seq = int list with sexp
+
+type 'a item = {
+  header : string;
+  sequence : 'a;
+} with sexp
+
 module Error = struct
-  type string_to_item = [
-  | `empty_line of Biocaml_pos.t
-  | `incomplete_input of Biocaml_pos.t * string list * string option
+  type string_to_raw_item = [
+  | `empty_line of Pos.t
+  | `incomplete_input of Pos.t * string list * string option
   | `malformed_partial_sequence of string
   ]
   with sexp
 
   type t = [
-    string_to_item
-  | `unnamed_sequence of string
-  | `unnamed_scores of int list
+    string_to_raw_item
+  | `unnamed_char_seq of char_seq
+  | `unnamed_int_seq of int_seq
   ]
   with sexp
 end
 
 module Transform = struct
-  type 'a item = [
+  type 'a raw_item = [
   | `comment of string
   | `header of string
   | `partial_sequence of 'a
   ]
   with sexp
     
+  (** The {i next} function used to construct the transform in
+      [generic_parser]. *)
   let rec next ~parse_sequence
       ?(pedantic=true) ?(sharp_comments=true) ?(semicolon_comments=false) p =
     let open Biocaml_transform.Line_oriented in
@@ -45,8 +55,10 @@ module Transform = struct
       parse_sequence ~pedantic l
     | None -> 
       `not_ready
-        
-
+            
+  (** Return a transform converting strings to [raw_item]s, given a
+      function [parse_sequence] for parsing either [char_seq]s or
+      [int_seq]s. *)
   let generic_parser ~parse_sequence
       ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
     let name =
@@ -57,31 +69,29 @@ module Transform = struct
       ~on_error:(function `next e -> e
       | `incomplete_input e -> `incomplete_input e)
       
+  let string_to_char_seq_raw_item =
+    generic_parser ~parse_sequence:(fun ~pedantic l ->
+      if pedantic && String.exists l
+        ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
+      then output_error (`malformed_partial_sequence l)
+      else output_ok (`partial_sequence l)
+    )
 
-  let parse_string_sequence ~pedantic l =
-    if pedantic && String.exists l
-      ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
-    then output_error (`malformed_partial_sequence l)
-    else output_ok (`partial_sequence l)
+  let string_to_int_seq_raw_item =
+    generic_parser ~parse_sequence:(fun ~pedantic l ->
+        let exploded = String.split ~on:' ' l in
+        try
+          output_ok (`partial_sequence 
+                        (List.filter_map exploded (function
+                          | "" -> None
+                          | s -> Some (Int.of_string s))))
+        with _ -> output_error (`malformed_partial_sequence l)
+    )
       
-  let string_to_sequence_item =
-    generic_parser ~parse_sequence:parse_string_sequence
-
-
-  let parse_int_sequence ~pedantic l =
-    let exploded = String.split ~on:' ' l in
-    try
-      output_ok (`partial_sequence 
-                    (List.filter_map exploded (function
-                    | "" -> None
-                    | s -> Some (Int.of_string s))))
-    with
-      e -> output_error (`malformed_partial_sequence l)
-        
-  let string_to_score_item =
-    generic_parser ~parse_sequence:parse_int_sequence
-  
-  let printer ~to_string ?comment_char () =
+  (** Return a transform for converting [raw_item]s to strings, given
+      a function [to_string] for converting either [char_seq]s or
+      [int_seq]s. *)
+  let generic_printer ~to_string ?comment_char () =
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
     PQ.make ~to_string:(function
@@ -96,12 +106,14 @@ module Transform = struct
         | "" -> if stopped then `end_of_stream else `not_ready
         | s -> `output s)
       
-  let sequence_item_to_string = printer ~to_string:ident
+  let char_seq_raw_item_to_string = generic_printer ~to_string:ident
 
-  let score_item_to_string = printer ~to_string:(fun l ->
+  let int_seq_raw_item_to_string = generic_printer ~to_string:(fun l ->
     String.concat ~sep:" " (List.map l Int.to_string))
-    
-  let generic_aggregator ~flush ~add ~is_empty () =
+
+  (** Return transform for aggregating [raw_item]s into [item]s given
+      methods for working with buffers of [char_seq]s or [int_seq]s. *)
+  let generic_aggregator ~flush ~add ~is_empty ~unnamed_sequence () =
     let current_name = ref None in
     let result = Queue.create () in
     Biocaml_transform.make_stoppable ~name:"fasta_aggregator" ()
@@ -120,16 +132,16 @@ module Transform = struct
             | None -> `end_of_stream
             | Some name ->
               current_name := None;
-              output_ok (name, flush ())
+              output_ok {header=name; sequence=flush ()}
             end
           else `not_ready
         | Some (None, stuff) when is_empty stuff -> `not_ready
         | Some (None, non_empty) ->
-          output_error (`unnamed_sequence non_empty)
+          output_error (unnamed_sequence non_empty)
         | Some (Some name, seq) ->
-          output_ok (name, seq))
+          output_ok {header=name; sequence=seq})
 
-  let sequence_item_to_aggregated () =
+  let char_seq_raw_item_to_item () =
     let current_sequence = Buffer.create 42 in
     generic_aggregator 
       ~flush:(fun () ->
@@ -138,9 +150,10 @@ module Transform = struct
         s)
       ~add:(fun s -> Buffer.add_string current_sequence s)
       ~is_empty:(fun s -> s = "")
+      ~unnamed_sequence:(fun x -> `unnamed_char_seq x)
       ()
 
-  let score_item_to_aggregated () =
+  let int_seq_raw_item_to_item () =
     let scores = Queue.create () in
     generic_aggregator
       ~flush:(fun () ->
@@ -149,21 +162,22 @@ module Transform = struct
         List.concat l)
       ~add:(fun l -> Queue.enqueue scores l)
       ~is_empty:((=) [])
+      ~unnamed_sequence:(fun x -> `unnamed_int_seq x)
       ()  
 
-  let aggregated_to_sequence_item ?(line_width=80) () =
+  let char_seq_item_to_raw_item ?(items_per_line=80) () =
     let queue = Queue.create () in
     Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
-      ~feed:(fun (hdr, seq) ->
+      ~feed:(fun {header=hdr; sequence=seq} ->
         Queue.enqueue queue (`header hdr);
         let rec loop idx =
-          if idx + line_width >= String.length seq then (
+          if idx + items_per_line >= String.length seq then (
             Queue.enqueue queue
               (`partial_sequence String.(sub seq idx (length seq - idx)));
           ) else (
             Queue.enqueue queue
-              (`partial_sequence String.(sub seq idx line_width));
-            loop (idx + line_width);
+              (`partial_sequence String.(sub seq idx items_per_line));
+            loop (idx + items_per_line);
           ) in
         loop 0)
       ~next:(fun stopped ->
@@ -171,13 +185,13 @@ module Transform = struct
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
       
-  let aggregated_to_score_item ?(group_by=10) () =
+  let int_seq_item_to_raw_item ?(items_per_line=27) () =
     let queue = Queue.create () in
     Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
-      ~feed:(fun (hdr, seq) ->
+      ~feed:(fun {header=hdr; sequence=seq} ->
         Queue.enqueue queue (`header hdr);
         let rec loop l =
-          match List.split_n l group_by with
+        match List.split_n l items_per_line with
           | finish, [] -> 
             Queue.enqueue queue (`partial_sequence finish);
           | some, rest ->
@@ -191,30 +205,45 @@ module Transform = struct
         | None -> if stopped then `end_of_stream else `not_ready)
 end      
 
+let in_channel_to_char_seq_item_stream ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  let x = Transform.string_to_char_seq_raw_item
+    ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+  let y = Transform.char_seq_raw_item_to_item () in
+  Biocaml_transform.(
+    bind_result x y ~on_error:(function `left x -> x | `right x -> x)
+    |! Pull_based.of_in_channel inp
+    |! Pull_based.to_stream_result
+  )
+  
+let in_channel_to_int_seq_item_stream ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  let x = Transform.string_to_int_seq_raw_item
+    ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+  let y = Transform.int_seq_raw_item_to_item () in
+  Biocaml_transform.(
+    bind_result x y ~on_error:(function `left x -> x | `right x -> x)
+    |! Pull_based.of_in_channel inp
+    |! Pull_based.to_stream_result
+  )
+
 module Exceptionful = struct
   exception Error of Error.t
-  open Transform
   
-  let sequence_stream_of_in_channel ?filename ?pedantic
-      ?sharp_comments ?semicolon_comments inp =
-    Biocaml_transform.bind_result
-      (string_to_sequence_item
-         ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-      (sequence_item_to_aggregated ())
-      ~on_error:(function `left x -> x | `right x -> x)
-    |! Biocaml_transform.Pull_based.of_in_channel inp
-    |! Biocaml_transform.Pull_based.to_stream_exn
-        ~error_to_exn:(fun err -> Error err)
+  let error_to_exn err = Error err
 
-  let score_stream_of_in_channel ?filename ?pedantic
+  let in_channel_to_char_seq_item_stream ?filename ?pedantic
       ?sharp_comments ?semicolon_comments inp =
-    Biocaml_transform.bind_result
-      (string_to_score_item
-         ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-      (score_item_to_aggregated ())
-      ~on_error:(function `left x -> x
-      | `right (`unnamed_sequence xs) -> `unnamed_scores xs)
-    |! Biocaml_transform.Pull_based.of_in_channel inp
-    |! Biocaml_transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
+    Stream.result_to_exn ~error_to_exn (
+      in_channel_to_char_seq_item_stream ?filename ?pedantic
+        ?sharp_comments ?semicolon_comments inp
+    )
+
+  let in_channel_to_int_seq_item_stream ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp =
+    Stream.result_to_exn ~error_to_exn (
+      in_channel_to_int_seq_item_stream ?filename ?pedantic
+        ?sharp_comments ?semicolon_comments inp
+    )
 
 end

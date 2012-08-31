@@ -44,6 +44,15 @@ module Stream: sig
   val map : ('a option -> 'b) -> 'a Stream.t -> 'b t
   val is_empty : 'a t -> bool
   val lines_of_channel : in_channel -> string Stream.t
+
+  val result_to_exn :
+    ('output, 'error) Result.t t ->
+    error_to_exn:('error -> exn) ->
+    'output t
+      (** Convert exception-less stream to exception-ful
+          stream. Resulting stream raises exception at first error
+          seen. *)
+
 end
 
 module Lines : sig
