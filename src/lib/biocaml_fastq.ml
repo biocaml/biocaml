@@ -40,32 +40,6 @@ module Error = struct
 
 end
 
-let next p =
-  let open Biocaml_transform.Line_oriented in
-  if queued_lines p < 4 then
-    `not_ready
-  else (
-    let name_line    = next_line_exn p in
-    if String.length name_line = 0 || name_line.[0] <> '@'
-    then output_error (`wrong_name_line (current_position p, name_line))
-    else
-      let sequence     = next_line_exn p in
-      let comment_line = next_line_exn p in
-      if String.length comment_line = 0 || comment_line.[0] <> '+'
-      then output_error (`wrong_comment_line (current_position p, comment_line))
-      else
-        let qualities    = next_line_exn p in
-        if String.length sequence <> String.length qualities
-        then output_error
-          (`sequence_and_qualities_do_not_match (current_position p,
-                                                 sequence, qualities))
-        else (
-          output_ok {
-            name = String.sub name_line 1 (String.length name_line - 1);
-            comment = String.sub comment_line 1 (String.length comment_line - 1);
-            sequence; qualities }
-    ))
-
 
 let printer_queue =
   Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
@@ -75,7 +49,32 @@ module Transform = struct
   let string_to_item ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
     Biocaml_transform.Line_oriented.make_stoppable_merge_error
-      ~name ?filename ~next ()
+      ~name ?filename ~next:(fun p ->
+        let open Biocaml_transform.Line_oriented in
+        if queued_lines p < 4 then
+          `not_ready
+        else (
+          let name_line    = next_line_exn p in
+          if String.length name_line = 0 || name_line.[0] <> '@'
+          then output_error (`wrong_name_line (current_position p, name_line))
+          else
+            let sequence     = next_line_exn p in
+            let comment_line = next_line_exn p in
+            if String.length comment_line = 0 || comment_line.[0] <> '+'
+            then output_error (`wrong_comment_line (current_position p, comment_line))
+            else
+              let qualities    = next_line_exn p in
+              if String.length sequence <> String.length qualities
+              then output_error
+                (`sequence_and_qualities_do_not_match (current_position p,
+                                                      sequence, qualities))
+              else (
+                output_ok {
+                  name = String.sub name_line 1 (String.length name_line - 1);
+                  comment = String.sub comment_line 1 (String.length comment_line - 1);
+                  sequence; qualities }
+              ))
+      ) ()
 
 
   let item_to_string () =
