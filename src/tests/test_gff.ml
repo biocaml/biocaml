@@ -57,7 +57,7 @@ let test_parser () =
             "some=string;djf"]
     (function | `output (Error (`wrong_attributes (_, _))) -> true | _ -> false);
 
-  let transfo = Transform.string_to_item ~version:`two () in
+  let transfo = Transform.string_to_item ~tags:[`version `two] () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
     Biocaml_transform.feed transfo (joined ^ "\n");
@@ -101,7 +101,7 @@ let test_printer () =
              phase = None; attributes = [
                "k", ["v"]; "big k", ["an;no\ting\nv"]
              ]});
-  let transfo = Transform.item_to_string ~version:`two () in
+  let transfo = Transform.item_to_string ~tags:[ `version `two] () in
   let test s item =
     Biocaml_transform.feed transfo item;
     let res =  Biocaml_transform.next transfo in

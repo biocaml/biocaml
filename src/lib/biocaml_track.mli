@@ -93,13 +93,13 @@ module Transform: sig
     ([ t | Biocaml_wig.t ], string) Biocaml_transform.t
 (** Create a printer for track files containing WIG lines. *)
 
-  val string_to_gff: ?filename:string -> ?version:[`two | `three] -> unit ->
+  val string_to_gff: ?filename:string -> ?tags: Biocaml_gff.tag list -> unit ->
     (string,
      ([t | Biocaml_gff.stream_item], [parse_error | Biocaml_gff.parse_error])
        Core.Result.t) Biocaml_transform.t
   (** Create a composite parser for UCSC GFF files.  *)
 
-  val gff_to_string: ?version:[`two | `three] -> unit ->
+  val gff_to_string: ?tags: Biocaml_gff.tag list -> unit ->
     ([ t | Biocaml_gff.stream_item ], string) Biocaml_transform.t
   (** Create a printer for track files containing GFF lines. *)
 

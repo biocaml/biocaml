@@ -151,8 +151,8 @@ module Transform = struct
 
   type gff_parse_error = [parse_error | Biocaml_gff.parse_error]
   type gff_t = [track | Biocaml_gff.stream_item]
-  let string_to_gff ?filename ?version () =
-    let gff = Biocaml_gff.Transform.string_to_item ?filename ?version () in
+  let string_to_gff ?filename ?tags () =
+    let gff = Biocaml_gff.Transform.string_to_item ?filename () in
     embed_parser  ?filename gff
       ~reconstruct:(function
       | `Filtered (Ok f) -> Ok (f :> gff_t)
@@ -188,8 +188,8 @@ module Transform = struct
       | `comment _ | `track _ | `browser _ as x -> `left x
       | #Biocaml_wig.t as y -> `right y)
 
-  let gff_to_string ?version () =
-    let gff = Biocaml_gff.Transform.item_to_string ?version () in
+  let gff_to_string ?tags () =
+    let gff = Biocaml_gff.Transform.item_to_string ?tags () in
     make_printer gff ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x
