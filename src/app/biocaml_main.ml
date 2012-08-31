@@ -323,12 +323,39 @@ let cmd_bam_to_wig =
     (fun ~input_buffer_size ~output_buffer_size max_read_bytes bam wig ->
       build_wig ~input_buffer_size bam ~output_buffer_size ?max_read_bytes wig)
   
+let cmd_info =
+  Command.basic ~summary:"Get information about files"
+    Command.Spec.(
+      anon (sequence "FILES" string)
+      ++ uses_lwt ()
+    )
+    (fun files ->
+      let f s =
+        Lwt_io.printf "File: %S\n" s
+        >>= fun () ->
+        begin match Biocaml_tags.guess_from_filename s with
+        | Ok tags ->
+          Lwt_io.printf "  Inferred Tags: %s\n"
+            (Biocaml_tags.sexp_of_t tags |! Sexp.to_string_hum)
+        | Error e ->
+          Lwt_io.printf "  Cannot retrieve tags: %s\n"
+            begin match e with
+            | `extension_absent -> "no extension"
+            | `extension_unknown s -> sprintf "unknown extension: %S" s
+            end
+        end
+      in
+      (* List.fold files ~init:(return ()) ~f:(fun m v -> m >>= fun () -> f v)) *)
+      Lwt_list.iter_s f files)
+
+  
 let () =
   Command.(
     group ~summary:"Biocaml's command-line application" [
       ("bam-to-sam", cmd_bam_to_sam);
       ("bam-to-bam", cmd_bam_to_bam);
       ("bam-to-wig", cmd_bam_to_wig);
+      ("info", cmd_info);
     ]
     |! run);
   List.iter !lwts_to_run Lwt_main.run
