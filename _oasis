@@ -107,9 +107,9 @@ Executable wig_correlate
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
-Executable bamt
+Executable biocaml
   Path:   src/app
-  MainIs: bamt.ml
+  MainIs: biocaml_main.ml
   Build$: flag(apps) && flag(lwt)
   BuildDepends: lwt, lwt.unix, biocaml, core_extended
   CompiledObject: best

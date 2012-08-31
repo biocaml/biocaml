@@ -6,7 +6,7 @@ let verbose = ref false
 let dbg fmt =
   ksprintf (fun s ->
     if !verbose
-    then (eprintf "bamt: %s\n%!" s; return ())
+    then (eprintf "biocaml: %s\n%!" s; return ())
     else return ()) fmt
 
 let file_to_file transfo ?(input_buffer_size=42_000) bamfile
@@ -325,11 +325,10 @@ let cmd_bam_to_wig =
   
 let () =
   Command.(
-    group ~summary:"fcommand examples" [
-      ("b2s", cmd_bam_to_sam);
-      ("b2b", cmd_bam_to_bam);
-      ("b2bam", cmd_bam_to_bam);
-      ("wig", cmd_bam_to_wig);
+    group ~summary:"Biocaml's command-line application" [
+      ("bam-to-sam", cmd_bam_to_sam);
+      ("bam-to-bam", cmd_bam_to_bam);
+      ("bam-to-wig", cmd_bam_to_wig);
     ]
     |! run);
   List.iter !lwts_to_run Lwt_main.run
