@@ -130,6 +130,22 @@ module Error : sig
 
 end
 
+val in_channel_to_char_seq_item_stream :
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  ?semicolon_comments:bool ->
+  in_channel ->
+  (char_seq item, Error.t) Core.Result.t Stream.t
+
+val in_channel_to_int_seq_item_stream :
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  ?semicolon_comments:bool ->
+  in_channel ->
+  (int_seq item, Error.t) Core.Result.t Stream.t
+
 module Exceptionful : sig
   exception Error of Error.t
 
