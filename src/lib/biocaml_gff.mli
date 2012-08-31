@@ -37,6 +37,7 @@ type parse_error =
 (** The possible parsing errors. *)
   
 type tag = [ `version of [`two | `three] | `pedantic ] with sexp
+val default_tags: tag list
   
 module Transform: sig
   val string_to_item:

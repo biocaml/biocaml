@@ -25,6 +25,7 @@ type t = {
 type stream_item = [ `comment of string | `record of t ]
 
 type tag = [ `version of [`two | `three] | `pedantic ] with sexp
+let default_tags = [`version `three; `pedantic]
 
 type parse_error = 
 [ `cannot_parse_float of Biocaml_pos.t * string
@@ -188,7 +189,7 @@ module Transform = struct
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l -> parse_row ~version (current_position p) l
 
-  let string_to_item ?filename ?(tags=[]) () =
+  let string_to_item ?filename ?(tags=default_tags) () =
     let name = sprintf "gff_parser:%s" Option.(value ~default:"<>" filename) in
     let pedantic = List.mem tags  `pedantic in
     let version =
@@ -198,7 +199,7 @@ module Transform = struct
       ~name ?filename ~next ()
       
       
-  let item_to_string ?(tags=[]) () =
+  let item_to_string ?(tags=default_tags) () =
     let module PQ = Biocaml_transform.Printer_queue in
     let version =
       List.find_map tags (function `version v -> Some v | _ -> None)
