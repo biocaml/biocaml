@@ -76,12 +76,14 @@ with sexp
 val parse_error_to_string: parse_error -> string
 (** Convert a [parse_error] to a string. *)
   
+type tag = [ `sharp_comments | `pedantic ] with sexp
+val default_tags: tag list
+  
 module Transform: sig
 
   val string_to_t :
     ?filename:string ->
-    ?pedantic:bool ->
-    ?sharp_comments:bool ->
+    ?tags: tag list ->
     unit ->
     (string, (t, parse_error) Core.Result.t) Biocaml_transform.t
   (** Create the parsing [Biocaml_transform.t]. The parser is
@@ -89,7 +91,7 @@ module Transform: sig
       will parsed succesfully as a [`variable_step_value (1000, 42.)]
       even if no ["variableStep"] was line present before). *)
       
-  val t_to_string: unit -> (t, string) Biocaml_transform.t
+  val t_to_string: ?tags: tag list -> unit -> (t, string) Biocaml_transform.t
 (** Create the transform that prints [t] values to strings. *)
 
   val t_to_bed_graph: unit ->

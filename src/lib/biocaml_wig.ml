@@ -22,6 +22,8 @@ with sexp
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 with sexp
 
+type tag = [ `sharp_comments | `pedantic ] with sexp
+let default_tags = [ `sharp_comments; `pedantic ]
 
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
@@ -169,18 +171,21 @@ module Transform = struct
       `not_ready
         
         
-  let string_to_t ?filename ?pedantic ?sharp_comments () =
+  let string_to_t ?filename ?(tags=default_tags) () =
+    let pedantic = List.mem tags `pedantic in
+    let sharp_comments = List.mem tags `sharp_comments in
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
-    let next = next ?pedantic ?sharp_comments in
+    let next = next ~pedantic ~sharp_comments in
     Biocaml_transform.Line_oriented.make_stoppable_merge_error
       ~name ?filename ~next ()
 
 
-  let t_to_string () =
+  let t_to_string ?(tags=default_tags) () =
+    let sharp_comments = List.mem tags `sharp_comments in
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
       PQ.make ~to_string:(function
-      | `comment c -> sprintf "#%s\n" c
+      | `comment c -> if sharp_comments then sprintf "#%s\n" c else ""
       | `variable_step_state_change (chrom, span) ->
         sprintf "variableStep chrom=%s%s\n" chrom
           Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))

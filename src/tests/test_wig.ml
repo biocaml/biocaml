@@ -6,16 +6,14 @@ module TS = Biocaml_transform.Pull_based
 let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
   let t =
-    Biocaml_wig.Transform.string_to_t
-      ~pedantic:true ~sharp_comments:true ~filename () in
+    Biocaml_wig.Transform.string_to_t  ~filename () in
   let stream = TS.of_file ~buffer_size:10 filename t in
   stream
 
 let file_reprinter_stream file =
   let filename = "src/tests/data/" ^ file in
   let t =
-    Biocaml_wig.Transform.string_to_t
-      ~pedantic:true ~sharp_comments:true ~filename () in
+    Biocaml_wig.Transform.string_to_t ~filename () in
   let printer = Biocaml_wig.Transform.t_to_string () in
   let transfo = Biocaml_transform.map_result t printer in
   let stream = TS.of_file ~buffer_size:4 filename transfo in
@@ -118,8 +116,7 @@ let test_to_bed_graph () =
   let stream file =
     let filename = "src/tests/data/" ^ file in
     let t =
-      Biocaml_wig.Transform.string_to_t
-        ~pedantic:true ~sharp_comments:true ~filename () in
+      Biocaml_wig.Transform.string_to_t ~filename () in
     let to_bg = Biocaml_wig.Transform.t_to_bed_graph () in
     let transfo = Biocaml_transform.bind_result_merge_error t to_bg in
     let stream = TS.of_file ~buffer_size:7 filename transfo in

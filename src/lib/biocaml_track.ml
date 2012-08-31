@@ -131,8 +131,7 @@ module Transform = struct
   type wig_t = [ track | Biocaml_wig.t]
   let string_to_wig ?filename () =
     let wig_parser =
-      Biocaml_wig.Transform.string_to_t
-        ~pedantic:false ~sharp_comments:true ?filename () in
+      Biocaml_wig.Transform.string_to_t ?filename () in
     embed_parser ?filename
       (*
     let track_parser = string_to_string_content ?filename () in

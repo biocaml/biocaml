@@ -5,6 +5,7 @@ type t = [
 | `gzip of t
 | `raw_zip of t
 | `gff of Biocaml_gff.tag list
+| `wig of Biocaml_wig.tag list
 | `bam
 | `sam
 ] with sexp
@@ -19,6 +20,7 @@ let rec guess_from_filename filename =
   | (_, Some term) ->
     begin match term with
     | "gff" -> return (`gff Biocaml_gff.default_tags)
+    | "wig" -> return (`wig Biocaml_wig.default_tags)
     | "bam" -> return `bam
     | "sam" -> return `sam
     | u -> fail (`extension_unknown u)
