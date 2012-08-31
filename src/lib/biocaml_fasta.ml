@@ -229,27 +229,21 @@ let in_channel_to_int_seq_item_stream ?filename ?pedantic
 
 module Exceptionful = struct
   exception Error of Error.t
-  open Transform
   
+  let error_to_exn err = Error err
+
   let in_channel_to_char_seq_item_stream ?filename ?pedantic
       ?sharp_comments ?semicolon_comments inp =
-    Biocaml_transform.bind_result
-      (string_to_char_seq_raw_item
-         ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-      (char_seq_raw_item_to_item ())
-      ~on_error:(function `left x -> x | `right x -> x)
-    |! Biocaml_transform.Pull_based.of_in_channel inp
-    |! Biocaml_transform.Pull_based.to_stream_exn
-        ~error_to_exn:(fun err -> Error err)
+    Stream.result_to_exn ~error_to_exn (
+      in_channel_to_char_seq_item_stream ?filename ?pedantic
+        ?sharp_comments ?semicolon_comments inp
+    )
 
   let in_channel_to_int_seq_item_stream ?filename ?pedantic
       ?sharp_comments ?semicolon_comments inp =
-    Biocaml_transform.bind_result
-      (string_to_int_seq_raw_item
-         ?filename ?pedantic ?sharp_comments ?semicolon_comments ())
-      (int_seq_raw_item_to_item ())
-      ~on_error:(function `left x | `right x -> x)
-    |! Biocaml_transform.Pull_based.of_in_channel inp
-    |! Biocaml_transform.Pull_based.to_stream_exn ~error_to_exn:(fun err -> Error err)
+    Stream.result_to_exn ~error_to_exn (
+      in_channel_to_int_seq_item_stream ?filename ?pedantic
+        ?sharp_comments ?semicolon_comments inp
+    )
 
 end
