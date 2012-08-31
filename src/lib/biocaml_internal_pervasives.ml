@@ -86,7 +86,16 @@ module Stream = struct
       try Some (input_line cin)
       with End_of_file -> None
     in Stream.from f
- 
+
+  let result_to_exn s ~error_to_exn =
+    from (fun _ ->
+      match next s with
+        | None -> None
+        | Some result -> match result with
+            | Ok x -> Some x
+            | Result.Error x -> raise (error_to_exn x)
+    )
+
 end
 
 module Lines = struct
