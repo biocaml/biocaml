@@ -45,6 +45,14 @@ end
 val in_channel_to_item_stream : ?filename:string -> in_channel ->
   (item, Error.t) Core.Result.t Stream.t
 
+module Exceptionful : sig
+  exception Error of Error.t
+
+  val in_channel_to_item_stream : ?filename:string -> in_channel ->
+    item Stream.t
+
+end
+
 module Transform: sig
   val string_to_item:
     ?filename:string -> unit ->

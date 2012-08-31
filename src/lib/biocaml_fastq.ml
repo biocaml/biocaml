@@ -122,3 +122,15 @@ let in_channel_to_item_stream ?filename inp =
     |! Pull_based.of_in_channel inp
     |! Pull_based.to_stream_result
   )
+
+module Exceptionful = struct
+  exception Error of Error.t
+
+  let error_to_exn err = Error err
+
+  let in_channel_to_item_stream ?filename inp =
+    Stream.result_to_exn ~error_to_exn (
+      in_channel_to_item_stream ?filename inp
+    )
+
+end
