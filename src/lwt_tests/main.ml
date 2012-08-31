@@ -33,7 +33,7 @@ let print_next_ones parser_transform =
         
       
 let test_fastq_lines file =
-  let p = Biocaml_fastq.Transform.string_to_record () in
+  let p = Biocaml_fastq.Transform.string_to_item () in
   let stream_of_lines = Lwt_io.lines_of_file file in
   Lwt_stream.iter_s (fun l ->
     Biocaml_transform.feed p (l ^ "\n");
@@ -41,7 +41,7 @@ let test_fastq_lines file =
     stream_of_lines
 
 let test_fastq_string count file =
-  let p = Biocaml_fastq.Transform.string_to_record () in
+  let p = Biocaml_fastq.Transform.string_to_item () in
   Lwt_io.(with_file ~mode:input file (fun i ->
     let rec loop () =
       read ~count i
@@ -57,7 +57,7 @@ let test_fastq_string count file =
     loop ()))
 
 let reprint_fastq file =
-  let p = Biocaml_fastq.Transform.string_to_record () in
+  let p = Biocaml_fastq.Transform.string_to_item () in
   let stream_of_lines = Lwt_io.lines_of_file file in
   let stream_of_records =
     Lwt_stream.filter_map (fun l ->
@@ -67,7 +67,7 @@ let reprint_fastq file =
       | _ -> None) stream_of_lines in
   Lwt_stream.to_list stream_of_records
   >>= fun list_of_records ->
-  let printer = Biocaml_fastq.Transform.record_to_string () in
+  let printer = Biocaml_fastq.Transform.item_to_string () in
   Lwt_list.iter_s (fun r ->
     Biocaml_transform.feed printer r;
     match Biocaml_transform.next printer with
@@ -91,7 +91,7 @@ let test_classy_trimmer file =
          (mix
             (bind_result_merge_error
                (bind_result_merge_error
-                  (Biocaml_fastq.Transform.string_to_record ())
+                  (Biocaml_fastq.Transform.string_to_item ())
                   (on_input (Biocaml_fastq.Transform.trim (`beginning 10))
                      ~f:(fun i ->
                        Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))
@@ -100,7 +100,7 @@ let test_classy_trimmer file =
             ~f:(fun r c ->
               { r with Biocaml_fastq.name =
                   Printf.sprintf "%s -- %d" r.Biocaml_fastq.name c }))
-         (Biocaml_fastq.Transform.record_to_string ()))
+         (Biocaml_fastq.Transform.item_to_string ()))
        |!
       on_error ~f:(function
       | `left (`left (`left (`left parser_error))) ->

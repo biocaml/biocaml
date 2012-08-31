@@ -2,7 +2,7 @@ open Biocaml_internal_pervasives
 open With_result
 module Pos = Biocaml_pos
 
-type record = {
+type item = {
   name: string;
   sequence: string;
   comment: string;
@@ -72,13 +72,13 @@ let printer_queue =
     sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities)
 
 module Transform = struct
-  let string_to_record ?filename () =
+  let string_to_item ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
     Biocaml_transform.Line_oriented.make_stoppable_merge_error
       ~name ?filename ~next ()
 
 
-  let record_to_string () =
+  let item_to_string () =
     let module PQ = Biocaml_transform.Printer_queue in
     let printer = printer_queue () in
     Biocaml_transform.make_stoppable ~name:"fastq_printer" ()
@@ -89,16 +89,16 @@ module Transform = struct
         | s -> `output s)
 
   let trim (specification: [`beginning of int|`ending of int]) =
-    let records =  Queue.create () in
+    let items =  Queue.create () in
     let name =
       sprintf "(fastq_trimmer %s)"
         (match specification with
         | `beginning i -> sprintf "B:%d" i
         | `ending i -> sprintf "E:%d" i) in
     Biocaml_transform.make_stoppable ~name ()
-      ~feed:(fun r -> Queue.enqueue records r)
+      ~feed:(fun r -> Queue.enqueue items r)
       ~next:(fun stopped ->
-        begin match Queue.dequeue records with
+        begin match Queue.dequeue items with
         | Some r ->
           let rlgth = String.length r.sequence in
           begin match specification with
