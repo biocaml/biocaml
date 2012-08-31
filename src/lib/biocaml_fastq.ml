@@ -1,5 +1,6 @@
 open Biocaml_internal_pervasives
 open With_result
+module Pos = Biocaml_pos
 
 type record = {
   name: string;
@@ -43,10 +44,10 @@ let printer_queue =
 
 
 type string_to_record_error =
-[ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
-| `wrong_comment_line of Biocaml_pos.t * string
-| `wrong_name_line of Biocaml_pos.t * string
-| `incomplete_input of Biocaml_pos.t * string list * string option]
+[ `sequence_and_qualities_do_not_match of Pos.t * string * string
+| `wrong_comment_line of Pos.t * string
+| `wrong_name_line of Pos.t * string
+| `incomplete_input of Pos.t * string list * string option]
 with sexp
 
 let string_sample s n =
@@ -57,16 +58,16 @@ let string_sample s n =
 let string_of_parser_error = function
 | `sequence_and_qualities_do_not_match (pos, s,q) ->
   sprintf "[%s]: sequence and qualities do not match (%d Vs %d characters)"
-    (Biocaml_pos.to_string pos) String.(length s) String.(length q)
+    (Pos.to_string pos) String.(length s) String.(length q)
 | `wrong_comment_line (pos, line) ->
   sprintf "[%s]: wrong comment line: %S"
-    (Biocaml_pos.to_string pos) (string_sample line 14)
+    (Pos.to_string pos) (string_sample line 14)
 | `wrong_name_line (pos, line) ->
   sprintf "[%s]: wrong name line: %S"
-    (Biocaml_pos.to_string pos) (string_sample line 14)
+    (Pos.to_string pos) (string_sample line 14)
 | `incomplete_input (pos, sl, so) ->
   sprintf "[%s]: end-of-stream reached with incomplete input: %S"
-    (Biocaml_pos.to_string pos)
+    (Pos.to_string pos)
     (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
 
 module Transform = struct
