@@ -167,13 +167,29 @@ end
 
 let build_wig ?(max_read_bytes=max_int)
     ?(input_buffer_size=42_000) ?(output_buffer_size=42_000) bamfile wigfile =
-  let transfo =
-    Biocaml_transform.bind_result
-      ~on_error:(function `left l -> l | `right r -> `to_item r)
-      (Biocaml_bam.Transform.string_to_raw
-         ~zlib_buffer_size:(10 * input_buffer_size) ())
-      (Biocaml_bam.Transform.raw_to_item ())
+  let tags =
+    match Biocaml_tags.guess_from_filename bamfile with
+    | Ok o -> o
+    | Error e -> `bam
   in
+  begin match tags with
+  | `bam ->
+    return (
+      Biocaml_transform.bind_result
+        ~on_error:(function `left l -> l | `right r -> `bam_to_item r)
+        (Biocaml_bam.Transform.string_to_raw
+           ~zlib_buffer_size:(10 * input_buffer_size) ())
+        (Biocaml_bam.Transform.raw_to_item ()))
+  | `sam ->
+    return (
+      Biocaml_transform.bind_result
+        ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
+        (Biocaml_sam.Transform.string_to_raw ())
+        (Biocaml_sam.Transform.raw_to_item ()))
+  | _ ->
+    fail (Failure "cannot handle file format")
+  end
+  >>= fun transfo ->
   let open With_set in
   let tree = create () in
   Lwt_io.(
@@ -208,12 +224,18 @@ let build_wig ?(max_read_bytes=max_int)
         | `output (Error (`bam s)) -> 
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
+        | `output (Error (`sam s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_sam.Transform.sexp_of_string_to_raw_error s |! Sexp.to_string_hum)
         | `output (Error (`unzip s)) -> 
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
-        | `output (Error (`to_item s)) -> 
+        | `output (Error (`bam_to_item s)) -> 
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_bam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
+        | `output (Error (`sam_to_item s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_sam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
       in
       let rec loop c =
         read ~count:input_buffer_size i
@@ -275,7 +297,7 @@ let verbosity_flags () =
     ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "ZIP"; k)
     ++ flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
     ++ step (fun k v ->  verbose := v; k)
-    ++ flag "verbose-bamt"  no_arg ~doc:" make 'bamt' itself verbose"
+    ++ flag "verbose-app"  no_arg ~doc:" make 'biocaml' itself verbose"
   )
 
 let file_to_file_flags () =
@@ -310,18 +332,19 @@ let cmd_bam_to_bam =
     (fun ~input_buffer_size ~output_buffer_size bam bam2 ->
       bam_to_bam ~input_buffer_size bam ~output_buffer_size bam2)
 
-let cmd_bam_to_wig =
-  Command.basic ~summary:"get the WIG out of a BAM"
+let cmd_extract_wig =
+  Command.basic ~summary:"Get the WIG out of a BAM or a SAM"
     Command.Spec.(
       file_to_file_flags ()
       ++ flag "stop-after" (optional int)
         ~doc:"<n> Stop after reading <n> bytes"
-      ++ anon ("BAM-FILE" %: string)
+      ++ anon ("SAM-or-BAM-FILE" %: string)
       ++ anon ("WIG-FILE" %: string)
       ++ uses_lwt ()
     )
-    (fun ~input_buffer_size ~output_buffer_size max_read_bytes bam wig ->
-      build_wig ~input_buffer_size bam ~output_buffer_size ?max_read_bytes wig)
+    (fun ~input_buffer_size ~output_buffer_size max_read_bytes input_file wig ->
+      build_wig ~input_buffer_size ~output_buffer_size ?max_read_bytes
+        input_file wig)
   
 let cmd_info =
   Command.basic ~summary:"Get information about files"
@@ -354,7 +377,7 @@ let () =
     group ~summary:"Biocaml's command-line application" [
       ("bam-to-sam", cmd_bam_to_sam);
       ("bam-to-bam", cmd_bam_to_bam);
-      ("bam-to-wig", cmd_bam_to_wig);
+      ("extract-wig", cmd_extract_wig);
       ("info", cmd_info);
     ]
     |! run);
