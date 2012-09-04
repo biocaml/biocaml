@@ -1,4 +1,4 @@
-.PHONY: build doc test all install uninstall reinstall clean distclean setup
+.PHONY: build doc test all install uninstall reinstall clean distclean
 
 SETUP = ocaml setup.ml
 
@@ -22,8 +22,13 @@ reinstall: setup.data
 
 install: reinstall
 
-setup:
+setup.ml: _oasis
 	oasis setup -setup-update dynamic
+
+setup.data: setup.ml
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
+configure: setup.data
 
 clean:
 	$(RM) -fr _build
