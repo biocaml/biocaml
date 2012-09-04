@@ -28,6 +28,8 @@ setup.ml: _oasis
 setup.data: setup.ml
 	$(SETUP) -configure $(CONFIGUREFLAGS)
 
+configure: setup.data
+
 clean:
 	$(RM) -fr _build
 
