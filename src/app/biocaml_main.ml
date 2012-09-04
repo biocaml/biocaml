@@ -51,8 +51,67 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
       )
     )
   )
+
 let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
 
+let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
+  Lwt_io.(
+    with_file ~mode:input ~buffer_size:input_buffer_size filename (fun i ->
+      let rec count_all stopped =
+        match Biocaml_transform.next transform with
+        | `output (Ok _) -> count_all stopped
+        | `end_of_stream ->
+          if stopped then
+            Lwt_io.eprintf "=====  WELL TERMINATED \n%!"
+          else begin
+            Lwt_io.eprintf "=====  PREMATURE TERMINATION \n%!"
+            >>= fun () ->
+            fail (Failure "End")
+          end
+        | `not_ready ->
+          dbg "NOT READY" >>= fun () ->
+          if stopped then count_all stopped else return ()
+        | `output (Error (`bed s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_bed.sexp_of_parse_error s |! Sexp.to_string_hum)
+        | `output (Error (`bam s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
+        | `output (Error (`sam s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_sam.Transform.sexp_of_string_to_raw_error s |! Sexp.to_string_hum)
+        | `output (Error (`unzip s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
+        | `output (Error (`bam_to_item s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_bam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
+        | `output (Error (`sam_to_item s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!"
+            (Biocaml_sam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
+      in
+      let rec loop c =
+        read ~count:input_buffer_size i
+        >>= fun read_string ->
+        let read_bytes = (String.length read_string) + c in
+        dbg "read_string: %d, c: %d" (String.length read_string) c
+        >>= fun () ->
+        if read_bytes >= max_read_bytes then count_all false
+        else if read_string = "" then (
+          Biocaml_transform.stop transform;
+          count_all true
+        ) else (
+          Biocaml_transform.feed transform read_string;
+          count_all false
+          >>= fun () ->
+          loop read_bytes
+        )
+      in
+      loop 0
+    ))
+
+
+    
 let bam_to_sam ?input_buffer_size =
   file_to_file ?input_buffer_size
     Biocaml_transform.(
@@ -203,70 +262,24 @@ let build_wig ?(max_read_bytes=max_int)
   >>= fun transfo ->
   let open With_set in
   let tree = create () in
-  Lwt_io.(
-    with_file ~mode:input ~buffer_size:input_buffer_size bamfile (fun i ->
-      let rec count_all stopped =
-        match Biocaml_transform.next transfo with
-        | `output (Ok (`alignment al)) ->
-          let open Biocaml_sam in
-          Option.iter al.position (fun pos ->
-            begin match al with
-            | { reference_sequence = `reference_sequence rs;
-                sequence = `reference; _ } ->
-              add_interval tree rs.ref_name pos (pos + rs.ref_length) 
-            | { reference_sequence = `reference_sequence rs;
-                sequence = `string s; _ } ->
-              add_interval tree rs.ref_name pos (pos + String.length s) 
-            | _ -> ()
-            end);
-          count_all stopped
-        | `output (Ok _) -> count_all stopped
-        | `end_of_stream ->
-          if stopped then
-            Lwt_io.eprintf "=====  WELL TERMINATED \n%!"
-          else begin
-            Lwt_io.eprintf "=====  PREMATURE TERMINATION \n%!"
-              >>= fun () ->
-            fail (Failure "End")
-          end
-        | `not_ready ->
-          dbg "NOT READY" >>= fun () ->
-          if stopped then count_all stopped else return ()
-        | `output (Error (`bam s)) -> 
-          Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
-        | `output (Error (`sam s)) -> 
-          Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_sam.Transform.sexp_of_string_to_raw_error s |! Sexp.to_string_hum)
-        | `output (Error (`unzip s)) -> 
-          Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
-        | `output (Error (`bam_to_item s)) -> 
-          Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_bam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
-        | `output (Error (`sam_to_item s)) -> 
-          Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_sam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
-      in
-      let rec loop c =
-        read ~count:input_buffer_size i
-        >>= fun read_string ->
-        let read_bytes = (String.length read_string) + c in
-        dbg "read_string: %d, c: %d" (String.length read_string) c
-        >>= fun () ->
-        if read_bytes >= max_read_bytes then count_all false
-        else if read_string = "" then (
-          Biocaml_transform.stop transfo;
-          count_all true
-        ) else (
-          Biocaml_transform.feed transfo read_string;
-          count_all false
-          >>= fun () ->
-          loop read_bytes
-        )
-      in
-      loop 0
-    ))
+  let transform =
+    Biocaml_transform.on_output transfo ~f:(function
+    | Ok (`alignment al) ->
+      let open Biocaml_sam in
+      Option.iter al.position (fun pos ->
+        begin match al with
+        | { reference_sequence = `reference_sequence rs;
+            sequence = `reference; _ } ->
+          add_interval tree rs.ref_name pos (pos + rs.ref_length) 
+        | { reference_sequence = `reference_sequence rs;
+            sequence = `string s; _ } ->
+          add_interval tree rs.ref_name pos (pos + String.length s) 
+        | _ -> ()
+        end);
+      Ok (`alignment al)
+    | o -> o)
+  in
+  go_through_input ~transform ~max_read_bytes ~input_buffer_size bamfile
   >>= fun () ->
   let bed_set = bed_set tree in
   Lwt_io.(
@@ -278,6 +291,63 @@ let build_wig ?(max_read_bytes=max_int)
       )
   )
     
+module Bed_operations = struct
+
+    
+  let load ~input_buffer_size ?(max_read_bytes=max_int) filename =
+    let tags =
+      match Biocaml_tags.guess_from_filename filename with
+      | Ok o -> o
+      | Error e -> `bed
+    in
+    let parsing_transform = 
+      match tags with
+      | `bed ->
+        Biocaml_transform.on_output 
+          (Biocaml_bed.Transform.string_to_t ())
+          ~f:(function Ok o -> Ok o | Error e -> Error (`bed e))
+      | `gzip `bed ->
+        Biocaml_transform.bind_result
+          ~on_error:(function `left l -> `unzip l | `right r -> `bed r)
+          (Biocaml_zip.Transform.unzip
+             ~zlib_buffer_size:(10 * input_buffer_size) ~format:`gzip ())
+          (Biocaml_bed.Transform.string_to_t ())
+      | _ -> 
+        (failwith "cannot handle file-format")
+    in
+    let map = ref String.Map.empty in
+    let add n l r content =
+      match Map.find !map n with
+      | Some tree_ref ->
+        tree_ref := Biocaml_interval_tree.add l r (n, l, r, content) !tree_ref;
+      | None ->
+        let tree_ref = ref Biocaml_interval_tree.empty in
+        tree_ref := Biocaml_interval_tree.add l r (n, l, r, content) !tree_ref;
+        map := Map.add !map ~key:n ~data:tree_ref
+    in
+    let transform =
+      Biocaml_transform.on_output parsing_transform
+        ~f:(function
+        | Ok (n, l, r, content) ->
+          add n l r content;
+          Ok ()
+        | Error e -> Error e)
+    in
+    go_through_input ~transform ~max_read_bytes ~input_buffer_size filename
+    >>= fun () ->
+    return !map
+    
+  let intersects map name start stop =
+    match Map.find map name with
+    | Some tree_ref ->
+      if Biocaml_interval_tree.intersects start stop !tree_ref
+      then Lwt_io.printf "Yes\n"
+      else Lwt_io.printf "No\n"
+    | None ->
+      Lwt_io.printf "Record for %S not found\n" name
+      
+end
+
 module Command = Core_extended.Std.Core_command
 
 
@@ -357,6 +427,29 @@ let cmd_extract_wig =
       build_wig ~input_buffer_size ~output_buffer_size ?max_read_bytes
         input_file wig)
   
+let cmd_bed =
+  Command.group ~summary:"Operations on BED files (potentially gzipped)"
+    [
+      ("intersects",
+       Command.basic
+         ~summary:"Check if a bed file intersects and given interval"
+         Command.Spec.(
+           verbosity_flags ()
+           ++ input_buffer_size_flag ()
+           ++ flag "stop-after" (optional int)
+             ~doc:"<n> Stop after reading <n> bytes"
+           ++ anon ("BED-ish-FILE" %: string)
+           ++ anon ("NAME" %: string)
+           ++ anon ("START" %: int)
+           ++ anon ("STOP" %: int)
+           ++ uses_lwt ()
+         )
+         (fun ~input_buffer_size max_read_bytes input_file name start stop ->
+           Bed_operations.load ~input_buffer_size ?max_read_bytes input_file
+           >>= fun map ->
+           Bed_operations.intersects map  name start stop))
+    ]
+
 let cmd_info =
   Command.basic ~summary:"Get information about files"
     Command.Spec.(
@@ -388,6 +481,7 @@ let () =
     group ~summary:"Biocaml's command-line application" [
       ("bam-to-sam", cmd_bam_to_sam);
       ("bam-to-bam", cmd_bam_to_bam);
+      ("bed", cmd_bed);
       ("extract-wig", cmd_extract_wig);
       ("info", cmd_info);
     ]
