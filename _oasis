@@ -48,7 +48,7 @@ Library biocaml
            , Biocaml_genomeMap
            , Biocaml_gff
            , Biocaml_histogram
-           , Biocaml_intervalTree
+           , Biocaml_interval_tree
            , Biocaml_invokeCmdline
            , Biocaml_math
            , Biocaml_phred_score

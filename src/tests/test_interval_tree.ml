@@ -3,7 +3,7 @@ open Batteries
 open Printf
 
 module Range = Biocaml_range
-module IntervalTree = Biocaml_intervalTree
+module Interval_tree = Biocaml_interval_tree
 
 module ListImpl = struct
   type 'a t = (int * int * 'a) list
@@ -77,7 +77,7 @@ let random_interval ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) _ =
 let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n = 
   (1 -- n) /@ (random_interval ~lb ~ub ~minw ~maxw)
 
-module TestAdditions(I : module type of Biocaml_intervalTree) = struct
+module TestAdditions(I : module type of Biocaml_interval_tree) = struct
   include I
   let of_list l = 
     List.fold_left
@@ -85,7 +85,7 @@ module TestAdditions(I : module type of Biocaml_intervalTree) = struct
       I.empty l
 end
 
-module T = TestAdditions(IntervalTree)
+module T = TestAdditions(Interval_tree)
 module L = TestAdditions(ListImpl)
 
 let test_add () =
@@ -94,7 +94,7 @@ let test_add () =
     List.fold_left
       (fun accu (lo,hi,_) -> 
 	let r = T.add lo hi () accu in
-	Biocaml_intervalTree.check_integrity r ; r)
+	Biocaml_interval_tree.check_integrity r ; r)
       T.empty intervals |> ignore
   done
 

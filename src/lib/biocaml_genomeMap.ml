@@ -80,7 +80,7 @@ module type Signal = sig
 end
 
 module LMap = struct
-  module T = Biocaml_intervalTree
+  module T = Biocaml_interval_tree
 
   type ('a,'b) t = ('a, 'b T.t) Map.t
 
@@ -114,7 +114,7 @@ module LMap = struct
 end
 
 module LSet = struct
-  module T = Biocaml_intervalTree
+  module T = Biocaml_interval_tree
 
   type 'a t = ('a, unit T.t) Map.t
 
