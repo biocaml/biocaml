@@ -25,6 +25,9 @@ install: reinstall
 setup.ml: _oasis
 	oasis setup -setup-update dynamic
 
+setup.data: setup.ml
+	$(SETUP) -configure $(CONFIGUREFLAGS)
+
 clean:
 	$(RM) -fr _build
 
