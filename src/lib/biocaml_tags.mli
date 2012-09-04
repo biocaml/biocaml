@@ -6,6 +6,7 @@ type t = [
 | `wig of Biocaml_wig.tag list
 | `bam
 | `sam
+| `bed
 ] with sexp
 
 val guess_from_filename: string ->
