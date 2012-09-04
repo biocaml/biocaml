@@ -186,6 +186,17 @@ let build_wig ?(max_read_bytes=max_int)
         ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
         (Biocaml_sam.Transform.string_to_raw ())
         (Biocaml_sam.Transform.raw_to_item ()))
+  | `gzip `sam ->
+    return (
+      Biocaml_transform.bind_result
+        ~on_error:(function `left l -> `unzip l | `right r -> r)
+        (Biocaml_zip.Transform.unzip
+           ~zlib_buffer_size:(10 * input_buffer_size)
+           ~format:`gzip ())
+        (Biocaml_transform.bind_result
+           ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
+           (Biocaml_sam.Transform.string_to_raw ())
+           (Biocaml_sam.Transform.raw_to_item ())))
   | _ ->
     fail (Failure "cannot handle file format")
   end
@@ -333,7 +344,7 @@ let cmd_bam_to_bam =
       bam_to_bam ~input_buffer_size bam ~output_buffer_size bam2)
 
 let cmd_extract_wig =
-  Command.basic ~summary:"Get the WIG out of a BAM or a SAM"
+  Command.basic ~summary:"Get the WIG out of a BAM or a SAM (potentially gzipped)"
     Command.Spec.(
       file_to_file_flags ()
       ++ flag "stop-after" (optional int)
