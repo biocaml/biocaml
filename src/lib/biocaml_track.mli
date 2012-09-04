@@ -104,7 +104,7 @@ module Transform: sig
   (** Create a printer for track files containing GFF lines. *)
 
   val string_to_bed: ?filename:string ->
-    ?more_columns:[ `float | `int | `string ] list -> unit ->
+    ?more_columns:Biocaml_bed.parsing_spec -> unit ->
     (string,
      ([t | Biocaml_bed.t content], [parse_error | Biocaml_bed.parse_error])
        Core.Result.t) Biocaml_transform.t

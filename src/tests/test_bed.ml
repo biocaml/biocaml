@@ -26,7 +26,8 @@ let test_parser () =
     | _ -> false);
 
   let s =
-    make_stream ~more_columns:[`string; `int; `float] "bed_03_more_cols.bed" in
+    make_stream ~more_columns:(`enforce [`string; `int; `float])
+      "bed_03_more_cols.bed" in
   let the_expected_list = [`String "some_string"; `Int 42; `Float 3.14] in
   assert_bool "03 chrA" (TS.next s = output_ok ("chrA",  42,  45, the_expected_list));
   assert_bool "03 chrB" (TS.next s = output_ok ("chrB", 100, 130, the_expected_list));
@@ -34,7 +35,8 @@ let test_parser () =
   assert_bool "03 EOF" (TS.next s = `end_of_stream);
 
   let s =
-    make_stream ~more_columns:[`string; `int; `float] "bed_04_more_cols_error.bed" in
+    make_stream ~more_columns:(`enforce [`string; `int; `float])
+      "bed_04_more_cols_error.bed" in
   let the_expected_list = [`String "some_string"; `Int 42; `Float 3.14] in
   assert_bool "04 chrA" (TS.next s = output_ok ("chrA",  42,  45, the_expected_list));
   assert_bool "04 chrB error "
@@ -43,7 +45,7 @@ let test_parser () =
     | _ -> false);
   assert_bool "04 chrC error "
     (match TS.next s with
-    | `output (Error (`wrong_number_of_columns (_, l))) when List.length l = 5 -> true
+    | `output (Error (`wrong_number_of_columns (_, l))) -> true
     | _ -> false);
   assert_bool "04 EOF" (TS.next s = `end_of_stream);
   
@@ -60,7 +62,7 @@ let make_printer_stream ?more_columns file =
 let test_printer () =
   let s =
     make_printer_stream
-      ~more_columns:[`string; `int; `float] "bed_03_more_cols.bed" in
+      ~more_columns:(`enforce [`string; `int; `float]) "bed_03_more_cols.bed" in
   let camlstream =
     Biocaml_transform.Pull_based.to_stream_exn
       ~error_to_exn:(fun e -> failwith "Unexpected error in camlstream") s in

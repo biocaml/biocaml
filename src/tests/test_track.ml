@@ -89,7 +89,7 @@ let test_gff_parser () =
 let test_bed_parser () =
   let transfo =
     Biocaml_track.Transform.string_to_bed
-      ~more_columns:[`string; `int; `float] () in
+      ~more_columns:(`enforce [`string; `int; `float]) () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
