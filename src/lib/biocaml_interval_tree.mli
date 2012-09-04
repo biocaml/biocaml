@@ -17,7 +17,7 @@ val is_empty : 'a t -> bool
 
 val cardinal : 'a t -> int
 
-val intersects : int -> int -> 'a t -> bool
+val intersects : 'a t -> low:int -> high:int -> bool
 (** [intersects a b t] returns [true] if one interval in [t]
     intersects with the interval \[[a];[b]\].*)
 
@@ -27,7 +27,7 @@ val intersects : int -> int -> 'a t -> bool
 val empty : 'a t
 (** the empty tree *)
 
-val add : int -> int -> 'a -> 'a t -> 'a t
+val add : 'a t -> low:int -> high:int -> data:'a -> 'a t
 (** [add lo hi v t] adds the interval ([lo], [hi]) labeled with value
     [v] to the contents of [t]. Note that in contrast to sets,
     identical intervals (even with identical labels) may be *repeated*

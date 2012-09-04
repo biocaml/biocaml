@@ -85,7 +85,7 @@ module LMap = struct
   type ('a,'b) t = ('a, 'b T.t) Map.t
 
   let intersects (k,r) lmap =
-    try Range.(T.intersects r.lo r.hi (Map.find k lmap))
+    try Range.(T.intersects (Map.find k lmap) r.lo r.hi)
     with Not_found -> false
 
   let closest (k,r) lmap = 
@@ -107,7 +107,9 @@ module LMap = struct
     |> Enum.concat
 
   let of_enum e =
-    let accu = Accu.create T.empty (fst |- fst) (fun ((_,r),v) -> Range.(T.add r.lo r.hi v)) in
+    let accu =
+      Accu.create T.empty (fst |- fst)
+        (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
     Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
     Map.of_enum (Accu.enum accu)
 

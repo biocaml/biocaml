@@ -316,13 +316,15 @@ module Bed_operations = struct
         (failwith "cannot handle file-format")
     in
     let map = ref String.Map.empty in
-    let add n l r content =
+    let add n low high content =
       match Map.find !map n with
       | Some tree_ref ->
-        tree_ref := Biocaml_interval_tree.add l r (n, l, r, content) !tree_ref;
+        tree_ref := Biocaml_interval_tree.add !tree_ref
+          ~low ~high ~data:(n, low, high, content);
       | None ->
         let tree_ref = ref Biocaml_interval_tree.empty in
-        tree_ref := Biocaml_interval_tree.add l r (n, l, r, content) !tree_ref;
+        tree_ref := Biocaml_interval_tree.add !tree_ref
+          ~low ~high ~data:(n, low, high, content);
         map := Map.add !map ~key:n ~data:tree_ref
     in
     let transform =
@@ -337,10 +339,10 @@ module Bed_operations = struct
     >>= fun () ->
     return !map
     
-  let intersects map name start stop =
+  let intersects map name low high =
     match Map.find map name with
     | Some tree_ref ->
-      if Biocaml_interval_tree.intersects start stop !tree_ref
+      if Biocaml_interval_tree.intersects !tree_ref ~low ~high
       then Lwt_io.printf "Yes\n"
       else Lwt_io.printf "No\n"
     | None ->

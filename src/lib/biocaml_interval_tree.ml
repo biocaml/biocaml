@@ -50,12 +50,13 @@ let interval_overlap lo hi lo' hi' =
     (lo  <= lo' && lo' <= hi)
     (lo' <= lo  && lo  <= hi')
   
-let rec intersects lo hi = function
+let rec intersects t ~low ~high =
+  match t with
   | Empty -> false
   | Node n -> 
-      if interval_overlap lo hi n.lo n.hi then true
-      else if interval_overlap lo hi n.left_end n.right_end then
-        intersects lo hi n.left || intersects lo hi n.right
+      if interval_overlap low high n.lo n.hi then true
+      else if interval_overlap low high n.left_end n.right_end then
+        intersects n.left ~low ~high || intersects n.right ~low ~high 
       else false
 
 let interval_distance lo hi lo' hi' =
@@ -130,12 +131,16 @@ let bal l lo hi elt r =
 		else if lre > rre then lre else rre) ;
 	      height = (if hl >= hr then hl + 1 else hr + 1) }
 
-let rec add lo hi elt = function
-  | Empty -> create Empty lo hi elt Empty
-  | Node n ->
-    let c = interval_compare lo hi n.lo n.hi in 
-    if c <= 0 then bal (add lo hi elt n.left) n.lo n.hi n.elt n.right
-    else bal n.left n.lo n.hi n.elt (add lo hi elt n.right)
+let add t ~low ~high ~data =
+  let rec aux lo hi elt = function
+    | Empty -> create Empty lo hi elt Empty
+    | Node n ->
+      let c = interval_compare lo hi n.lo n.hi in 
+      if c <= 0 then bal (aux lo hi elt n.left) n.lo n.hi n.elt n.right
+      else bal n.left n.lo n.hi n.elt (aux lo hi elt n.right)
+  in
+  aux low high data t
+
 
 
 let rec elements_aux accu = function
@@ -262,7 +267,7 @@ let test_add () =
   let r = ref empty in 
   for i = 1 to 1000000 do 
     let j = Random.int 100 in
-    r := add j (j + Random.int 100) () !r
+    r := add !r ~low:j ~high:(j + Random.int 100) ~data:()
   done
 
 
