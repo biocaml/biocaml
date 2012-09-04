@@ -180,7 +180,7 @@ module Low_level_parsing = struct
     | [tag; typ; value] ->
       if is_valid_tag tag then
         begin match typ with
-        | "A" | "i" | "f" | "Z" | "H" | "B" ->
+        | "A" | "c" | "C" | "s" | "S" | "i" | "I" | "f" | "Z" | "H" | "B" ->
           return (tag, typ.[0], value)
         | _ ->
           fail (`wrong_optional_field (position, s))
