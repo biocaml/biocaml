@@ -594,7 +594,10 @@ module Transform = struct
         | `float f -> Float.to_string f
         | `int i -> Int.to_string i
         | `string s -> s in
-      List.map al.optional_content (fun (tag, typ, v) -> (tag, typ, optv v))
+      let typt = function
+        | 'i' | 'I' | 's' | 'S' | 'c' | 'C' -> 'i'
+        | c -> c in
+      List.map al.optional_content (fun (tag, typ, v) -> (tag, typt typ, optv v))
     in
     return (`alignment {qname; flag; rname; pos;
                         mapq; cigar; rnext; pnext;
