@@ -487,12 +487,13 @@ let cmd_bed =
            Bed_operations.load
              ~input_buffer_size ?max_read_bytes ~on_output input_file
            >>= fun () ->
-           Map.iter !map_ref (fun ~key ~data ->
-             List.iter (Biocaml_rSet.to_range_list !data) (fun (low, high) ->
-               printf "%s\t%d\t%d\n" key low high;
-             )
-           );
-           return ()));
+           Map.fold !map_ref ~init:(return ()) ~f:(fun ~key ~data m ->
+             m >>= fun () ->
+             List.fold (Biocaml_rSet.to_range_list !data) ~init:(return ())
+               ~f:(fun m (low, high) ->
+                 m >>= fun () ->
+                 Lwt_io.printf "%s\t%d\t%d\n" key low high)
+           )));
     ]
 
 let cmd_info =
