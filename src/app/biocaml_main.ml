@@ -294,7 +294,7 @@ let build_wig ?(max_read_bytes=max_int)
 module Bed_operations = struct
 
     
-  let load ~input_buffer_size ?(max_read_bytes=max_int) filename =
+  let load ~on_output ~input_buffer_size ?(max_read_bytes=max_int) filename =
     let tags =
       match Biocaml_tags.guess_from_filename filename with
       | Ok o -> o
@@ -315,6 +315,10 @@ module Bed_operations = struct
       | _ -> 
         (failwith "cannot handle file-format")
     in
+    let transform = Biocaml_transform.on_output parsing_transform ~f:on_output in
+    go_through_input ~transform ~max_read_bytes ~input_buffer_size filename
+    
+  let load_itree () =
     let map = ref String.Map.empty in
     let add n low high content =
       match Map.find !map n with
@@ -327,18 +331,33 @@ module Bed_operations = struct
           ~low ~high ~data:(n, low, high, content);
         map := Map.add !map ~key:n ~data:tree_ref
     in
-    let transform =
-      Biocaml_transform.on_output parsing_transform
-        ~f:(function
-        | Ok (n, l, r, content) ->
-          add n l r content;
-          Ok ()
-        | Error e -> Error e)
+    let on_output = function
+      | Ok (n, l, r, content) ->
+        add n l r content;
+        Ok ()
+      | Error e -> Error e
     in
-    go_through_input ~transform ~max_read_bytes ~input_buffer_size filename
-    >>= fun () ->
-    return !map
+    (map, on_output)
+      
+  let load_rset () =
+    let map = ref String.Map.empty in
+    let add n low high content =
+      match Map.find !map n with
+      | Some rset_ref ->
+        rset_ref := Biocaml_rSet.(union !rset_ref (of_range_list [low, high]))
+      | None ->
+        let rset = ref Biocaml_rSet.(of_range_list [low, high]) in
+        map := Map.add !map ~key:n ~data:rset
+    in
+    let on_output = function
+      | Ok (n, l, r, content) ->
+        add n l r content;
+        Ok ()
+      | Error e -> Error e
+    in
+    (map, on_output)
     
+      
   let intersects map name low high =
     match Map.find map name with
     | Some tree_ref ->
@@ -447,9 +466,33 @@ let cmd_bed =
            ++ uses_lwt ()
          )
          (fun ~input_buffer_size max_read_bytes input_file name start stop ->
-           Bed_operations.load ~input_buffer_size ?max_read_bytes input_file
-           >>= fun map ->
-           Bed_operations.intersects map  name start stop))
+           let map_ref, on_output = Bed_operations.load_itree () in
+           Bed_operations.load
+             ~input_buffer_size ?max_read_bytes ~on_output input_file
+           >>= fun () ->
+           Bed_operations.intersects !map_ref  name start stop));
+      ("range-set",
+       Command.basic
+         ~summary:"Output a non-overlapping set of intervals for a BED input file"
+         Command.Spec.(
+           verbosity_flags ()
+           ++ input_buffer_size_flag ()
+           ++ flag "stop-after" (optional int)
+             ~doc:"<n> Stop after reading <n> bytes"
+           ++ anon ("BED-ish-FILE" %: string)
+           ++ uses_lwt ()
+         )
+         (fun ~input_buffer_size max_read_bytes input_file ->
+           let map_ref, on_output = Bed_operations.load_rset () in
+           Bed_operations.load
+             ~input_buffer_size ?max_read_bytes ~on_output input_file
+           >>= fun () ->
+           Map.iter !map_ref (fun ~key ~data ->
+             List.iter (Biocaml_rSet.to_range_list !data) (fun (low, high) ->
+               printf "%s\t%d\t%d\n" key low high;
+             )
+           );
+           return ()));
     ]
 
 let cmd_info =
