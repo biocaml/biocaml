@@ -9,6 +9,9 @@ let dbg fmt =
     then (eprintf "biocaml: %s\n%!" s; return ())
     else return ()) fmt
 
+let failf fmt =
+  ksprintf (fun s -> fail (Failure s)) fmt
+    
 module Command_line = struct
   include  Core_extended.Std.Core_command
     
@@ -155,6 +158,85 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
       loop 0
     ))
 
+module Http_method = struct
+  type t = string -> (string, string) Result.t Lwt.t
+
+  let detect_exe exe =
+    Lwt_unix.system ("which \"" ^ exe ^ "\" > /dev/null 2>&1")
+    >>= fun ps ->
+    begin match ps with
+    | Lwt_unix.WEXITED 0 -> return true
+    | _ -> return false
+    end
+
+  let shell_command_to_string s =
+    dbg "Running %S" s >>= fun () ->
+    let inprocess = Lwt_process.(open_process_full (shell s)) in
+    Lwt_list.map_p Lwt_io.read [inprocess#stdout; inprocess#stderr; ]
+    >>= fun output ->
+    inprocess#status
+    >>= fun status ->
+    begin match status with
+    | Lwt_unix.WEXITED 0 -> return (List.hd_exn output)
+    | _ -> failf "Cmd %S failed: %s" s (List.nth_exn output 1)
+    end
+    
+      
+  let discover () =
+    detect_exe "curl"
+    >>= fun curls_there ->
+    if curls_there
+    then return (fun s ->
+      let cmd = sprintf "curl -f -k -L %S" s in
+      shell_command_to_string cmd)
+    else begin
+      detect_exe "wget"
+      >>= fun wgets_there ->
+      if wgets_there
+      then return (fun s ->
+        let cmd = sprintf "wget --no-check-certificate -q -O - %S" s in
+        shell_command_to_string cmd)
+      else fail (Failure "No HTTP command found")
+    end
+end
+
+module Entrez = struct
+    
+  let pubmed s =
+    let escaped =
+      List.map s Biocaml_internal_pervasives.Url.escape
+      |! String.concat ~sep:"+" in
+    sprintf
+      "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s"
+      escaped
+      
+  let command = 
+    Command_line.(
+      group ~summary:"Query the Entrez/EUtils database" [
+        ("pubmed", 
+         basic
+           ~summary:"Test a simple query in pubmed journals"
+           Spec.(
+             verbosity_flags ()
+             ++ anon (sequence "SEARCH" string)
+             ++ uses_lwt ()
+           )
+           (fun search ->
+             let query = pubmed search in
+             Lwt_io.printf "Query: %s\n" query >>= fun () ->
+             Http_method.discover () >>= fun http ->
+             http query >>= fun result ->
+             Lwt_io.printf "Result:\n%s\n" result));
+      ])
+      
+end
+      
+
+
+
+
+
+    
 module Bam_conversion = struct
 
   let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
@@ -604,6 +686,7 @@ let () =
       group ~summary:"Biocaml's command-line application" [
         ("bed", Bed_operations.command);
         ("bam", Bam_conversion.command);
+        ("entrez", Entrez.command);
         ("info", cmd_info);
       ] in
     run whole_thing;
