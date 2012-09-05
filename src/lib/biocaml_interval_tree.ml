@@ -291,6 +291,25 @@ let find_intersecting_elem lo hi t =
 
 
 
+let filter_overlapping t ~low ~high =
+  let res = ref empty in
+  let rec loop = function 
+    | [] -> ()
+    | h :: t ->
+      begin match h with 
+      | Empty -> loop t
+      | Node n -> 
+        if interval_overlap low high n.left_end n.right_end then (
+          let t = n.left :: n.right :: t in 
+          if interval_overlap low high n.lo n.hi 
+          then res := add !res ~low:n.lo ~high:n.hi ~data:n.elt;
+          loop t
+        )
+        else loop t
+      end
+  in 
+  loop [t];
+  !res
 
 
 

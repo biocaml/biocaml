@@ -64,6 +64,11 @@ module ListImpl = struct
       (fun (x,y,_) -> interval_overlap lo hi x y)
       (enum t)
 
+  let filter_overlapping t ~low ~high =
+    List.filter
+      (fun (x,y,_) -> interval_overlap low high x y)
+      t
+
   let print _ = assert false
   let check_integrity _ = assert false
 end

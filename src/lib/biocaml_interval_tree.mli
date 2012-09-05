@@ -61,6 +61,10 @@ val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) BatEnum.t
     (x,y,_) -> intersects x y t) (enum t)] but is more efficient. *)
 
 
+val filter_overlapping: 'a t -> low:int -> high:int -> 'a t
+(** Create an interval tree with the elements which overlap with
+    [[low, high]]. *)
+
 (** {6 Misc} *)
 
 val print : 'a t -> unit
