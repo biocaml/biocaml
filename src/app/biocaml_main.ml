@@ -494,6 +494,40 @@ let cmd_bed =
                  m >>= fun () ->
                  Lwt_io.printf "%s\t%d\t%d\n" key low high)
            )));
+      ("union",
+       Command.basic
+         ~summary:"Compute the union of a bunch of BED files"
+         Command.Spec.(
+           verbosity_flags ()
+           ++ input_buffer_size_flag ()
+           ++ flag "stop-after" (optional int)
+             ~doc:"<n> Stop after reading <n> bytes"
+           ++ anon (sequence "BED-ish-FILES" string)
+           ++ uses_lwt ()
+         )
+         (fun ~input_buffer_size max_read_bytes input_files ->
+           let all_names = ref String.Set.empty in
+           List.fold input_files ~init:(return []) ~f:(fun prev file ->
+             prev >>= fun current_list ->
+             let map_ref, on_output = Bed_operations.load_rset () in
+             Bed_operations.load
+               ~input_buffer_size ?max_read_bytes ~on_output file
+             >>= fun () ->
+             all_names := Set.union !all_names
+               (String.Set.of_list (Map.keys !map_ref));
+             return (!map_ref :: current_list))
+           >>= fun files_maps ->
+           Set.fold !all_names ~init:(return ()) ~f:(fun munit name ->
+             munit >>= fun () ->
+             List.filter_map files_maps (fun fm ->
+               Map.find fm name |! Option.map ~f:(!))
+             |! List.fold ~init:Biocaml_rSet.empty ~f:Biocaml_rSet.union
+             |! Biocaml_rSet.to_range_list
+             |! List.fold ~init:(return ()) ~f:(fun m (low, high) ->
+               m >>= fun () ->
+               Lwt_io.printf "%s\t%d\t%d\n" name low high))
+         )
+      );
     ]
 
 let cmd_info =
