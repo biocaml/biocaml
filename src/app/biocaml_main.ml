@@ -202,13 +202,8 @@ end
 
 module Entrez = struct
     
-  let pubmed s =
-    let escaped =
-      List.map s Biocaml_internal_pervasives.Url.escape
-      |! String.concat ~sep:"+" in
-    sprintf
-      "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s"
-      escaped
+  let pubmed s = 
+    Biocaml_entrez.esearch_url `pubmed (String.concat ~sep:" " s)
       
   let command = 
     Command_line.(
