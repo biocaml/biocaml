@@ -201,14 +201,55 @@ module Http_method = struct
 end
 
 module Entrez = struct
-    
-  let pubmed s =
+  module Xml_tree = struct
+    include Xmlm
+    let in_tree i = 
+      let el tag childs = `E (tag, childs)  in
+      let data d = `D d in
+      input_doc_tree ~el ~data i
+  end
+
+  let pubmed_search_query s =
     let escaped =
       List.map s Biocaml_internal_pervasives.Url.escape
       |! String.concat ~sep:"+" in
     sprintf
       "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=%s"
       escaped
+
+  let pubmed_search_ids s =
+    let xml = Xml_tree.(in_tree (make_input (`String (0, s)))) in
+    let ids = ref [] in
+    let rec go_through = function
+      | `E (((_,"Id"), attrs), [`D inside]) -> ids := Int.of_string inside :: !ids
+      | `E (((_,_), attrs), inside) -> List.iter ~f:go_through inside
+      | `D s -> ()
+    in
+    go_through (snd xml);
+    !ids
+      
+  let pubmed_get_item_query id =
+    sprintf
+      "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=%d"
+      id
+
+  let pubmed_get_item_info s =
+    let xml = Xml_tree.(in_tree (make_input (`String (0, s)))) in
+    let title = ref None in
+    let doi = ref None in
+    let rec go_through = function
+      | `E (((_,"Item"), attrs), [`D inside]) ->
+        List.iter attrs (function
+        | ((_, "Name"), "Title") -> title := Some inside
+        | ((_, "Name"), "DOI") -> doi := Some inside
+        | ((_, attr), value) -> ()
+        )
+      | `E (((_,_), attrs), inside) -> List.iter ~f:go_through inside
+      | `D s -> ()
+    in
+    go_through (snd xml);
+    (!title, !doi)
+    
       
   let command = 
     Command_line.(
@@ -222,21 +263,35 @@ module Entrez = struct
              ++ uses_lwt ()
            )
            (fun search ->
-             let query = pubmed search in
+             let query = pubmed_search_query search in
              Lwt_io.printf "Query: %s\n" query >>= fun () ->
              Http_method.discover () >>= fun http ->
              http query >>= fun result ->
-             Lwt_io.printf "Result:\n%s\n" result));
+             let ids = pubmed_search_ids result in
+             Lwt_io.printf "Result:\n"
+             >>= fun () ->
+             List.fold ids ~init:(return ()) ~f:(fun m i ->
+               m >>= fun () ->
+               let q = pubmed_get_item_query i in
+               http q >>= fun xml ->
+               let title, doi = pubmed_get_item_info xml in
+               Lwt_io.printf "* ID: %d%s%s\n" i
+                 Option.(value_map ~default:" (title not found)"
+                           ~f:(sprintf "\n  Title %S") title)
+                 Option.(value_map ~default:" (DOI not found)"
+                           ~f:(sprintf "\n  DOI: http://dx.doi.org/%s") doi)
+             )
+           ));
       ])
       
 end
-      
+  
 
 
 
 
 
-    
+  
 module Bam_conversion = struct
 
   let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
