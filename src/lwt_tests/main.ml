@@ -147,15 +147,16 @@ let cmd_bam_to_sam =
       Spec.(
         bench_flags ()
         ++ anon ("BAM-FILE" %: string)
+        ++ anon ("OUT-DIR" %: string)
       )
-      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam ->
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam outdir ->
         let results = ref [] in
         List.iter input_buffer_sizes (fun input_buffer_size ->
           List.iter output_buffer_sizes (fun output_buffer_size ->
             let start = Time.now () in
             for i = 1 to repetitions do
               let outfile =
-                sprintf "/tmp/samlwt_%d_%d_%d" input_buffer_size
+                sprintf "%s/samlwt_%d_%d_%d" outdir input_buffer_size
                   output_buffer_size i in
               let transform = bam_to_sam input_buffer_size in
               lwt_file_to_file ~input_buffer_size ~transform
@@ -173,7 +174,7 @@ let cmd_bam_to_sam =
             for i = 1 to repetitions do
               let transform = bam_to_sam input_buffer_size in
               let outfile =
-                sprintf "/tmp/samix_%d_%d_%d" input_buffer_size
+                sprintf "%s/samix_%d_%d_%d" outdir input_buffer_size
                   output_buffer_size i in
               In_channel.with_file bam ~f:(fun inch ->
                 Out_channel.with_file outfile ~f:(fun ouch ->
