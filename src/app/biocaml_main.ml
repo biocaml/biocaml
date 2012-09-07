@@ -203,8 +203,13 @@ end
 module Entrez = struct
     
   let pubmed s = 
-    Biocaml_entrez.esearch_url `pubmed (String.concat ~sep:" " s)
-      
+    let query = Biocaml_entrez.esearch_url `pubmed (String.concat ~sep:" " s) in
+    Http_method.discover () >>= fun http ->
+    http query >|= Biocaml_entrez.esearch_answer_of_string >>= fun answer ->
+    let query' = Biocaml_entrez.efetch_url ~retmode:`xml `pubmed answer.Biocaml_entrez.ids in
+    http query' >>= fun result ->
+    Lwt_io.printf "Result:\n%s\n" result
+
   let command = 
     Command_line.(
       group ~summary:"Query the Entrez/EUtils database" [
@@ -216,12 +221,7 @@ module Entrez = struct
              ++ anon (sequence "SEARCH" string)
              ++ uses_lwt ()
            )
-           (fun search ->
-             let query = pubmed search in
-             Lwt_io.printf "Query: %s\n" query >>= fun () ->
-             Http_method.discover () >>= fun http ->
-             http query >>= fun result ->
-             Lwt_io.printf "Result:\n%s\n" result));
+           pubmed)
       ])
       
 end

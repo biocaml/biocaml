@@ -59,7 +59,27 @@ val esearch_answer_of_string : string -> esearch_answer
 
 
 val efetch_url :
-  ?rettype:string -> ?retmode:string ->
+  ?rettype:string -> ?retmode:[`xml|`text|`asn_1] ->
+  ?retstart:int -> ?retmax:int ->
+  ?strand:[`plus|`minus] ->
+  ?seq_start:int -> ?seq_stop:int ->
   database -> string list -> string
-(** Construction of efetch URLs. Note that this access method
-does not support more than 200 ids *)
+(** Construction of efetch URLs. Note that this access method does not
+    support more than 200 ids. For legible values of [rettype] and
+    [retmode] please consult:
+    http://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.chapter4_table1/?report=objectonly *)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

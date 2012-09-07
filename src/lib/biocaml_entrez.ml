@@ -112,9 +112,9 @@ type esearch_answer = {
 
 let esearch_answer_of_tree = function 
   | E (((_,"eSearchResult"),_),_) as t -> {
-      count = ileaf "count" t ;
-      retmax = ileaf "retmax" t ;
-      retstart = ileaf "retstart" t ;
+      count = ileaf "Count" t ;
+      retmax = ileaf "RetMax" t ;
+      retstart = ileaf "RetStart" t ;
       ids = child "IdList" t |> sleaves "Id"
     }
   | _ -> assert false
@@ -125,8 +125,29 @@ let esearch_answer_of_string str =
   |> snd
   |> esearch_answer_of_tree
 
-let efetch_url ?rettype ?retmode db ids = assert false
 
+
+
+let fetch_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
+
+let string_of_retmode = function
+| `xml -> "xml"
+| `asn_1 -> "asn.1"
+| `text -> "text"
+
+let efetch_url ?rettype ?retmode ?retstart ?retmax ?strand ?seq_start ?seq_stop db ids =
+  if List.length ids > 200 
+  then raise (Invalid_argument "Biocaml_entrez.efetch_url: cannot fetch more than 200 objects") ;
+  fetch_base_url ^ "?" ^ parameters Option.([
+    Some ("db", id_of_database db) ;
+    Some ("id", String.concat "," ids) ;
+    map (fun r -> "retmode", string_of_retmode r) retmode ;
+    map (fun i -> "retstart", string_of_int i) retstart ;
+    map (fun i -> "retmax", string_of_int i) retmax ;
+    map (fun s -> "strand", match s with `plus -> "1" | `minus -> "2") strand ;
+    map (fun i -> "seq_start", string_of_int i) seq_start ;
+    map (fun i -> "seq_stop", string_of_int i) seq_stop ;
+  ])
 
 
 
