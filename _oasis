@@ -24,7 +24,8 @@ Library biocaml
   Path: src/lib
   FindlibName: biocaml
   BuildDepends: core, sexplib.syntax, threads,
-                zip, sqlite3, unix, batteries, xmlm
+                zip, sqlite3, unix, batteries, 
+                xmlm, netstring
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
@@ -43,6 +44,7 @@ Library biocaml
            , Biocaml_chrName
            , Biocaml_comments
            , Biocaml_common
+           , Biocaml_entrez
            , Biocaml_fasta
            , Biocaml_fastq
            , Biocaml_genomeMap

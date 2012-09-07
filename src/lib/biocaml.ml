@@ -8,6 +8,7 @@ module Cel            = Biocaml_cel
 module ChrName        = Biocaml_chrName      
 module Comments       = Biocaml_comments     
 module Common         = Biocaml_common       
+module Entrez         = Biocaml_entrez
 module Fasta          = Biocaml_fasta        
 module Fastq          = Biocaml_fastq        
 module GenomeMap      = Biocaml_genomeMap
