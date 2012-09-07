@@ -701,3 +701,11 @@ module Transform = struct
 end
       
 
+let in_channel_to_item_stream ?filename inp =
+  let x = Transform.string_to_raw ?filename () in
+  let y = Transform.raw_to_item () in
+  Biocaml_transform.(
+    bind_result x y ~on_error:(function `left x -> x | `right x -> x)
+    |! Pull_based.of_in_channel inp
+    |! Pull_based.to_stream_result
+  )
