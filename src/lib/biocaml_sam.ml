@@ -186,6 +186,13 @@ module Error = struct
   ]
   with sexp
 
+  type parse = [
+  | optional_content_parsing
+  | string_to_raw
+  | raw_to_item
+  ]
+  with sexp
+
 end
 
 module Low_level_parsing = struct
