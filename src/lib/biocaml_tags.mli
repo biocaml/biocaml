@@ -7,6 +7,7 @@ type t = [
 | `bam
 | `sam
 | `bed
+| `fastq
 ] with sexp
 
 val guess_from_filename: string ->
