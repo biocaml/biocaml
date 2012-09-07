@@ -1,6 +1,5 @@
 (** SAM files. *)
 
-
 type raw_alignment = {
   qname : string;
   flag : int;
@@ -119,9 +118,7 @@ type item = [
 ]
 with sexp
 
-module Low_level_parsing: sig
-  val parse_cigar_text: string ->
-    (cigar_op array, [> `wrong_cigar_text of string ]) Core.Result.t
+module Error : sig
 
   type optional_content_parsing_error = [
   | `wrong_optional of (string * char * string) list *
@@ -133,15 +130,60 @@ module Low_level_parsing: sig
           [ `not_a_char of string
           | `not_a_float of string
           | `not_an_int of string
-          | `wrong_type of string 
-          | `unknown_type of char ]
-      | `wrong_type of string ]
+          | `wrong_type of string
+          | `unknown_type of char
+          ]
+      | `wrong_type of string
+      ]
   ]
   with sexp
 
+  type string_to_raw_error = [
+  | `incomplete_input of Biocaml_pos.t * string list * string option
+  | `invalid_header_tag of Biocaml_pos.t * string
+  | `invalid_tag_value_list of Biocaml_pos.t * string list
+  | `not_an_int of Biocaml_pos.t * string * string
+  | `wrong_alignment of Biocaml_pos.t * string
+  | `wrong_optional_field of Biocaml_pos.t * string
+  ]
+  with sexp
+  (** The possible errors one can get while parsing SAM files. *)
+
+  type raw_to_item_error = [
+  | `comment_after_end_of_header of int * string
+  | `duplicate_in_reference_sequence_dictionary of reference_sequence array
+  | `header_after_end_of_header of int * (string * (string * string) list)
+  | `header_line_not_first of int
+  | `header_line_without_version of (string * string) list
+  | `header_line_wrong_sorting of string
+  | `missing_ref_sequence_length of (string * string) list
+  | `missing_ref_sequence_name of (string * string) list
+  | `wrong_cigar_text of string
+  | `wrong_flag of raw_alignment
+  | `wrong_mapq of raw_alignment
+  | `wrong_phred_scores of raw_alignment
+  | `wrong_pnext of raw_alignment
+  | `wrong_pos of raw_alignment
+  | `wrong_qname of raw_alignment
+  | `wrong_ref_sequence_length of (string * string) list
+  | `wrong_tlen of raw_alignment
+  | optional_content_parsing_error
+  ]
+  with sexp
+
+  type item_to_raw_error = [
+    `wrong_phred_scores of alignment
+  ]
+  with sexp
+
+end
+
+module Low_level_parsing: sig
+  val parse_cigar_text: string ->
+    (cigar_op array, [> `wrong_cigar_text of string ]) Core.Result.t
 
   val parse_optional_content: (string * char * string) list ->
-    (optional_content, optional_content_parsing_error) Core.Result.t
+    (optional_content, Error.optional_content_parsing_error) Core.Result.t
       
 
   val parse_header_line: 
@@ -161,19 +203,8 @@ module Low_level_parsing: sig
 end
 
 module Transform: sig
-  type string_to_raw_error = [
-  | `incomplete_input of Biocaml_pos.t * string list * string option
-  | `invalid_header_tag of Biocaml_pos.t * string
-  | `invalid_tag_value_list of Biocaml_pos.t * string list
-  | `not_an_int of Biocaml_pos.t * string * string
-  | `wrong_alignment of Biocaml_pos.t * string
-  | `wrong_optional_field of Biocaml_pos.t * string
-  ]
-  with sexp
-  (** The possible errors one can get while parsing SAM files. *)
-
   val string_to_raw: ?filename:string -> unit ->
-    (string, (raw_item, [> string_to_raw_error]) Core.Result.t) Biocaml_transform.t
+    (string, (raw_item, [> Error.string_to_raw_error]) Core.Result.t) Biocaml_transform.t
   (** Create a parsing "stoppable" transform. *)   
 
       
@@ -182,36 +213,10 @@ module Transform: sig
   (** Create a printing "stoppable" transform. *)   
 
 
-  type raw_to_item_error = [
-  | `comment_after_end_of_header of int * string
-  | `duplicate_in_reference_sequence_dictionary of reference_sequence array
-  | `header_after_end_of_header of int * (string * (string * string) list)
-  | `header_line_not_first of int
-  | `header_line_without_version of (string * string) list
-  | `header_line_wrong_sorting of string
-  | `missing_ref_sequence_length of (string * string) list
-  | `missing_ref_sequence_name of (string * string) list
-  | `wrong_cigar_text of string
-  | `wrong_flag of raw_alignment
-  | `wrong_mapq of raw_alignment
-  | `wrong_phred_scores of raw_alignment
-  | `wrong_pnext of raw_alignment
-  | `wrong_pos of raw_alignment
-  | `wrong_qname of raw_alignment
-  | `wrong_ref_sequence_length of (string * string) list
-  | `wrong_tlen of raw_alignment 
-  | Low_level_parsing.optional_content_parsing_error
-  ]
-  with sexp
-
   val raw_to_item: unit ->
-    (raw_item, (item,  [> raw_to_item_error]) Core.Result.t) Biocaml_transform.t
-
-  type item_to_raw_error = 
-  [ `wrong_phred_scores of alignment]
-  with sexp
+    (raw_item, (item,  [> Error.raw_to_item_error]) Core.Result.t) Biocaml_transform.t
 
   val item_to_raw: unit ->
-    (item, (raw_item, item_to_raw_error) Core.Result.t) Biocaml_transform.t
+    (item, (raw_item, Error.item_to_raw_error) Core.Result.t) Biocaml_transform.t
 
 end
