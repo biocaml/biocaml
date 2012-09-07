@@ -127,7 +127,7 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
             (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
         | `output (Error (`sam s)) -> 
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_sam.Error.sexp_of_string_to_raw_error s |! Sexp.to_string_hum)
+            (Biocaml_sam.Error.sexp_of_string_to_raw s |! Sexp.to_string_hum)
         | `output (Error (`unzip s)) -> 
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
@@ -136,7 +136,7 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
             (Biocaml_bam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
         | `output (Error (`sam_to_item s)) -> 
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
-            (Biocaml_sam.Error.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
+            (Biocaml_sam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
       in
       let rec loop c =
         read ~count:input_buffer_size i
@@ -269,7 +269,7 @@ module Bam_conversion = struct
           | Error (`left (`right e)) ->
             err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
           | Error (`right  e) ->
-            err_to_string Biocaml_sam.Error.sexp_of_item_to_raw_error e
+            err_to_string Biocaml_sam.Error.sexp_of_item_to_raw e
           )
       )
 

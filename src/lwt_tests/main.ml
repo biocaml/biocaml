@@ -136,7 +136,7 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
       | Error (`left (`right e)) ->
         err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
       | Error (`right  e) ->
-        err_to_string Biocaml_sam.Error.sexp_of_item_to_raw_error e
+        err_to_string Biocaml_sam.Error.sexp_of_item_to_raw e
       )
   )
 

@@ -131,7 +131,7 @@ with sexp
 
 module Error = struct
 
-  type optional_content_parsing_error = [
+  type optional_content_parsing = [
   | `wrong_optional of (string * char * string) list *
       [ `not_a_char of string
       | `not_a_float of string
@@ -149,7 +149,7 @@ module Error = struct
   ]
   with sexp
 
-  type string_to_raw_error = [
+  type string_to_raw = [
   | `incomplete_input of Biocaml_pos.t * string list * string option
   | `invalid_header_tag of Biocaml_pos.t * string
   | `invalid_tag_value_list of Biocaml_pos.t * string list
@@ -159,7 +159,7 @@ module Error = struct
   ]
   with sexp
 
-  type raw_to_item_error = [
+  type raw_to_item = [
   | `comment_after_end_of_header of int * string
   | `duplicate_in_reference_sequence_dictionary of reference_sequence array
   | `header_after_end_of_header of int * (string * (string * string) list)
@@ -177,11 +177,11 @@ module Error = struct
   | `wrong_qname of raw_alignment
   | `wrong_ref_sequence_length of (string * string) list
   | `wrong_tlen of raw_alignment
-  | optional_content_parsing_error
+  | optional_content_parsing
   ]
   with sexp
 
-  type item_to_raw_error = [
+  type item_to_raw = [
     `wrong_phred_scores of alignment
   ]
   with sexp
@@ -499,7 +499,7 @@ module Transform = struct
 
 
   let raw_to_item () :
-      (raw_item, (item, [> Error.raw_to_item_error]) Result.t) Biocaml_transform.t =
+      (raw_item, (item, [> Error.raw_to_item]) Result.t) Biocaml_transform.t =
     let name = "sam_item_parser" in
     let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
     let raw_items_count = ref 0 in
