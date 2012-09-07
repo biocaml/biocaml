@@ -141,8 +141,8 @@ Executable lwt_tests
   MainIs: main.ml
   Install:      	false
   CompiledObject: 	native
-  Build$:		flag(lwt)
-  BuildDepends: biocaml, lwt.unix
+  Build$:		flag(lwt) && flag(apps)
+  BuildDepends: biocaml, lwt.unix, core_extended
   
 Test main
   Command: $tests_main

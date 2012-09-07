@@ -1,170 +1,308 @@
 open Core.Std
 open Lwt
   
-let print_next_ones parser_transform =
-  let rec next_m () =
-    match Biocaml_transform.next parser_transform with
-    | `not_ready -> Lwt_io.printf "%%"
-    | `output (Ok {Biocaml_fastq. name; sequence; comment; qualities; }) ->
-      Lwt_io.printf "Read %S (%d bp)\n" name (String.length sequence)
-      >>= fun () ->
-      next_m ()
-    | `output (Error (`sequence_and_qualities_do_not_match (l, seq, qs))) ->
-      Lwt_io.printf "Error %s: %d bp Vs %d q-scores\n" (Biocaml_pos.to_string l)
-        (String.length seq) (String.length qs)
-      >>= fun () ->
-      next_m ()
-    | `output (Error (`wrong_comment_line (l, _))) ->
-      Lwt_io.printf "Syntax error (comment line): %s\n" (Biocaml_pos.to_string l)
-      >>= fun () ->
-      next_m ()
-    | `output (Error (`wrong_name_line (l, _))) ->
-      Lwt_io.printf "Syntax error (name line): %s\n" (Biocaml_pos.to_string l)
-      >>= fun () ->
-      next_m ()
-    | `output (Error (`incomplete_input (l, _, _))) ->
-      Lwt_io.printf "Syntax error (incomplete input): %s\n" (Biocaml_pos.to_string l)
-      >>= fun () ->
-      next_m ()
-    (* | `error _ -> return () *)
-    | `end_of_stream -> return ()
-  in
-  next_m ()
-        
-      
-let test_fastq_lines file =
-  let p = Biocaml_fastq.Transform.string_to_item () in
-  let stream_of_lines = Lwt_io.lines_of_file file in
-  Lwt_stream.iter_s (fun l ->
-    Biocaml_transform.feed p (l ^ "\n");
-    print_next_ones p)
-    stream_of_lines
+let failf fmt =
+  ksprintf (fun s -> fail (Failure s)) fmt
+    
+module Command_line = struct
+  include  Core_extended.Std.Core_command
+    
+    
+  let lwts_to_run = ref ([]: unit Lwt.t list)
+  let uses_lwt () =
+    Spec.step (fun lwt -> lwts_to_run := lwt :: !lwts_to_run)
 
-let test_fastq_string count file =
-  let p = Biocaml_fastq.Transform.string_to_item () in
-  Lwt_io.(with_file ~mode:input file (fun i ->
-    let rec loop () =
-      read ~count i
-      >>= fun read_string ->
-      if read_string = "" then
-        return ()
-      else (
-        Biocaml_transform.feed p read_string;
-        print_next_ones p
-        >>= fun () ->
-        loop ())
-    in
-    loop ()))
-
-let reprint_fastq file =
-  let p = Biocaml_fastq.Transform.string_to_item () in
-  let stream_of_lines = Lwt_io.lines_of_file file in
-  let stream_of_records =
-    Lwt_stream.filter_map (fun l ->
-      Biocaml_transform.feed p (l ^ "\n");
-      match Biocaml_transform.next p with
-      | `output (Ok r) -> Some r
-      | _ -> None) stream_of_lines in
-  Lwt_stream.to_list stream_of_records
-  >>= fun list_of_records ->
-  let printer = Biocaml_fastq.Transform.item_to_string () in
-  Lwt_list.iter_s (fun r ->
-    Biocaml_transform.feed printer r;
-    match Biocaml_transform.next printer with
-    | `output  s -> Lwt_io.printf "%s" s
-    | _ -> return ())
-    list_of_records
   
-    (*
-let test_classy_trimmer file =
-  let fastq_file_trimmer =
-    let counter_transform =
-      let id = ref 0 in
-      Biocaml_transform.make_stoppable ~name:"counter" ()
-        ~feed:(fun _ -> ())
-        ~next:(fun stopped ->
-          if stopped then `end_of_stream else (id := !id + 1; `output !id))
-    in
-    Biocaml_transform.(
-      (* with_termination *)
-      (compose
-         (mix
-            (bind_result_merge_error
-               (bind_result_merge_error
-                  (Biocaml_fastq.Transform.string_to_item ())
-                  (on_input (Biocaml_fastq.Transform.trim (`beginning 10))
-                     ~f:(fun i ->
-                       Printf.eprintf "=~= trimmer B10 got input!\n%!"; i)))
-               (Biocaml_fastq.Transform.trim (`ending 2)))
-            counter_transform
-            ~f:(fun r c ->
-              { r with Biocaml_fastq.name =
-                  Printf.sprintf "%s -- %d" r.Biocaml_fastq.name c }))
-         (Biocaml_fastq.Transform.item_to_string ()))
-       |!
-      on_error ~f:(function
-      | `left (`left (`left (`left parser_error))) ->
-        sprintf "parser_error: %s" (Biocaml_fastq.string_of_parser_error parser_error)
-      | `left (`left (`left (`right (`invalid_size _)))) -> "invalid_size"
-      | `left (`left  (`right (`invalid_size _))) -> "invalid_size"
-      | `left (`right _) -> assert false
-      | `left `end_of_left_stream -> "end_of_left_stream"
-      | `left `end_of_right_stream -> "end_of_right_stream"
-      | `right _ -> assert false
+
+  let bench_flags () =
+    let default_reps = 1 in
+    Spec.(
+      step (fun k repetitions -> k ~repetitions)
+      ++ flag "repetitions" ~aliases:["r"] (optional_with_default default_reps int)
+        ~doc:(sprintf "<int> Number of benchmark repetitions (Default: %d)"
+                default_reps)
+      ++ step (fun k input_buffer_sizes -> k ~input_buffer_sizes)
+      ++ flag "input-buffer-sizes" ~aliases:["IB"]
+        (optional_with_default [4096]
+           (arg_type (fun s -> List.map (String.split ~on:',' s) Int.of_string)))
+        ~doc:"<b1,b2,…> Buffer sizes to experiment with"
+      ++ step (fun k output_buffer_sizes -> k ~output_buffer_sizes)
+      ++ flag "output-buffer-sizes" ~aliases:["OB"]
+        (optional_with_default [4096]
+           (arg_type (fun s -> List.map (String.split ~on:',' s) Int.of_string)))
+        ~doc:"<b1,b2,…> Output buffer sizes to experiment with"
+    )
+end
+let lwt_file_to_file ~transform ?(input_buffer_size=42_000) bamfile
+    ?(output_buffer_size=42_000) samfile =
+  Lwt_io.(
+    with_file ~mode:input ~buffer_size:input_buffer_size bamfile (fun i ->
+      with_file ~mode:output ~buffer_size:output_buffer_size samfile (fun o ->
+        let rec print_all stopped =
+          match Biocaml_transform.next transform with
+          | `output (Ok s) ->
+            write o s >>= fun () -> print_all stopped
+          | `end_of_stream ->
+            if stopped then
+              Lwt_io.eprintf "=====  WELL TERMINATED \n%!"
+            else begin
+              Lwt_io.eprintf "=====  PREMATURE TERMINATION \n%!"
+              >>= fun () ->
+              fail (Failure "End")
+            end
+          | `not_ready ->
+            if stopped then print_all stopped else return ()
+          | `output (Error (`string s)) -> 
+            Lwt_io.eprintf "=====  ERROR: %s\n%!" s
+        in
+        let rec loop () =
+          read ~count:input_buffer_size i
+          >>= fun read_string ->
+          (* dbg verbose "read_string: %d" (String.length read_string) *)
+          (* >>= fun () -> *)
+          if read_string = "" then (
+            Biocaml_transform.stop transform;
+            print_all true
+          ) else (
+            Biocaml_transform.feed transform read_string;
+            print_all false
+            >>= fun () ->
+            loop ()
+          )
+        in
+        loop ()
       )
     )
+  )
+
+
+let lwt_go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
+  Lwt_io.(
+    with_file ~mode:input ~buffer_size:input_buffer_size filename (fun i ->
+      let rec count_all stopped =
+        match Biocaml_transform.next transform with
+        | `output (Ok _) -> count_all stopped
+        | `end_of_stream ->
+          if stopped then
+            Lwt_io.eprintf "=====  WELL TERMINATED \n%!"
+          else begin
+            Lwt_io.eprintf "=====  PREMATURE TERMINATION \n%!"
+            >>= fun () ->
+            fail (Failure "End")
+          end
+        | `not_ready ->
+          if stopped then count_all stopped else return ()
+        | `output (Error (`string s)) -> 
+          Lwt_io.eprintf "=====  ERROR: %s\n%!" s
+      in
+      let rec loop c =
+        read ~count:input_buffer_size i
+        >>= fun read_string ->
+        let read_bytes = (String.length read_string) + c in
+        if read_bytes >= max_read_bytes then count_all false
+        else if read_string = "" then (
+          Biocaml_transform.stop transform;
+          count_all true
+        ) else (
+          Biocaml_transform.feed transform read_string;
+          count_all false
+          >>= fun () ->
+          loop read_bytes
+        )
+      in
+      loop 0
+    ))
+
+
+let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
+  
+let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
+  Biocaml_transform.(
+    on_output
+      (bind_result_merge_error
+         (bind_result_merge_error
+            (Biocaml_bam.Transform.string_to_raw
+               ~zlib_buffer_size:(10 * input_buffer_size) ())
+            (Biocaml_bam.Transform.raw_to_item ()))
+         (map_result
+            (Biocaml_sam.Transform.item_to_raw ())
+            (Biocaml_sam.Transform.raw_to_string ())))
+      ~f:(function
+      | Ok o -> Ok o
+      | Error (`left (`left (`bam e))) ->
+        err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+      | Error (`left (`left (`unzip e))) ->
+        err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+      | Error (`left (`right e)) ->
+        err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
+      | Error (`right  e) ->
+        err_to_string Biocaml_sam.Transform.sexp_of_item_to_raw_error e
+      )
+  )
+
+let fastq_file_trimmer filename =
+  Biocaml_transform.(
+    map_result
+      (bind_result
+         ~on_error:(function
+         | `left sti ->
+           `string (Sexp.to_string_hum (Biocaml_fastq.Error.sexp_of_t sti))
+         | `right (`invalid_size o) ->
+           `string (sprintf "fastq invalid size: %d" o)
+         )
+         (Biocaml_fastq.Transform.string_to_item ~filename ())
+         (Biocaml_fastq.Transform.trim (`beginning 10)))
+      (Biocaml_fastq.Transform.item_to_string ())
+  )
 (*  string  ---  fastq-record --- trimmed-fast \
                                                f --- named-fastq --- string 
     unit  ---  count --------------------------/                              *)    
-  in
-  Lwt_io.(with_file ~mode:input file (fun i ->
-    let rec print_all ?(continue_after_not_ready=false) () =
-      begin match Biocaml_transform.next fastq_file_trimmer with
-      | `output ( o) ->
-        Lwt_io.printf "%s" o >>= fun () ->
-        print_all ()
-      | `end_of_stream ->
-        Lwt_io.printf "=====  WELL TERMINATED \n%!"
-      | `not_ready ->
-        Lwt_io.printf "=====  NOT READY (%b) \n%!" continue_after_not_ready
-        >>= fun () ->
-        if continue_after_not_ready
-        then print_all ~continue_after_not_ready:true ()
-        else return ()
-      | `error s -> 
-        Lwt_io.printf "=====  ERROR: %s\n%!" s
-      end
-    in
-    let rec loop () =
-      read i
-      >>= fun read_string ->
-      if read_string = "" then (
-        Biocaml_transform.stop fastq_file_trimmer;
-        print_all ~continue_after_not_ready:true ()
-      ) else (
-        Biocaml_transform.feed fastq_file_trimmer (read_string, ());
-        print_all ()
-        >>= fun () ->
-        loop ()
-      )
-    in
-    loop ()))
-  >>= fun () ->
-  Lwt_io.(flush stdout)
-    *)  
-  
-let () =
-  Lwt_main.run (
-    Lwt_io.printf "Line by line:\n" >>= fun () ->
-    test_fastq_lines Sys.argv.(1) >>= fun () ->
-    Lwt_io.printf "\nBy pieces of %d bytes:\n" 42 >>= fun () ->
-    test_fastq_string 42 Sys.argv.(1) >>= fun () ->
-    Lwt_io.printf "\nBy pieces of %d bytes:\n" 4200 >>= fun () ->
-    test_fastq_string 4200 Sys.argv.(1) >>= fun () ->
-    Lwt_io.printf "\nRe-print the FASTQ:\n" >>= fun () ->
-    reprint_fastq Sys.argv.(1) >>= fun () ->
-    (* Lwt_io.printf "\nTrim the FASTQ:\n" >>= fun () -> *)
-    (* test_classy_trimmer Sys.argv.(1) *)
-    return ()
 
+    
+let cmd_convert =
+  Command_line.(
+    basic ~summary:"Benchmark the conversion from BAM to SAM or trimming FASTQs"
+      Spec.(
+        bench_flags ()
+        ++ anon ("INPUT-FILE" %: string)
+        ++ anon ("OUT-DIR" %: string)
+      )
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir ->
+        let transform input_buffer_size =
+          let tags =
+            match Biocaml_tags.guess_from_filename input_file with
+            | Ok o -> o
+            | Error e -> `bam
+          in
+          begin match tags with
+          | `bam -> bam_to_sam input_buffer_size
+          | `fastq -> fastq_file_trimmer input_file
+          | _ -> failwithf "cannot handle input file: %s" input_file ()
+          end
+        in
+        let results = ref [] in
+        List.iter input_buffer_sizes (fun input_buffer_size ->
+          List.iter output_buffer_sizes (fun output_buffer_size ->
+            let start = Time.now () in
+            for i = 1 to repetitions do
+              let outfile =
+                sprintf "%s/samlwt_%d_%d_%d" outdir input_buffer_size
+                  output_buffer_size i in
+              let transform = transform input_buffer_size in
+              lwt_file_to_file ~input_buffer_size ~transform
+                input_file ~output_buffer_size outfile |! Lwt_main.run
+            done;
+            let time = Time.(diff (now ()) start) in
+            results :=
+              `lwt (input_buffer_size, output_buffer_size, Core.Span.to_float time)
+            :: !results;
+          );
+        );
+        List.iter input_buffer_sizes (fun input_buffer_size ->
+          List.iter output_buffer_sizes (fun output_buffer_size ->
+            let start = Time.now () in
+            for i = 1 to repetitions do
+              let transform = transform input_buffer_size in
+              let outfile =
+                sprintf "%s/samix_%d_%d_%d" outdir input_buffer_size
+                  output_buffer_size i in
+              In_channel.with_file input_file ~f:(fun inch ->
+                Out_channel.with_file outfile ~f:(fun ouch ->
+                  let stream =
+                    Biocaml_transform.Pull_based.(
+                      of_in_channel ~buffer_size:input_buffer_size inch transform
+                      |! to_stream_exn ~error_to_exn:(function `string s -> Failure s)
+                    ) in
+                  Stream.iter (fun s -> Out_channel.output_string ouch s) stream
+                )
+              )
+            done;
+            let time = Time.(diff (now ()) start) in
+            results :=
+              `unix (input_buffer_size, output_buffer_size, Core.Span.to_float time)
+            :: !results;
+          );
+        );
+        List.iter !results (function
+        | `lwt (ib, ob, t) ->
+          printf "Lwt\t%d\t%d\t%.2f\t%.2f\n" ib ob t (t /. float repetitions) 
+        | `unix (ib, ob, t) ->
+          printf "Unix\t%d\t%d\t%.2f\t%.2f\n" ib ob t (t /. float repetitions) 
+        );
+      )
   )
+let cmd_just_parse_bam =
+  Command_line.(
+    basic ~summary:"Benchmark the BAM parsing"
+      Spec.(
+        bench_flags ()
+        ++ anon ("BAM-FILE" %: string)
+      )
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam ->
+        let results = ref [] in
+        List.iter input_buffer_sizes (fun input_buffer_size ->
+          let start = Time.now () in
+          for i = 1 to repetitions do
+            let transform =
+              Biocaml_transform.(
+                on_output
+                  (Biocaml_bam.Transform.string_to_raw
+                     ~zlib_buffer_size:(10 * input_buffer_size) ())
+                  ~f:(function
+                  | Ok o -> Ok o
+                  | Error ( (`bam e)) ->
+                    err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+                  | Error ( (`unzip e)) ->
+                    err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+                  )) in
+            lwt_go_through_input ~transform ~max_read_bytes:max_int
+              ~input_buffer_size bam |! Lwt_main.run
+          done;
+          let time = Time.(diff (now ()) start) in
+          results := `raw (input_buffer_size, Core.Span.to_float time) :: !results;
+        );
+        List.iter input_buffer_sizes (fun input_buffer_size ->
+          let start = Time.now () in
+          for i = 1 to repetitions do
+            let transform =
+              Biocaml_transform.(
+                on_output
+                  (bind_result_merge_error
+                     (Biocaml_bam.Transform.string_to_raw
+                        ~zlib_buffer_size:(10 * input_buffer_size) ())
+                     (Biocaml_bam.Transform.raw_to_item ()))
+                  ~f:(function
+                  | Ok o -> Ok o
+                  | Error (`left (`bam e)) ->
+                    err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+                  | Error (`left (`unzip e)) ->
+                    err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+                  | Error (`right e) ->
+                    err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
+                  )) in
+            lwt_go_through_input ~transform ~max_read_bytes:max_int
+              ~input_buffer_size bam |! Lwt_main.run
+          done;
+          let time = Time.(diff (now ()) start) in
+          results := `item (input_buffer_size, Core.Span.to_float time) :: !results;
+        );
+        List.iter !results (function
+        | `item (ib, t) ->
+          printf "Item\t%d\t%.2f\t%.2f\n" ib t (t /. float repetitions) 
+        | `raw (ib, t) ->
+          printf "Raw\t%d\t%.2f\t%.2f\n" ib t (t /. float repetitions) 
+        );
+      )
+  )
+  
+    
+let () =
+  Command_line.(
+    let whole_thing =
+      group ~summary:"Biocaml's benchmarks" [
+        ("convert", cmd_convert);
+        ("parse-bam", cmd_just_parse_bam);
+      ] in
+    run whole_thing;
+    List.iter !lwts_to_run Lwt_main.run
+  );

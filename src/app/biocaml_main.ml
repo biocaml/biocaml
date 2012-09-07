@@ -201,7 +201,6 @@ module Http_method = struct
 end
 
 module Entrez = struct
-
   module Fetch = struct
     type 'a fetched = 'a Lwt.t
 
@@ -238,13 +237,13 @@ module Entrez = struct
       ])
       
 end
-      
+  
 
 
 
 
 
-    
+  
 module Bam_conversion = struct
 
   let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
