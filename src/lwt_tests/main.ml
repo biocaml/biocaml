@@ -140,16 +140,46 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
       )
   )
 
+let fastq_file_trimmer filename =
+  Biocaml_transform.(
+    map_result
+      (bind_result
+         ~on_error:(function
+         | `left sti ->
+           `string (Sexp.to_string_hum (Biocaml_fastq.Error.sexp_of_t sti))
+         | `right (`invalid_size o) ->
+           `string (sprintf "fastq invalid size: %d" o)
+         )
+         (Biocaml_fastq.Transform.string_to_item ~filename ())
+         (Biocaml_fastq.Transform.trim (`beginning 10)))
+      (Biocaml_fastq.Transform.item_to_string ())
+  )
+(*  string  ---  fastq-record --- trimmed-fast \
+                                               f --- named-fastq --- string 
+    unit  ---  count --------------------------/                              *)    
+
     
-let cmd_bam_to_sam =
+let cmd_convert =
   Command_line.(
-    basic ~summary:"Benchmark the conversion from BAM to SAM"
+    basic ~summary:"Benchmark the conversion from BAM to SAM or trimming FASTQs"
       Spec.(
         bench_flags ()
-        ++ anon ("BAM-FILE" %: string)
+        ++ anon ("INPUT-FILE" %: string)
         ++ anon ("OUT-DIR" %: string)
       )
-      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam outdir ->
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir ->
+        let transform input_buffer_size =
+          let tags =
+            match Biocaml_tags.guess_from_filename input_file with
+            | Ok o -> o
+            | Error e -> `bam
+          in
+          begin match tags with
+          | `bam -> bam_to_sam input_buffer_size
+          | `fastq -> fastq_file_trimmer input_file
+          | _ -> failwithf "cannot handle input file: %s" input_file ()
+          end
+        in
         let results = ref [] in
         List.iter input_buffer_sizes (fun input_buffer_size ->
           List.iter output_buffer_sizes (fun output_buffer_size ->
@@ -158,9 +188,9 @@ let cmd_bam_to_sam =
               let outfile =
                 sprintf "%s/samlwt_%d_%d_%d" outdir input_buffer_size
                   output_buffer_size i in
-              let transform = bam_to_sam input_buffer_size in
+              let transform = transform input_buffer_size in
               lwt_file_to_file ~input_buffer_size ~transform
-                bam ~output_buffer_size outfile |! Lwt_main.run
+                input_file ~output_buffer_size outfile |! Lwt_main.run
             done;
             let time = Time.(diff (now ()) start) in
             results :=
@@ -172,11 +202,11 @@ let cmd_bam_to_sam =
           List.iter output_buffer_sizes (fun output_buffer_size ->
             let start = Time.now () in
             for i = 1 to repetitions do
-              let transform = bam_to_sam input_buffer_size in
+              let transform = transform input_buffer_size in
               let outfile =
                 sprintf "%s/samix_%d_%d_%d" outdir input_buffer_size
                   output_buffer_size i in
-              In_channel.with_file bam ~f:(fun inch ->
+              In_channel.with_file input_file ~f:(fun inch ->
                 Out_channel.with_file outfile ~f:(fun ouch ->
                   let stream =
                     Biocaml_transform.Pull_based.(
@@ -201,7 +231,6 @@ let cmd_bam_to_sam =
         );
       )
   )
-
 let cmd_just_parse_bam =
   Command_line.(
     basic ~summary:"Benchmark the BAM parsing"
@@ -271,7 +300,7 @@ let () =
   Command_line.(
     let whole_thing =
       group ~summary:"Biocaml's benchmarks" [
-        ("bam-to-sam", cmd_bam_to_sam);
+        ("convert", cmd_convert);
         ("parse-bam", cmd_just_parse_bam);
       ] in
     run whole_thing;
