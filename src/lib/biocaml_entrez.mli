@@ -69,6 +69,34 @@ val efetch_url :
     [retmode] please consult:
     http://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.chapter4_table1/?report=objectonly *)
 
+module type Fetch = sig
+  type 'a fetched
+
+  val fetch : string -> (string -> 'a) -> 'a fetched
+  val ( >>= ) : 'a fetched -> ('a -> 'b fetched) -> 'b fetched
+  val ( >|= ) : 'a fetched -> ('a -> 'b) -> 'b fetched
+end
+
+module Make(F : Fetch) : sig
+  open F
+
+  module Pubmed : sig
+    type t = {
+      pmid : int ;
+      title : string ;
+      abstract : string ;
+    }
+
+    val search : string -> t list fetched
+  end
+
+end
+
+
+
+
+
+
 
 
 

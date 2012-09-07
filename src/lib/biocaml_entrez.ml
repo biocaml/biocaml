@@ -11,6 +11,9 @@ let in_tree i =
   let data d = D d in
   Xmlm.input_doc_tree ~el ~data i
 
+let tree_of_string str = 
+  in_tree (Xmlm.make_input (`String (0,str)))
+
 let leaf f k = function
     E (_,children) ->
       List.find_map 
@@ -35,14 +38,29 @@ let leaves f k t = match t with
 let ileaves = leaves int_of_string
 let sleaves = leaves identity
 
+let tag_of_tree = function
+| E ((tag,_),_) -> Some (snd tag)
+| D _ -> None
+    
 let child k = function
-    E (_,children) ->
-      List.find_map 
-	(function 
+| E (_,children) ->
+    begin
+      try
+        List.find_map 
+	  (function 
 	  | E ((tag,_), _) as r when snd tag = k -> Some r
 	  | _  -> None)
-	children
-  | _ -> raise Not_found
+	  children
+      with Not_found -> (
+        let tags = List.filter_map tag_of_tree children in
+        let msg = sprintf "child: looked for %s but only got %s children" k (String.concat "," tags) in
+        raise (Invalid_argument msg)
+      )
+    end
+| D _ -> (
+  let msg = sprintf "child: looked for %s tag but only got a PCDATA node" k in
+  raise (Invalid_argument msg)
+)
 
 
 
@@ -120,8 +138,7 @@ let esearch_answer_of_tree = function
   | _ -> assert false
 
 let esearch_answer_of_string str = 
-  Xmlm.make_input (`String (0,str))
-  |> in_tree 
+  tree_of_string str
   |> snd
   |> esearch_answer_of_tree
 
@@ -148,6 +165,61 @@ let efetch_url ?rettype ?retmode ?retstart ?retmax ?strand ?seq_start ?seq_stop 
     map (fun i -> "seq_start", string_of_int i) seq_start ;
     map (fun i -> "seq_stop", string_of_int i) seq_stop ;
   ])
+
+
+module type Fetch = sig
+  type 'a fetched
+
+  val fetch : string -> (string -> 'a) -> 'a fetched
+  val ( >>= ) : 'a fetched -> ('a -> 'b fetched) -> 'b fetched
+  val ( >|= ) : 'a fetched -> ('a -> 'b) -> 'b fetched
+end
+
+module Make(F : Fetch) = struct
+  open F
+
+  module Pubmed = struct
+    type t = {
+      pmid : int ;
+      title : string ;
+      abstract : string ;
+    }
+
+    let parse_book_document bd =
+      { pmid = ileaf "PMID" bd ; 
+        title = sleaf "ArticleTitle" bd ;
+        abstract = child "Abstract" bd |> sleaf "AbstractText" }
+      
+    let parse_medline_citation mc = 
+      let article = child "Article" mc in
+      { pmid = ileaf "PMID" mc ;
+        title = sleaf "ArticleTitle" article ;
+        abstract = child "Abstract" article |> sleaf "AbstractText" }
+
+    let parse_pubmed_article_set_element x = match tag_of_tree x with
+    | Some "PubmedArticle" -> 
+        Some (parse_medline_citation (child "MedlineCitation" x))
+    | Some "PubmedBookArticle" ->
+        Some (parse_book_document (child "BookDocument" x))
+    | Some t -> 
+        failwith (sprintf "Unexpected %s tag while parsing PubmedArticleSet element" t)
+    | None -> None
+
+    let parse_pubmed_article_set = function
+    | E (((_,"PubmedArticleSet"),_),children) ->
+        List.filter_map parse_pubmed_article_set_element children
+    | _ -> assert false
+          
+
+    let search query = 
+      let query_url = esearch_url `pubmed query in
+      fetch query_url esearch_answer_of_string >>= fun answer ->
+      let object_url = efetch_url ~retmode:`xml `pubmed answer.ids in
+      fetch object_url (tree_of_string |- snd |- parse_pubmed_article_set)
+  end
+end
+
+
 
 
 

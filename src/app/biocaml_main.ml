@@ -201,14 +201,27 @@ module Http_method = struct
 end
 
 module Entrez = struct
-    
-  let pubmed s = 
-    let query = Biocaml_entrez.esearch_url `pubmed (String.concat ~sep:" " s) in
-    Http_method.discover () >>= fun http ->
-    http query >|= Biocaml_entrez.esearch_answer_of_string >>= fun answer ->
-    let query' = Biocaml_entrez.efetch_url ~retmode:`xml `pubmed answer.Biocaml_entrez.ids in
-    http query' >>= fun result ->
-    Lwt_io.printf "Result:\n%s\n" result
+
+  module Fetch = struct
+    type 'a fetched = 'a Lwt.t
+
+    let fetch url f =
+      Http_method.discover () >>= fun http ->
+      http url >|= f
+
+    let ( >>= ) = ( >>= )
+    let ( >|= ) = ( >|= )
+  end
+
+  module Entrez = Biocaml_entrez.Make(Fetch)
+
+  let pubmed s =
+    Entrez.Pubmed.search (String.concat ~sep:" " s) >>= fun result ->
+    Lwt_io.printf "Result:\n" >>= fun () ->
+    Lwt_list.iter_s 
+      (fun { Entrez.Pubmed.pmid ; title } -> 
+        Lwt_io.printf "* ID: %d\n\tTitle: %s\n" pmid title)
+      result
 
   let command = 
     Command_line.(
