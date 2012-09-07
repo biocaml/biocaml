@@ -186,8 +186,8 @@ module Error = struct
   ]
   with sexp
 
+  (** Errors possible during parsing. *)
   type parse = [
-  | optional_content_parsing
   | string_to_raw
   | raw_to_item
   ]
