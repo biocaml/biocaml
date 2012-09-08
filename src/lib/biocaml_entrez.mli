@@ -86,6 +86,7 @@ module Make(F : Fetch) : sig
 
   module PubmedSummary : sig
     type t = { pmid : int ;
+               doi : string option ;
                title : string }
     val search : string -> t list fetched
   end

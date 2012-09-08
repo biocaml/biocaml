@@ -218,8 +218,10 @@ module Entrez = struct
     Entrez.PubmedSummary.search (String.concat ~sep:" " s) >>= fun result ->
     Lwt_io.printf "Result:\n" >>= fun () ->
     Lwt_list.iter_s 
-      (fun { Entrez.PubmedSummary.pmid ; title } -> 
-        Lwt_io.printf "* ID: %d\n\tTitle: %s\n" pmid title)
+      (fun { Entrez.PubmedSummary.pmid ; title ; doi } -> 
+        Lwt_io.printf "* ID: %d\n\tTitle: %s\n%s" 
+          pmid title 
+          Option.(value_map doi ~default:"" ~f:(sprintf "\tdoi: %s\n")))
       result
 
   let command = 

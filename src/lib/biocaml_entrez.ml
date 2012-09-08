@@ -217,6 +217,7 @@ module Make(F : Fetch) = struct
   module PubmedSummary = struct
     type t = {
       pmid : int ;
+      doi : string option ;
       title : string ;
     }
 
@@ -229,6 +230,7 @@ module Make(F : Fetch) = struct
     let parse_document_summary x = 
       let article_ids = parse_article_ids (child "ArticleIds" x) in
       { pmid = int_of_string (List.assoc "pubmed" article_ids) ;
+        doi = (try Some (List.assoc "doi" article_ids) with Not_found -> None) ;
         title = sleaf "Title" x }
       
     let parse_eSummaryResult x = 
