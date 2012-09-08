@@ -84,15 +84,19 @@ end
 module Make(F : Fetch) : sig
   open F
 
-  module Pubmed : sig
-    type t = {
-      pmid : int ;
-      title : string ;
-      abstract : string ;
-    }
-
+  module PubmedSummary : sig
+    type t = { pmid : int ;
+               title : string }
     val search : string -> t list fetched
   end
+
+  module Pubmed : sig
+    type t =  { pmid : int ;
+                title : string ;
+                abstract : string }
+    val search : string -> t list fetched
+  end
+
 
 end
 

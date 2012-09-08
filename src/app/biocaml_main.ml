@@ -215,10 +215,10 @@ module Entrez = struct
   module Entrez = Biocaml_entrez.Make(Fetch)
 
   let pubmed s =
-    Entrez.Pubmed.search (String.concat ~sep:" " s) >>= fun result ->
+    Entrez.PubmedSummary.search (String.concat ~sep:" " s) >>= fun result ->
     Lwt_io.printf "Result:\n" >>= fun () ->
     Lwt_list.iter_s 
-      (fun { Entrez.Pubmed.pmid ; title } -> 
+      (fun { Entrez.PubmedSummary.pmid ; title } -> 
         Lwt_io.printf "* ID: %d\n\tTitle: %s\n" pmid title)
       result
 

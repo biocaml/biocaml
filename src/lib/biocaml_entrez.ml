@@ -4,10 +4,10 @@ open Printf
 (* ********************************* *)
 (* Preliminary stuff for xml parsing *)
 (* ********************************* *)
-type tree = E of Xmlm.tag * tree list | D of string
+type tree = E of string * Xmlm.attribute list * tree list | D of string
 
 let in_tree i = 
-  let el tag children = E (tag, children)  in
+  let el ((_,tag),attrs) children = E (tag, attrs, children)  in
   let data d = D d in
   Xmlm.input_doc_tree ~el ~data i
 
@@ -15,10 +15,10 @@ let tree_of_string str =
   in_tree (Xmlm.make_input (`String (0,str)))
 
 let leaf f k = function
-    E (_,children) ->
+    E (_,_,children) ->
       List.find_map 
 	(function 
-	  | E ((tag,_), [D d]) when snd tag = k -> Some (f d)
+	  | E (tag,_, [D d]) when tag = k -> Some (f d)
 	  | _  -> None)
 	children
   | _ -> raise Not_found
@@ -27,10 +27,10 @@ let ileaf = leaf int_of_string
 let sleaf = leaf identity
 
 let leaves f k t = match t with
-    E (_,children) ->
+    E (_,_,children) ->
       List.filter_map 
 	(function 
-	  | E ((tag,_), [D d]) when snd tag = k -> Some (f d)
+	  | E (tag,_, [D d]) when tag = k -> Some (f d)
 	  | _  -> None)
 	children
   | _ -> []
@@ -39,16 +39,16 @@ let ileaves = leaves int_of_string
 let sleaves = leaves identity
 
 let tag_of_tree = function
-| E ((tag,_),_) -> Some (snd tag)
+| E (tag,_,_) -> Some tag
 | D _ -> None
     
 let child k = function
-| E (_,children) ->
+| E (_,_,children) ->
     begin
       try
         List.find_map 
 	  (function 
-	  | E ((tag,_), _) as r when snd tag = k -> Some r
+	  | E (tag,_, _) as r when tag = k -> Some r
 	  | _  -> None)
 	  children
       with Not_found -> (
@@ -62,7 +62,19 @@ let child k = function
   raise (Invalid_argument msg)
 )
 
-
+let fold_echildren ?tag f = 
+  let pred = Core.Option.value_map tag ~default:(fun _ -> true) ~f:( = ) in
+  fun x init -> 
+    match x with
+    | E (_,_,children) ->
+        List.fold_right
+          (fun x accu -> 
+            match x with 
+            | E (tag,_,_) as x when pred tag -> f x accu
+            | _ -> accu)
+          children
+          init
+    | D _ -> init
 
 (* 
    exhaustive list of databases:
@@ -129,7 +141,7 @@ type esearch_answer = {
 }
 
 let esearch_answer_of_tree = function 
-  | E (((_,"eSearchResult"),_),_) as t -> {
+  | E ("eSearchResult",_,_) as t -> {
       count = ileaf "Count" t ;
       retmax = ileaf "RetMax" t ;
       retstart = ileaf "RetStart" t ;
@@ -145,7 +157,7 @@ let esearch_answer_of_string str =
 
 let summary_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
 
-let esummary_url db ids =
+let esummary_url ?retstart ?retmax db ids =
   if List.length ids > 200 
   then raise (Invalid_argument "Biocaml_entrez.esummary_url: cannot fetch more than 200 summaries") ;
   summary_base_url ^ "?" ^ parameters Option.([
@@ -190,6 +202,45 @@ end
 module Make(F : Fetch) = struct
   open F
 
+  let search_and_fetch database of_xml query =
+    let query_url = esearch_url database query in
+    fetch query_url esearch_answer_of_string >>= fun answer ->
+    let object_url = efetch_url ~retmode:`xml database answer.ids in
+    fetch object_url (tree_of_string |- snd |- of_xml)
+
+  let search_and_summary database of_xml query =
+    let query_url = esearch_url database query in
+    fetch query_url esearch_answer_of_string >>= fun answer ->
+    let object_url = esummary_url database answer.ids in
+    fetch object_url (tree_of_string |- snd |- of_xml)
+
+  module PubmedSummary = struct
+    type t = {
+      pmid : int ;
+      title : string ;
+    }
+
+    let parse_article_ids x =
+      fold_echildren
+        ~tag:"ArticleId"
+        (fun x accu -> (sleaf "IdType" x, sleaf "Value" x) :: accu)
+        x []
+
+    let parse_document_summary x = 
+      let article_ids = parse_article_ids (child "ArticleIds" x) in
+      { pmid = int_of_string (List.assoc "pubmed" article_ids) ;
+        title = sleaf "Title" x }
+      
+    let parse_eSummaryResult x = 
+      fold_echildren 
+        ~tag:"DocumentSummary"
+        (fun x accu -> (parse_document_summary x) :: (accu : t list))
+        (child "DocumentSummarySet" x) []
+
+
+    let search = search_and_summary `pubmed parse_eSummaryResult
+  end
+
   module Pubmed = struct
     type t = {
       pmid : int ;
@@ -201,7 +252,7 @@ module Make(F : Fetch) = struct
       { pmid = ileaf "PMID" bd ; 
         title = sleaf "ArticleTitle" bd ;
         abstract = child "Abstract" bd |> sleaf "AbstractText" }
-      
+
     let parse_medline_citation mc = 
       let article = child "Article" mc in
       { pmid = ileaf "PMID" mc ;
@@ -218,17 +269,14 @@ module Make(F : Fetch) = struct
     | None -> None
 
     let parse_pubmed_article_set = function
-    | E (((_,"PubmedArticleSet"),_),children) ->
+    | E ("PubmedArticleSet",_,children) ->
         List.filter_map parse_pubmed_article_set_element children
     | _ -> assert false
-          
-
-    let search query = 
-      let query_url = esearch_url `pubmed query in
-      fetch query_url esearch_answer_of_string >>= fun answer ->
-      let object_url = efetch_url ~retmode:`xml `pubmed answer.ids in
-      fetch object_url (tree_of_string |- snd |- parse_pubmed_article_set)
+        
+    let search = search_and_fetch `pubmed parse_pubmed_article_set
   end
+
+
 end
 
 
