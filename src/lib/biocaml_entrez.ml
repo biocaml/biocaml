@@ -14,7 +14,7 @@ let in_tree i =
 let tree_of_string str = 
   in_tree (Xmlm.make_input (`String (0,str)))
 
-let leaf f k = function
+let leaf_exn f k = function
     E (_,_,children) ->
       List.find_map 
 	(function 
@@ -23,8 +23,12 @@ let leaf f k = function
 	children
   | _ -> raise Not_found
 
-let ileaf = leaf int_of_string
-let sleaf = leaf identity
+let ileaf_exn = leaf_exn int_of_string
+let sleaf_exn = leaf_exn identity
+
+let ileaf k x = try Some (ileaf_exn k x) with Not_found -> None
+let sleaf k x = try Some (sleaf_exn k x) with Not_found -> None
+
 
 let leaves f k t = match t with
     E (_,_,children) ->
@@ -142,9 +146,9 @@ type esearch_answer = {
 
 let esearch_answer_of_tree = function 
   | E ("eSearchResult",_,_) as t -> {
-      count = ileaf "Count" t ;
-      retmax = ileaf "RetMax" t ;
-      retstart = ileaf "RetStart" t ;
+      count = ileaf_exn "Count" t ;
+      retmax = ileaf_exn "RetMax" t ;
+      retstart = ileaf_exn "RetStart" t ;
       ids = child "IdList" t |> sleaves "Id"
     }
   | _ -> assert false
@@ -215,23 +219,29 @@ module Make(F : Fetch) = struct
     fetch object_url (tree_of_string |- snd |- of_xml)
 
   module PubmedSummary = struct
+    (* DTD is at http://www.ncbi.nlm.nih.gov/entrez/query/DTD/eSummaryDTD/eSummary_pubmed.dtd *)
+
     type t = {
       pmid : int ;
       doi : string option ;
+      pubdate : string option ;
+      source : string option ;
       title : string ;
     }
 
     let parse_article_ids x =
       fold_echildren
         ~tag:"ArticleId"
-        (fun x accu -> (sleaf "IdType" x, sleaf "Value" x) :: accu)
+        (fun x accu -> (sleaf_exn "IdType" x, sleaf_exn "Value" x) :: accu)
         x []
 
     let parse_document_summary x = 
       let article_ids = parse_article_ids (child "ArticleIds" x) in
       { pmid = int_of_string (List.assoc "pubmed" article_ids) ;
         doi = (try Some (List.assoc "doi" article_ids) with Not_found -> None) ;
-        title = sleaf "Title" x }
+        pubdate = sleaf "PubDate" x ;
+        source = sleaf "Source" x ;
+        title = sleaf_exn "Title" x }
       
     let parse_eSummaryResult x = 
       fold_echildren 
@@ -251,15 +261,15 @@ module Make(F : Fetch) = struct
     }
 
     let parse_book_document bd =
-      { pmid = ileaf "PMID" bd ; 
-        title = sleaf "ArticleTitle" bd ;
-        abstract = child "Abstract" bd |> sleaf "AbstractText" }
+      { pmid = ileaf_exn "PMID" bd ; 
+        title = sleaf_exn "ArticleTitle" bd ;
+        abstract = child "Abstract" bd |> sleaf_exn "AbstractText" }
 
     let parse_medline_citation mc = 
       let article = child "Article" mc in
-      { pmid = ileaf "PMID" mc ;
-        title = sleaf "ArticleTitle" article ;
-        abstract = child "Abstract" article |> sleaf "AbstractText" }
+      { pmid = ileaf_exn "PMID" mc ;
+        title = sleaf_exn "ArticleTitle" article ;
+        abstract = child "Abstract" article |> sleaf_exn "AbstractText" }
 
     let parse_pubmed_article_set_element x = match tag_of_tree x with
     | Some "PubmedArticle" -> 
