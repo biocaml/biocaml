@@ -57,6 +57,10 @@ type esearch_answer = {
 val esearch_answer_of_string : string -> esearch_answer
 (** Parses an answer of esearch under XML format *)
 
+val esummary_url :
+  ?retstart:int -> ?retmax:int ->
+  database -> string list -> string
+(** Construction of esummary URLs *)
 
 val efetch_url :
   ?rettype:string -> ?retmode:[`xml|`text|`asn_1] ->

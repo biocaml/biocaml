@@ -143,6 +143,18 @@ let esearch_answer_of_string str =
   |> esearch_answer_of_tree
 
 
+let summary_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+
+let esummary_url db ids =
+  if List.length ids > 200 
+  then raise (Invalid_argument "Biocaml_entrez.esummary_url: cannot fetch more than 200 summaries") ;
+  summary_base_url ^ "?" ^ parameters Option.([
+    Some ("db", id_of_database db) ;
+    Some ("id", String.concat "," ids) ;
+    Some ("version", "2.0") ;
+    map (fun i -> "retstart", string_of_int i) retstart ;
+    map (fun i -> "retmax", string_of_int i) retmax ;
+  ])
 
 
 let fetch_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -154,7 +166,7 @@ let string_of_retmode = function
 
 let efetch_url ?rettype ?retmode ?retstart ?retmax ?strand ?seq_start ?seq_stop db ids =
   if List.length ids > 200 
-  then raise (Invalid_argument "Biocaml_entrez.efetch_url: cannot fetch more than 200 objects") ;
+  then raise (Invalid_argument "Biocaml_entrez.efetch_url: cannot fetch more than 200 records") ;
   fetch_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database db) ;
     Some ("id", String.concat "," ids) ;
