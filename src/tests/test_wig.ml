@@ -5,26 +5,26 @@ open Core.Std
 module TS = Biocaml_transform.Pull_based
 let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
-  let parser =
-    Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
-  let stream = TS.of_file ~buffer_size:10 filename parser in
+  let t =
+    Biocaml_wig.Transform.string_to_t  ~filename () in
+  let stream = TS.of_file ~buffer_size:10 filename t in
   stream
 
 let file_reprinter_stream file =
   let filename = "src/tests/data/" ^ file in
-  let parser =
-    Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
-  let printer = Biocaml_wig.printer () in
-  let transfo = Biocaml_transform.compose parser printer in
+  let t =
+    Biocaml_wig.Transform.string_to_t ~filename () in
+  let printer = Biocaml_wig.Transform.t_to_string () in
+  let transfo = Biocaml_transform.map_result t printer in
   let stream = TS.of_file ~buffer_size:4 filename transfo in
   stream
 
 let check_output s m v =
-  assert_bool (sprintf "check_output: %s" m) (TS.next s = `output v)
+  assert_bool (sprintf "check_output: %s" m) (TS.next s = `output (Ok v))
 let check_error s m f =
   assert_bool (sprintf "check_error: %s" m) (
     match TS.next s with
-    | `error e -> f e
+    | `output (Error e) -> f e
     | _ -> false)
 let check_end s =
   assert_bool "check_end 1" (TS.next s = `end_of_stream);
@@ -88,7 +88,7 @@ let test_printer () =
   check_output s "300" "300\n";
   check_output s "200" "200\n";
   check_error s "incomplete line" (function
-  | `left (`incomplete_input (_)) -> true
+  | `incomplete_input (_) -> true
   | _ -> false);
   
   let s = file_reprinter_stream "wig_02.wig" in
@@ -98,15 +98,15 @@ let test_printer () =
   check_output s "49304701 10" "49304701 10\n";
   check_output s "bedgraph" "chrA 49304901 49304902 12.5\n";
   check_error s "missing_start_value" (function
-  | `left (`missing_start_value (_, _)) -> true
+  | `missing_start_value (_, _) -> true
   | _ -> false);
   
   check_output s "1000" "1000\n";
 
   check_error s "wrong_fixed_step_value" (function
-  | `left (`wrong_fixed_step_value (_, " 900s")) -> true
+  | `wrong_fixed_step_value (_, " 900s") -> true
   | _ -> false);
-
+  
   check_output s "800" "800\n";
   
   check_end s;
@@ -115,10 +115,10 @@ let test_printer () =
 let test_to_bed_graph () =
   let stream file =
     let filename = "src/tests/data/" ^ file in
-    let parser =
-      Biocaml_wig.parser ~pedantic:true ~sharp_comments:true ~filename () in
-    let to_bg = Biocaml_wig.to_bed_graph () in
-    let transfo = Biocaml_transform.compose parser to_bg in
+    let t =
+      Biocaml_wig.Transform.string_to_t ~filename () in
+    let to_bg = Biocaml_wig.Transform.t_to_bed_graph () in
+    let transfo = Biocaml_transform.bind_result_merge_error t to_bg in
     let stream = TS.of_file ~buffer_size:7 filename transfo in
     stream in
   

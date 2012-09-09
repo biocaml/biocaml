@@ -1,10 +1,11 @@
-# OASIS_START
-# DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
+.PHONY: build doc test all install uninstall reinstall clean distclean
 
 SETUP = ocaml setup.ml
 
 build: setup.data
 	$(SETUP) -build $(BUILDFLAGS)
+
+all: build
 
 doc: setup.data build
 	$(SETUP) -doc $(DOCFLAGS)
@@ -12,35 +13,27 @@ doc: setup.data build
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
 
-all: 
-	$(SETUP) -all $(ALLFLAGS)
-
-install: setup.data
-	$(SETUP) -install $(INSTALLFLAGS)
-
 uninstall: setup.data
 	$(SETUP) -uninstall $(UNINSTALLFLAGS)
 
 reinstall: setup.data
-	$(SETUP) -reinstall $(REINSTALLFLAGS)
+	ocamlfind remove biocaml
+	$(SETUP) -install $(REINSTALLFLAGS)
 
-clean: 
-	$(SETUP) -clean $(CLEANFLAGS)
+install: reinstall
 
-distclean: 
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
+setup.ml: _oasis
+	oasis setup -setup-update dynamic
 
-setup.data:
+setup.data: setup.ml
 	$(SETUP) -configure $(CONFIGUREFLAGS)
 
-.PHONY: build doc test all install uninstall reinstall clean distclean configure
+configure: setup.data
 
-# OASIS_STOP
+clean:
+	$(RM) -fr _build
 
-.PHONE: pre-distclean
-distclean: pre-distclean
-
-pre-distclean:
+distclean:
 	$(RM) setup.data setup.log
 	$(RM) configure
 	$(RM) src/lib/META
@@ -48,6 +41,7 @@ pre-distclean:
 	$(RM) src/lib/doclib.odocl
 	$(RM) src/lib/biocaml.mllib
 	$(RM) TAGS
+	$(SETUP) -distclean $(DISTCLEANFLAGS)
 
 TAGS:
 	otags -o TAGS `find src -regex ".*\.ml"`
@@ -56,7 +50,7 @@ CURR_DIR=$(shell basename $(CURDIR))
 PKG=biocaml
 VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
 PKG_VERSION=$(PKG)-$(VERSION)
-INSTALL_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags configure myocamlbuild.ml setup.ml doc src
+DIST_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags configure myocamlbuild.ml setup.ml doc src
 .PHONY: dist
 dist:
 	oasis setup
@@ -65,6 +59,6 @@ dist:
 	mkdir doc
 	mv _build/src/lib/doclib.docdir doc/html
 	make TAGS
-	cd .. ; mv $(CURR_DIR) $(PKG_VERSION); tar czf $(PKG_VERSION).tgz $(patsubst %,$(PKG_VERSION)/%,$(INSTALL_FILES)); mv $(PKG_VERSION) $(CURR_DIR)
+	cd .. ; mv $(CURR_DIR) $(PKG_VERSION); tar czf $(PKG_VERSION).tgz $(patsubst %,$(PKG_VERSION)/%,$(DIST_FILES)); mv $(PKG_VERSION) $(CURR_DIR)
 	cd .. ; md5sum $(PKG_VERSION).tgz > $(PKG_VERSION).tgz.md5
 	rm -rf doc

@@ -1,3 +1,4 @@
+(*
 open Biocaml_std
 
 module Comments = Biocaml_comments
@@ -134,3 +135,4 @@ let to_sqlite ?(otags="sqlite,db=:memory:,db_table=table") (_,cols,get,e) =
   in
   Enum.iter insert e;
   db
+*)

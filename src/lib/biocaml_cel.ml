@@ -123,7 +123,7 @@ module Parser = struct
               raise_bad "intensity section column names incorrect" in
 
     let lines = Stream.keep_while
-                  (not <<- (String.for_all ~f:Char.is_whitespace)) lines in
+                  (not <-- (String.for_all ~f:Char.is_whitespace)) lines in
     let lines = Stream.map intensity_row lines in
     let ans = Stream.to_list lines in
     let count = List.length ans in
@@ -135,7 +135,7 @@ module Parser = struct
       let lines = Stream.lines_of_channel cin in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
         try
-          Stream.skip_while (not <<- line_is_section isection_name) lines;
+          Stream.skip_while (not <-- line_is_section isection_name) lines;
           if Stream.is_empty lines then failwith (isection_name ^ " section not found");
           intensity_section lines
         with

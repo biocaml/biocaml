@@ -1,15 +1,13 @@
 open Biocaml_internal_pervasives
 
 
-type ('input, 'output, 'error) t = {
+type ('input, 'output) t = {
   name: string option;
-  next: unit -> [ `output of 'output | `end_of_stream
-                | `error of 'error | `not_ready ];
+  next: unit -> [ `output of 'output | `end_of_stream | `not_ready ];
   feed: 'input -> unit;
   stop: unit -> unit;
 }
-
-type no_error
+  
 
 let make ?name ~next ~feed ~stop () = {name; next; feed; stop }
 
@@ -31,6 +29,25 @@ let make_stoppable ?name ~feed ~next () =
     ~next:(fun () -> next !stopped)
     ~stop:(fun () -> stopped := true)
 
+let make_stoppable_with_error ?name ~feed ~next () =
+  let stopped = ref false in
+  let one_error_has_occured = ref false in
+  make ?name ()
+    ~feed:(fun x ->
+      if not !stopped then
+        feed x
+      else
+        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+    ~next:(fun () ->
+      if !one_error_has_occured
+      then `end_of_stream
+      else 
+        begin match next !stopped with
+        | `output (Error _) as e -> one_error_has_occured := true;  e
+        | other -> other
+        end)
+    ~stop:(fun () -> stopped := true)
+
 let identity ?name () =
   let q = Queue.create () in
   make_stoppable ?name ~feed:(Queue.enqueue q) ()
@@ -46,15 +63,7 @@ let on_output t ~f =
       match t.next () with
       | `output o -> `output (f o)
       | `not_ready -> `not_ready
-      | `error e -> `error e
       | `end_of_stream -> `end_of_stream }
-let on_error t ~f = 
-  { t with next = fun () ->
-    match t.next () with
-    | `output o -> `output o
-    | `not_ready -> `not_ready
-    | `error e -> `error (f e)
-    | `end_of_stream -> `end_of_stream }
 
 let compose ta tb =
   let name =
@@ -69,16 +78,63 @@ let compose ta tb =
         begin match next tb with
         | `output o -> `output o
         | `not_ready -> `not_ready
-        | `error e -> `error (`right e)
         | `end_of_stream -> `end_of_stream
         end
       in
       match next ta with
       | `output o -> feed tb o; call_tb_next ()
       | `not_ready -> call_tb_next ()
-      | `error e -> `error (`left e)
       | `end_of_stream -> stop tb; call_tb_next ())
 
+let bind_result ~on_error ta tb =
+  let name =
+    sprintf "(bind_result <%s> <%s>)"
+      Option.(value ~default:"" (name ta))
+      Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun i -> feed ta i)
+    ~stop:(fun () -> stop ta)
+    ~next:(fun () ->
+      let call_tb_next () =
+        begin match next tb with
+        | `output (Ok o) -> `output (Ok o)
+        | `output (Error o) -> `output (Error (on_error (`right o)))
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
+        end
+      in
+      match next ta with
+      | `output (Ok o) -> feed tb o; call_tb_next ()
+      | `output (Error o) -> `output (Error (on_error (`left o)))
+      | `not_ready -> call_tb_next ()
+      | `end_of_stream -> stop tb; call_tb_next ())
+
+let bind_result_merge_error ta tb =
+  bind_result ta tb
+    ~on_error:(function `left e -> `left e | `right e -> `right e)
+
+let map_result ta tb =
+  let name =
+    sprintf "(map_result <%s> <%s>)"
+      Option.(value ~default:"" (name ta))
+      Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun i -> feed ta i)
+    ~stop:(fun () -> stop ta)
+    ~next:(fun () ->
+      let call_tb_next () =
+        begin match next tb with
+        | `output o -> `output (Ok o)
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
+        end
+      in
+      match next ta with
+      | `output (Ok o) -> feed tb o; call_tb_next ()
+      | `output (Error o) -> `output (Error o)
+      | `not_ready -> call_tb_next ()
+      | `end_of_stream -> stop tb; call_tb_next ())
+  
 let partially_compose left right ~destruct ~reconstruct =
   let name =
     sprintf "(part-compose <%s> <%s>)"
@@ -92,7 +148,6 @@ let partially_compose left right ~destruct ~reconstruct =
         begin match next right with
         | `output o -> `output (reconstruct (`Done o))
         | `not_ready -> `not_ready
-        | `error e -> `error (`right e)
         | `end_of_stream -> `end_of_stream
         end
       in
@@ -103,7 +158,6 @@ let partially_compose left right ~destruct ~reconstruct =
         | `No n -> `output (reconstruct (`Filtered n))
         end
       | `not_ready -> call_right_next ()
-      | `error e -> `error (`left e)
       | `end_of_stream -> stop right; call_right_next ())
             
 let mix ta tb ~f =
@@ -120,28 +174,19 @@ let mix ta tb ~f =
       | None ->
         begin match next ta with
         | `output oa ->
-        begin match next tb with
-        | `output ob -> `output (f oa ob)
-        | `not_ready ->
-          a_buffer := Some oa;
-          `not_ready
-        | `error e -> `error (`right e)
-        | `end_of_stream -> `error (`end_of_left_stream)
-        end
-        | `not_ready -> `not_ready
-        | `error e -> `error (`left e)
-        | `end_of_stream ->
           begin match next tb with
+          | `output ob -> `output (f oa ob)
+          | `not_ready -> a_buffer := Some oa; `not_ready
           | `end_of_stream -> `end_of_stream
-          |  _ -> `error (`end_of_right_stream)
           end
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
         end
       | Some oa ->
         begin match next tb with
         | `output ob -> `output (f oa ob)
         | `not_ready -> `not_ready
-        | `error e -> `error (`right e)
-        | `end_of_stream -> `error (`end_of_right_stream)
+        | `end_of_stream -> `end_of_stream
         end
       end)
     
@@ -162,17 +207,14 @@ let split_and_merge ta tb ~split ~merge =
         begin match next tb with
         | `output o -> `output (merge (`right o))
         | `not_ready -> `not_ready
-        | `error e -> `error (`right e)
         | `end_of_stream -> `end_of_stream
-        end
-      | `error e -> `error (`left e))
+        end)
   
     
-let stream_transformation ~error_to_exn tr en =
+let stream_transformation tr en =
   let rec loop_until_ready tr en =
     match next tr with
     | `output o -> Some o
-    | `error e -> raise (error_to_exn e)
     | `end_of_stream -> None
     | `not_ready ->
       begin match Stream.next en with
@@ -186,14 +228,14 @@ let stream_transformation ~error_to_exn tr en =
     
 module Line_oriented = struct
 
-  type parser = {
+  type parsing_buffer = {
     mutable unfinished_line : string option;
     lines : string Queue.t;
     mutable parsed_lines : int;
     filename : string option;
   }
 
-  let parser ?filename () =
+  let parsing_buffer ?filename () =
     {unfinished_line = None;
      lines = Queue.create ();
      parsed_lines = 0;
@@ -240,25 +282,58 @@ module Line_oriented = struct
   let is_empty p =
     Queue.is_empty p.lines && p.unfinished_line = None
 
-  let finish p =
-    if is_empty p then `ok else `error (Queue.to_list p.lines, p.unfinished_line)
-      
-  let stoppable_parser ?name ?filename ~next () =
-    let lo_parser = parser ?filename () in
+  let contents p = Queue.to_list p.lines, p.unfinished_line
+
+  let empty p = (Queue.clear p.lines; p.unfinished_line <- None) 
+
+  let lines () =
+    let buf = parsing_buffer () in
+    make_stoppable ~name:"lines"
+      ~feed:(feed_string buf)
+      ~next:(function
+        | true -> (match next_line buf with
+            | Some line -> `output line
+            | None -> (match contents buf with
+                | [], None -> `end_of_stream
+                | [], Some unfinished_line ->
+                    (empty buf; `output unfinished_line)
+                | _ -> assert false
+              )
+          )
+        | false -> (match next_line buf with
+            | None -> `not_ready
+            | Some line -> `output line
+          )
+      )
+      ()
+
+  let make_stoppable ?name ?filename ~next ~on_error () =
+    let lo_parser = parsing_buffer ?filename () in
     make_stoppable ?name ()
       ~feed:(feed_string lo_parser)
       ~next:(fun stopped ->
         match next lo_parser with
-        | `output r -> `output r
-        | `error e -> `error e
+        | `output (Ok r) -> `output (Ok r)
+        | `output (Error r) -> `output (Error (on_error (`next r)))
         | `not_ready ->
           if stopped then (
-            match finish lo_parser with
-            | `ok -> `end_of_stream
-            | `error (l, o) ->
-              `error (`incomplete_input (current_position lo_parser, l, o))
+            if is_empty lo_parser then
+              `end_of_stream
+            else
+              let l,o = contents lo_parser in
+              `output
+                (Error
+                   (on_error
+                      (`incomplete_input (current_position lo_parser, l, o))))
           ) else
             `not_ready)
+
+  let make_stoppable_merge_error =
+    make_stoppable
+      ~on_error:(function
+      | `next e -> e
+      | `incomplete_input e -> `incomplete_input e)
+
 end
 
 module Printer_queue = struct
@@ -306,7 +381,6 @@ module Pull_based = struct
     let rec feed_and_take () =
       match next tr with
       | `output o -> `output o
-      | `error e -> `error e
       | `not_ready ->
         begin match feeder () with
         | Some s -> feed tr s; feed_and_take ()
@@ -337,15 +411,14 @@ module Pull_based = struct
   let to_stream_exn ~error_to_exn t =
     Stream.from (fun _ ->
       match t () with
-      | `error e -> raise (error_to_exn e)
-      | `output o -> Some o
+      | `output (Ok o) -> Some o
+      | `output (Error e) -> raise (error_to_exn e)
       | `end_of_stream -> None)
 
   let to_stream_result t =
     Stream.from (fun _ ->
       match t () with
-      | `error e -> Some (Error e)
-      | `output o -> Some (Ok o)
+      | `output o -> Some o
       | `end_of_stream -> None)
     
 end

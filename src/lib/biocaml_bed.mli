@@ -30,6 +30,7 @@
 
 
 type t = string * int * int * [`Float of float| `Int of int | `String of string] list
+with sexp
 (** The type of BED data stream items. *)
   
 type parse_error =
@@ -38,16 +39,26 @@ type parse_error =
 | `wrong_number_of_columns of Biocaml_pos.t * string list
 | `incomplete_input of Biocaml_pos.t * string list * string option
 ]
+with sexp
 (** The possible parsing errors. *)
 
-val parser:
-  ?filename:string ->
-  ?more_columns:[`float | `int | `string] list ->
-  unit ->
-  (string, t, parse_error) Biocaml_transform.t
+type parsing_spec = [
+| `enforce of [ `float | `int | `string ] list
+| `strings
+| `best_effort
+]
+with sexp
+(** The specification of how to parse the remaining columns. *)
+
+module Transform: sig
+  val string_to_t:
+    ?filename:string ->
+    ?more_columns:parsing_spec ->
+    unit ->
+    (string, (t, parse_error) Core.Result.t) Biocaml_transform.t
 (** Create a [Biocaml_transform.t] parser, while providing the format of the
-    additional columns (default [[]]). *)
+    additional columns (default [`best_effort]). *)
 
-val printer: unit ->
-  (t, string, Biocaml_transform.no_error) Biocaml_transform.t
-
+  val t_to_string: unit ->
+    (t, string) Biocaml_transform.t
+end 

@@ -44,6 +44,15 @@ module Stream: sig
   val map : ('a option -> 'b) -> 'a Stream.t -> 'b t
   val is_empty : 'a t -> bool
   val lines_of_channel : in_channel -> string Stream.t
+
+  val result_to_exn :
+    ('output, 'error) Result.t t ->
+    error_to_exn:('error -> exn) ->
+    'output t
+      (** Convert exception-less stream to exception-ful
+          stream. Resulting stream raises exception at first error
+          seen. *)
+
 end
 
 module Lines : sig
@@ -99,10 +108,27 @@ module Parse : sig
 
 end
 
-(** Operations with [Result.t] and [list]. *)
-module Result_list: sig
+(** More operations for the [Result.t] monad. *)
+module With_result: sig
 
-  val while_ok: 'a list -> f:('a -> ('b, 'e) Result.t) -> ('b list, 'e) Result.t
+  include module type of Result
+
+  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) Result.t) ->
+    ('b list, 'e) Result.t
   (** Map the function [f] on the list until the first error is met. *)
+
+  val output_result : 'a -> [> `output of 'a ]
+  val output_ok : 'a -> [> `output of ('a, 'b) t ]
+  val output_error : 'a -> [> `output of ('b, 'a) t ]
+
+end
+
+
+module Debug: sig
+
+  val enable: string -> unit
+  val disable: string -> unit
+
+  val make : string -> ('a, unit, string, unit) format4 -> 'a
 
 end

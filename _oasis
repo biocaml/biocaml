@@ -5,7 +5,7 @@ Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
 Authors:     Biocaml Team
 License:     LGPL with OCaml linking exception
-Plugins:     META (0.2), DevFiles (0.2)
+Plugins:     META (0.2)
 BuildTools:  ocamlbuild
 
 Flag lwt
@@ -23,7 +23,9 @@ Flag tests
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: core, threads, zip, sqlite3, unix, batteries, xmlm
+  BuildDepends: core, sexplib.syntax, threads,
+                zip, sqlite3, unix, batteries, 
+                xmlm, netstring
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
@@ -42,12 +44,13 @@ Library biocaml
            , Biocaml_chrName
            , Biocaml_comments
            , Biocaml_common
+           , Biocaml_entrez
            , Biocaml_fasta
            , Biocaml_fastq
            , Biocaml_genomeMap
            , Biocaml_gff
            , Biocaml_histogram
-           , Biocaml_intervalTree
+           , Biocaml_interval_tree
            , Biocaml_invokeCmdline
            , Biocaml_math
            , Biocaml_phred_score
@@ -59,7 +62,7 @@ Library biocaml
            , Biocaml_sam
            , Biocaml_sbml
            , Biocaml_seq
-           , Biocaml_solexaScore
+           , Biocaml_solexa_score
            , Biocaml_sgr
            , Biocaml_strandName
            , Biocaml_table
@@ -106,6 +109,13 @@ Executable wig_correlate
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
+Executable biocaml
+  Path:   src/app
+  MainIs: biocaml_main.ml
+  Build$: flag(apps) && flag(lwt)
+  BuildDepends: lwt, lwt.unix, biocaml, core_extended
+  CompiledObject: best
+
 Flag installdoc
   Description: Install documentation
   Default: false
@@ -131,8 +141,8 @@ Executable lwt_tests
   MainIs: main.ml
   Install:      	false
   CompiledObject: 	native
-  Build$:		flag(lwt)
-  BuildDepends: biocaml, lwt.unix
+  Build$:		flag(lwt) && flag(apps)
+  BuildDepends: biocaml, lwt.unix, core_extended
   
 Test main
   Command: $tests_main

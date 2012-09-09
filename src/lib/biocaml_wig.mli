@@ -34,20 +34,25 @@
 type comment = [
 | `comment of string
 ]
+with sexp
 type variable_step = [
 | `variable_step_state_change of string * int option (** name x span *)
 | `variable_step_value of int * float
 ]
+with sexp
 type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (** name, start, step, span *)
 | `fixed_step_value of float
 ]  
+with sexp
 type bed_graph_value = string * int * int * float
+with sexp
   
 (** {3 Parsing and Printing} *)
 
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
+with sexp
 (** The most general type that the default parser outputs. *)
 
 type parse_error = [
@@ -65,30 +70,38 @@ type parse_error = [
 | `wrong_span_value of Biocaml_pos.t * string
 | `wrong_variable_step_value of Biocaml_pos.t * string
 ]
+with sexp
 (** The parsing errors. *)
 
 val parse_error_to_string: parse_error -> string
 (** Convert a [parse_error] to a string. *)
   
-val parser :
-  ?filename:string ->
-  ?pedantic:bool ->
-  ?sharp_comments:bool ->
-  unit ->
-  (string, t, parse_error) Biocaml_transform.t
-(** Create the parsing [Biocaml_transform.t]. The parser is
-    "best-effort" and stateless (i.e. a line containing ["1000 42."]
-    will parsed succesfully as a [`variable_step_value (1000, 42.)]
-    even if no ["variableStep"] was line present before). *)
+type tag = [ `sharp_comments | `pedantic ] with sexp
+val default_tags: tag list
+  
+module Transform: sig
 
-val printer: unit -> (t, string, Biocaml_transform.no_error) Biocaml_transform.t
+  val string_to_t :
+    ?filename:string ->
+    ?tags: tag list ->
+    unit ->
+    (string, (t, parse_error) Core.Result.t) Biocaml_transform.t
+  (** Create the parsing [Biocaml_transform.t]. The parser is
+      "best-effort" and stateless (i.e. a line containing ["1000 42."]
+      will parsed succesfully as a [`variable_step_value (1000, 42.)]
+      even if no ["variableStep"] was line present before). *)
+      
+  val t_to_string: ?tags: tag list -> unit -> (t, string) Biocaml_transform.t
 (** Create the transform that prints [t] values to strings. *)
 
-val to_bed_graph: unit ->
-  (t, bed_graph_value,
-   [`not_in_variable_step_state | `not_in_fixed_step_state]) Biocaml_transform.t
-(** Create a transform which converts [`variable_step_value _] and
-    [`fixed_step_value _] values to [`bed_graph_value _] values, using the
-    current state. The [`bed_graph_value _] and [`comment _] values stay
-    untouched. *)
+  val t_to_bed_graph: unit ->
+    (t,
+     (bed_graph_value,
+      [`not_in_variable_step_state | `not_in_fixed_step_state]) Core.Result.t)
+      Biocaml_transform.t
+  (** Create a transform which converts [`variable_step_value _] and
+      [`fixed_step_value _] values to [`bed_graph_value _] values, using the
+      current state. The [`bed_graph_value _] and [`comment _] values stay
+      untouched. *)
+end
   

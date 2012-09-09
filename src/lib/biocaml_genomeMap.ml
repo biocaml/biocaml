@@ -7,13 +7,15 @@ module Range = Biocaml_range
 module Accu = Biocaml_accu
 
 let rec iset_intersects_range i j s = ISet.(BatAvlTree.(
-  if i > j then raise (Invalid_argument "iset_intersects_range") ;
-  if is_empty s then false
-  else
-    let v1, v2 = root s in
-    if j < v1 then iset_intersects_range i j (left_branch s)
-    else if v2 < i then iset_intersects_range i j (right_branch s)
-    else true
+  begin
+    if i > j then raise (Invalid_argument "iset_intersects_range") ;
+    if is_empty s then false
+    else
+      let v1, v2 = root s in
+      if j < v1 then iset_intersects_range i j (left_branch s)
+      else if v2 < i then iset_intersects_range i j (right_branch s)
+      else true
+  end
 ))
 
 module Selection = struct
@@ -78,12 +80,12 @@ module type Signal = sig
 end
 
 module LMap = struct
-  module T = Biocaml_intervalTree
+  module T = Biocaml_interval_tree
 
   type ('a,'b) t = ('a, 'b T.t) Map.t
 
   let intersects (k,r) lmap =
-    try Range.(T.intersects r.lo r.hi (Map.find k lmap))
+    try Range.(T.intersects (Map.find k lmap) r.lo r.hi)
     with Not_found -> false
 
   let closest (k,r) lmap = 
@@ -105,14 +107,16 @@ module LMap = struct
     |> Enum.concat
 
   let of_enum e =
-    let accu = Accu.create T.empty (fst |- fst) (fun ((_,r),v) -> Range.(T.add r.lo r.hi v)) in
+    let accu =
+      Accu.create T.empty (fst |- fst)
+        (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
     Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
     Map.of_enum (Accu.enum accu)
 
 end
 
 module LSet = struct
-  module T = Biocaml_intervalTree
+  module T = Biocaml_interval_tree
 
   type 'a t = ('a, unit T.t) Map.t
 

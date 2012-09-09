@@ -3,7 +3,7 @@ open Batteries
 open Printf
 
 module Range = Biocaml_range
-module IntervalTree = Biocaml_intervalTree
+module Interval_tree = Biocaml_interval_tree
 
 module ListImpl = struct
   type 'a t = (int * int * 'a) list
@@ -14,7 +14,7 @@ module ListImpl = struct
 
   let is_empty x = ( = ) empty x
 
-  let add lo hi v t = (lo, hi, v) :: t
+  let add t ~low ~high ~data = (low, high, data) :: t
 
   let cardinal = List.length
 
@@ -38,8 +38,8 @@ module ListImpl = struct
       (lo  <= lo' && lo' <= hi)
       (lo' <= lo  && lo  <= hi')
       
-  let intersects lo hi l = 
-    List.exists (fun (lo',hi',_) -> interval_overlap lo hi lo' hi') l
+  let intersects l ~low ~high = 
+    List.exists (fun (lo',hi',_) -> interval_overlap low high lo' hi') l
       
   let interval_distance lo hi lo' hi' =
     if interval_overlap lo hi lo' hi' then 0
@@ -64,6 +64,11 @@ module ListImpl = struct
       (fun (x,y,_) -> interval_overlap lo hi x y)
       (enum t)
 
+  let filter_overlapping t ~low ~high =
+    List.filter
+      (fun (x,y,_) -> interval_overlap low high x y)
+      t
+
   let print _ = assert false
   let check_integrity _ = assert false
 end
@@ -77,15 +82,15 @@ let random_interval ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) _ =
 let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n = 
   (1 -- n) /@ (random_interval ~lb ~ub ~minw ~maxw)
 
-module TestAdditions(I : module type of Biocaml_intervalTree) = struct
+module TestAdditions(I : module type of Biocaml_interval_tree) = struct
   include I
   let of_list l = 
     List.fold_left
-      (fun accu (lo,hi,v) -> I.add lo hi v accu)
+      (fun accu (low,high,data) -> I.add accu ~low ~high ~data)
       I.empty l
 end
 
-module T = TestAdditions(IntervalTree)
+module T = TestAdditions(Interval_tree)
 module L = TestAdditions(ListImpl)
 
 let test_add () =
@@ -93,8 +98,8 @@ let test_add () =
     let intervals = random_intervals 100 |> List.of_enum in
     List.fold_left
       (fun accu (lo,hi,_) -> 
-	let r = T.add lo hi () accu in
-	Biocaml_intervalTree.check_integrity r ; r)
+	let r = T.add accu ~low:lo ~high:hi ~data:() in
+	Biocaml_interval_tree.check_integrity r ; r)
       T.empty intervals |> ignore
   done
 
@@ -111,9 +116,9 @@ let test_creation () =
 let test_intersection () = 
   for i = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> List.of_enum
-    and lo, hi, _ = random_interval  ~ub:1000 () in
-    let l = L.(intersects lo hi (of_list intervals))
-    and t = T.(intersects lo hi (of_list intervals)) in
+    and low, high, _ = random_interval  ~ub:1000 () in
+    let l = L.(intersects (of_list intervals) ~low ~high)
+    and t = T.(intersects (of_list intervals) ~low ~high) in
     assert_equal l t
   done
 
@@ -135,7 +140,11 @@ let test_find_closest () =
 
 
 let test_find_intersecting_elem1 () = 
-  let u = T.(add 69130 69630 () (add 69911 70411 () (add 70501 71001 () empty))) in 
+  let u =
+    T.(add ~low:69130 ~high:69630 ~data:()
+         (add ~low:69911 ~high:70411 ~data:()
+            (add ~low:70501 ~high:71001 ~data:()
+               empty))) in 
   assert_equal
     T.(find_intersecting_elem 70163 70163 u |> List.of_enum |> List.length)
     1 ;

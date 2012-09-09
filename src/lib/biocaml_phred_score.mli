@@ -22,6 +22,7 @@
 exception Error of string
 
 type t
+with sexp
 
 val of_ascii : ?offset:[`offset33 | `offset64] -> char -> t option
 (** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
@@ -71,7 +72,7 @@ val to_probability : t -> float
       is not the inverse of [of_probability] due to the rounding done by
       the latter. *)
 
-val of_solexa_score : ?f:(float -> int) -> Biocaml_solexaScore.t -> t
+val of_solexa_score : ?f:(float -> int) -> Biocaml_solexa_score.t -> t
   (** [of_solexa_score x] converts Solexa score [x] to a PHRED
       score.
 
@@ -81,7 +82,7 @@ val of_solexa_score : ?f:(float -> int) -> Biocaml_solexaScore.t -> t
       provided to dictate this.
   *)
 
-val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexaScore.t
+val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexa_score.t
   (** [to_solexa_score t] converts PHRED score [t] to a Solexa
       score.
 

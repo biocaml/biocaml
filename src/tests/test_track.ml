@@ -4,12 +4,12 @@ open Core.Std
 
 
 let test_parser () =
-  let transfo = Biocaml_track.parser () in
+  let transfo = Biocaml_track.Transform.string_to_string_content () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
   
@@ -23,7 +23,7 @@ let test_parser () =
   test_output "browser" (`browser (`unknown "browser"));
 
   test_line "browser  position   chro:f42-51"  (function
-  | `error (`wrong_browser_position _) -> true
+  | `output (Error (`wrong_browser_position _)) -> true
   | _ -> false);
   
   test_output "track a=b c=d" (`track ["a", "b"; "c", "d"]);
@@ -34,7 +34,7 @@ let test_parser () =
   test_output "track   \t" (`track []);
 
   test_line "track a=\"b b\" \"c\tc c\"=d  \t someguyalone" (function
-  | `error (`wrong_key_value_format _) -> true
+  | `output (Error (`wrong_key_value_format _)) -> true
   | _ -> false);
   test_output "track a=\"b b\" \"c c\"="
     (`track ["a", "b b"; "c c", ""]);
@@ -45,12 +45,12 @@ let test_parser () =
   ()
 
 let test_wig_parser () =
-  let transfo = Biocaml_track.wig_parser () in
+  let transfo = Biocaml_track.Transform.string_to_wig () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
 
@@ -64,12 +64,12 @@ let test_wig_parser () =
   ()
     
 let test_gff_parser () =
-  let transfo = Biocaml_track.gff_parser () in
+  let transfo = Biocaml_track.Transform.string_to_gff () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
   let open Biocaml_gff in
 
   test_output "# some comment" (`comment " some comment");
@@ -88,12 +88,13 @@ let test_gff_parser () =
 
 let test_bed_parser () =
   let transfo =
-    Biocaml_track.bed_parser ~more_columns:[`string; `int; `float] () in
+    Biocaml_track.Transform.string_to_bed
+      ~more_columns:(`enforce [`string; `int; `float]) () in
   let test_line l f =
     Biocaml_transform.feed transfo (l ^ "\n");
     assert_bool l (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output o = oo) in
+  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
   test_output "track a=\"b b\" \"c c\"="
@@ -105,7 +106,7 @@ let test_bed_parser () =
   ()
 
 let test_printer () =
-  let transfo = Biocaml_track.printer () in
+  let transfo = Biocaml_track.Transform.string_content_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -118,7 +119,7 @@ let test_printer () =
   ()
 
 let test_wig_printer () =
-  let transfo = Biocaml_track.wig_printer () in
+  let transfo = Biocaml_track.Transform.wig_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -131,7 +132,7 @@ let test_wig_printer () =
   ()
 
 let test_gff_printer () =
-  let transfo = Biocaml_track.gff_printer () in
+  let transfo = Biocaml_track.Transform.gff_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
@@ -150,7 +151,7 @@ let test_gff_printer () =
   ()
 
 let test_bed_printer () =
-  let transfo = Biocaml_track.bed_printer () in
+  let transfo = Biocaml_track.Transform.bed_to_string () in
   let test_line i l =
     Biocaml_transform.feed transfo i;
     assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))

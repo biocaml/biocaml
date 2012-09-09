@@ -77,6 +77,6 @@ let row_to_string r =
 let to_file file t =
   let print cout =
     output_endline cout (String.concat ~sep:"\t" col_names);
-    List.iter ((output_endline cout) <<- row_to_string) t
+    List.iter ((output_endline cout) <-- row_to_string) t
   in
   try_finally_exn print ~fend:close_out (open_out_safe file)

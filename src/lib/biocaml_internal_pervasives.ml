@@ -86,7 +86,16 @@ module Stream = struct
       try Some (input_line cin)
       with End_of_file -> None
     in Stream.from f
- 
+
+  let result_to_exn s ~error_to_exn =
+    from (fun _ ->
+      match next s with
+        | None -> None
+        | Some result -> match result with
+            | Ok x -> Some x
+            | Result.Error x -> raise (error_to_exn x)
+    )
+
 end
 
 module Lines = struct
@@ -139,15 +148,17 @@ module Lines = struct
 
 end
 
-module Result_list = struct
+module With_result = struct
 
-  let while_ok (type error) l ~(f:('a -> ('b, error) Result.t)) =
+  include Result
+    
+  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) Result.t)) =
     let module M = struct
       exception E of error 
       let the_fun () =
         let run () =
-          List.map l (fun x ->
-            match f x with
+          List.mapi l (fun i x ->
+            match f i x with
             | Ok o -> o
             | Error e -> raise (E e))
         in
@@ -156,9 +167,13 @@ module Result_list = struct
         | E e -> Error e
     end in
     M.the_fun ()
-        
+    
+  let output_result r = `output r
+  let output_ok o = `output (Ok o)
+  let output_error e = `output (Error e)
 
 end
+  
 module Url = struct
 
   let escape s =
@@ -214,5 +229,31 @@ module Parse = struct
       | None -> (s, None, "")
       end
     end
+
+end
+
+module Debug = struct
+
+  let debugged = ref []
+
+  let enable s =
+    debugged := s :: !debugged
+  let disable s =
+    debugged := List.filter !debugged ((<>) s)
+
+  let is_enabled s =
+    List.mem !debugged s
+      
+  let make prefix fmt =
+    ksprintf (fun s ->
+      if is_enabled prefix then (
+        eprintf "%s: " prefix;
+        String.iter s (function
+        | '\n' -> eprintf "\n    "
+        | c -> eprintf "%c" c);
+        eprintf "\n%!"
+      )
+    ) fmt
+
 
 end

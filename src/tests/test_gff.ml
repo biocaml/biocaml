@@ -4,82 +4,79 @@ open Core.Std
 
 open Biocaml_gff
 let test_parser () =
-  let transfo = parser () in
+  let transfo = Transform.string_to_item () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
     Biocaml_transform.feed transfo (joined ^ "\n");
     assert_bool joined (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> o = oo) in
-  test_output ["# some comment"] (`output (`comment " some comment"));
+  let test_output l o = test_line l (fun oo -> oo = `output (Ok o)) in
+  test_output ["# some comment"]  (`comment " some comment");
 
   test_output [
     "big%20spaced%20name"; ".";  "."; "42"; "43"; "."; "."; ".";
-  ] (`output
-        (`record
-            {seqname = "big spaced name"; source = None; feature = None;
-             pos = (42, 43); score = None; strand = `not_applicable;
-             phase = None; attributes = []}));
+  ]  (`record
+         {seqname = "big spaced name"; source = None; feature = None;
+          pos = (42, 43); score = None; strand = `not_applicable;
+          phase = None; attributes = []});
 
   test_output [
     "\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"; "2";
     "k=v,v%20v;big%20k=\"annoying v\""
-  ] (`output
-        (`record
+  ]  (`record
             {seqname = "big\tC style"; source = Some "some"; feature = Some "s";
              pos = (42, 43); score = Some 2.; strand = `plus;
              phase = Some 2;
-             attributes = ["k", ["v"; "v v"]; "big k", ["annoying v"]]}));
+             attributes = ["k", ["v"; "v v"]; "big k", ["annoying v"]]});
   
   test_line ["\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"]
-    (function | `error (`wrong_row (_, _)) -> true | _ -> false);
+    (function | `output (Error (`wrong_row (_, _))) -> true | _ -> false);
 
   test_output [
     "big%20spaced%20name"; ".";  "."; "42"; "43"; "2e12"; "."; "."; ""
-  ] (`output
-        (`record
-            {seqname = "big spaced name"; source = None; feature = None;
-             pos = (42, 43); score = Some (2e12); strand = `not_applicable;
-             phase = None; attributes = []}));
+  ]  (`record
+         {seqname = "big spaced name"; source = None; feature = None;
+          pos = (42, 43); score = Some (2e12); strand = `not_applicable;
+          phase = None; attributes = []});
 
   test_line ["\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "wrong"; "2"]
-    (function | `error (`cannot_parse_strand (_, "wrong")) -> true | _ -> false);
+    (function | `output (Error (`cannot_parse_strand (_, "wrong"))) -> true | _ -> false);
 
   test_line ["\"big\\tC style\""; "some";  "s"; "42w"; "43"; "2."; "-"; "2"]
-    (function | `error (`cannot_parse_int (_, _)) -> true | _ -> false);
+    (function | `output (Error (`cannot_parse_int (_, _))) -> true | _ -> false);
 
   test_line ["\"big\\tC style\""; "some%wrong";  "s"; "42"; "43"; "2."; "-"; "2"]
-    (function | `error (`wrong_url_escaping (_, "some%wrong")) -> true | _ -> false);
+    (function | `output (Error (`wrong_url_escaping (_, "some%wrong"))) -> true
+    | _ -> false);
 
   test_line ["\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "-"; "2";
             "some string"]
-    (function | `error (`wrong_attributes (_, _)) -> true | _ -> false);
+    (function | `output (Error (`wrong_attributes (_, _))) -> true | _ -> false);
 
   test_line ["\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "-"; "2";
             "some=string;djf"]
-    (function | `error (`wrong_attributes (_, _)) -> true | _ -> false);
+    (function | `output (Error (`wrong_attributes (_, _))) -> true | _ -> false);
 
-  let transfo = parser ~version:`two () in
+  let transfo = Transform.string_to_item ~tags:[`version `two] () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
     Biocaml_transform.feed transfo (joined ^ "\n");
     assert_bool joined (f (Biocaml_transform.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> o = oo) in
-  test_output ["# some comment"] (`output (`comment " some comment"));
+  let test_output l o = test_line l (fun oo -> oo = `output (Ok o)) in
+  test_output ["# some comment"] (`comment " some comment");
 
   test_output [
     "\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"; "2";
     "k v ; \"big\\tk\" \"annoying v\"   ; "
-  ] (`output
-        (`record
-            {seqname = "big\tC style"; source = Some "some"; feature = Some "s";
-             pos = (42, 43); score = Some 2.; strand = `plus;
-             phase = Some 2; attributes = ["k", ["v"]; "big\tk", ["annoying v"]]}));
+  ] (`record
+        {seqname = "big\tC style"; source = Some "some"; feature = Some "s";
+         pos = (42, 43); score = Some 2.; strand = `plus;
+         phase = Some 2; attributes = ["k", ["v"]; "big\tk", ["annoying v"]]});
   ()
    
 let test_printer () =
-  let transfo = printer () in
+  let transfo = Transform.item_to_string () in
   let test s item =
     Biocaml_transform.feed transfo item;
     let res =  Biocaml_transform.next transfo in
@@ -89,7 +86,6 @@ let test_printer () =
       assert_equal ~printer:ident s o 
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
-    | `error _ -> assert_bool "error" false
   in
   test "# some\n" (`comment " some");
 
@@ -105,7 +101,7 @@ let test_printer () =
              phase = None; attributes = [
                "k", ["v"]; "big k", ["an;no\ting\nv"]
              ]});
-  let transfo = printer ~version:`two () in
+  let transfo = Transform.item_to_string ~tags:[ `version `two] () in
   let test s item =
     Biocaml_transform.feed transfo item;
     let res =  Biocaml_transform.next transfo in
@@ -115,7 +111,6 @@ let test_printer () =
       assert_equal ~printer:ident s o 
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
-    | `error _ -> assert_bool "error" false
   in
   test "\"big spaced name\"\t\"\\t\"\t.\t42\t43\t.\t+\t.\t\"k\" \"v\";\"big k\" \"an;no\\ting\\nv\"\n"
         (`record

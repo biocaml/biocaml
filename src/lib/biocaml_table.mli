@@ -1,3 +1,4 @@
+(*
 (** Tabular data as defined by principal tag 'table'. Design
     emphasizes support for large tables. Additional tags supported
     are: header, header_, comment-char, separator. By default, parsers
@@ -63,3 +64,4 @@ val to_sqlite : ?otags:string -> t -> Sqlite3.db
 
       Raises [Tags.Invalid] if [otags] are ill-formed or invalid for
       this function. *)
+  *)
