@@ -1,3 +1,4 @@
+open Biocaml_internal_pervasives
 open Batteries
 open Printf
 
@@ -144,7 +145,7 @@ let string_of_datetype = function
 let esearch_url ?retstart ?retmax ?rettype ?field ?datetype ?reldate ?mindate ?maxdate database query = 
   search_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database database) ;
-    Some ("term", Netencoding.Url.encode query) ;
+    Some ("term", Url.escape query) ;
     map (fun i -> "retstart", string_of_int i) retstart ;
     map (fun i -> "retmax", string_of_int i) retmax ;
     map (function `uilist -> ("rettype", "uilist") | `count -> ("rettype", "count")) rettype ;
