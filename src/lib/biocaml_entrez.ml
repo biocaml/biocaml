@@ -14,21 +14,31 @@ let in_tree i =
 let tree_of_string str = 
   in_tree (Xmlm.make_input (`String (0,str)))
 
-let leaf_exn f k = function
-    E (_,_,children) ->
-      List.find_map 
-	(function 
-	  | E (tag,_, [D d]) when tag = k -> Some (f d)
+let attr k = function
+| E (_,attrs,_) -> 
+    Core.Core_list.find_map attrs ~f:(fun ((_,k'),value) -> if k = k' then Some value else None)
+| _ -> None
+
+let battr k x = Core.Option.map (attr k x) ~f:bool_of_string
+
+let leaf_exn f k x = 
+  try
+    match x with
+    | E (_,_,children) ->
+        List.find_map 
+	  (function 
+  	  | E (tag,_, [D d]) when tag = k -> Some (f d)
 	  | _  -> None)
-	children
-  | _ -> raise Not_found
+	  children
+    | D _ -> raise Not_found
+  with Not_found -> 
+    invalid_arg (sprintf "Biocaml_entrez.leaf: no %s child" k)
 
 let ileaf_exn = leaf_exn int_of_string
 let sleaf_exn = leaf_exn identity
 
-let ileaf k x = try Some (ileaf_exn k x) with Not_found -> None
-let sleaf k x = try Some (sleaf_exn k x) with Not_found -> None
-
+let ileaf k x = try Some (ileaf_exn k x) with Invalid_argument _ -> None
+let sleaf k x = try Some (sleaf_exn k x) with Invalid_argument _ -> None
 
 let leaves f k t = match t with
     E (_,_,children) ->
@@ -46,7 +56,7 @@ let tag_of_tree = function
 | E (tag,_,_) -> Some tag
 | D _ -> None
     
-let child k = function
+let echild_exn k = function
 | E (_,_,children) ->
     begin
       try
@@ -65,6 +75,8 @@ let child k = function
   let msg = sprintf "child: looked for %s tag but only got a PCDATA node" k in
   raise (Invalid_argument msg)
 )
+
+let echild k x = try Some (echild_exn k x) with _ -> None
 
 let fold_echildren ?tag f = 
   let pred = Core.Option.value_map tag ~default:(fun _ -> true) ~f:( = ) in
@@ -149,7 +161,7 @@ let esearch_answer_of_tree = function
       count = ileaf_exn "Count" t ;
       retmax = ileaf_exn "RetMax" t ;
       retstart = ileaf_exn "RetStart" t ;
-      ids = child "IdList" t |> sleaves "Id"
+      ids = echild_exn "IdList" t |> sleaves "Id"
     }
   | _ -> assert false
 
@@ -206,6 +218,8 @@ end
 module Make(F : Fetch) = struct
   open F
 
+  (* DTD for the databases can be found at http://www.ncbi.nlm.nih.gov/data_specs/dtd/NCBI_Entrezgene.dtd *)
+
   let search_and_fetch database of_xml query =
     let query_url = esearch_url database query in
     fetch query_url esearch_answer_of_string >>= fun answer ->
@@ -217,6 +231,24 @@ module Make(F : Fetch) = struct
     fetch query_url esearch_answer_of_string >>= fun answer ->
     let object_url = esummary_url database answer.ids in
     fetch object_url (tree_of_string |- snd |- of_xml)
+
+  module Gene_ref = struct
+    type t = {
+      locus : string option ;
+      allele : string option ;
+      desc : string option ;
+      maploc : string option ;
+      pseudo : bool option ;
+    }
+
+    let of_xml t = {
+      locus = sleaf "Gene-ref_locus" t ;
+      allele = sleaf "Gene-ref_allele" t ;
+      desc = sleaf "Gene-ref_desc" t ;
+      maploc = sleaf "Gene-ref_maploc" t ;
+      pseudo = Core.Option.bind (echild "Gene-ref_pseudo" t) (battr "value")
+    }
+  end
 
   module PubmedSummary = struct
     (* DTD is at http://www.ncbi.nlm.nih.gov/entrez/query/DTD/eSummaryDTD/eSummary_pubmed.dtd *)
@@ -236,7 +268,7 @@ module Make(F : Fetch) = struct
         x []
 
     let parse_document_summary x = 
-      let article_ids = parse_article_ids (child "ArticleIds" x) in
+      let article_ids = parse_article_ids (echild_exn "ArticleIds" x) in
       { pmid = int_of_string (List.assoc "pubmed" article_ids) ;
         doi = (try Some (List.assoc "doi" article_ids) with Not_found -> None) ;
         pubdate = sleaf "PubDate" x ;
@@ -247,7 +279,7 @@ module Make(F : Fetch) = struct
       fold_echildren 
         ~tag:"DocumentSummary"
         (fun x accu -> (parse_document_summary x) :: (accu : t list))
-        (child "DocumentSummarySet" x) []
+        (echild_exn "DocumentSummarySet" x) []
 
 
     let search = search_and_summary `pubmed parse_eSummaryResult
@@ -263,19 +295,19 @@ module Make(F : Fetch) = struct
     let parse_book_document bd =
       { pmid = ileaf_exn "PMID" bd ; 
         title = sleaf_exn "ArticleTitle" bd ;
-        abstract = child "Abstract" bd |> sleaf_exn "AbstractText" }
+        abstract = echild_exn "Abstract" bd |> sleaf_exn "AbstractText" }
 
     let parse_medline_citation mc = 
-      let article = child "Article" mc in
+      let article = echild_exn "Article" mc in
       { pmid = ileaf_exn "PMID" mc ;
         title = sleaf_exn "ArticleTitle" article ;
-        abstract = child "Abstract" article |> sleaf_exn "AbstractText" }
+        abstract = echild_exn "Abstract" article |> sleaf_exn "AbstractText" }
 
     let parse_pubmed_article_set_element x = match tag_of_tree x with
     | Some "PubmedArticle" -> 
-        Some (parse_medline_citation (child "MedlineCitation" x))
+        Some (parse_medline_citation (echild_exn "MedlineCitation" x))
     | Some "PubmedBookArticle" ->
-        Some (parse_book_document (child "BookDocument" x))
+        Some (parse_book_document (echild_exn "BookDocument" x))
     | Some t -> 
         failwith (sprintf "Unexpected %s tag while parsing PubmedArticleSet element" t)
     | None -> None
@@ -288,7 +320,55 @@ module Make(F : Fetch) = struct
     let search = search_and_fetch `pubmed parse_pubmed_article_set
   end
 
+  (* http://www.ncbi.nlm.nih.gov/data_specs/dtd/NCBI_Entrezgene.mod.dtd *)
+  module Gene = struct
+    type t = { 
+      _type : [ `unknown | `tRNA | `rRNA | `snRNA | `scRNA |
+                `snoRNA | `protein_coding | `pseudo | `transposon | `miscRNA |
+                `ncRNA | `other ] ;
+      
+      summary : string option ;
+      gene : Gene_ref.t ;
+    }
 
+    let type_of_int = function
+    | 0 -> `unknown
+    | 1 -> `tRNA
+    | 2 -> `rRNA
+    | 3 -> `snRNA
+    | 4 -> `scRNA
+    | 5 -> `snoRNA
+    | 6 -> `protein_coding
+    | 7 -> `pseudo
+    | 8 -> `transposon
+    | 9 -> `miscRNA
+    | 10 -> `ncRNA
+    | 11 -> `ncRNA
+    | n -> invalid_arg (sprintf "Biocaml_entrez.Make.Gene.type_of_int: %d" n)
+
+    let parse_entrez_gene = function
+    | E ("Entrezgene",_,_) as x -> Some {
+      summary = sleaf "Entrezgene_summary" x ;
+      _type = type_of_int (ileaf_exn "Entrezgene_type" x) ;
+      gene = Gene_ref.of_xml (echild_exn "Entrezgene_gene" x) ;
+    }
+    | _ -> None
+
+    let parse_entrez_gene_set = function
+    | E ("Entrezgene-Set",_,children) ->
+        List.filter_map parse_entrez_gene children
+    | _ -> assert false
+
+    let search query = 
+      let database = `gene in
+      let of_xml = parse_entrez_gene_set in
+      let query_url = esearch_url database query in
+      print_endline query_url ;
+      fetch query_url esearch_answer_of_string >>= fun answer ->
+      let object_url = efetch_url ~retmode:`xml database answer.ids in
+      print_endline object_url ;
+      fetch object_url (tree_of_string |- snd |- of_xml)
+  end
 end
 
 

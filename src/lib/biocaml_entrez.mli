@@ -88,6 +88,16 @@ end
 module Make(F : Fetch) : sig
   open F
 
+  module Gene_ref : sig
+    type t = {
+      locus : string option ;
+      allele : string option ;
+      desc : string option ;
+      maploc : string option ;
+      pseudo : bool option ;
+    }
+  end
+
   module PubmedSummary : sig
     type t = { pmid : int ;
                doi : string option ;
@@ -104,6 +114,16 @@ module Make(F : Fetch) : sig
     val search : string -> t list fetched
   end
 
+  module Gene : sig
+    type t = { 
+      _type : [ `unknown | `tRNA | `rRNA | `snRNA | `scRNA |
+                `snoRNA | `protein_coding | `pseudo | `transposon | `miscRNA |
+                `ncRNA | `other ] ;
+      summary : string option ;
+      gene : Gene_ref.t ;
+    }
+    val search : string -> t list fetched
+  end
 
 end
 

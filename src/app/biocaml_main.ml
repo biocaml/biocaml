@@ -221,7 +221,17 @@ module Entrez = struct
       (fun { Entrez.PubmedSummary.pmid ; title ; doi } -> 
         Lwt_io.printf "* ID: %d\n\tTitle: %s\n%s" 
           pmid title 
-          Option.(value_map doi ~default:"" ~f:(sprintf "\tdoi: %s\n")))
+          Option.(value_map doi ~default:"" ~f:(sprintf "\tDOI: %s\n")))
+      result
+
+  let gene s =
+    Entrez.Gene.search (String.concat ~sep:" " s) >>= fun result ->
+    Lwt_io.printf "Result:\n" >>= fun () ->
+    Lwt_list.iter_s 
+      (fun { Entrez.Gene.summary } -> 
+        Lwt_io.printf "* ID: %d\n%s"
+          0
+          Option.(value_map summary ~default:"" ~f:(sprintf "\tSummary: %s\n")))
       result
 
   let command = 
@@ -235,7 +245,16 @@ module Entrez = struct
              ++ anon (sequence "SEARCH" string)
              ++ uses_lwt ()
            )
-           pubmed)
+           pubmed) ;
+        ("gene",
+         basic
+           ~summary:"Test a simple query in Entrez Gene"
+           Spec.(
+             verbosity_flags ()
+             ++ anon (sequence "SEARCH" string)
+             ++ uses_lwt ()
+           )
+           gene) ;
       ])
       
 end
