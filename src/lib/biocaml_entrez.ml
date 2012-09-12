@@ -14,6 +14,11 @@ let in_tree i =
 let tree_of_string str = 
   in_tree (Xmlm.make_input (`String (0,str)))
 
+let rec string_of_tree = function
+| E (tag,attrs,children) ->
+    sprintf "<%s>%s<%s/>" tag (String.concat "" (List.map string_of_tree children)) tag
+| D s -> s
+
 let attr k = function
 | E (_,attrs,_) -> 
     Core.Core_list.find_map attrs ~f:(fun ((_,k'),value) -> if k = k' then Some value else None)
@@ -91,6 +96,8 @@ let fold_echildren ?tag f =
           children
           init
     | D _ -> init
+
+let map_echildren ?tag f x = fold_echildren ?tag (fun x accu -> (f x) :: accu) x []
 
 (* 
    exhaustive list of databases:
@@ -232,6 +239,37 @@ module Make(F : Fetch) = struct
     let object_url = esummary_url database answer.ids in
     fetch object_url (tree_of_string |- snd |- of_xml)
 
+  module Object_id = struct
+    type t = [`int of int | `string of string ]
+
+    let to_string = function
+    | `int i -> string_of_int i
+    | `string s -> s
+
+    let of_xml x = 
+      try `int (ileaf_exn "Object-id_id" x)
+      with _ -> (
+        try `string (sleaf_exn "Object-id_str" x)
+        with _ -> 
+          invalid_arg (sprintf "Biocaml_entrez.Make.Object_id.of_xml: %s" (string_of_tree x))
+      )
+  end
+
+
+  module Dbtag = struct
+    type t = {
+      db : string ;
+      tag : Object_id.t ;
+    }
+
+    let of_xml x = {
+      db = sleaf_exn "Dbtag_db" x ;
+      tag = Object_id.of_xml (x |> echild_exn "Dbtag_tag" |> echild_exn "Object-id")
+    }
+      
+  end
+
+
   module Gene_ref = struct
     type t = {
       locus : string option ;
@@ -239,15 +277,23 @@ module Make(F : Fetch) = struct
       desc : string option ;
       maploc : string option ;
       pseudo : bool option ;
+      db : Dbtag.t list ;
     }
 
-    let of_xml t = {
-      locus = sleaf "Gene-ref_locus" t ;
-      allele = sleaf "Gene-ref_allele" t ;
-      desc = sleaf "Gene-ref_desc" t ;
-      maploc = sleaf "Gene-ref_maploc" t ;
-      pseudo = Core.Option.bind (echild "Gene-ref_pseudo" t) (battr "value")
-    }
+    let of_xml t = 
+      let t = echild_exn "Gene-ref" t in 
+      {
+        locus = sleaf "Gene-ref_locus" t ;
+        allele = sleaf "Gene-ref_allele" t ;
+        desc = sleaf "Gene-ref_desc" t ;
+        maploc = sleaf "Gene-ref_maploc" t ;
+        pseudo = Core.Option.bind (echild "Gene-ref_pseudo" t) (battr "value") ;
+        db = 
+          Core.Option.value_map
+            (echild "Gene-ref_db" t)
+            ~default:[]
+            ~f:(map_echildren ~tag:"Dbtag" Dbtag.of_xml) ;
+      }
   end
 
   module PubmedSummary = struct
@@ -262,10 +308,10 @@ module Make(F : Fetch) = struct
     }
 
     let parse_article_ids x =
-      fold_echildren
+      map_echildren
         ~tag:"ArticleId"
-        (fun x accu -> (sleaf_exn "IdType" x, sleaf_exn "Value" x) :: accu)
-        x []
+        (fun x -> sleaf_exn "IdType" x, sleaf_exn "Value" x)
+        x 
 
     let parse_document_summary x = 
       let article_ids = parse_article_ids (echild_exn "ArticleIds" x) in
@@ -276,10 +322,10 @@ module Make(F : Fetch) = struct
         title = sleaf_exn "Title" x }
       
     let parse_eSummaryResult x = 
-      fold_echildren 
+      map_echildren 
         ~tag:"DocumentSummary"
-        (fun x accu -> (parse_document_summary x) :: (accu : t list))
-        (echild_exn "DocumentSummarySet" x) []
+        parse_document_summary
+        (echild_exn "DocumentSummarySet" x)
 
 
     let search = search_and_summary `pubmed parse_eSummaryResult
@@ -363,10 +409,10 @@ module Make(F : Fetch) = struct
       let database = `gene in
       let of_xml = parse_entrez_gene_set in
       let query_url = esearch_url database query in
-      print_endline query_url ;
+      (* print_endline query_url ; *)
       fetch query_url esearch_answer_of_string >>= fun answer ->
       let object_url = efetch_url ~retmode:`xml database answer.ids in
-      print_endline object_url ;
+      (* print_endline object_url ; *)
       fetch object_url (tree_of_string |- snd |- of_xml)
   end
 end

@@ -225,12 +225,18 @@ module Entrez = struct
       result
 
   let gene s =
-    Entrez.Gene.search (String.concat ~sep:" " s) >>= fun result ->
+    let open Entrez in
+    Gene.search (String.concat ~sep:" " s) >>= fun result ->
     Lwt_io.printf "Result:\n" >>= fun () ->
     Lwt_list.iter_s 
-      (fun { Entrez.Gene.summary } -> 
-        Lwt_io.printf "* ID: %d\n%s"
-          0
+      (fun { Gene.summary ; gene } -> 
+        Lwt_io.printf "* Gene: %s\n\tIdentifiers: %s\n%s"
+          Option.(value gene.Gene_ref.locus ~default:"")
+          (String.concat 
+             ~sep:", " 
+             (List.map 
+                gene.Gene_ref.db
+                (fun db -> sprintf "%s:%s" db.Dbtag.db (Object_id.to_string db.Dbtag.tag))))
           Option.(value_map summary ~default:"" ~f:(sprintf "\tSummary: %s\n")))
       result
 

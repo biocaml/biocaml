@@ -88,6 +88,18 @@ end
 module Make(F : Fetch) : sig
   open F
 
+  module Object_id : sig
+    type t = [`int of int | `string of string ]
+    val to_string : t -> string
+  end
+
+  module Dbtag : sig
+    type t = {
+      db : string ;
+      tag : Object_id.t ;
+    }
+  end
+
   module Gene_ref : sig
     type t = {
       locus : string option ;
@@ -95,6 +107,7 @@ module Make(F : Fetch) : sig
       desc : string option ;
       maploc : string option ;
       pseudo : bool option ;
+      db : Dbtag.t list ;
     }
   end
 
