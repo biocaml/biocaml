@@ -1,22 +1,25 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 
 type t = string
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
-module Set = Set.Make(struct type t = char let compare = Pervasives.compare end)
-let codes = 
-  let codes = ['A';'C';'G';'T';'U';'R';'Y';'K';'M';'S';'W';'B';'D';'H';'V';'N';'X'] in
-  List.fold_left ~f:(fun s e -> Set.add e s) ~init:Set.empty codes
+module Set = Char.Set
 
-let is_nucleic_acid c = Set.mem (Char.uppercase c) codes
+let codes =
+  let codes =
+    ['A';'C';'G';'T';'U';'R';'Y';'K';'M';'S';'W';'B';'D';'H';'V';'N';'X'] in
+  List.fold_left ~f:(fun s e -> Set.add s e) ~init:Set.empty codes
 
-let too_long = Msg.err ("sequence length exceeds " ^ (string_of_int Sys.max_string_length))
+let is_nucleic_acid c = Set.mem codes (Char.uppercase c)
+
+let too_long =
+  ("sequence length exceeds " ^ (string_of_int Caml.Sys.max_string_length))
 let bad_acid c = "invalid sequence element " ^ String.of_char c
 
 let of_buffer b =
   let n = Buffer.length b in
-  if n > Sys.max_string_length then raise_bad too_long
+  if n > Caml.Sys.max_string_length then raise_bad too_long
   else
     let ans = String.create n in
     for i = 0 to n-1 do
@@ -25,7 +28,7 @@ let of_buffer b =
       else raise_bad (bad_acid (Buffer.nth b i))
     done;
     ans
-      
+
 let of_string b =
   let n = String.length b in
   let ans = String.create n in
@@ -36,8 +39,8 @@ let of_string b =
   done;
   ans
 
-let of_buffer_unsafe = String.uppercase <-- Buffer.contents
-let of_string_unsafe = String.uppercase <-- String.copy
+let of_buffer_unsafe b = Buffer.contents b |! String.uppercase
+let of_string_unsafe s = String.copy s |! String.uppercase
 
 let to_string = String.copy
 let nth t i = String.get t (i-1)
