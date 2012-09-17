@@ -1,4 +1,4 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 
 type t = {lo:int; hi:int}
 exception Bad of string
@@ -106,19 +106,19 @@ let find_min_range ?(init_direction="fwd") v pred i =
   in loop init_direction {lo=i; hi=i}
 
 let expand_assoc_list tal =
-  let ans = Hashtbl.create 100 in
+  let ans = Caml.Hashtbl.create 100 in
   let insert (t,a) =
     for i = t.lo to t.hi do
-      let prev = try Hashtbl.find ans i with Not_found -> [] in
-      Hashtbl.replace ans i (a::prev)
+      let prev = try Caml.Hashtbl.find ans i with Not_found -> [] in
+      Caml.Hashtbl.replace ans i (a::prev)
     done
   in
-  let _ = List.iter insert tal in
-  let ans = Hashtbl.fold (fun key value ans -> (key,value)::ans) ans [] in
-  List.rev (List.map (fun (i,al) -> i, List.rev al) ans)
+  let _ = List.iter ~f:insert tal in
+  let ans = Caml.Hashtbl.fold (fun key value ans -> (key,value)::ans) ans [] in
+  List.rev (List.map ~f:(fun (i,al) -> i, List.rev al) ans)
   
 let find_regions ?(max_gap=0) pred tal =
-  if any_overlap (List.map fst tal) then failwith "overlapping ranges not allowed";
+  if any_overlap (List.map ~f:fst tal) then failwith "overlapping ranges not allowed";
   let tal = List.sort ~cmp:(fun (u,_) (v,_) -> Order.totalify compare_positional u v) tal in  
 
   (* see below for meaning of [curr] *)    
@@ -127,8 +127,8 @@ let find_regions ?(max_gap=0) pred tal =
       | None -> ans
       | Some (v,gap) ->
           try (make v.lo (v.hi - gap))::ans
-          with Bad _ -> failwith (Msg.bug (sprintf "gap = %d, range = %s" gap (to_string v)))    
-  in
+          with Bad _ ->
+            failwithf "gap = %d, range = %s" gap (to_string v) () in
 
   (* curr = Some (v,gap) means [v] is region built up thus far,
    *        with last [gap] elements failing pred, [0 <= gap <= max_gap].
