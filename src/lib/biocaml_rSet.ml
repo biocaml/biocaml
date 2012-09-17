@@ -1,4 +1,4 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 module Range = Biocaml_range
 
 type t = Range.t list (* retained in canonical form *)
@@ -53,11 +53,11 @@ let of_range_list l =
       | Some range -> range::acc 
       | None -> acc
   in
-  to_canonical (List.fold_left ~f ~init:[] l)
+  to_canonical (List.fold ~f ~init:[] l)
 
-let to_range_list t = List.map Range.to_pair t
+let to_range_list t = List.map ~f:Range.to_pair t
 
-let to_list t = List.flatten (List.map Range.to_list t)  
+let to_list t = List.concat (List.map ~f:Range.to_list t)  
 let union s t = to_canonical (s @ t) (* better implementation possible *)
 
 let inter s t =
@@ -110,17 +110,18 @@ let diff s t =
 
 let subset s t = is_empty (diff s t)
 
+  (*
 module Test = struct
     
-  let make_int_set (l : (int * int) list) : IntSet.t =
+  let make_int_set (l : (int * int) list) : Int.Set.t =
     let f accum (lo,hi) =
       if lo > hi then
         accum
       else
         let v = Range.make lo hi in
-        IntSet.union accum (IntSet.of_list (Range.to_list v))
+        Int.Set.union accum (Int.Set.of_list (Range.to_list v))
     in
-    List.fold_left ~f ~init:IntSet.empty l
+    List.fold_left ~f ~init:Int.Set.empty l
       
   let test vl1 vl2 =
     let intset1 = Test.timesf "making first IntSet" make_int_set vl1 in
@@ -146,3 +147,4 @@ module Test = struct
     test (f ()) (f ()) ;
     Random.set_state st
 end
+  *)

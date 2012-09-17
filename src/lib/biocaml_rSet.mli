@@ -38,6 +38,7 @@ val subset : t -> t -> bool
   (** [subset s t] returns true if [s] is a subset of [t]. *)
   
 
+  (*
 (** Debugging *)  
 module Test : sig
   val test : (int * int) list -> (int * int) list -> unit
@@ -47,4 +48,5 @@ module Test : sig
     (** This function generates random lists and uses them as arguments for [test]. The state of the [Random] module
 	is not modified. *)
 end
+  *)
   

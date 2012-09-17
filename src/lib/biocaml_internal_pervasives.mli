@@ -123,6 +123,17 @@ module With_result: sig
 
 end
 
+module Order : sig
+
+  val compose :
+    ('a -> 'b -> int option) ->
+    ('a -> 'b -> int option) -> 'a -> 'b -> int
+  val reverse : ('a -> 'b -> int) -> 'a -> 'b -> int
+  val reversep :
+    ('a -> 'b -> int Option.t) -> 'a -> 'b -> int Option.t
+  val totalify : ('a -> 'b -> 'c option) -> 'a -> 'b -> 'c
+
+end
 
 module Debug: sig
 
