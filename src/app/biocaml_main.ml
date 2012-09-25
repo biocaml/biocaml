@@ -178,8 +178,7 @@ let pull_next ~in_channel ~transform =
   in
   loop ()
 
-let push_to_the_max ~out_channel ~transform input =
-  Biocaml_transform.feed transform input;
+let flush_transform ~out_channel ~transform =
   let rec loop () =
     match Biocaml_transform.next transform with
     | `output o ->
@@ -191,6 +190,10 @@ let push_to_the_max ~out_channel ~transform input =
     | `not_ready -> return ()
   in
   loop ()
+
+let push_to_the_max ~out_channel ~transform input =
+  Biocaml_transform.feed transform input;
+  flush_transform ~out_channel ~transform
 
     
   
@@ -728,7 +731,7 @@ module Demultiplexer = struct
     end in
     Sexp.to_string_hum (M.sexp_of_t e)
     
-  let perform ~mismatch
+  let perform ~mismatch ?gzip_output
       ~input_buffer_size ~read_files
       ~output_buffer_size ~barcode_specification =
 
@@ -751,10 +754,22 @@ module Demultiplexer = struct
     
     map_list_parallel barcode_specification (fun (filename, spec) ->
       map_list_parallel_with_index read_files (fun i _ ->
+        let actual_filename, transform =
+          match gzip_output with
+          | None ->
+            (sprintf "%s_R%d.fastq" filename (i + 1),
+             Biocaml_fastq.Transform.item_to_string ())
+          | Some level ->
+            (sprintf "%s_R%d.fastq.gz" filename (i + 1),
+             Biocaml_transform.compose
+               (Biocaml_fastq.Transform.item_to_string ())
+               (Biocaml_zip.Transform.zip ~format:`gzip ~level
+                  ~zlib_buffer_size:output_buffer_size ()))
+        in 
         Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
-                  (sprintf "%s_R%d.fastq" filename (i + 1)))
+                  actual_filename)
         >>= fun o ->
-        return (Biocaml_fastq.Transform.item_to_string (), o))
+        return (transform, o))
       >>= fun outs ->
       return (outs, spec))
     >>= fun output_specs ->
@@ -793,7 +808,10 @@ module Demultiplexer = struct
     in
     loop () >>= fun () ->
     map_list_parallel output_specs (fun (os, _) ->
-      map_list_parallel ~f:(fun (_, o) -> Lwt_io.close o) os)
+      map_list_parallel os ~f:(fun (transform, out_channel) ->
+        Biocaml_transform.stop transform;
+        flush_transform ~out_channel ~transform >>= fun () ->
+        Lwt_io.close out_channel))
     >>= fun _ ->
     map_list_parallel transform_inputs (fun (_, i) -> Lwt_io.close i)
     >>= fun _ ->
@@ -813,18 +831,20 @@ module Demultiplexer = struct
           file_to_file_flags ()
           ++ flag "mismatch" (optional_with_default 0 int)
             ~doc:"<int> maximal mismatch allowed (default 0)"
+          ++ flag "gzip-output" ~aliases:["gz"] (optional int)
+            ~doc:"<level> output GZip files (compression level: <level>)"
           ++ flag "sexp" (optional string)
             ~doc:"<string> specification as an S-Expr string"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
         begin fun ~input_buffer_size ~output_buffer_size
-          mismatch spec read_files ->
+          mismatch gzip_output spec read_files ->
             begin try
               begin match spec with
               | Some s ->
                 let barcode_specification =
                   Sexp.of_string s |! barcode_specification_of_sexp in
-                perform ~mismatch
+                perform ~mismatch ?gzip_output
                   ~input_buffer_size ~read_files ~output_buffer_size
                   ~barcode_specification
               | None ->
