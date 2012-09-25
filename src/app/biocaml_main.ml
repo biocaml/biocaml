@@ -695,10 +695,86 @@ end
 
 module Demultiplexer = struct
 
-  type barcode_specification =
-    (string * (int * string * int) list) list with sexp
-  (* It means: (filename, and_list (read_nb, barcode, position)) or_list *)
+  type barcode_specification = {
+    barcode: string;
+    position: int;
+    on_read: int;
+    mismatch: int option;
+  }
+  let barcode_specification ?mismatch ~position ~on_read barcode =
+    Blang.base { mismatch; barcode; position; on_read }
+  let barcode_specification_of_sexp =
+    let open Sexp in
+    function
+    | Atom all_in_one as sexp ->
+      begin match String.split ~on:':' all_in_one with
+      | barcode :: on_read_str :: position_str :: rest ->
+        let on_read = Int.of_string on_read_str in
+        let position = Int.of_string position_str in
+        let mismatch =
+          match rest with [] -> None | h :: _ -> Some (Int.of_string h) in
+        { mismatch; barcode; position; on_read}
+        | _ -> of_sexp_error (sprintf "wrong barcode spec") sexp
+      end
+    | List (Atom barcode :: Atom "on" :: Atom "read" :: Atom on_read_str
+            :: Atom "at" :: Atom "position" :: Atom position_str
+            :: more_or_not) as sexp ->
+      let on_read = Int.of_string on_read_str in
+      let position = Int.of_string position_str in
+      let mismatch =
+        match more_or_not with
+        | [ Atom "with"; Atom "mismatch"; Atom mm ] -> Some (Int.of_string mm) 
+        | [] -> None
+        | _ -> of_sexp_error (sprintf "wrong barcode spec") sexp
+      in
+      { mismatch; barcode; position; on_read}
+    | sexp -> of_sexp_error (sprintf "wrong barcode spec") sexp
 
+  let sexp_of_barcode_specification { mismatch; barcode; position; on_read} =
+    let open Sexp in
+    let more =
+      match mismatch with
+      | None -> []
+      | Some mm -> [ Atom "with"; Atom "mismatch"; Atom (Int.to_string mm) ] in
+    List (Atom barcode
+          :: Atom "on" :: Atom "read" :: Atom (Int.to_string on_read)
+          :: Atom "at" :: Atom "position" :: Atom (Int.to_string position)
+          :: more)
+      
+
+  type library = {
+    name_prefix: string;
+    barcoding: barcode_specification Blang.t;
+    (* Disjunctive normal form: or_list (and_list barcode_specs))*)
+  }
+
+  let library_of_sexp =
+    let open Sexp in
+    function
+    | List [Atom "library"; Atom name_prefix; sexp] ->
+      { name_prefix;
+        barcoding = Blang.t_of_sexp barcode_specification_of_sexp  sexp }
+    | sexp ->
+      of_sexp_error (sprintf "wrong library") sexp
+
+  let sexp_of_library {name_prefix; barcoding} =
+    let open Sexp in
+    let rest = Blang.sexp_of_t sexp_of_barcode_specification barcoding in
+    List [Atom "library"; Atom name_prefix; rest]
+        
+  type demux_specification = library list
+  let demux_specification_of_sexp =
+    let open Sexp in
+    function
+    | List (Atom "demux" :: rest) ->
+      List.map rest library_of_sexp
+    | List [] -> []
+    | sexp -> of_sexp_error (sprintf "wrong sexp") sexp
+
+  let sexp_of_demux_specification l =
+    let open Sexp in
+    List (Atom "demux" :: List.map l sexp_of_library)
+    
 
   let join_pair t1 t2 =
     Lwt_list.map_p ident [t1; t2]
@@ -733,7 +809,7 @@ module Demultiplexer = struct
     
   let perform ~mismatch ?gzip_output
       ~input_buffer_size ~read_files
-      ~output_buffer_size ~barcode_specification =
+      ~output_buffer_size ~demux_specification =
 
     map_list_parallel read_files (fun filename ->
       Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size filename)
@@ -752,15 +828,15 @@ module Demultiplexer = struct
       return (transform, inp))
     >>= fun transform_inputs ->
     
-    map_list_parallel barcode_specification (fun (filename, spec) ->
+    map_list_parallel demux_specification (fun {name_prefix; barcoding} ->
       map_list_parallel_with_index read_files (fun i _ ->
         let actual_filename, transform =
           match gzip_output with
           | None ->
-            (sprintf "%s_R%d.fastq" filename (i + 1),
+            (sprintf "%s_R%d.fastq" name_prefix (i + 1),
              Biocaml_fastq.Transform.item_to_string ())
           | Some level ->
-            (sprintf "%s_R%d.fastq.gz" filename (i + 1),
+            (sprintf "%s_R%d.fastq.gz" name_prefix (i + 1),
              Biocaml_transform.compose
                (Biocaml_fastq.Transform.item_to_string ())
                (Biocaml_zip.Transform.zip ~format:`gzip ~level
@@ -771,7 +847,7 @@ module Demultiplexer = struct
         >>= fun o ->
         return (transform, o))
       >>= fun outs ->
-      return (outs, spec))
+      return (outs, barcoding))
     >>= fun output_specs ->
 
     let rec loop () =
@@ -789,12 +865,17 @@ module Demultiplexer = struct
         >>= fun items ->
         map_list_parallel output_specs (fun (outs, spec) ->
           let matches = 
-            List.for_all spec (fun (read_nb, barcode, position) ->
+            let default_mismatch = mismatch in
+            (* List.exists spec (fun conj -> *)
+            Blang.eval spec (fun {on_read; barcode; position; mismatch} ->
+              let mismatch =
+                Option.value ~default:default_mismatch mismatch in
               try
-                let item = List.nth_exn items (read_nb - 1) in
+                let item = List.nth_exn items (on_read - 1) in
                 check_barcode ~position ~barcode ~mismatch
                   item.Biocaml_fastq.sequence
-              with e -> false) in
+              with e -> false)
+          in
           if matches then begin
             List.fold2_exn outs items ~init:(return ())
               ~f:(fun m (transform, out_channel) item ->
@@ -821,20 +902,66 @@ module Demultiplexer = struct
     Command_line.(
       basic ~summary:"Fastq deumltiplexer"
         ~readme:begin fun () ->
+          let open Blang in
           let ex v =
-            (Sexp.to_string_hum (sexp_of_barcode_specification v)) in
-          sprintf "Examples of S-Expressions:\n%S\n%S\n"
-            (ex [])
-            (ex [ ("LibA", [1, "ACGT", 5]); ("LibB", [1, "TCGA", 5]) ])
+            (Sexp.to_string_hum (sexp_of_demux_specification v)) in
+          String.concat ~sep:"\n\n" [
+            "** Examples of S-Expressions:";
+            sprintf "An empty one:\n%s" (ex []);
+            sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
+              (ex [
+                { name_prefix = "LibONE";
+                  barcoding = 
+                    barcode_specification ~position:1 "ACTGTT"
+                      ~mismatch:1 ~on_read:2 };
+                { name_prefix = "LibTWO";
+                  barcoding = 
+                    barcode_specification ~position:1 "CTTATG"
+                      ~mismatch:1 ~on_read:2 };
+              ]);
+            sprintf "A library with two barcodes to match:\n%s"
+              (ex [
+                { name_prefix = "LibAND";
+                  barcoding =
+                    and_ [
+                      barcode_specification ~position:5 "ACTGTT"
+                        ~mismatch:1 ~on_read:1;
+                      barcode_specification ~position:1 "TTGT"
+                        ~on_read:2;
+                    ]}
+              ]);
+            sprintf "A merge of two barcodes into one “library”:\n%s"
+              (ex [
+                { name_prefix = "LibOR";
+                  barcoding = or_ [
+                    barcode_specification ~position:5 "ACTGTT"
+                      ~mismatch:1 ~on_read:1;
+                    barcode_specification ~position:1 "TTGT" ~on_read:2; 
+                  ] }]);
+            begin
+              let example =
+                "(demux\n\
+                \  (library \"Lib with ånnœ¥ing name\" ACCCT:1:2) \
+                    ;; one barcode on R1, at pos 2\n\
+                \  (library GetALL true) ;; get everything\n\
+                \  (library Merge (and AGTT:2:42:1 ACCC:2:42:1 \n\
+                \                   (not AGTGGTC:1:1:2)) \
+                ;; a ∧ b ∧ ¬c  matching\n\
+                ))" in
+              let spec =
+                Sexp.of_string example |! demux_specification_of_sexp in
+              sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec)
+            end;
+          ]
         end
         Spec.(
           file_to_file_flags ()
           ++ flag "mismatch" (optional_with_default 0 int)
-            ~doc:"<int> maximal mismatch allowed (default 0)"
+            ~doc:"<int> default maximal mismatch allowed (default 0)"
           ++ flag "gzip-output" ~aliases:["gz"] (optional int)
             ~doc:"<level> output GZip files (compression level: <level>)"
           ++ flag "sexp" (optional string)
-            ~doc:"<string> specification as an S-Expr string"
+            ~doc:"<string> give the specification as a verbose S-Expression"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
         begin fun ~input_buffer_size ~output_buffer_size
@@ -842,11 +969,11 @@ module Demultiplexer = struct
             begin try
               begin match spec with
               | Some s ->
-                let barcode_specification =
-                  Sexp.of_string s |! barcode_specification_of_sexp in
+                let demux_specification =
+                  Sexp.of_string s |! demux_specification_of_sexp in
                 perform ~mismatch ?gzip_output
                   ~input_buffer_size ~read_files ~output_buffer_size
-                  ~barcode_specification
+                  ~demux_specification
               | None ->
                 failf "no spec provided"
               end
