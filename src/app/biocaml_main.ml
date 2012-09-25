@@ -694,7 +694,7 @@ module Demultiplexer = struct
 
   type barcode_specification =
     (string * (int * string * int) list) list with sexp
-  (* (filename, and_list (read_nb, barcode, position)) or_list *)
+  (* It means: (filename, and_list (read_nb, barcode, position)) or_list *)
 
 
   let join_pair t1 t2 =
@@ -710,7 +710,18 @@ module Demultiplexer = struct
     let c = ref (-1) in
     map_list_parallel l ~f:(fun x -> incr c; f !c x)
       
-  let perform
+  let check_barcode ~mismatch ~position ~barcode sequence =
+    let allowed_mismatch = ref mismatch in
+    let index = ref 0 in
+    while !allowed_mismatch >= 0 && !index <= String.length barcode - 1 do
+      if sequence.[position - 1 + !index] <> barcode.[!index]
+      then decr allowed_mismatch;
+      incr index
+    done;
+    (!allowed_mismatch >= 0)
+      
+    
+  let perform ~mismatch
       ~input_buffer_size ~read_files
       ~output_buffer_size ~barcode_specification =
 
@@ -749,8 +760,8 @@ module Demultiplexer = struct
             List.for_all spec (fun (read_nb, barcode, position) ->
               try
                 let item = List.nth_exn items (read_nb - 1) in
-                String.sub item.Biocaml_fastq.sequence
-                  (position - 1) (String.length barcode) = barcode
+                check_barcode ~position ~barcode ~mismatch
+                  item.Biocaml_fastq.sequence
               with e -> false) in
           if matches then begin
             List.fold2_exn outs items ~init:(return ())
@@ -783,24 +794,28 @@ module Demultiplexer = struct
         end
         Spec.(
           file_to_file_flags ()
+          ++ flag "mismatch" (optional_with_default 0 int)
+            ~doc:"<int> maximal mismatch allowed (default 0)"
           ++ flag "sexp" (optional string)
-            ~doc:"<string> specification as S-Expr string"
+            ~doc:"<string> specification as an S-Expr string"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
-        begin fun ~input_buffer_size ~output_buffer_size spec read_files ->
-          begin try
-            begin match spec with
-            | Some s ->
-              let barcode_specification =
-                Sexp.of_string s |! barcode_specification_of_sexp in
-              perform ~input_buffer_size ~read_files ~output_buffer_size
-                ~barcode_specification
-            | None ->
-              failf "no spec provided"
+        begin fun ~input_buffer_size ~output_buffer_size
+          mismatch spec read_files ->
+            begin try
+              begin match spec with
+              | Some s ->
+                let barcode_specification =
+                  Sexp.of_string s |! barcode_specification_of_sexp in
+                perform ~mismatch
+                  ~input_buffer_size ~read_files ~output_buffer_size
+                  ~barcode_specification
+              | None ->
+                failf "no spec provided"
+              end
+              with
+              | Failure s -> failf "no specification: %s" s
             end
-            with
-            | Failure s -> failf "no specification: %s" s
-          end
         end)
 
       
