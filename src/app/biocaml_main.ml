@@ -720,6 +720,13 @@ module Demultiplexer = struct
     done;
     (!allowed_mismatch >= 0)
       
+  let string_of_error e =
+    let module M = struct
+      type t = [ Biocaml_fastq.Error.t
+               | `unzip of Biocaml_zip.Transform.unzip_error ]
+      with sexp
+    end in
+    Sexp.to_string_hum (M.sexp_of_t e)
     
   let perform ~mismatch
       ~input_buffer_size ~read_files
@@ -728,7 +735,18 @@ module Demultiplexer = struct
     map_list_parallel read_files (fun filename ->
       Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size filename)
       >>= fun inp ->
-      return (Biocaml_fastq.Transform.string_to_item ~filename (), inp))
+      let transform =
+        match Biocaml_tags.guess_from_filename filename with
+        | Ok (`gzip `fastq) | _ when String.is_suffix filename ".gz" ->
+          Biocaml_transform.bind_result
+            ~on_error:(function `left l -> `unzip l | `right r -> r)
+            (Biocaml_zip.Transform.unzip
+               ~zlib_buffer_size:(3 * input_buffer_size) ~format:`gzip ())
+            (Biocaml_fastq.Transform.string_to_item ~filename ())
+        | _ -> 
+          (Biocaml_fastq.Transform.string_to_item ~filename ())
+      in
+      return (transform, inp))
     >>= fun transform_inputs ->
     
     map_list_parallel barcode_specification (fun (filename, spec) ->
@@ -751,8 +769,7 @@ module Demultiplexer = struct
         map_list_parallel_with_index all_the_nexts (fun i -> function
         | Some (Ok item) -> return item
         | Some (Error e) ->
-          failf "error while parsing read %d: %s" (i + 1) 
-            (Biocaml_fastq.Error.t_to_string e)
+          failf "error while parsing read %d: %s" (i + 1) (string_of_error e)
         | None -> failf "read %d is not long enough" (i + 1))
         >>= fun items ->
         map_list_parallel output_specs (fun (outs, spec) ->
