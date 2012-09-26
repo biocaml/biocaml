@@ -256,11 +256,29 @@ module Entrez = struct
   module Entrez = Biocaml_entrez.Make(Fetch)
 
   let pubmed s =
-    Entrez.Pubmed.search (String.concat ~sep:" " s) >>= fun result ->
+    Entrez.PubmedSummary.search (String.concat ~sep:" " s) >>= fun result ->
     Lwt_io.printf "Result:\n" >>= fun () ->
-    Lwt_list.iter_s
-      (fun { Entrez.Pubmed.pmid ; title } ->
-        Lwt_io.printf "* ID: %d\n\tTitle: %s\n" pmid title)
+    Lwt_list.iter_s 
+      (fun { Entrez.PubmedSummary.pmid ; title ; doi } -> 
+        Lwt_io.printf "* ID: %d\n\tTitle: %s\n%s" 
+          pmid title 
+          Option.(value_map doi ~default:"" ~f:(sprintf "\tDOI: %s\n")))
+      result
+
+  let gene s =
+    let open Entrez in
+    Gene.search (String.concat ~sep:" " s) >>= fun result ->
+    Lwt_io.printf "Result:\n" >>= fun () ->
+    Lwt_list.iter_s 
+      (fun { Gene.summary ; gene } -> 
+        Lwt_io.printf "* Gene: %s\n\tIdentifiers: %s\n%s"
+          Option.(value gene.Gene_ref.locus ~default:"")
+          (String.concat 
+             ~sep:", " 
+             (List.map 
+                gene.Gene_ref.db
+                (fun db -> sprintf "%s:%s" db.Dbtag.db (Object_id.to_string db.Dbtag.tag))))
+          Option.(value_map summary ~default:"" ~f:(sprintf "\tSummary: %s\n")))
       result
 
   let command =
@@ -274,7 +292,16 @@ module Entrez = struct
              ++ anon (sequence "SEARCH" string)
              ++ uses_lwt ()
            )
-           pubmed)
+           pubmed) ;
+        ("gene",
+         basic
+           ~summary:"Test a simple query in Entrez Gene"
+           Spec.(
+             verbosity_flags ()
+             ++ anon (sequence "SEARCH" string)
+             ++ uses_lwt ()
+           )
+           gene) ;
       ])
 
 end
