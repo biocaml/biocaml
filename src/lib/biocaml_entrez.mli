@@ -72,7 +72,7 @@ val efetch_url :
     support more than 200 ids. For legible values of [rettype] and
     [retmode] please consult
     {{:http://www.ncbi.nlm.nih.gov/books/NBK25499/table/chapter4.chapter4_table1/?report=objectonly}the
-    official specification. *)
+    official specification}. *)
 
 (** {4 High level access} *)
 
