@@ -962,15 +962,27 @@ module Demultiplexer = struct
             ~doc:"<level> output GZip files (compression level: <level>)"
           ++ flag "sexp" (optional string)
             ~doc:"<string> give the specification as a verbose S-Expression"
+          ++ flag "undetermined" (optional string)
+            ~doc:"<name> put all the non-matched reads in a library"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
         begin fun ~input_buffer_size ~output_buffer_size
-          mismatch gzip_output spec read_files ->
+          mismatch gzip_output spec undetermined read_files ->
             begin try
               begin match spec with
               | Some s ->
                 let demux_specification =
                   Sexp.of_string s |! demux_specification_of_sexp in
+                let demux_specification =
+                  Option.value_map undetermined ~default:demux_specification
+                    ~f:(fun name_prefix ->
+                      let open Blang in
+                      { name_prefix; 
+                        barcoding =
+                          not_ (or_ (List.map demux_specification
+                                       (fun l -> l.barcoding))) }
+                      :: demux_specification)
+                in
                 perform ~mismatch ?gzip_output
                   ~input_buffer_size ~read_files ~output_buffer_size
                   ~demux_specification
