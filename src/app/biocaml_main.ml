@@ -960,38 +960,44 @@ module Demultiplexer = struct
             ~doc:"<int> default maximal mismatch allowed (default 0)"
           ++ flag "gzip-output" ~aliases:["gz"] (optional int)
             ~doc:"<level> output GZip files (compression level: <level>)"
-          ++ flag "sexp" (optional string)
-            ~doc:"<string> give the specification as a verbose S-Expression"
+          ++ flag "demux" (optional string)
+            ~doc:"<string> give the specification as a list of S-Expressions"
+          ++ flag "specification" ~aliases:["spec"] (optional string)
+            ~doc:"<file> give a path to a file containing the specification"
           ++ flag "undetermined" (optional string)
             ~doc:"<name> put all the non-matched reads in a library"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
         begin fun ~input_buffer_size ~output_buffer_size
-          mismatch gzip_output spec undetermined read_files ->
-            begin try
-              begin match spec with
-              | Some s ->
-                let demux_specification =
-                  Sexp.of_string s |! demux_specification_of_sexp in
-                let demux_specification =
-                  Option.value_map undetermined ~default:demux_specification
-                    ~f:(fun name_prefix ->
-                      let open Blang in
-                      { name_prefix; 
-                        barcoding =
-                          not_ (or_ (List.map demux_specification
-                                       (fun l -> l.barcoding))) }
-                      :: demux_specification)
-                in
-                perform ~mismatch ?gzip_output
-                  ~input_buffer_size ~read_files ~output_buffer_size
-                  ~demux_specification
-              | None ->
-                failf "no spec provided"
-              end
-              with
-              | Failure s -> failf "no specification: %s" s
+          mismatch gzip_output demux spec undetermined read_files ->
+            let demux_spec_from_cl =
+              Option.value_map demux ~default:[] ~f:(fun s ->
+                Sexp.of_string (sprintf "(demux %s)" s)
+                |! demux_specification_of_sexp) in
+            begin match spec with
+            | Some s ->
+              Lwt_io.(with_file ~mode:input s (fun i -> read i))
+              >|= (sprintf "(\n%s\n)") (* avoid s-exp parsing errors:
+                                          by ensuring it ends with ')' *)
+              >|= Sexp.of_string
+              >|= (function Sexp.List (h :: []) -> h | v -> v)
+              >|= demux_specification_of_sexp
+            | None -> return []
             end
+            >>= fun demux_spec_from_file ->
+            let demux_specification =
+              let default = demux_spec_from_cl @ demux_spec_from_file in
+              Option.value_map undetermined ~default
+                ~f:(fun name_prefix ->
+                  let open Blang in
+                  { name_prefix; 
+                    barcoding =
+                      not_ (or_ (List.map default (fun l -> l.barcoding))) }
+                  :: default)
+            in
+            perform ~mismatch ?gzip_output
+              ~input_buffer_size ~read_files ~output_buffer_size
+              ~demux_specification
         end)
 
       
