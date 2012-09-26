@@ -1,7 +1,7 @@
 
 open Core.Std
 open Lwt
-  
+
 let verbose = ref false
 let dbg fmt =
   ksprintf (fun s ->
@@ -11,23 +11,23 @@ let dbg fmt =
 
 let failf fmt =
   ksprintf (fun s -> fail (Failure s)) fmt
-    
+
 module Command_line = struct
   include  Core_extended.Std.Core_command
-    
-    
+
+
   let lwts_to_run = ref ([]: unit Lwt.t list)
   let uses_lwt () =
     Spec.step (fun lwt -> lwts_to_run := lwt :: !lwts_to_run)
 
-  
+
   let input_buffer_size_flag () =
     Spec.(
       step (fun k v -> k ~input_buffer_size:v)
       ++ flag "input-buffer" ~aliases:["ib"] (optional_with_default 42_000 int)
         ~doc:"<int> input buffer size (Default: 42_000)")
-      
-  let verbosity_flags () = 
+
+  let verbosity_flags () =
     let set_verbosity v =
       if v then Biocaml_internal_pervasives.Debug.enable "BAM";
       if v then Biocaml_internal_pervasives.Debug.enable "SAM";
@@ -78,7 +78,7 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
           | `not_ready ->
             dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
-          | `output (Error (`string s)) -> 
+          | `output (Error (`string s)) ->
             Lwt_io.eprintf "=====  ERROR: %s\n%!" s
         in
         let rec loop () =
@@ -119,22 +119,22 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
         | `not_ready ->
           dbg "NOT READY" >>= fun () ->
           if stopped then count_all stopped else return ()
-        | `output (Error (`bed s)) -> 
+        | `output (Error (`bed s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_bed.sexp_of_parse_error s |! Sexp.to_string_hum)
-        | `output (Error (`bam s)) -> 
+        | `output (Error (`bam s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
-        | `output (Error (`sam s)) -> 
+        | `output (Error (`sam s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_sam.Error.sexp_of_string_to_raw s |! Sexp.to_string_hum)
-        | `output (Error (`unzip s)) -> 
+        | `output (Error (`unzip s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
-        | `output (Error (`bam_to_item s)) -> 
+        | `output (Error (`bam_to_item s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_bam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
-        | `output (Error (`sam_to_item s)) -> 
+        | `output (Error (`sam_to_item s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!"
             (Biocaml_sam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
       in
@@ -158,6 +158,47 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
       loop 0
     ))
 
+let pull_next ~in_channel ~transform =
+  let rec loop () =
+    match Biocaml_transform.next transform with
+    | `output o -> return (Some o)
+    | `end_of_stream -> return None
+    | `not_ready ->
+      Lwt_io.(read ~count:(buffer_size in_channel) in_channel)
+      >>= fun read_string ->
+      if read_string = ""
+      then begin
+        Biocaml_transform.stop transform;
+        loop ()
+      end
+      else begin
+        Biocaml_transform.feed transform read_string;
+        loop ()
+      end
+  in
+  loop ()
+
+let flush_transform ~out_channel ~transform =
+  let rec loop () =
+    match Biocaml_transform.next transform with
+    | `output o ->
+      Lwt_io.(write out_channel o)
+      >>= fun () ->
+      loop ()
+    | `end_of_stream ->
+      return ()
+    | `not_ready -> return ()
+  in
+  loop ()
+
+let push_to_the_max ~out_channel ~transform input =
+  Biocaml_transform.feed transform input;
+  flush_transform ~out_channel ~transform
+
+    
+  
+
+
 module Http_method = struct
   type t = string -> (string, string) Result.t Lwt.t
 
@@ -180,8 +221,8 @@ module Http_method = struct
     | Lwt_unix.WEXITED 0 -> return (List.hd_exn output)
     | _ -> failf "Cmd %S failed: %s" s (List.nth_exn output 1)
     end
-    
-      
+
+
   let discover () =
     detect_exe "curl"
     >>= fun curls_there ->
@@ -240,10 +281,10 @@ module Entrez = struct
           Option.(value_map summary ~default:"" ~f:(sprintf "\tSummary: %s\n")))
       result
 
-  let command = 
+  let command =
     Command_line.(
       group ~summary:"Query the Entrez/EUtils database" [
-        ("pubmed", 
+        ("pubmed",
          basic
            ~summary:"Test a simple query in pubmed journals"
            Spec.(
@@ -262,19 +303,14 @@ module Entrez = struct
            )
            gene) ;
       ])
-      
+
 end
-  
 
 
-
-
-
-  
 module Bam_conversion = struct
 
   let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
-    
+
   let bam_to_sam ?input_buffer_size =
     file_to_file ?input_buffer_size
       Biocaml_transform.(
@@ -309,7 +345,7 @@ module Bam_conversion = struct
                 (Biocaml_bam.Transform.string_to_raw
                    ~zlib_buffer_size:(10 * input_buffer_size) ())
                 (Biocaml_bam.Transform.raw_to_item ()))
-             (map_result 
+             (map_result
                 (Biocaml_bam.Transform.item_to_raw ())
                 (Biocaml_bam.Transform.raw_to_string
                    ?zlib_buffer_size:output_buffer_size ())))
@@ -335,7 +371,7 @@ module Bam_conversion = struct
           ++ uses_lwt ())
         (fun ~input_buffer_size ~output_buffer_size bam sam ->
           bam_to_sam ~input_buffer_size bam ~output_buffer_size sam))
-      
+
   let cmd_bam_to_bam =
     Command_line.(
       basic ~summary:"convert from BAM to BAM again (after parsing everything)"
@@ -368,7 +404,7 @@ module Bam_conversion = struct
     let create () = ref String.Map.empty
     let add_interval t n b e =
       match Map.find !t n with
-      | Some set -> 
+      | Some set ->
         set := S.add !set (O b);
         set := S.add !set (C e)
       | None ->
@@ -376,7 +412,7 @@ module Bam_conversion = struct
         set := S.add !set (O b);
         set := S.add !set (C e);
         t := Map.add !t n set
-          
+
     module Bed_set = Set.Make (struct
       type t = string * int * int * float with sexp
       let compare = Pervasives.compare
@@ -408,7 +444,7 @@ module Bam_conversion = struct
         ));
       !beds
 
-        
+
   end
 
   let build_wig ?(max_read_bytes=max_int)
@@ -457,10 +493,10 @@ module Bam_conversion = struct
           begin match al with
           | { reference_sequence = `reference_sequence rs;
               sequence = `reference; _ } ->
-            add_interval tree rs.ref_name pos (pos + rs.ref_length) 
+            add_interval tree rs.ref_name pos (pos + rs.ref_length)
           | { reference_sequence = `reference_sequence rs;
               sequence = `string s; _ } ->
-            add_interval tree rs.ref_name pos (pos + String.length s) 
+            add_interval tree rs.ref_name pos (pos + String.length s)
           | _ -> ()
           end);
         Ok (`alignment al)
@@ -477,7 +513,7 @@ module Bam_conversion = struct
             fprintf o "%s %d %d %g\n" chr b e f)
         )
     )
-      
+
   let cmd_extract_wig =
     Command_line.(
       basic ~summary:"Get the WIG out of a BAM or a SAM (potentially gzipped)"
@@ -494,7 +530,7 @@ module Bam_conversion = struct
             input_file wig)
     )
 
-  let command = 
+  let command =
     Command_line.(
       group ~summary:"Operations on BAM/SAM files (potentially gzipped)" [
         ("to-sam", cmd_bam_to_sam);
@@ -505,17 +541,17 @@ module Bam_conversion = struct
 end
 module Bed_operations = struct
 
-    
+
   let load ~on_output ~input_buffer_size ?(max_read_bytes=max_int) filename =
     let tags =
       match Biocaml_tags.guess_from_filename filename with
       | Ok o -> o
       | Error e -> `bed
     in
-    let parsing_transform = 
+    let parsing_transform =
       match tags with
       | `bed ->
-        Biocaml_transform.on_output 
+        Biocaml_transform.on_output
           (Biocaml_bed.Transform.string_to_t ())
           ~f:(function Ok o -> Ok o | Error e -> Error (`bed e))
       | `gzip `bed ->
@@ -524,12 +560,12 @@ module Bed_operations = struct
           (Biocaml_zip.Transform.unzip
              ~zlib_buffer_size:(10 * input_buffer_size) ~format:`gzip ())
           (Biocaml_bed.Transform.string_to_t ())
-      | _ -> 
+      | _ ->
         (failwith "cannot handle file-format")
     in
     let transform = Biocaml_transform.on_output parsing_transform ~f:on_output in
     go_through_input ~transform ~max_read_bytes ~input_buffer_size filename
-    
+
   let load_itree () =
     let map = ref String.Map.empty in
     let add n low high content =
@@ -550,7 +586,7 @@ module Bed_operations = struct
       | Error e -> Error e
     in
     (map, on_output)
-      
+
   let load_rset () =
     let map = ref String.Map.empty in
     let add n low high content =
@@ -568,8 +604,8 @@ module Bed_operations = struct
       | Error e -> Error e
     in
     (map, on_output)
-    
-      
+
+
   let intersects map name low high =
     match Map.find map name with
     | Some tree_ref ->
@@ -578,7 +614,7 @@ module Bed_operations = struct
       else Lwt_io.printf "No\n"
     | None ->
       Lwt_io.printf "Record for %S not found\n" name
-      
+
   let rset_folding ~fold_operation ~fold_init
       ~input_buffer_size max_read_bytes input_files =
     let all_names = ref String.Set.empty in
@@ -600,7 +636,7 @@ module Bed_operations = struct
       |! List.fold ~init:(return ()) ~f:(fun m (low, high) ->
         m >>= fun () ->
         Lwt_io.printf "%s\t%d\t%d\n" name low high))
-      
+
   let command =
     Command_line.(
       group ~summary:"Operations on BED files (potentially gzipped)" [
@@ -680,11 +716,303 @@ module Bed_operations = struct
                ~input_buffer_size max_read_bytes input_files)
         );
       ])
-      
+
 end
 
 
+module Demultiplexer = struct
+
+  type barcode_specification = {
+    barcode: string;
+    position: int;
+    on_read: int;
+    mismatch: int option;
+  }
+  let barcode_specification ?mismatch ~position ~on_read barcode =
+    Blang.base { mismatch; barcode; position; on_read }
+  let barcode_specification_of_sexp =
+    let open Sexp in
+    function
+    | Atom all_in_one as sexp ->
+      begin match String.split ~on:':' all_in_one with
+      | barcode :: on_read_str :: position_str :: rest ->
+        let on_read = Int.of_string on_read_str in
+        let position = Int.of_string position_str in
+        let mismatch =
+          match rest with [] -> None | h :: _ -> Some (Int.of_string h) in
+        { mismatch; barcode; position; on_read}
+        | _ -> of_sexp_error (sprintf "wrong barcode spec") sexp
+      end
+    | List (Atom barcode :: Atom "on" :: Atom "read" :: Atom on_read_str
+            :: Atom "at" :: Atom "position" :: Atom position_str
+            :: more_or_not) as sexp ->
+      let on_read = Int.of_string on_read_str in
+      let position = Int.of_string position_str in
+      let mismatch =
+        match more_or_not with
+        | [ Atom "with"; Atom "mismatch"; Atom mm ] -> Some (Int.of_string mm) 
+        | [] -> None
+        | _ -> of_sexp_error (sprintf "wrong barcode spec") sexp
+      in
+      { mismatch; barcode; position; on_read}
+    | sexp -> of_sexp_error (sprintf "wrong barcode spec") sexp
+
+  let sexp_of_barcode_specification { mismatch; barcode; position; on_read} =
+    let open Sexp in
+    let more =
+      match mismatch with
+      | None -> []
+      | Some mm -> [ Atom "with"; Atom "mismatch"; Atom (Int.to_string mm) ] in
+    List (Atom barcode
+          :: Atom "on" :: Atom "read" :: Atom (Int.to_string on_read)
+          :: Atom "at" :: Atom "position" :: Atom (Int.to_string position)
+          :: more)
+      
+
+  type library = {
+    name_prefix: string;
+    barcoding: barcode_specification Blang.t;
+    (* Disjunctive normal form: or_list (and_list barcode_specs))*)
+  }
+
+  let library_of_sexp =
+    let open Sexp in
+    function
+    | List [Atom "library"; Atom name_prefix; sexp] ->
+      { name_prefix;
+        barcoding = Blang.t_of_sexp barcode_specification_of_sexp  sexp }
+    | sexp ->
+      of_sexp_error (sprintf "wrong library") sexp
+
+  let sexp_of_library {name_prefix; barcoding} =
+    let open Sexp in
+    let rest = Blang.sexp_of_t sexp_of_barcode_specification barcoding in
+    List [Atom "library"; Atom name_prefix; rest]
+        
+  type demux_specification = library list
+  let demux_specification_of_sexp =
+    let open Sexp in
+    function
+    | List (Atom "demux" :: rest) ->
+      List.map rest library_of_sexp
+    | List [] -> []
+    | sexp -> of_sexp_error (sprintf "wrong sexp") sexp
+
+  let sexp_of_demux_specification l =
+    let open Sexp in
+    List (Atom "demux" :: List.map l sexp_of_library)
     
+
+  let join_pair t1 t2 =
+    Lwt_list.map_p ident [t1; t2]
+    >>= begin function
+    | [ r1; r2] -> return (r1, r2)
+    | _ -> failf "join_pair did not return 2 elements"
+    end
+
+  let map_list_parallel l ~f = Lwt_list.map_p f l
+
+  let map_list_parallel_with_index l ~f =
+    let c = ref (-1) in
+    map_list_parallel l ~f:(fun x -> incr c; f !c x)
+      
+  let check_barcode ~mismatch ~position ~barcode sequence =
+    let allowed_mismatch = ref mismatch in
+    let index = ref 0 in
+    while !allowed_mismatch >= 0 && !index <= String.length barcode - 1 do
+      if sequence.[position - 1 + !index] <> barcode.[!index]
+      then decr allowed_mismatch;
+      incr index
+    done;
+    (!allowed_mismatch >= 0)
+      
+  let string_of_error e =
+    let module M = struct
+      type t = [ Biocaml_fastq.Error.t
+               | `unzip of Biocaml_zip.Transform.unzip_error ]
+      with sexp
+    end in
+    Sexp.to_string_hum (M.sexp_of_t e)
+    
+  let perform ~mismatch ?gzip_output
+      ~input_buffer_size ~read_files
+      ~output_buffer_size ~demux_specification =
+
+    map_list_parallel read_files (fun filename ->
+      Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size filename)
+      >>= fun inp ->
+      let transform =
+        match Biocaml_tags.guess_from_filename filename with
+        | Ok (`gzip `fastq) | _ when String.is_suffix filename ".gz" ->
+          Biocaml_transform.bind_result
+            ~on_error:(function `left l -> `unzip l | `right r -> r)
+            (Biocaml_zip.Transform.unzip
+               ~zlib_buffer_size:(3 * input_buffer_size) ~format:`gzip ())
+            (Biocaml_fastq.Transform.string_to_item ~filename ())
+        | _ -> 
+          (Biocaml_fastq.Transform.string_to_item ~filename ())
+      in
+      return (transform, inp))
+    >>= fun transform_inputs ->
+    
+    map_list_parallel demux_specification (fun {name_prefix; barcoding} ->
+      map_list_parallel_with_index read_files (fun i _ ->
+        let actual_filename, transform =
+          match gzip_output with
+          | None ->
+            (sprintf "%s_R%d.fastq" name_prefix (i + 1),
+             Biocaml_fastq.Transform.item_to_string ())
+          | Some level ->
+            (sprintf "%s_R%d.fastq.gz" name_prefix (i + 1),
+             Biocaml_transform.compose
+               (Biocaml_fastq.Transform.item_to_string ())
+               (Biocaml_zip.Transform.zip ~format:`gzip ~level
+                  ~zlib_buffer_size:output_buffer_size ()))
+        in 
+        Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
+                  actual_filename)
+        >>= fun o ->
+        return (transform, o))
+      >>= fun outs ->
+      return (outs, barcoding))
+    >>= fun output_specs ->
+
+    let rec loop () =
+      map_list_parallel transform_inputs (fun (transform, in_channel) ->
+        pull_next ~transform  ~in_channel)
+      >>= fun all_the_nexts ->
+      if List.for_all all_the_nexts ((=) None)
+      then return ()
+      else begin
+        map_list_parallel_with_index all_the_nexts (fun i -> function
+        | Some (Ok item) -> return item
+        | Some (Error e) ->
+          failf "error while parsing read %d: %s" (i + 1) (string_of_error e)
+        | None -> failf "read %d is not long enough" (i + 1))
+        >>= fun items ->
+        map_list_parallel output_specs (fun (outs, spec) ->
+          let matches = 
+            let default_mismatch = mismatch in
+            (* List.exists spec (fun conj -> *)
+            Blang.eval spec (fun {on_read; barcode; position; mismatch} ->
+              let mismatch =
+                Option.value ~default:default_mismatch mismatch in
+              try
+                let item = List.nth_exn items (on_read - 1) in
+                check_barcode ~position ~barcode ~mismatch
+                  item.Biocaml_fastq.sequence
+              with e -> false)
+          in
+          if matches then begin
+            List.fold2_exn outs items ~init:(return ())
+              ~f:(fun m (transform, out_channel) item ->
+                m >>= fun () ->
+                push_to_the_max ~transform ~out_channel item)
+          end
+          else return ())
+        >>= fun _ ->
+        loop ()
+      end
+    in
+    loop () >>= fun () ->
+    map_list_parallel output_specs (fun (os, _) ->
+      map_list_parallel os ~f:(fun (transform, out_channel) ->
+        Biocaml_transform.stop transform;
+        flush_transform ~out_channel ~transform >>= fun () ->
+        Lwt_io.close out_channel))
+    >>= fun _ ->
+    map_list_parallel transform_inputs (fun (_, i) -> Lwt_io.close i)
+    >>= fun _ ->
+    return ()
+
+  let command =
+    Command_line.(
+      basic ~summary:"Fastq deumltiplexer"
+        ~readme:begin fun () ->
+          let open Blang in
+          let ex v =
+            (Sexp.to_string_hum (sexp_of_demux_specification v)) in
+          String.concat ~sep:"\n\n" [
+            "** Examples of S-Expressions:";
+            sprintf "An empty one:\n%s" (ex []);
+            sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
+              (ex [
+                { name_prefix = "LibONE";
+                  barcoding = 
+                    barcode_specification ~position:1 "ACTGTT"
+                      ~mismatch:1 ~on_read:2 };
+                { name_prefix = "LibTWO";
+                  barcoding = 
+                    barcode_specification ~position:1 "CTTATG"
+                      ~mismatch:1 ~on_read:2 };
+              ]);
+            sprintf "A library with two barcodes to match:\n%s"
+              (ex [
+                { name_prefix = "LibAND";
+                  barcoding =
+                    and_ [
+                      barcode_specification ~position:5 "ACTGTT"
+                        ~mismatch:1 ~on_read:1;
+                      barcode_specification ~position:1 "TTGT"
+                        ~on_read:2;
+                    ]}
+              ]);
+            sprintf "A merge of two barcodes into one “library”:\n%s"
+              (ex [
+                { name_prefix = "LibOR";
+                  barcoding = or_ [
+                    barcode_specification ~position:5 "ACTGTT"
+                      ~mismatch:1 ~on_read:1;
+                    barcode_specification ~position:1 "TTGT" ~on_read:2; 
+                  ] }]);
+            begin
+              let example =
+                "(demux\n\
+                \  (library \"Lib with ånnœ¥ing name\" ACCCT:1:2) \
+                    ;; one barcode on R1, at pos 2\n\
+                \  (library GetALL true) ;; get everything\n\
+                \  (library Merge (and AGTT:2:42:1 ACCC:2:42:1 \n\
+                \                   (not AGTGGTC:1:1:2)) \
+                ;; a ∧ b ∧ ¬c  matching\n\
+                ))" in
+              let spec =
+                Sexp.of_string example |! demux_specification_of_sexp in
+              sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec)
+            end;
+          ]
+        end
+        Spec.(
+          file_to_file_flags ()
+          ++ flag "mismatch" (optional_with_default 0 int)
+            ~doc:"<int> default maximal mismatch allowed (default 0)"
+          ++ flag "gzip-output" ~aliases:["gz"] (optional int)
+            ~doc:"<level> output GZip files (compression level: <level>)"
+          ++ flag "sexp" (optional string)
+            ~doc:"<string> give the specification as a verbose S-Expression"
+          ++ anon (sequence "READ-FILES" string)
+          ++ uses_lwt ())
+        begin fun ~input_buffer_size ~output_buffer_size
+          mismatch gzip_output spec read_files ->
+            begin try
+              begin match spec with
+              | Some s ->
+                let demux_specification =
+                  Sexp.of_string s |! demux_specification_of_sexp in
+                perform ~mismatch ?gzip_output
+                  ~input_buffer_size ~read_files ~output_buffer_size
+                  ~demux_specification
+              | None ->
+                failf "no spec provided"
+              end
+              with
+              | Failure s -> failf "no specification: %s" s
+            end
+        end)
+
+      
+
+end
+
 
 let cmd_info =
   Command_line.(
@@ -713,7 +1041,7 @@ let cmd_info =
         Lwt_list.iter_s f files)
     )
 
-  
+
 let () =
   Command_line.(
     let whole_thing =
@@ -721,6 +1049,7 @@ let () =
         ("bed", Bed_operations.command);
         ("bam", Bam_conversion.command);
         ("entrez", Entrez.command);
+        ("demux", Demultiplexer.command);
         ("info", cmd_info);
       ] in
     run whole_thing;

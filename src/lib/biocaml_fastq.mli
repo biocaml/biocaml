@@ -56,7 +56,7 @@ end
 module Transform: sig
   val string_to_item:
     ?filename:string -> unit ->
-    (string, (item, Error.t) Core.Result.t) Biocaml_transform.t
+    (string, (item, [> Error.t]) Core.Result.t) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] from arbitrary strings to
     [item] values.*)
 
@@ -66,7 +66,7 @@ module Transform: sig
 
   val trim:
     [ `beginning of int | `ending of int ] ->
-    (item, (item, [`invalid_size of int]) Core.Result.t) Biocaml_transform.t
+    (item, (item, [> `invalid_size of int]) Core.Result.t) Biocaml_transform.t
 (** Create a full {i stoppable} [Biocaml_transform.t] that trims FASTQ
     items. *)
 end
