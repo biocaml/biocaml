@@ -824,7 +824,7 @@ module Demultiplexer = struct
       then decr allowed_mismatch;
       incr index
     done;
-    (!allowed_mismatch >= 0)
+    (!allowed_mismatch >= 0, mismatch - !allowed_mismatch)
       
   let string_of_error e =
     let module M = struct
@@ -834,7 +834,14 @@ module Demultiplexer = struct
     end in
     Sexp.to_string_hum (M.sexp_of_t e)
     
-  let perform ~mismatch ?gzip_output
+  type library_statistics = {
+    mutable read_count: int;
+    mutable no_mismatch_read_count: int;
+  }
+  let library_statistics () =
+    { read_count = 0; no_mismatch_read_count = 0; }
+
+  let perform ~mismatch ?gzip_output ?do_statistics
       ~input_buffer_size ~read_files
       ~output_buffer_size ~demux_specification =
 
@@ -874,7 +881,8 @@ module Demultiplexer = struct
         >>= fun o ->
         return (transform, o))
       >>= fun outs ->
-      return (outs, barcoding))
+      return (name_prefix, outs, barcoding,
+              Option.map do_statistics (fun _ -> library_statistics ())))
     >>= fun output_specs ->
 
     let rec loop () =
@@ -890,40 +898,69 @@ module Demultiplexer = struct
           failf "error while parsing read %d: %s" (i + 1) (string_of_error e)
         | None -> failf "read %d is not long enough" (i + 1))
         >>= fun items ->
-        map_list_parallel output_specs (fun (outs, spec) ->
-          let matches = 
+        map_list_parallel output_specs (fun (_, outs, spec, stats_opt) ->
+          let matches, max_mismatch = 
             let default_mismatch = mismatch in
-            (* List.exists spec (fun conj -> *)
-            Blang.eval spec (fun {on_read; barcode; position; mismatch} ->
-              let mismatch =
-                Option.value ~default:default_mismatch mismatch in
-              try
-                let item = List.nth_exn items (on_read - 1) in
-                check_barcode ~position ~barcode ~mismatch
-                  item.Biocaml_fastq.sequence
-              with e -> false)
+            let max_mismatch = ref 0 in
+            let matches =
+              Blang.eval spec (fun {on_read; barcode; position; mismatch} ->
+                let mismatch =
+                  Option.value ~default:default_mismatch mismatch in
+                try
+                  let item = List.nth_exn items (on_read - 1) in
+                  let matches, mm =
+                    check_barcode ~position ~barcode ~mismatch
+                      item.Biocaml_fastq.sequence in
+                  if matches then max_mismatch := max !max_mismatch mm;
+                  matches
+                with e -> false) in
+            matches, !max_mismatch
           in
           if matches then begin
+            Option.iter stats_opt (fun s ->
+              s.read_count <- s.read_count + 1;
+              if max_mismatch = 0 then
+                s.no_mismatch_read_count <- s.no_mismatch_read_count + 1;
+            );
             List.fold2_exn outs items ~init:(return ())
               ~f:(fun m (transform, out_channel) item ->
                 m >>= fun () ->
                 push_to_the_max ~transform ~out_channel item)
           end
-          else return ())
+          else
+            return ())
         >>= fun _ ->
         loop ()
       end
     in
     loop () >>= fun () ->
-    map_list_parallel output_specs (fun (os, _) ->
+    begin match do_statistics with
+    | Some s -> 
+      let open Lwt_io in
+      open_file ~mode:output ~buffer_size:output_buffer_size s >>= fun o ->
+      fprintf o ";; library_name read_count 0_mismatch_read_count\n"
+      >>= fun () ->
+      return (Some o)
+    | None -> return None
+    end
+    >>= fun stats_channel ->
+    map_list_parallel output_specs (fun (name, os, spec, stats) ->
       map_list_parallel os ~f:(fun (transform, out_channel) ->
         Biocaml_transform.stop transform;
         flush_transform ~out_channel ~transform >>= fun () ->
-        Lwt_io.close out_channel))
+        Lwt_io.close out_channel)
+      >>= fun _ ->
+      begin match stats, stats_channel with
+      | Some { read_count; no_mismatch_read_count }, Some o ->
+        Lwt_io.fprintf o "(%S %d %d)\n" name
+          read_count no_mismatch_read_count
+      | _, _ -> return ()
+      end
+    )
     >>= fun _ ->
     map_list_parallel transform_inputs (fun (_, i) -> Lwt_io.close i)
     >>= fun _ ->
-    return ()
+    Option.value_map stats_channel ~default:(return ()) ~f:Lwt_io.close 
 
   let command =
     Command_line.(
@@ -993,10 +1030,12 @@ module Demultiplexer = struct
             ~doc:"<file> give a path to a file containing the specification"
           ++ flag "undetermined" (optional string)
             ~doc:"<name> put all the non-matched reads in a library"
+          ++ flag "statistics" ~aliases:["stats"] (optional string)
+            ~doc:"<file> do some basic statistics and write them to <file>"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
-        begin fun ~input_buffer_size ~output_buffer_size
-          mismatch gzip_output demux spec undetermined read_files ->
+        begin fun ~input_buffer_size ~output_buffer_size mismatch
+          gzip_output demux spec undetermined do_statistics read_files ->
             let demux_spec_from_cl =
               Option.value_map demux ~default:[] ~f:(fun s ->
                 Sexp.of_string (sprintf "(demux %s)" s)
@@ -1022,7 +1061,7 @@ module Demultiplexer = struct
                       not_ (or_ (List.map default (fun l -> l.barcoding))) }
                   :: default)
             in
-            perform ~mismatch ?gzip_output
+            perform ~mismatch ?gzip_output ?do_statistics
               ~input_buffer_size ~read_files ~output_buffer_size
               ~demux_specification
         end)
