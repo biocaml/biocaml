@@ -962,6 +962,46 @@ module Demultiplexer = struct
     >>= fun _ ->
     Option.value_map stats_channel ~default:(return ()) ~f:Lwt_io.close 
 
+  let parse_configuration s =
+    let open Sexp in
+    let sexp = ksprintf of_string "(\n%s\n)" s in
+    let entries =
+      match sexp with List entries -> entries | _ -> assert false in
+    let mismatch =
+      List.find_map entries (function
+      | List [Atom "default-mismatch"; Atom vs] ->
+        Some (Int.of_string vs)
+      | _ -> None) in
+    let undetermined = 
+      List.find_map entries (function
+      | List [Atom "undetermined"; Atom vs] ->
+        Some vs
+      | _ -> None) in
+    let gzip = 
+      List.find_map entries (function
+      | List [Atom "gzip-output"; Atom vs] ->
+        Some (Int.of_string vs)
+      | _ -> None) in
+    let demux =
+      List.find_map entries (function
+      | List (Atom "demux" :: _) as s ->
+        Some (demux_specification_of_sexp s)
+      | _ -> None) in
+    let stats =
+      List.find_map entries (function
+      | List [Atom "statistics"; Atom vs] ->
+        Some vs
+      | _ -> None) in
+    let inputs =
+      List.find_map entries (function
+      | List (Atom "input" :: files) ->
+        Some (List.map files (function
+        | Atom a -> a
+        | s ->
+          failwithf "wrong input files specification: %s" (to_string_hum s) ()))
+      | _ -> None) in
+    (mismatch, gzip, undetermined, stats, demux, inputs)
+    
   let command =
     Command_line.(
       basic ~summary:"Fastq deumltiplexer"
@@ -1020,7 +1060,7 @@ module Demultiplexer = struct
         end
         Spec.(
           file_to_file_flags ()
-          ++ flag "mismatch" (optional_with_default 0 int)
+          ++ flag "default-mismatch" (optional int)
             ~doc:"<int> default maximal mismatch allowed (default 0)"
           ++ flag "gzip-output" ~aliases:["gz"] (optional int)
             ~doc:"<level> output GZip files (compression level: <level>)"
@@ -1034,25 +1074,42 @@ module Demultiplexer = struct
             ~doc:"<file> do some basic statistics and write them to <file>"
           ++ anon (sequence "READ-FILES" string)
           ++ uses_lwt ())
-        begin fun ~input_buffer_size ~output_buffer_size mismatch
-          gzip_output demux spec undetermined do_statistics read_files ->
-            let demux_spec_from_cl =
-              Option.value_map demux ~default:[] ~f:(fun s ->
-                Sexp.of_string (sprintf "(demux %s)" s)
-                |! demux_specification_of_sexp) in
+        begin fun ~input_buffer_size ~output_buffer_size
+          mismatch_cl gzip_cl demux_cl spec undetermined_cl stats_cl
+          read_files_cl ->
             begin match spec with
             | Some s ->
               Lwt_io.(with_file ~mode:input s (fun i -> read i))
-              >|= (sprintf "(\n%s\n)") (* avoid s-exp parsing errors:
-                                          by ensuring it ends with ')' *)
-              >|= Sexp.of_string
-              >|= (function Sexp.List (h :: []) -> h | v -> v)
-              >|= demux_specification_of_sexp
-            | None -> return []
+              >|= parse_configuration
+            | None -> return (None, None, None, None, None, None)
             end
-            >>= fun demux_spec_from_file ->
+            >>= fun (mismatch, gzip, undetermined, stats, demux, inputs) ->
+            begin match read_files_cl, inputs with
+            | [], Some l -> return l
+            | l, None -> return l
+            | l, Some ll ->
+              failf "conflict: input files defined in command line \
+                     and configuration file"
+            end
+            >>= fun read_files ->
+            let mismatch =
+              match mismatch_cl with
+              | Some s -> s
+              | None -> match mismatch with Some s -> s | None -> 0 in
+            let gzip_output = if gzip_cl <> None then gzip_cl else gzip in
+            let undetermined =
+              if undetermined_cl <> None then undetermined_cl else undetermined
+            in
+            let do_statistics = if stats_cl <> None then stats_cl else stats in
+            let demux_spec_from_cl =
+              Option.map demux_cl ~f:(fun s ->
+                Sexp.of_string (sprintf "(demux %s)" s)
+                |! demux_specification_of_sexp) in
+            let demux =
+              if demux_spec_from_cl <> None then demux_spec_from_cl
+              else demux in
             let demux_specification =
-              let default = demux_spec_from_cl @ demux_spec_from_file in
+              let default = Option.value ~default:[] demux in
               Option.value_map undetermined ~default
                 ~f:(fun name_prefix ->
                   let open Blang in
