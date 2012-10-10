@@ -47,3 +47,18 @@ val scan : t -> string -> float -> (int * float) list
 
 val fast_scan : t -> string -> float -> (int * float) list
   (** Identical to [scan] but directly implemented in C *)
+
+val best_hit : t -> string -> int * float
+(** [best_hit mat seq] returns the position and score of the best
+    alignment found in [seq] for the motif [mat]. Raise [Invalid_arg]
+    if [seq] is shorter than [mat] *)
+
+
+
+
+
+
+
+
+
+

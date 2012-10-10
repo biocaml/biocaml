@@ -30,18 +30,20 @@ let balmer_counts =
     (Array.map (fun f -> int_of_float (float 309 *. f)))
     balmer_freqs
 
-let dr5_matrix seq = 
-  let bg = background_of_sequence seq 0.1 in
+let dr5_matrix ?seq () = 
+  let bg = match seq with 
+  | Some s -> background_of_sequence s 0.1 
+  | None -> flat_background () in
   tandem ~orientation:`direct ~spacer:5 balmer_counts balmer_counts bg
 
 let test_c_version_doesnt_crash () = 
   let seq = random_dna_string 10000 in
-  let mat = dr5_matrix seq in
+  let mat = dr5_matrix ~seq ()in
   ignore (fast_scan mat seq 10.)
 
 let test_c_and_caml_versions_agree () = 
   let seq = random_dna_string 100000 in
-  let mat = dr5_matrix seq in
+  let mat = dr5_matrix ~seq () in
   let c_res = fast_scan mat seq (-10.)
   and ocaml_res = scan mat seq (-10.) in
   assert_bool "Hits number" List.(length c_res = length ocaml_res) ;
@@ -50,7 +52,7 @@ let test_c_and_caml_versions_agree () =
     List.(fold_left2 
 	    (fun accu (_,x1) (_,x2) -> Pervasives.max accu (abs_float (x1 -. x2))) 
 	    0. c_res ocaml_res)
-  in assert_bool "Score no more than eps=1e-4" (eps < 1e-4)
+  in assert_bool "Score no more different than eps=1e-4" (eps < 1e-4)
 
 let test_reverse_complement () = 
   let bg = flat_background () in 
@@ -67,8 +69,41 @@ let test_reverse_complement () =
     "Wrong permutation of the first element of the matrix"
     Array.(a.(0).(0) = a'.(length a' - 1).(3))
 
+let test_best_hit () =
+  let m = dr5_matrix () in
+  let sequences = Array.init 1000 (fun _ -> random_dna_string 10000) in
+  let f s =
+    let all_hits = scan m s neg_infinity
+    and _, best_hit = best_hit m s in
+    let best_of_all_hits = List.fold_left (fun accu (_, s) -> max accu s) neg_infinity all_hits in
+    best_hit = best_of_all_hits
+  in
+  assert_bool
+    "best_hit returns the best position found by scan"
+    Array.(for_all f sequences)
+
 let tests = "PhredScore" >::: [
   "C version doesn't crash" >:: test_c_version_doesnt_crash;
   "C/OCaml versions agree" >:: test_c_and_caml_versions_agree;
-  "Reverse-complement test" >:: test_reverse_complement
+  "Reverse-complement test" >:: test_reverse_complement ;
+  "best_hit and scan give coherent results" >:: test_best_hit;
 ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

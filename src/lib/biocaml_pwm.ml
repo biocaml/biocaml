@@ -64,8 +64,8 @@ let tandem ?(orientation = `direct) ~spacer mat1 mat2 bg =
   ]
 
 
-let scan mat seq tol = 
-  let r = ref [] 
+let gen_scan f init mat seq tol = 
+  let r = ref init 
   and n = String.length seq 
   and m = Array.length mat in 
   let seq = Array.init n (fun i -> int_of_char seq.[i]) in
@@ -75,9 +75,19 @@ let scan mat seq tol =
       score := !score +. Array.(unsafe_get (unsafe_get mat j) (unsafe_get seq (i + j)))
     done ;
     if !score > tol 
-    then r := (i, !score) :: !r
+    then r := f i !score !r
   done ;
   !r
+
+let scan = gen_scan (fun pos score l -> (pos, score) :: l) []
+
+let best_hit mat seq = 
+  let (pos, _) as r = 
+    gen_scan (fun p1 s1 ((p2,s2) as r2) -> if s1 > s2 then (p1, s1) else r2) (-1, neg_infinity) mat seq neg_infinity
+  in
+  if pos < 0 then raise (Invalid_argument "Biocaml_pwm.best_hit: sequence shorter than the matrix")
+  else r
+
 
 external stub_fast_scan : t -> int array -> float -> (int * float) list = "biocaml_pwm_scan"
 
@@ -85,4 +95,17 @@ let fast_scan mat seq tol =
   let n = String.length seq in
   let seq = Array.init n (fun i -> int_of_char seq.[i]) in
   stub_fast_scan mat seq tol
+
+
+
+
+
+
+
+
+
+
+
+
+
 
