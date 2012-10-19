@@ -4,11 +4,11 @@ open Printf
 
 type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
 
-type matrix = {
+type motif = {
   id : string ;
   collection : collection ;
-  tf_id : string ;
-  tf_family : string ;
+  factor_name : string ;
+  factor_class : string ;
   information_contents : float ;
   comment : string option ;
   accession : string option ;
@@ -18,16 +18,16 @@ type matrix = {
 let split = Core.Core_string.split
 
 let collection_of_string = function
-| "CNE" -> CNE
-| "FAM" -> FAM
-| "PHYLOFACTS" -> Phylofacts
-| "CORE" -> Core
-| "PBM" -> PBM
-| "PBM_HOMEO" -> PBM_HOMEO
-| "PBM_HLH" -> PBM_HLH
-| "SPLICE" -> SPLICE
-| "POLII" -> POLII
-| s -> failwithf "Biocaml_jaspar.collection_of_string: unknown collection %s" s ()
+  | "CNE" -> CNE
+  | "FAM" -> FAM
+  | "PHYLOFACTS" -> Phylofacts
+  | "CORE" -> Core
+  | "PBM" -> PBM
+  | "PBM_HOMEO" -> PBM_HOMEO
+  | "PBM_HLH" -> PBM_HLH
+  | "SPLICE" -> SPLICE
+  | "POLII" -> POLII
+  | s -> failwithf "Biocaml_jaspar.collection_of_string: unknown collection %s" s ()
     
     
 let attrs_of_string =
@@ -39,12 +39,12 @@ let attrs_of_string =
        BatArray.enum r /@ (Pcre.get_named_substring rex "V"))
     |> BatList.of_enum
 
-let load_matrix ~id ~info ~tf_id ~tf_family ~attrs ~path = 
+let load_matrix ~id ~info ~factor_name ~factor_class ~attrs ~path = 
   let attrs = attrs_of_string attrs in 
   {
-    id ; 
+    id ; factor_name ; factor_class ;
     collection = collection_of_string (List.Assoc.find_exn attrs "collection") ;
-    tf_id ; tf_family ; information_contents = float_of_string info ;
+    information_contents = float_of_string info ;
     comment = (
       match List.Assoc.find attrs "comment" with
       | None -> None
@@ -64,7 +64,8 @@ let load path =
   BatFile.lines_of (path ^ "/matrix_list.txt")
   /@ (fun l -> split l ~on:'\t')
   /@ (function
-      | [ id ; info ; tf_id ; tf_family ; attrs ] -> load_matrix ~id ~info ~tf_id ~tf_family ~attrs ~path
+      | [ id ; info ; factor_name ; factor_class ; attrs ] -> 
+          load_matrix ~id ~info ~factor_name ~factor_class ~attrs ~path
       | l -> 
           failwithf "Biocaml_jaspar.load: incorrect fields\n%s" (String.concat ~sep:"\n" l) ())
   |> BatList.of_enum
