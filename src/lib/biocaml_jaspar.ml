@@ -13,6 +13,7 @@ type motif = {
   comment : string option ;
   accession : string option ;
   medline : string ;
+  matrix : int array array ;
 }
 
 let split = Core.Core_string.split
@@ -39,7 +40,24 @@ let attrs_of_string =
        BatArray.enum r /@ (Pcre.get_named_substring rex "V"))
     |> BatList.of_enum
 
-let load_matrix ~id ~info ~factor_name ~factor_class ~attrs ~path = 
+
+let transpose m = 
+  Array.init
+    (Array.length m.(0))
+    (fun i -> 
+       Array.init
+	 (Array.length m)
+	 (fun j -> m.(j).(i)))
+    
+let load_matrix ~path ~id =
+  BatFile.lines_of (path ^ "/" ^ id ^ ".pfm")
+  /@ split ~on:' '
+  /@ Array.of_list
+  /@ Array.map ~f:(float_of_string |- int_of_float)
+  |> BatArray.of_enum
+  |> transpose
+
+let load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path = 
   let attrs = attrs_of_string attrs in 
   {
     id ; factor_name ; factor_class ;
@@ -58,6 +76,7 @@ let load_matrix ~id ~info ~factor_name ~factor_class ~attrs ~path =
       | x -> x
     ) ;
     medline = List.Assoc.find_exn attrs "medline" ;
+    matrix = load_matrix ~path ~id ;
   }
 
 let load path =
@@ -65,7 +84,7 @@ let load path =
   /@ (fun l -> split l ~on:'\t')
   /@ (function
       | [ id ; info ; factor_name ; factor_class ; attrs ] -> 
-          load_matrix ~id ~info ~factor_name ~factor_class ~attrs ~path
+          load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path
       | l -> 
           failwithf "Biocaml_jaspar.load: incorrect fields\n%s" (String.concat ~sep:"\n" l) ())
   |> BatList.of_enum

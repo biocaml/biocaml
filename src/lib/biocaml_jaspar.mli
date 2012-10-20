@@ -9,6 +9,7 @@ type motif = private {
   comment : string option ;
   accession : string option ;
   medline : string ;
+  matrix : int array array ;
 }
 
 val load : string -> motif list
