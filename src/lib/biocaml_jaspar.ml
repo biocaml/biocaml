@@ -53,7 +53,7 @@ let load_matrix ~path ~id =
   BatFile.lines_of (path ^ "/" ^ id ^ ".pfm")
   /@ split ~on:' '
   /@ Array.of_list
-  /@ Array.map ~f:(float_of_string |- int_of_float)
+  /@ Array.map ~f:(Float.of_string |- Int.of_float)
   |> BatArray.of_enum
   |> transpose
 
@@ -62,7 +62,7 @@ let load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path =
   {
     id ; factor_name ; factor_class ;
     collection = collection_of_string (List.Assoc.find_exn attrs "collection") ;
-    information_contents = float_of_string info ;
+    information_contents = Float.of_string info ;
     comment = (
       match List.Assoc.find attrs "comment" with
       | None -> None
