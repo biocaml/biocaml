@@ -49,9 +49,15 @@ let transpose m =
 	 (Array.length m)
 	 (fun j -> m.(j).(i)))
     
+let space_split =
+  let rex = Pcre.regexp "[ \t]+" in
+  Pcre.split ~rex
+
 let load_matrix ~path ~id =
+  print_endline (path ^ "/" ^ id ^ ".pfm") ;
   BatFile.lines_of (path ^ "/" ^ id ^ ".pfm")
-  /@ split ~on:' '
+  /@ String.lstrip
+  /@ space_split
   /@ Array.of_list
   /@ Array.map ~f:(float_of_string |- int_of_float)
   |> BatArray.of_enum

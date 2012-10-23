@@ -3,4 +3,4 @@
 
 <src/*/*.ml{,i}>: syntax_camlp4o
 
-true: annot
+true: annot, debug
