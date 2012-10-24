@@ -122,7 +122,7 @@ let corr meth wig_file1 wig_file2 : float =
             | `right `not_in_fixed_step_state ->
               failwith "Parsing error not_in_fixed_step_state")
       )
-      |! Stream.npeek max_int
+      |! Stream.npeek Int.max_value
     in
     let cmp (chr1,lo1,hi1,_) (chr2,lo2,hi2,_) =
       compare (chr1,lo1,hi1) (chr2,lo2,hi2) in

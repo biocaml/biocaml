@@ -127,7 +127,7 @@ module Lines = struct
   let fold_file ?(strict=true) f init file =
     try
       try_finally_exn (fold_channel' ~file ~strict f init)
-        ~fend:close_in (open_in file)
+        ~fend:In_channel.close (open_in file)
     with Error (p,m) -> raise_error (Pos.set_file p file) m
 
   let iter_file ?(strict=true) f file =

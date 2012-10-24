@@ -5,7 +5,7 @@ let failf fmt =
   ksprintf (fun s -> fail (Failure s)) fmt
     
 module Command_line = struct
-  include  Core_extended.Std.Core_command
+  include  Command
     
     
   let lwts_to_run = ref ([]: unit Lwt.t list)
@@ -18,18 +18,19 @@ module Command_line = struct
     let default_reps = 1 in
     Spec.(
       step (fun k repetitions -> k ~repetitions)
-      ++ flag "repetitions" ~aliases:["r"] (optional_with_default default_reps int)
+      +> flag "repetitions" ~aliases:["r"] (optional_with_default default_reps int)
         ~doc:(sprintf "<int> Number of benchmark repetitions (Default: %d)"
                 default_reps)
       ++ step (fun k input_buffer_sizes -> k ~input_buffer_sizes)
-      ++ flag "input-buffer-sizes" ~aliases:["IB"]
+      +> flag "input-buffer-sizes" ~aliases:["IB"]
         (optional_with_default [4096]
-           (arg_type (fun s -> List.map (String.split ~on:',' s) Int.of_string)))
+           (Arg_type.create (fun s -> List.map (String.split ~on:',' s) Int.of_string)))
         ~doc:"<b1,b2,…> Buffer sizes to experiment with"
       ++ step (fun k output_buffer_sizes -> k ~output_buffer_sizes)
-      ++ flag "output-buffer-sizes" ~aliases:["OB"]
+      +> flag "output-buffer-sizes" ~aliases:["OB"]
         (optional_with_default [4096]
-           (arg_type (fun s -> List.map (String.split ~on:',' s) Int.of_string)))
+           (Arg_type.create
+              (fun s -> List.map (String.split ~on:',' s) Int.of_string)))
         ~doc:"<b1,b2,…> Output buffer sizes to experiment with"
     )
 end
@@ -164,8 +165,8 @@ let cmd_convert =
     basic ~summary:"Benchmark the conversion from BAM to SAM or trimming FASTQs"
       Spec.(
         bench_flags ()
-        ++ anon ("INPUT-FILE" %: string)
-        ++ anon ("OUT-DIR" %: string)
+        +> anon ("INPUT-FILE" %: string)
+        +> anon ("OUT-DIR" %: string)
       )
       (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir ->
         let transform input_buffer_size =
@@ -236,7 +237,7 @@ let cmd_just_parse_bam =
     basic ~summary:"Benchmark the BAM parsing"
       Spec.(
         bench_flags ()
-        ++ anon ("BAM-FILE" %: string)
+        +> anon ("BAM-FILE" %: string)
       )
       (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam ->
         let results = ref [] in
@@ -255,7 +256,7 @@ let cmd_just_parse_bam =
                   | Error ( (`unzip e)) ->
                     err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
                   )) in
-            lwt_go_through_input ~transform ~max_read_bytes:max_int
+            lwt_go_through_input ~transform ~max_read_bytes:Int.max_value
               ~input_buffer_size bam |! Lwt_main.run
           done;
           let time = Time.(diff (now ()) start) in
@@ -280,7 +281,7 @@ let cmd_just_parse_bam =
                   | Error (`right e) ->
                     err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
                   )) in
-            lwt_go_through_input ~transform ~max_read_bytes:max_int
+            lwt_go_through_input ~transform ~max_read_bytes:Int.max_value
               ~input_buffer_size bam |! Lwt_main.run
           done;
           let time = Time.(diff (now ()) start) in

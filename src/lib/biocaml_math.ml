@@ -43,9 +43,9 @@ let even x = (x mod 2) = 0
 let odd x = (x mod 2) <> 0
 
 let min a =
-  Array.reduce a ~f:min |! Option.value_exn_message "Math.min: empty"
+  Option.value_exn ~message:"Math.min: empty" (Array.reduce a ~f:min)
 let max a =
-  Array.reduce a ~f:max |! Option.value_exn_message "Math.max: empty"
+  Option.value_exn ~message:"Math.max: empty" (Array.reduce a ~f:max)
 
 let prange add step lo hi =
   let rec f acc x =
@@ -63,10 +63,10 @@ let range_floats = prange (+.)
 let range step first last =
   assert (step > 0.0);
   let n =
-    (((last -. first) /. step) |! abs_float |! ceil |! int_of_float) + 1 in
+    (((last -. first) /. step) |! Float.abs |! Float.round_up |! Int.of_float) + 1 in
   let a = Array.create n 0.0 in
   let (op,comp) = if first <= last then ((+.),(<=)) else ((-.),(>=)) in
-  Array.iteri (fun i _ -> a.(i) <- op first (float_of_int i *. step)) a;
+  Array.iteri (fun i _ -> a.(i) <- op first (Float.of_int i *. step)) a;
   if comp a.(n-1) last
   then a
   else Array.sub a 0 (n-1)
@@ -74,7 +74,7 @@ let range step first last =
 let mean a =
   let n = Array.length a in
   assert (n > 0);
-  (Array.fold ~f:(+.) ~init:0. a) /. (float_of_int n)
+  (Array.fold ~f:(+.) ~init:0. a) /. (Float.of_int n)
 
 let variance a =
   let n = Array.length a in
@@ -82,7 +82,7 @@ let variance a =
   let avrg = mean a in
   let f v = let diff = v -. avrg in diff *. diff in
   let a = Array.map f a in
-  (Array.fold ~f:(+.) ~init:0. a) /. (float_of_int (n - 1))
+  (Array.fold ~f:(+.) ~init:0. a) /. (Float.of_int (n - 1))
 
 let rms a =
   Array.map ~f:(fun x -> x *. x) a |! mean |! sqrt
@@ -118,7 +118,7 @@ let pseudomedian a =
 let mad a =
   assert (Array.length a > 0);
   let med = median a in
-  let a = Array.map (fun v -> abs_float (v -. med)) a in
+  let a = Array.map (fun v -> Float.abs (v -. med)) a in
   median a
 
 let quantile_normalization aa =
@@ -127,7 +127,7 @@ let quantile_normalization aa =
      || Array.length aa.(0) = 1 then
     Array.copy aa
   else
-    let num_expts = float_of_int (Array.length aa.(0)) in
+    let num_expts = Float.of_int (Array.length aa.(0)) in
     let num_pts = Array.length aa in
 
     let comp1 (a,_) (b,_) = Pervasives.compare a b in
@@ -165,10 +165,10 @@ let histogram (type t) ?(cmp=Pervasives.compare) arr =
   Array.of_list (List.rev ans)
 
 let prediction_values tp tn fp fn =
-  let tp = float_of_int tp in
-  let tn = float_of_int tn in
-  let fp = float_of_int fp in
-  let fn = float_of_int fn in
+  let tp = Float.of_int tp in
+  let tn = Float.of_int tn in
+  let fp = Float.of_int fp in
+  let fn = Float.of_int fn in
   let sensitivity = tp /. (tp +. fn) in
   let specificity = tn /. (fp +. tn) in
   let pos_prediction_accuracy = tp /. (tp +. fp) in
@@ -182,7 +182,7 @@ let pearson (a1:float array) (a2:float array) =
   let f acc e1 e2 =
     (((e1 -. a1avg) /. a1sd) *. ((e2 -. a2avg) /. a2sd)) +. acc
   in
-  (List.fold2_exn ~f ~init:0. a1 a2) /. (float_of_int ((List.length a1) - 1))
+  (List.fold2_exn ~f ~init:0. a1 a2) /. (Float.of_int ((List.length a1) - 1))
 
 let rank arr =
   let arr = Array.copy arr in
@@ -191,8 +191,8 @@ let rank arr =
   let g prev il ans =
     let count = List.length il in
     let n = count + (List.length ans) in
-    let hi = float_of_int n in
-    let lo = float_of_int (n - count + 1) in
+    let hi = Float.of_int n in
+    let lo = Float.of_int (n - count + 1) in
     let rank = (hi +. lo) /. 2. in
     (List.map ~f:(fun i -> rank,i) il) @ ans
   in
@@ -238,7 +238,7 @@ let ltqnorm p =
    Second version was ported to python, by Dan Field, 2004-05-03.
 *)
     if (p <= 0.) || (p >= 1.) then
-      raise (ValueError ("Argument to ltqnorm " ^ (string_of_float p) ^
+      raise (ValueError ("Argument to ltqnorm " ^ (Float.to_string p) ^
         " must be in open interval (0,1)"))
     else
       (* Coefficients in rational approximations. *)
@@ -287,7 +287,7 @@ let wilcoxon_rank_sum_to_z arr1 arr2 =
   let l1,l2 = (Array.length arr1),(Array.length arr2) in
   let ranked = rank (Array.append arr1 arr2) in
   let arr1 = Array.sub ranked 0 l1 in
-  let l1,l2 = (float_of_int l1), (float_of_int l2) in
+  let l1,l2 = (Float.of_int l1), (Float.of_int l2) in
   let sum1 =
     let f acc elem = elem +. acc in
     Array.fold ~f ~init:0. arr1
@@ -299,7 +299,7 @@ let wilcoxon_rank_sum_to_z arr1 arr2 =
 let wilcoxon_rank_sum_to_p arr1 arr2 =
   (* assumes a two-tailed distribution *)
   let z = wilcoxon_rank_sum_to_z arr1 arr2 in
-  2. *. (1. -. (cnd (abs_float z)))
+  2. *. (1. -. (cnd (Float.abs z)))
 
 let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 =
   (wilcoxon_rank_sum_to_p arr1 arr2) < alpha

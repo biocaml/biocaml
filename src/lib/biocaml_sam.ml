@@ -495,7 +495,7 @@ module Transform = struct
     in
     let finish () =
       let deduped =
-        List.dedup ~compare:(fun a b -> compare a.ref_name b.ref_name) !refs in
+        List.dedup ~compare:(fun a b -> String.compare a.ref_name b.ref_name) !refs in
       if List.length deduped <> List.length !refs then
         fail (`duplicate_in_reference_sequence_dictionary
                  (Array.of_list_rev !refs))
@@ -591,7 +591,9 @@ module Transform = struct
     begin
       try
         Array.map al.quality ~f:(fun q ->
-          Biocaml_phred_score.to_ascii q |! Option.value_exn |! Char.to_string)
+          Biocaml_phred_score.to_ascii q
+          |! Option.value_exn ?here:None ?error:None ?message:None
+          |! Char.to_string)
         |! String.concat_array ~sep:""
         |! return
       with

@@ -6,14 +6,14 @@ type t = int
 with sexp
 
 let round_float_to_int x =
-  if mod_float x 1.0 < 0.5
-  then int_of_float (floor x)
-  else int_of_float (ceil x)
+  if Float.mod_float x 1.0 < 0.5
+  then Int.of_float (Float.round_down x)
+  else Int.of_float (Float.round_up x)
 
 let to_int t = t
 
 let to_probability t =
-  10.0 ** (float_of_int t /. -10.0)
+  10.0 ** (Float.of_int t /. -10.0)
 
 let int_of_offset = function `offset33 -> 33 | `offset64 -> 64
 
@@ -64,7 +64,7 @@ let of_probability_exn ?(f = round_float_to_int) x =
     Error (sprintf "invalid probability %0.17g" x) |! raise
 
 let of_solexa_score ?(f = round_float_to_int) x =
-  f (10. *. log10((10. ** (float_of_int x /. 10.)) +. 1.))
+  f (10. *. log10((10. ** (Float.of_int x /. 10.)) +. 1.))
 
 let to_solexa_score ?(f = round_float_to_int) t =
-  f (10. *. log10((10. ** (float_of_int t /. 10.)) -. 1.))
+  f (10. *. log10((10. ** (Float.of_int t /. 10.)) -. 1.))
