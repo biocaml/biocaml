@@ -54,7 +54,6 @@ let space_split =
   Pcre.split ~rex
 
 let load_matrix ~path ~id =
-  print_endline (path ^ "/" ^ id ^ ".pfm") ;
   BatFile.lines_of (path ^ "/" ^ id ^ ".pfm")
   /@ String.lstrip
   /@ space_split
