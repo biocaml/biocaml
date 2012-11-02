@@ -67,7 +67,7 @@ let test_printer () =
     Biocaml_transform.Pull_based.to_stream_exn
       ~error_to_exn:(fun e -> failwith "Unexpected error in camlstream") s in
   
-  let l = Stream.npeek max_int camlstream in
+  let l = Stream.npeek Int.max_value camlstream in
   assert_equal
     ~printer:(fun l -> List.map ~f:(sprintf "Output: %S") l |! String.concat ~sep:", ")
     l ["chrA 42 45 some_string 42 3.14\n";
@@ -81,3 +81,7 @@ let tests = "BED" >::: [
   "Print BED" >:: test_printer;
 
 ]
+
+
+
+
