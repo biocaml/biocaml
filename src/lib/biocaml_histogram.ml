@@ -95,8 +95,8 @@ let make_uniform min max n =
   else if n < 1 then
     fail (sprintf "cannot create histogram with %d bins" n)
   else begin
-    let delt = (max -. min) /. (float_of_int n) in
-    let bins = Array.init (n+1) (fun i -> min +. (delt *. float_of_int i)) in
+    let delt = (max -. min) /. (Float.of_int n) in
+    let bins = Array.init (n+1) (fun i -> min +. (delt *. Float.of_int i)) in
     bins.(Array.length bins - 1) <- max;
     Result.of_option  (make Pervasives.compare (Array.to_list bins))
       ~error:"not ordered"

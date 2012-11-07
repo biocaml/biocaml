@@ -28,7 +28,7 @@ let () =
   fprintf o "
 #use \"topfind\";;
 #thread;;
-#require \"core, zip, sqlite3, unix, batteries, xmlm\"
+#require \"core, zip, sqlite3, unix, batteries, xmlm, pcre\"
 #directory %S;;
 #load \"biocaml.cma\";;
 open Core.Std;;
