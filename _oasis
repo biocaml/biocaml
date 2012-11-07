@@ -26,6 +26,7 @@ Library biocaml
   BuildDepends: core, sexplib.syntax, threads,
                 zip, sqlite3, unix, batteries, 
                 xmlm, pcre
+  XMETARequires: core, threads, zip, sqlite3, unix, batteries, xmlm, pcre
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives

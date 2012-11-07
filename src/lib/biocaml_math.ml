@@ -43,9 +43,9 @@ let even x = (x mod 2) = 0
 let odd x = (x mod 2) <> 0
 
 let min a =
-  Array.reduce a ~f:min |! (fun x -> Core.Option.value_exn ~message:"Math.min: empty" x)
+  Option.value_exn ~message:"Math.min: empty" (Array.reduce a ~f:min)
 let max a =
-  Array.reduce a ~f:max |! (fun x -> Core.Option.value_exn ~message:"Math.max: empty" x)
+  Option.value_exn ~message:"Math.max: empty" (Array.reduce a ~f:max)
 
 let prange add step lo hi =
   let rec f acc x =

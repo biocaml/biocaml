@@ -13,7 +13,7 @@ let failf fmt =
   ksprintf (fun s -> fail (Failure s)) fmt
 
 module Command_line = struct
-  include  Core_extended.Std.Core_command
+  include  Command
 
 
   let lwts_to_run = ref ([]: unit Lwt.t list)
@@ -24,7 +24,7 @@ module Command_line = struct
   let input_buffer_size_flag () =
     Spec.(
       step (fun k v -> k ~input_buffer_size:v)
-      ++ flag "input-buffer" ~aliases:["ib"] (optional_with_default 42_000 int)
+      +> flag "input-buffer" ~aliases:["ib"] (optional_with_default 42_000 int)
         ~doc:"<int> input buffer size (Default: 42_000)")
 
   let verbosity_flags () =
@@ -36,15 +36,15 @@ module Command_line = struct
     in
     Spec.(
       step (fun k v -> set_verbosity v; k)
-      ++ flag "verbose-all" ~aliases:["V"] no_arg ~doc:" make everything over-verbose"
+      +> flag "verbose-all" ~aliases:["V"] no_arg ~doc:" make everything over-verbose"
       ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "BAM"; k)
-      ++ flag "verbose-bam"  no_arg ~doc:" make Biocaml_bam verbose"
+      +> flag "verbose-bam"  no_arg ~doc:" make Biocaml_bam verbose"
       ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "SAM"; k)
-      ++ flag "verbose-sam"  no_arg ~doc:" make Biocaml_sam verbose"
+      +> flag "verbose-sam"  no_arg ~doc:" make Biocaml_sam verbose"
       ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "ZIP"; k)
-      ++ flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
+      +> flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
       ++ step (fun k v ->  if v then verbose := true; k)
-      ++ flag "verbose-app"  no_arg ~doc:" make 'biocaml' itself verbose"
+      +> flag "verbose-app"  no_arg ~doc:" make 'biocaml' itself verbose"
     )
 
   let file_to_file_flags () =
@@ -52,7 +52,7 @@ module Command_line = struct
       verbosity_flags ()
       ++ input_buffer_size_flag ()
       ++ step (fun k v -> k ~output_buffer_size:v)
-      ++ flag "output-buffer" ~aliases:["ob"] (optional_with_default 42_000 int)
+      +> flag "output-buffer" ~aliases:["ob"] (optional_with_default 42_000 int)
         ~doc:"<int> output buffer size (Default: 42_000)"
     )
 
@@ -289,7 +289,7 @@ module Entrez = struct
            ~summary:"Test a simple query in pubmed journals"
            Spec.(
              verbosity_flags ()
-             ++ anon (sequence "SEARCH" string)
+             +> anon (sequence ("SEARCH" %: string))
              ++ uses_lwt ()
            )
            pubmed) ;
@@ -298,7 +298,7 @@ module Entrez = struct
            ~summary:"Test a simple query in Entrez Gene"
            Spec.(
              verbosity_flags ()
-             ++ anon (sequence "SEARCH" string)
+             +> anon (sequence ("SEARCH" %: string))
              ++ uses_lwt ()
            )
            gene) ;
@@ -366,8 +366,8 @@ module Bam_conversion = struct
       basic ~summary:"convert from BAM to SAM"
         Spec.(
           file_to_file_flags ()
-          ++ anon ("BAM-FILE" %: string)
-          ++ anon ("SAM-FILE" %: string)
+          +> anon ("BAM-FILE" %: string)
+          +> anon ("SAM-FILE" %: string)
           ++ uses_lwt ())
         (fun ~input_buffer_size ~output_buffer_size bam sam ->
           bam_to_sam ~input_buffer_size bam ~output_buffer_size sam))
@@ -377,8 +377,8 @@ module Bam_conversion = struct
       basic ~summary:"convert from BAM to BAM again (after parsing everything)"
         Spec.(
           file_to_file_flags ()
-          ++ anon ("BAM-FILE" %: string)
-          ++ anon ("BAM-FILE" %: string)
+          +> anon ("BAM-FILE" %: string)
+          +> anon ("BAM-FILE" %: string)
           ++ uses_lwt ()
         )
         (fun ~input_buffer_size ~output_buffer_size bam bam2 ->
@@ -447,7 +447,7 @@ module Bam_conversion = struct
 
   end
 
-  let build_wig ?(max_read_bytes=max_int)
+  let build_wig ?(max_read_bytes=Int.max_value)
       ?(input_buffer_size=42_000) ?(output_buffer_size=42_000) bamfile wigfile =
     let tags =
       match Biocaml_tags.guess_from_filename bamfile with
@@ -519,10 +519,10 @@ module Bam_conversion = struct
       basic ~summary:"Get the WIG out of a BAM or a SAM (potentially gzipped)"
         Spec.(
           file_to_file_flags ()
-          ++ flag "stop-after" (optional int)
+          +> flag "stop-after" (optional int)
             ~doc:"<n> Stop after reading <n> bytes"
-          ++ anon ("SAM-or-BAM-FILE" %: string)
-          ++ anon ("WIG-FILE" %: string)
+          +> anon ("SAM-or-BAM-FILE" %: string)
+          +> anon ("WIG-FILE" %: string)
           ++ uses_lwt ()
         )
         (fun ~input_buffer_size ~output_buffer_size max_read_bytes input_file wig ->
@@ -542,7 +542,7 @@ end
 module Bed_operations = struct
 
 
-  let load ~on_output ~input_buffer_size ?(max_read_bytes=max_int) filename =
+  let load ~on_output ~input_buffer_size ?(max_read_bytes=Int.max_value) filename =
     let tags =
       match Biocaml_tags.guess_from_filename filename with
       | Ok o -> o
@@ -646,12 +646,12 @@ module Bed_operations = struct
            Spec.(
              verbosity_flags ()
              ++ input_buffer_size_flag ()
-             ++ flag "stop-after" (optional int)
+             +> flag "stop-after" (optional int)
                ~doc:"<n> Stop after reading <n> bytes"
-             ++ anon ("BED-ish-FILE" %: string)
-             ++ anon ("NAME" %: string)
-             ++ anon ("START" %: int)
-             ++ anon ("STOP" %: int)
+             +> anon ("BED-ish-FILE" %: string)
+             +> anon ("NAME" %: string)
+             +> anon ("START" %: int)
+             +> anon ("STOP" %: int)
              ++ uses_lwt ()
            )
            (fun ~input_buffer_size max_read_bytes input_file name start stop ->
@@ -665,9 +665,9 @@ module Bed_operations = struct
            Spec.(
              verbosity_flags ()
              ++ input_buffer_size_flag ()
-             ++ flag "stop-after" (optional int)
+             +> flag "stop-after" (optional int)
                ~doc:"<n> Stop after reading <n> bytes"
-             ++ anon ("BED-ish-FILE" %: string)
+             +> anon ("BED-ish-FILE" %: string)
              ++ uses_lwt ()
            )
            (fun ~input_buffer_size max_read_bytes input_file ->
@@ -687,9 +687,9 @@ module Bed_operations = struct
            Spec.(
              verbosity_flags ()
              ++ input_buffer_size_flag ()
-             ++ flag "stop-after" (optional int)
+             +> flag "stop-after" (optional int)
                ~doc:"<n> Stop after reading <n> bytes"
-             ++ anon (sequence "BED-ish-FILES" string)
+             +> anon (sequence ("BED-ish-FILES" %: string))
              ++ uses_lwt ()
            )
            (fun ~input_buffer_size max_read_bytes input_files ->
@@ -704,15 +704,15 @@ module Bed_operations = struct
            Spec.(
              verbosity_flags ()
              ++ input_buffer_size_flag ()
-             ++ flag "stop-after" (optional int)
+             +> flag "stop-after" (optional int)
                ~doc:"<n> Stop after reading <n> bytes"
-             ++ anon (sequence "BED-ish-FILES" string)
+             +> anon (sequence ("BED-ish-FILES" %: string))
              ++ uses_lwt ()
            )
            (fun ~input_buffer_size max_read_bytes input_files ->
              rset_folding
                ~fold_operation:Biocaml_rSet.inter
-               ~fold_init:(Biocaml_rSet.of_range_list [min_int, max_int])
+               ~fold_init:(Biocaml_rSet.of_range_list [Int.min_value, Int.max_value])
                ~input_buffer_size max_read_bytes input_files)
         );
       ])
@@ -1060,19 +1060,19 @@ module Demultiplexer = struct
         end
         Spec.(
           file_to_file_flags ()
-          ++ flag "default-mismatch" (optional int)
+          +> flag "default-mismatch" (optional int)
             ~doc:"<int> default maximal mismatch allowed (default 0)"
-          ++ flag "gzip-output" ~aliases:["gz"] (optional int)
+          +> flag "gzip-output" ~aliases:["gz"] (optional int)
             ~doc:"<level> output GZip files (compression level: <level>)"
-          ++ flag "demux" (optional string)
+          +> flag "demux" (optional string)
             ~doc:"<string> give the specification as a list of S-Expressions"
-          ++ flag "specification" ~aliases:["spec"] (optional string)
+          +> flag "specification" ~aliases:["spec"] (optional string)
             ~doc:"<file> give a path to a file containing the specification"
-          ++ flag "undetermined" (optional string)
+          +> flag "undetermined" (optional string)
             ~doc:"<name> put all the non-matched reads in a library"
-          ++ flag "statistics" ~aliases:["stats"] (optional string)
+          +> flag "statistics" ~aliases:["stats"] (optional string)
             ~doc:"<file> do some basic statistics and write them to <file>"
-          ++ anon (sequence "READ-FILES" string)
+          +> anon (sequence ("READ-FILES" %: string))
           ++ uses_lwt ())
         begin fun ~input_buffer_size ~output_buffer_size
           mismatch_cl gzip_cl demux_cl spec undetermined_cl stats_cl
@@ -1132,7 +1132,7 @@ let cmd_info =
   Command_line.(
     basic ~summary:"Get information about files"
       Spec.(
-        anon (sequence "FILES" string)
+        empty +> anon (sequence ("FILES" %: string))
         ++ uses_lwt ()
       )
       (fun files ->

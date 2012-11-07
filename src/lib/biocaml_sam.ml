@@ -591,7 +591,9 @@ module Transform = struct
     begin
       try
         Array.map al.quality ~f:(fun q ->
-          Biocaml_phred_score.to_ascii q |! (fun x -> Option.value_exn x) |! Char.to_string)
+          Biocaml_phred_score.to_ascii q
+          |! Option.value_exn ?here:None ?error:None ?message:None
+          |! Char.to_string)
         |! String.concat_array ~sep:""
         |! return
       with
