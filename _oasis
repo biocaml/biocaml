@@ -25,7 +25,7 @@ Library biocaml
   FindlibName: biocaml
   BuildDepends: core, sexplib.syntax, threads,
                 zip, sqlite3, unix, batteries, 
-                xmlm
+                xmlm, pcre
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
@@ -52,6 +52,7 @@ Library biocaml
            , Biocaml_histogram
            , Biocaml_interval_tree
            , Biocaml_invokeCmdline
+           , Biocaml_jaspar
            , Biocaml_math
            , Biocaml_phred_score
            , Biocaml_pwm
