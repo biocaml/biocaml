@@ -41,7 +41,7 @@ module Stream: sig
 
   val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val to_list : 'a t -> 'a list
-  val map : ('a option -> 'b) -> 'a Stream.t -> 'b t
+  val map : ('a -> 'b) -> 'a Stream.t -> 'b t
   val is_empty : 'a t -> bool
   val lines_of_channel : in_channel -> string Stream.t
 

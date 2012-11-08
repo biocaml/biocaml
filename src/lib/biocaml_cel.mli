@@ -1,16 +1,19 @@
-(** Affymetrix's CEL files. Only text format supported. Binary file must be converted using Affymetrix's conversion tool. This tool does not change file extension, so be sure your file really is in text format. *)
+(** Affymetrix's CEL files. Only text format supported. Binary file
+    must be converted using Affymetrix's conversion tool. This tool does
+    not change file extension, so be sure your file really is in text
+    format. *)
 
 type t
-    (** The type of a CEL file. *)
+(** The type of a CEL file. *)
 
 exception Bad of string
-  (** Raised when encountering ill-formed CEL type. *)
-  
+(** Raised when encountering ill-formed CEL type. *)
+    
 val of_file : string -> t
-  (** Parse given file if possible. Raise [Bad] if there are any parse errors. *)
+(** Parse given file if possible. Raise [Bad] if there are any parse errors. *)
   
 val of_file_opt : string -> t option
-  (** Parse given file if possible. *)
+(** Parse given file if possible. *)
   
 
 (** {6 Operations on Intensity Section} *)
@@ -34,14 +37,21 @@ val ifold : ('a -> irow -> 'a) -> 'a -> t -> 'a
 val iiter : (irow -> unit) -> t -> unit
   (** [iiter f t] iterates over the rows in intensity section of [t]. *)
   
-val data : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * (idata * idata) list) list
-  (** [data bpmap cels] returns a list associating probes with pairs of (PM,MM) idata in each of the given cel files (in the same order of course). Raise [Failure] if any file in [cels] lacks a value for any probe in [bpmap]. *)
+val data :
+  Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * (idata * idata) list) list
+(** [data bpmap cels] returns a list associating probes with pairs of
+    (PM,MM) idata in each of the given cel files (in the same order of
+    course). Raise [Failure] if any file in [cels] lacks a value for any
+    probe in [bpmap]. *)
   
 val pm_mm : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * float list) list
-  (** Similar to {!data} but the data returned are the PM-MM mean intensity values in [cels]. *)
+(** Similar to {!data} but the data returned are the PM-MM mean
+    intensity values in [cels]. *)
   
 val pm : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * float list) list
-  (** Similar to {!data} but the data returned are the PM mean intensity values in [cels]. *)
+(** Similar to {!data} but the data returned are the PM mean intensity
+    values in [cels]. *)
   
 val mm : Biocaml_bpmap.t -> t list -> (Biocaml_bpmap.probe * float list) list
-  (** Similar to {!data} but the data returned are the MM mean intensity values in [cels]. *)
+(** Similar to {!data} but the data returned are the MM mean intensity
+    values in [cels]. *)

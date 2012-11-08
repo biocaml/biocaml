@@ -74,7 +74,7 @@ module Stream = struct
 
   let map f s =
     let f _ =
-      try Some (f (next s))
+      try Some (f (next_exn s))
       with Failure -> None
     in from f
 
