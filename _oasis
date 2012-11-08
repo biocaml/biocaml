@@ -52,7 +52,6 @@ Library biocaml
            , Biocaml_gff
            , Biocaml_histogram
            , Biocaml_interval_tree
-           , Biocaml_invokeCmdline
            , Biocaml_jaspar
            , Biocaml_math
            , Biocaml_phred_score
