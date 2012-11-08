@@ -44,7 +44,6 @@ Library biocaml
            , Biocaml_cel
            , Biocaml_chrName
            , Biocaml_comments
-           , Biocaml_common
            , Biocaml_entrez
            , Biocaml_fasta
            , Biocaml_fastq
@@ -69,7 +68,6 @@ Library biocaml
            , Biocaml_table
            , Biocaml_track
            , Biocaml_tags
-           , Biocaml_util
            , Biocaml_wig
            , Biocaml_mzData
   CSources: biocaml_pwm_stub.c, biocaml_mzData_stubs.c
