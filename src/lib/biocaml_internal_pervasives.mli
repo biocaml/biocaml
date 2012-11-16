@@ -42,6 +42,8 @@ module Stream: sig
   val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
   val to_list : 'a t -> 'a list
   val map : ('a -> 'b) -> 'a Stream.t -> 'b t
+  val filter : 'a t -> f:('a -> bool) -> 'a t
+  val filter_map : 'a t -> f:('a -> 'b option) -> 'b t
   val is_empty : 'a t -> bool
   val lines_of_channel : in_channel -> string Stream.t
 
@@ -52,6 +54,17 @@ module Stream: sig
       (** Convert exception-less stream to exception-ful
           stream. Resulting stream raises exception at first error
           seen. *)
+
+  module Infix : sig
+    val ( /@ ) : 'a t -> ('a -> 'b) -> 'b t
+      (** [s /@ f] is equivalent to [map f s] *)
+
+    val ( // ) : 'a t -> ('a -> bool) -> 'a t
+      (** [s // f] is equivalent to [filter f s] *)
+
+    val ( //@ ) : 'a t -> ('a -> 'b option) -> 'b t
+      (** [s //@ f] is equivalent to [filter_map f s] *)
+  end
 
 end
 
