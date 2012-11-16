@@ -78,6 +78,26 @@ module Stream = struct
       with Failure -> None
     in from f
 
+  let filter xs ~f = 
+    let rec aux i =
+      match next xs with
+      | Some x when not (f x) -> aux i
+      | x -> x
+    in
+    from aux
+
+  let filter_map xs ~f = 
+    let rec aux i =
+      match next xs with
+      | Some x -> (
+        match f x with
+        | None -> aux i
+        | x -> x
+      )
+      | None -> None
+    in
+    from aux
+
   let is_empty s =
     match peek s with None -> true | Some _ -> false
 
@@ -95,6 +115,12 @@ module Stream = struct
             | Ok x -> Some x
             | Result.Error x -> raise (error_to_exn x)
     )
+
+  module Infix = struct
+    let ( /@ ) x f = map f x
+    let ( // ) x f = filter x ~f
+    let ( //@ ) x f = filter_map x ~f
+  end
 
 end
 
