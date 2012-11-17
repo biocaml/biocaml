@@ -204,9 +204,51 @@ module Stream = struct
     in 
     (from head, from tail)
 
-  let span = assert false
-  let group = assert false
-  let group_by = assert false
+  let group_aux xs map eq =
+    let prev_group_force = ref ignore in
+    let for_each_group _ =
+      !prev_group_force () ;
+      match next xs with
+      | None -> None
+      | Some x ->
+          let queue = Queue.create () 
+          and forced = ref false 
+          and mapped_x = map x in
+
+          let aux i = 
+            if i = 0 then Some x
+            else (
+              if !forced then
+                Queue.dequeue queue
+              else (
+                match peek xs with
+                | Some y as e when eq (map y) mapped_x -> junk xs ; e
+                | _ -> None
+              )
+            ) in
+
+          let force () =
+            forced := true ;
+            let rec loop () =
+              match peek xs with
+              | Some y when eq (map y) mapped_x -> 
+                  junk xs ; 
+                  Queue.enqueue queue y ; 
+                  loop ()
+              | _ -> ()
+            in
+            loop ()
+
+          in
+          prev_group_force := force ;
+          Some (from aux)
+    in
+    from for_each_group
+
+  let group xs ~f = group_aux xs f ( = )
+
+  let group_by xs ~eq = group_aux xs ident eq
+
   let mapi = assert false
   let append = assert false
   let concat = assert false
@@ -215,11 +257,11 @@ module Stream = struct
   let merge = assert false
   let partition = assert false
   let uniq = assert false
-  let range = assert false
+  let range ?until n = assert false
 
-  let init = assert false
+  let init n ~f = assert false
   let singleton = assert false
-  let loop = assert false
+  let loop init ~f = assert false
   let repeat = assert false
   let cycle = assert false
 
@@ -303,13 +345,13 @@ module Stream = struct
       if n < 0 then
         empty ()
       else
-        init n (fun i -> Float.of_int i *. step +. a)
+        init n ~f:(fun i -> Float.of_int i *. step +. a)
 
     let ( --^ ) x y = range x ~until:(y-1)
 
     let ( --- ) x y = 
       if x <= y then x -- y
-      else loop x (fun _ prev -> if prev <= y then Some (prev - 1) else None)
+      else loop x ~f:(fun _ prev -> if prev <= y then Some (prev - 1) else None)
         
     let ( /@ ) x f = map x ~f
     let ( // ) x f = filter x ~f
