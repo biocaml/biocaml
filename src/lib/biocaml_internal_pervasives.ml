@@ -147,17 +147,63 @@ module Stream = struct
     from aux
     
   let take_while xs ~f = take_whilei xs ~f:(const f)
-  let take k = take_whilei ~f:(fun j _ -> j < k)
+
+  let take k xs = 
+    let end_index = count xs + k in
+    take_whilei xs ~f:(fun j _ -> j < end_index)
     
-  let rec skip_whilei xs ~f =
+  let rec drop_whilei xs ~f =
     match peek xs with
-    | Some x when f (count xs) x -> junk xs ; skip_whilei xs ~f
-    | _ -> from (fun _ -> next xs)
+    | Some x when f (count xs) x -> junk xs ; drop_whilei xs ~f
+    | _ -> ()
+
+  let drop_while xs ~f = drop_whilei xs ~f:(const f)
+
+  let drop n xs =
+    let end_index = count xs + n in
+    drop_whilei xs ~f:(fun j _ -> j < end_index)
+
+  let skip_whilei xs ~f = 
+    drop_whilei xs ~f ; 
+    from (fun _ -> next xs)
 
   let skip_while xs ~f = skip_whilei xs ~f:(const f)
     
-  let skip n xs = assert false
-  let drop = assert false
+  let skip n xs =
+    drop n xs ;
+    from (fun _ -> next xs)
+
+  let span xs ~f =
+  (*Two possibilities: either the tail has been read
+    already -- in which case all head data has been 
+    copied onto the queue -- or the tail hasn't been
+    read -- in which case, stuff should be read from
+    [xs] *)
+    let queue           = Queue.create () 
+    and read_from_queue = ref false in
+
+    let head _ =
+      if !read_from_queue then (* Everything from the head has been copied *)
+        Queue.dequeue queue    (* to the queue already                     *)
+      else 
+        match peek xs with
+        | Some x as e when f x -> junk xs ; e
+        | _ -> None
+
+    and tail _ =
+      if not !read_from_queue then (*Copy everything to the queue         *)
+        begin
+          read_from_queue := true;
+          let rec aux () = 
+            match peek xs with
+            | Some x when f x -> Queue.enqueue queue x ; aux ()
+            | e -> e
+          in aux ()
+        end
+      else next xs
+    in 
+    (from head, from tail)
+
   let span = assert false
   let group = assert false
   let group_by = assert false
