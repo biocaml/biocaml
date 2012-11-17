@@ -94,8 +94,8 @@ module Stream : sig
   val iter2i_exn : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
   val iter2i : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
   val foldi : 'a t -> init:'b -> f:(int -> 'b -> 'a -> 'b) -> 'b
-  val fold2i_exn : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
-  val fold2i : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
+  val fold2i_exn : 'a t -> 'b t -> init:'c -> f:(int -> 'c -> 'a -> 'b -> 'c) -> 'c
+  val fold2i : 'a t -> 'b t -> init:'c -> f:(int -> 'c -> 'a -> 'b -> 'c) -> 'c
 
   val find : 'a t -> f:('a -> bool) -> 'a option
   (** [find e ~f] returns either [Some x] where [x] is the first
