@@ -47,10 +47,13 @@ module Stream : sig
   include Streamable with type 'a streamable = 'a t
 
   val iter : 'a t -> f:('a -> unit) -> unit
+
+  exception Expected_streams_of_equal_length
+
   val iter2_exn : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
-  (** [iter2_exn a b ~f] calls in turn [f a1 b1; ...; f an
-      bn]. @raise Invalid_argument if the two streams have different
-      lengths, and no guarantee about which elements were
+  (** [iter2_exn a b ~f] calls in turn [f a1 b1; ...; f an bn]. @raise
+      [Expected_streams_of_equal_length] if the two streams have
+      different lengths, and no guarantee about which elements were
       consumed. *)
   val iter2 : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
   (** Same as [iter2_exn] except that it doesn't raise an exception if
@@ -89,7 +92,7 @@ module Stream : sig
 
   val iteri : 'a t -> f:(int -> 'a -> unit) -> unit
   val iter2i_exn : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
-  val iter2 : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
+  val iter2i : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
   val foldi : 'a t -> init:'b -> f:(int -> 'b -> 'a -> 'b) -> 'b
   val fold2i_exn : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
   val fold2i : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c

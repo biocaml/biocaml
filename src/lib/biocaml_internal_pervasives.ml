@@ -27,7 +27,7 @@ module Stream = struct
 
   let iter xs ~f = iter f xs
 
-  let iter2_exn_msg = "Stream.iter2_exn given streams of different lengths"
+  exception Expected_streams_of_equal_length
 
   let rec iter2_exn a b ~f = match peek a, peek b with
     | Some x, Some y -> (
@@ -36,14 +36,11 @@ module Stream = struct
         iter2_exn a b ~f
       )
     | None, None -> ()
-    | _, _ -> invalid_arg iter2_exn_msg
+    | _, _ -> raise Expected_streams_of_equal_length
 
   let iter2 a b ~f = 
     try iter2_exn a b ~f 
-    with Invalid_argument msg when phys_equal msg iter2_exn_msg -> ()
-  (* The use of physical equality in this function is to ensure that
-     the [Invalid_argument] exceptions indeed comes from the
-     iter2_exn function and not the [~f] argument. *)
+    with Expected_streams_of_equal_length -> ()
 
   let rec exists xs ~f =
     match peek xs with
@@ -70,13 +67,28 @@ module Stream = struct
   let sum = reduce ~f:( + )
   let fsum = reduce ~f:( +. )
 
-  let fold2_exn = assert false
-  let fold2 = assert false
+  let rec fold2_exn xs ys ~init ~f = 
+    match peek xs, peek ys with
+    | Some x, Some y -> 
+        junk xs ;
+        junk ys ;
+        fold2_exn xs ys ~init:(f init x y) ~f
+    | None, None -> init
+    | _ -> raise Expected_streams_of_equal_length
+
+  let rec fold2 xs ys ~init ~f = 
+    match peek xs, peek ys with
+    | Some x, Some y -> 
+        junk xs ;
+        junk ys ;
+        fold2_exn xs ys ~init:(f init x y) ~f
+    | _ -> init
+
   let scanl = assert false
   let scan = assert false
   let iteri = assert false
   let iter2i_exn = assert false
-  let iter2 = assert false
+  let iter2i = assert false
   let foldi = assert false
   let fold2i_exn = assert false
   let fold2i = assert false
