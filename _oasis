@@ -65,6 +65,7 @@ Library biocaml
            , Biocaml_solexa_score
            , Biocaml_sgr
            , Biocaml_strandName
+           , Biocaml_stream
            , Biocaml_table
            , Biocaml_track
            , Biocaml_tags
