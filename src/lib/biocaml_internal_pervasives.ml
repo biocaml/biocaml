@@ -25,21 +25,39 @@ module Stream = struct
   let stream x = x
   let of_stream x = x
 
-  let iter xs ~f = iter f xs
-
   exception Expected_streams_of_equal_length
 
-  let rec iter2_exn a b ~f = match peek a, peek b with
-    | Some x, Some y -> (
+  let iteri xs ~f =
+    let rec aux i =
+      match next xs with
+      | Some x -> f i x ; aux (i + 1)
+      | None -> ()
+    in
+    aux 0
+
+  let iter xs ~f = iteri xs ~f:(const f)
+
+  let iter2i_exn a b ~f =
+    let rec aux i =
+      match peek a, peek b with
+      | Some x, Some y -> (
         junk a; junk b;
-        f x y;
-        iter2_exn a b ~f
+        f i x y;
+        aux (i + 1)
       )
-    | None, None -> ()
-    | _, _ -> raise Expected_streams_of_equal_length
+      | None, None -> ()
+      | _, _ -> raise Expected_streams_of_equal_length
+    in
+    aux 0
+
+  let iter2_exn xs ys ~f = iter2i_exn xs ys ~f:(const f)
+
+  let iter2i a b ~f = 
+    try iter2i_exn a b ~f
+    with Expected_streams_of_equal_length -> ()
 
   let iter2 a b ~f = 
-    try iter2_exn a b ~f 
+    try iter2_exn a b ~f
     with Expected_streams_of_equal_length -> ()
 
   let rec exists xs ~f =
@@ -54,10 +72,15 @@ module Stream = struct
     | Some _ -> junk xs ; for_all xs ~f
     | None -> true
 
-  let rec fold xs ~init ~f =
-    match peek xs with
-    | None -> init
-    | Some a -> (junk xs; fold xs ~init:(f init a) ~f)
+  let foldi xs ~init ~f =
+    let rec aux i accu = 
+      match next xs with
+      | None -> init
+      | Some x -> aux (i + 1) (f i accu x)
+    in
+    aux 0 init
+
+  let fold xs ~init ~f = foldi xs ~init ~f:(const f)
 
   let reduce xs ~f =
     match next xs with
@@ -67,22 +90,32 @@ module Stream = struct
   let sum = reduce ~f:( + )
   let fsum = reduce ~f:( +. )
 
-  let rec fold2_exn xs ys ~init ~f = 
-    match peek xs, peek ys with
-    | Some x, Some y -> 
-        junk xs ;
-        junk ys ;
-        fold2_exn xs ys ~init:(f init x y) ~f
-    | None, None -> init
-    | _ -> raise Expected_streams_of_equal_length
+  let fold2i_exn xs ys ~init ~f = 
+    let rec aux i accu =
+      match peek xs, peek ys with
+      | Some x, Some y -> 
+          junk xs ;
+          junk ys ;
+          aux (i + 1) (f i accu x y)
+      | None, None -> accu
+      | _ -> raise Expected_streams_of_equal_length
+    in
+    aux 0 init
 
-  let rec fold2 xs ys ~init ~f = 
-    match peek xs, peek ys with
-    | Some x, Some y -> 
-        junk xs ;
-        junk ys ;
-        fold2_exn xs ys ~init:(f init x y) ~f
-    | _ -> init
+  let fold2_exn xs ys ~init ~f = fold2i_exn xs ys ~init ~f:(const f)
+
+  let fold2i xs ys ~init ~f = 
+    let rec aux i accu =
+      match peek xs, peek ys with
+      | Some x, Some y -> 
+          junk xs ;
+          junk ys ;
+          aux (i + 1) (f i accu x y)
+      | _ -> accu
+    in
+    aux 0 init
+
+  let fold2 xs ys ~init ~f = fold2i xs ys ~init ~f:(const f)
 
   let scanl xs ~init ~f =
     let current = ref init in
@@ -98,13 +131,11 @@ module Stream = struct
     in
     from f
 
-  let scan = assert false
-  let iteri = assert false
-  let iter2i_exn = assert false
-  let iter2i = assert false
-  let foldi = assert false
-  let fold2i_exn = assert false
-  let fold2i = assert false
+  let scan xs ~f =
+    match next xs with 
+    | Some init -> scanl xs ~init ~f
+    | None -> invalid_arg "Biocaml_stream.scan: input stream should contain at least one value"
+
   let find = assert false
   let find_exn = assert false
   let find_map = assert false
