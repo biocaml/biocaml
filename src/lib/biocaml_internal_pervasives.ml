@@ -12,9 +12,103 @@ let flip f x y = f y x
 
 module Stream = struct
   include Stream
-
   let next_exn = next
   let next s = try Some (next_exn s) with Stream.Failure -> None
+
+  module type Streamable = sig
+    type 'a streamable
+    val stream : 'a streamable -> 'a t
+    val of_stream : 'a t -> 'a streamable
+  end
+
+  type 'a streamable = 'a t
+  let stream x = x
+  let of_stream x = x
+
+  let iter xs ~f = iter f xs
+
+  let iter2_exn_msg = "Stream.iter2_exn given streams of different lengths"
+
+  let rec iter2_exn a b ~f = match peek a, peek b with
+    | Some x, Some y -> (
+        junk a; junk b;
+        f x y;
+        iter2_exn a b ~f
+      )
+    | None, None -> ()
+    | _, _ -> invalid_arg iter2_exn_msg
+
+  let iter2 a b ~f = 
+    try iter2_exn a b ~f 
+    with Invalid_argument msg when phys_equal msg iter2_exn_msg -> ()
+  (* The use of physical equality in this function is to ensure that
+     the [Invalid_argument] exceptions indeed comes from the
+     iter2_exn function and not the [~f] argument. *)
+
+  let rec exists xs ~f =
+    match peek xs with
+    | Some x when f x -> true
+    | Some _ -> junk xs ; exists xs ~f
+    | None -> false
+
+  let rec for_all xs ~f =
+    match peek xs with
+    | Some x when not (f x) -> false
+    | Some _ -> junk xs ; for_all xs ~f
+    | None -> true
+
+  let rec fold xs ~init ~f =
+    match peek xs with
+    | None -> init
+    | Some a -> (junk xs; fold xs ~init:(f init a) ~f)
+
+  let reduce xs ~f =
+    match next xs with
+    | Some init -> fold xs ~init ~f
+    | None -> invalid_arg "Biocaml_stream.reduce: stream should contain at least one element"
+
+  let sum = reduce ~f:( + )
+  let fsum = reduce ~f:( +. )
+
+  let fold2_exn = assert false
+  let fold2 = assert false
+  let scanl = assert false
+  let scan = assert false
+  let iteri = assert false
+  let iter2i_exn = assert false
+  let iter2 = assert false
+  let foldi = assert false
+  let fold2i_exn = assert false
+  let fold2i = assert false
+  let find = assert false
+  let find_exn = assert false
+  let find_map = assert false
+  let take = assert false
+  let take_while = assert false
+  let take_whilei = assert false
+  let skip = assert false
+  let skip_while = assert false
+  let skip_whilei = assert false
+  let drop = assert false
+  let span = assert false
+  let group = assert false
+  let group_by = assert false
+  let mapi = assert false
+  let append = assert false
+  let concat = assert false
+  let combine = assert false
+  let uncombine = assert false
+  let merge = assert false
+  let partition = assert false
+  let uniq = assert false
+  let range = assert false
+
+  let empty = assert false
+  let init = assert false
+  let singleton = assert false
+  let loop = assert false
+  let repeat = assert false
+  let cycle = assert false
 
   let lines_of_chars cstr =
     let f _ =
@@ -46,37 +140,22 @@ module Stream = struct
   let keep_while pred = keep_whilei (fun _ a -> pred a)
   let truncate k = keep_whilei (fun j _ -> j < k)
   
-  let rec skip_whilei pred s =
-    match peek s with
+  let rec drop_whilei xs ~f =
+    match peek xs with
     | None -> ()
     | Some a ->
-      if pred (count s) a
-      then (junk s; skip_whilei pred s)
+      if f (count xs) a
+      then (junk xs; drop_whilei xs ~f)
       else ()
 
-  let skip_while pred = skip_whilei (fun _ a -> pred a)
-
-  let rec iter2_exn a b ~f = match peek a, peek b with
-    | Some x, Some y -> (
-        junk a; junk b;
-        f x y;
-        iter2_exn a b ~f
-      )
-    | _, _ -> invalid_arg "Stream.iter2_exn given streams of different lengths"
-
-  let rec fold f accum s =
-    match peek s with
-      None -> accum
-    | Some a -> (junk s; fold f (f accum a) s)
+  let drop_while xs ~f = drop_whilei xs ~f:(fun _ a -> f a)
 
   let to_list t =
-    List.rev (fold (fun l b -> b::l) [] t)
+    List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
 
-  let map f s =
-    let f _ =
-      try Some (f (next_exn s))
-      with Failure -> None
-    in from f
+  let map xs ~f =
+    let f _ = Option.map (next xs) ~f in 
+    from f
 
   let filter xs ~f = 
     let rec aux i =
@@ -117,7 +196,22 @@ module Stream = struct
     )
 
   module Infix = struct
-    let ( /@ ) x f = map f x
+    let ( -- ) x y = range x ~until:y
+
+    let ( --. ) (a, step) b =
+      let n = Int.of_float ((b -. a) /. step) + 1 in
+      if n < 0 then
+        empty ()
+      else
+        init n (fun i -> Float.of_int i *. step +. a)
+
+    let ( --^ ) x y = range x ~until:(y-1)
+
+    let ( --- ) x y = 
+      if x <= y then x -- y
+      else loop x (fun _ prev -> if prev <= y then Some (prev - 1) else None)
+       
+    let ( /@ ) x f = map x ~f
     let ( // ) x f = filter x ~f
     let ( //@ ) x f = filter_map x ~f
   end
@@ -139,7 +233,7 @@ module Lines = struct
         let pos = if file = "" then Pos.l n else Pos.fl file n in
         if strict then raise_error pos msg else accum
     in
-    Stream.fold f init lines
+    Stream.fold ~f ~init lines
 
   let fold_stream ?(strict=true) f init cstr =
     fold_stream' ~strict f init cstr
@@ -167,7 +261,7 @@ module Lines = struct
         if strict
         then raise_error (Pos.l (Stream.count lines)) m
         else ans
-    in List.rev (Stream.fold g [] lines)
+    in List.rev (Stream.fold ~f:g ~init:[] lines)
 
   let of_channel ?(strict=true) f cin =
     of_stream ~strict f (Stream.of_channel cin)
