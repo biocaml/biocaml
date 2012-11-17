@@ -84,7 +84,20 @@ module Stream = struct
         fold2_exn xs ys ~init:(f init x y) ~f
     | _ -> init
 
-  let scanl = assert false
+  let scanl xs ~init ~f =
+    let current = ref init in
+    let f i =
+      if i = 0 then Some init
+      else (
+        match next xs with
+        | Some x -> 
+            current := f !current x ;
+            Some !current
+        | None -> None
+      )
+    in
+    from f
+
   let scan = assert false
   let iteri = assert false
   let iter2i_exn = assert false
