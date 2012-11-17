@@ -15,6 +15,8 @@ module Stream = struct
   let next_exn = next
   let next s = try Some (next_exn s) with Stream.Failure -> None
 
+  let empty () = from (const None)
+
   module type Streamable = sig
     type 'a streamable
     val stream : 'a streamable -> 'a t
@@ -27,30 +29,25 @@ module Stream = struct
 
   exception Expected_streams_of_equal_length
 
-  let iteri xs ~f =
-    let rec aux i =
-      match next xs with
-      | Some x -> f i x ; aux (i + 1)
-      | None -> ()
-    in
-    aux 0
+  let rec iteri xs ~f =
+    match peek xs with
+    | Some x -> f (count xs) x ; junk xs ; iteri xs ~f
+    | None -> ()
 
   let iter xs ~f = iteri xs ~f:(const f)
 
-  let iter2i_exn a b ~f =
-    let rec aux i =
-      match peek a, peek b with
-      | Some x, Some y -> (
-        junk a; junk b;
-        f i x y;
-        aux (i + 1)
-      )
-      | None, None -> ()
-      | _, _ -> raise Expected_streams_of_equal_length
-    in
-    aux 0
+  let rec iter2i_exn xs ys ~f =
+    match peek xs, peek ys with
+    | Some x, Some y -> (
+      f (count xs) (count ys) x y;
+      junk xs ;
+      junk ys ;
+      iter2i_exn xs ys ~f
+    )
+    | None, None -> ()
+    | _, _ -> raise Expected_streams_of_equal_length
 
-  let iter2_exn xs ys ~f = iter2i_exn xs ys ~f:(const f)
+  let iter2_exn xs ys ~f = iter2i_exn xs ys ~f:(const (const f))
 
   let iter2i a b ~f = 
     try iter2i_exn a b ~f
@@ -60,25 +57,37 @@ module Stream = struct
     try iter2_exn a b ~f
     with Expected_streams_of_equal_length -> ()
 
-  let rec exists xs ~f =
-    match peek xs with
-    | Some x when f x -> true
-    | Some _ -> junk xs ; exists xs ~f
-    | None -> false
+  let rec find_map xs ~f =
+    match next xs with
+    | Some x -> (
+        match f x with 
+        | Some x as y -> y
+        | None -> find_map xs ~f
+    )
+    | None -> None
+
+  let find xs ~f = find_map xs ~f:(fun x -> if f x then Some x else None)
+
+  let find_exn xs ~f = match find xs ~f with
+  | Some x -> x
+  | None -> raise Not_found
+
+  let exists xs ~f = match find xs ~f with 
+  | Some _ -> true
+  | None -> false
 
   let rec for_all xs ~f =
-    match peek xs with
+    match next xs with
     | Some x when not (f x) -> false
-    | Some _ -> junk xs ; for_all xs ~f
+    | Some _ -> for_all xs ~f
     | None -> true
 
-  let foldi xs ~init ~f =
-    let rec aux i accu = 
-      match next xs with
-      | None -> init
-      | Some x -> aux (i + 1) (f i accu x)
-    in
-    aux 0 init
+  let rec foldi xs ~init ~f =
+    match next xs with
+    | None -> init
+    | Some x -> foldi xs ~init:(f (count xs - 1) init x) ~f
+  (* [count xs - 1] because of the call to [next], which increased the
+     stream count by one *)
 
   let fold xs ~init ~f = foldi xs ~init ~f:(const f)
 
@@ -90,32 +99,25 @@ module Stream = struct
   let sum = reduce ~f:( + )
   let fsum = reduce ~f:( +. )
 
-  let fold2i_exn xs ys ~init ~f = 
-    let rec aux i accu =
-      match peek xs, peek ys with
-      | Some x, Some y -> 
-          junk xs ;
-          junk ys ;
-          aux (i + 1) (f i accu x y)
-      | None, None -> accu
-      | _ -> raise Expected_streams_of_equal_length
-    in
-    aux 0 init
+  let rec fold2i_exn xs ys ~init ~f = 
+    match next xs, next ys with
+    | Some x, Some y -> 
+        let init = f (count xs - 1) (count ys - 1) init x y in
+        (* decrease by one because of the calls to [next] *)
+        fold2i_exn xs ys ~init ~f
+    | None, None -> init
+    | _ -> raise Expected_streams_of_equal_length
 
-  let fold2_exn xs ys ~init ~f = fold2i_exn xs ys ~init ~f:(const f)
+  let fold2_exn xs ys ~init ~f = fold2i_exn xs ys ~init ~f:(const (const f))
 
-  let fold2i xs ys ~init ~f = 
-    let rec aux i accu =
-      match peek xs, peek ys with
-      | Some x, Some y -> 
-          junk xs ;
-          junk ys ;
-          aux (i + 1) (f i accu x y)
-      | _ -> accu
-    in
-    aux 0 init
+  let rec fold2i xs ys ~init ~f = 
+    match next xs, next ys with
+    | Some x, Some y ->
+        let init = f (count xs - 1) (count ys - 1) init x y in
+        fold2i xs ys ~init ~f
+    | _ -> init
 
-  let fold2 xs ys ~init ~f = fold2i xs ys ~init ~f:(const f)
+  let fold2 xs ys ~init ~f = fold2i xs ys ~init ~f:(const (const f))
 
   let scanl xs ~init ~f =
     let current = ref init in
@@ -136,15 +138,25 @@ module Stream = struct
     | Some init -> scanl xs ~init ~f
     | None -> invalid_arg "Biocaml_stream.scan: input stream should contain at least one value"
 
-  let find = assert false
-  let find_exn = assert false
-  let find_map = assert false
-  let take = assert false
-  let take_while = assert false
-  let take_whilei = assert false
-  let skip = assert false
-  let skip_while = assert false
-  let skip_whilei = assert false
+  let take_whilei xs ~f =
+    let aux i =
+      match peek xs with
+      | Some x when f i x -> junk xs ; Some x
+      | _ -> None
+    in 
+    from aux
+    
+  let take_while xs ~f = take_whilei xs ~f:(const f)
+  let take k = take_whilei ~f:(fun j _ -> j < k)
+    
+  let rec skip_whilei xs ~f =
+    match peek xs with
+    | Some x when f (count xs) x -> junk xs ; skip_whilei xs ~f
+    | _ -> from (fun _ -> next xs)
+
+  let skip_while xs ~f = skip_whilei xs ~f:(const f)
+    
+  let skip n xs = assert false
   let drop = assert false
   let span = assert false
   let group = assert false
@@ -159,7 +171,6 @@ module Stream = struct
   let uniq = assert false
   let range = assert false
 
-  let empty = assert false
   let init = assert false
   let singleton = assert false
   let loop = assert false
@@ -171,38 +182,25 @@ module Stream = struct
       match peek cstr with
       | None -> None
       | Some _ ->
-        let ans = Buffer.create 100 in
-        let rec loop () =
-          try
-            let c = next_exn cstr in
-            if c <> '\n' then (Buffer.add_char ans c; loop())
-          with Failure -> ()
-        in 
-        loop();
-        Some (Buffer.contents ans)
+          let ans = Buffer.create 100 in
+          let rec loop () =
+            try
+              let c = next_exn cstr in
+              if c <> '\n' then (Buffer.add_char ans c; loop())
+            with Failure -> ()
+          in 
+          loop();
+          Some (Buffer.contents ans)
     in
     from f
 
-  let keep_whilei pred s =
-    let f _ =
-      match peek s with
-      | None -> None
-      | Some a ->
-        if pred (count s) a
-        then (junk s; Some a)
-        else None
-    in from f
-    
-  let keep_while pred = keep_whilei (fun _ a -> pred a)
-  let truncate k = keep_whilei (fun j _ -> j < k)
-  
   let rec drop_whilei xs ~f =
     match peek xs with
     | None -> ()
     | Some a ->
-      if f (count xs) a
-      then (junk xs; drop_whilei xs ~f)
-      else ()
+        if f (count xs) a
+        then (junk xs; drop_whilei xs ~f)
+        else ()
 
   let drop_while xs ~f = drop_whilei xs ~f:(fun _ a -> f a)
 
@@ -245,10 +243,10 @@ module Stream = struct
   let result_to_exn s ~error_to_exn =
     from (fun _ ->
       match next s with
-        | None -> None
-        | Some result -> match result with
-            | Ok x -> Some x
-            | Result.Error x -> raise (error_to_exn x)
+      | None -> None
+      | Some result -> match result with
+        | Ok x -> Some x
+        | Result.Error x -> raise (error_to_exn x)
     )
 
   module Infix = struct
@@ -266,7 +264,7 @@ module Stream = struct
     let ( --- ) x y = 
       if x <= y then x -- y
       else loop x (fun _ prev -> if prev <= y then Some (prev - 1) else None)
-       
+        
     let ( /@ ) x f = map x ~f
     let ( // ) x f = filter x ~f
     let ( //@ ) x f = filter_map x ~f
@@ -343,7 +341,7 @@ module With_result = struct
         | E e -> Error e
     end in
     M.the_fun ()
-    
+      
   let output_result r = `output r
   let output_ok o = `output (Ok o)
   let output_error e = `output (Error e)
