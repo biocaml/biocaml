@@ -3,6 +3,10 @@
 (**
    See
    {{:https://bitbucket.org/yminsky/ocaml-core/src/8808e3a2571f/base/core/lib/std.ml}std.ml}.
+
+   Semantics: (1) functions that return a stream return a "fresh"
+   stream, meaning that their count is set to 0. (2) indexed variants
+   of HOF use the internal count of the stream
 *)
 include module type of Core.Std
 
@@ -91,11 +95,11 @@ module Stream : sig
       containing the successive values of the factorial function.*)
 
   val iteri : 'a t -> f:(int -> 'a -> unit) -> unit
-  val iter2i_exn : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
-  val iter2i : 'a t -> 'b t -> f:(int -> 'a -> 'b -> unit) -> unit
+  val iter2i_exn : 'a t -> 'b t -> f:(int -> int -> 'a -> 'b -> unit) -> unit
+  val iter2i : 'a t -> 'b t -> f:(int -> int -> 'a -> 'b -> unit) -> unit
   val foldi : 'a t -> init:'b -> f:(int -> 'b -> 'a -> 'b) -> 'b
-  val fold2i_exn : 'a t -> 'b t -> init:'c -> f:(int -> 'c -> 'a -> 'b -> 'c) -> 'c
-  val fold2i : 'a t -> 'b t -> init:'c -> f:(int -> 'c -> 'a -> 'b -> 'c) -> 'c
+  val fold2i_exn : 'a t -> 'b t -> init:'c -> f:(int -> int -> 'c -> 'a -> 'b -> 'c) -> 'c
+  val fold2i : 'a t -> 'b t -> init:'c -> f:(int -> int -> 'c -> 'a -> 'b -> 'c) -> 'c
 
   val find : 'a t -> f:('a -> bool) -> 'a option
   (** [find e ~f] returns either [Some x] where [x] is the first
@@ -110,7 +114,7 @@ module Stream : sig
 
 
   val find_exn : 'a t -> f:('a -> bool) -> 'a
-  val find_map : 'a t -> f:('a -> 'b option) -> 'b t
+  val find_map : 'a t -> f:('a -> 'b option) -> 'b option
 
   val next: 'a t -> 'a option
   val next_exn: 'a t -> 'a
@@ -121,13 +125,16 @@ module Stream : sig
   val take_while : 'a t -> f:('a -> bool) -> 'a t
   val take_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
 
-  val skip : int -> 'a t -> 'a t
-  val skip_while : 'a t -> f:('a -> bool) -> 'a t
-  val skip_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
-
   val drop : int -> 'a t -> unit
   val drop_while : 'a t -> f:('a -> bool) -> unit
   val drop_whilei : 'a t -> f:(int -> 'a -> bool) -> unit
+
+  (** Similar to [drop] but returns a fresh stream obtained after
+      discarding the [n] first elements. Being a fresh stream, the
+      count of the returned stream starts from 0 *)
+  val skip : int -> 'a t -> 'a t
+  val skip_while : 'a t -> f:('a -> bool) -> 'a t
+  val skip_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
 
   val span : 'a t -> f:('a -> bool) -> 'a t * 'a t
   (** [span test e] produces two streams [(hd, tl)], such that
@@ -191,6 +198,7 @@ module Stream : sig
           stream. Resulting stream raises exception at first error
           seen. *)
 
+  val empty : unit -> 'a t
   val init : int -> f:(int -> 'a) -> 'a t
   val singleton : 'a -> 'a t
   val loop : 'a -> f:(int -> 'a -> 'a option) -> 'a t
