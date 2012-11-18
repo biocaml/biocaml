@@ -4,6 +4,11 @@ include Stream
 let next_exn = next
 let next s = try Some (next_exn s) with Stream.Failure -> None
 
+let is_empty s =
+  match peek s with 
+  | None -> true 
+  | Some _ -> false
+
 let empty () = from (const None)
 
 module type Streamable = sig
@@ -238,11 +243,13 @@ let group xs ~f = group_aux xs f ( = )
 
 let group_by xs ~eq = group_aux xs ident eq
 
-let map xs ~f =
-  let f _ = Option.map (next xs) ~f in 
-  from f
+let mapi xs ~f =
+  let aux i = Option.map (next xs) ~f:(f i) in 
+  from aux
 
-let mapi xs ~f = assert false
+let map xs ~f =
+  let aux _ = Option.map (next xs) ~f in 
+  from aux
 
 let filter xs ~f = 
   let rec aux i =
@@ -264,8 +271,37 @@ let filter_map xs ~f =
   in
   from aux
 
-let append xs ys = assert false
-let concat xs = assert false
+let append xs ys =
+  let aux _ =
+    match next xs with
+    | None -> next ys
+    | e -> e
+  in 
+  from aux
+
+let concat xs =
+  let rec find_next_non_empty_stream xs =
+    match peek xs with
+    | Some stream when is_empty stream -> 
+        junk xs ;
+        find_next_non_empty_stream xs
+    | x -> x
+  in
+  let current = ref (empty ()) in
+  let aux _ =
+    match next !current with
+    | None -> (
+        match find_next_non_empty_stream xs with
+        | None -> None
+        | Some stream ->
+          current := stream ;
+          next stream
+    )
+    | x -> x
+  in
+  from aux
+
+
 let combine (xs, ys) = assert false
 let uncombine xs = assert false
 let merge xs ys ~cmp = assert false
@@ -308,9 +344,6 @@ let drop_while xs ~f = drop_whilei xs ~f:(fun _ a -> f a)
 
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
-
-let is_empty s =
-  match peek s with None -> true | Some _ -> false
 
 let lines_of_channel cin =
   let f _ =
