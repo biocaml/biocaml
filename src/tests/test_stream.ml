@@ -38,10 +38,23 @@ let test_group () =
     ~msg:"Find groups with same parity (reverse order)"
     groups [ [ 1 ; 3 ] ; [ 4 ] ; [ 5 ] ; [ 4 ; 2 ] ; [ 9 ] ]
 
+let test_concat () =
+  let f x = x mod 2 in
+  let l = List.init 100 ~f:(fun _ -> Random.int 10) in
+  let m =
+    of_list l
+    |! group ~f
+    |! concat
+    |! to_list
+  in 
+  assert_equal
+    ~msg:"Concat grouped enum is idempotent"
+    l m
 
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
   "Group" >:: test_group;
+  "Concat" >:: test_concat;
 ]
 
 
