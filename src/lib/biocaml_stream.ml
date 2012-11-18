@@ -238,21 +238,46 @@ let group xs ~f = group_aux xs f ( = )
 
 let group_by xs ~eq = group_aux xs ident eq
 
-let mapi = assert false
-let append = assert false
-let concat = assert false
-let combine = assert false
-let uncombine = assert false
-let merge = assert false
-let partition = assert false
-let uniq = assert false
+let map xs ~f =
+  let f _ = Option.map (next xs) ~f in 
+  from f
+
+let mapi xs ~f = assert false
+
+let filter xs ~f = 
+  let rec aux i =
+    match next xs with
+    | Some x when not (f x) -> aux i
+    | x -> x
+  in
+  from aux
+
+let filter_map xs ~f = 
+  let rec aux i =
+    match next xs with
+    | Some x -> (
+      match f x with
+      | None -> aux i
+      | x -> x
+    )
+    | None -> None
+  in
+  from aux
+
+let append xs ys = assert false
+let concat xs = assert false
+let combine (xs, ys) = assert false
+let uncombine xs = assert false
+let merge xs ys ~cmp = assert false
+let partition xs ~f = assert false
+let uniq xs = assert false
 let range ?until n = assert false
 
 let init n ~f = assert false
-let singleton = assert false
+let singleton x = assert false
 let loop init ~f = assert false
-let repeat = assert false
-let cycle = assert false
+let repeat ?times x = assert false
+let cycle ?times xs = assert false
 
 let lines_of_chars cstr =
   let f _ =
@@ -283,30 +308,6 @@ let drop_while xs ~f = drop_whilei xs ~f:(fun _ a -> f a)
 
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
-
-let map xs ~f =
-  let f _ = Option.map (next xs) ~f in 
-  from f
-
-let filter xs ~f = 
-  let rec aux i =
-    match next xs with
-    | Some x when not (f x) -> aux i
-    | x -> x
-  in
-  from aux
-
-let filter_map xs ~f = 
-  let rec aux i =
-    match next xs with
-    | Some x -> (
-      match f x with
-      | None -> aux i
-      | x -> x
-    )
-    | None -> None
-  in
-  from aux
 
 let is_empty s =
   match peek s with None -> true | Some _ -> false
