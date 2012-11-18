@@ -67,11 +67,27 @@ let test_uncombine () =
   assert_equal ~printer ~msg:"Check first list"  (List.rev l1) [ 1 ; 3 ; 5 ; 7 ] ;
   assert_equal ~printer ~msg:"Check second list" (List.rev l2) [ 2 ; 4 ; 6 ; 8 ]
 
+let test_partition () = 
+  let printer = BatIO.to_string (BatTuple.Tuple2.print (BatList.print BatInt.print)) in
+  let f x = x mod 2 = 0 in
+  let l = List.init 100 ~f:(fun _ -> Random.int 10) in
+  let r1 = Caml.List.partition f l in
+  let r2 =
+    of_list l
+    |! partition ~f
+    |! BatTuple.Tuple2.map to_list
+  in 
+  assert_equal
+    ~printer
+    ~msg:"Check stream partition against list partition"
+    r1 r2
+
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
   "Group" >:: test_group;
   "Concat" >:: test_concat;
-  "Uncombine" >:: test_uncombine
+  "Uncombine" >:: test_uncombine;
+  "Partition" >:: test_partition
 ]
 
 

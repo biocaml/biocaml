@@ -353,8 +353,41 @@ let uncombine xs =
   in
   from left, from right
 
-let merge xs ys ~cmp = assert false
-let partition xs ~f = assert false
+let merge xs ys ~cmp =
+  let aux _ =
+    match peek xs, peek ys with
+    | Some x as ex, Some y when cmp x y <= 0 -> ex
+    | Some _, (Some _ as ey) -> ey
+    | Some _ as ex, None -> ex
+    | None, (Some _ as ey) -> ey
+    | None, None -> None
+  in
+  from aux
+
+let partition xs ~f =
+  let pos_queue = Queue.create ()
+  and neg_queue = Queue.create () in
+  
+  let rec pos i =
+    match Queue.dequeue pos_queue with
+    | None -> (
+      match next xs with
+      | Some x when not (f x) -> Queue.enqueue neg_queue x ; pos i
+      | e -> e
+    )
+    | e -> e
+
+  and neg i =
+    match Queue.dequeue neg_queue with
+    | None -> (
+      match next xs with
+      | Some x when f x -> Queue.enqueue pos_queue x ; neg i
+      | e -> e
+    )
+    | e -> e
+  in
+  from pos, from neg
+
 let uniq xs = assert false
 let range ?until n = assert false
 
