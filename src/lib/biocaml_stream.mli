@@ -179,8 +179,6 @@ val empty : unit -> 'a t
 val init : int -> f:(int -> 'a) -> 'a t
 val singleton : 'a -> 'a t
 val loop : 'a -> f:(int -> 'a -> 'a option) -> 'a t
-val repeat : ?times:int -> 'a -> 'a t
-val cycle : ?times:int -> 'a t -> 'a t
 
 module Infix : sig
   val ( -- ) : int -> int -> int t

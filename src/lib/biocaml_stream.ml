@@ -388,14 +388,51 @@ let partition xs ~f =
   in
   from pos, from neg
 
-let uniq xs = assert false
-let range ?until n = assert false
+let uniq xs =
+  match peek xs with
+  | None -> empty ()
+  | Some first ->
+      let prev = ref first in
+      let rec aux i =
+        if i = 0 then Some first
+        else (
+          match next xs with
+          | None -> None
+          | Some x ->
+              if x = !prev then
+                aux i
+              else (
+                prev := x ;
+                Some x
+              )
+        )
+      in 
+      from aux
 
-let init n ~f = assert false
-let singleton x = assert false
-let loop init ~f = assert false
-let repeat ?times x = assert false
-let cycle ?times xs = assert false
+let init n ~f =
+  if n < 0 then empty ()
+  else (
+    let aux i = 
+      if i < n then Some (f i)
+      else None
+    in
+    from aux
+  )
+
+let singleton x = init 1 (const x)
+
+let loop init ~f =
+  let prev = ref init in
+  let aux i =
+    match f i !prev with
+    | Some next as e -> prev := next ; e
+    | e -> e
+  in
+  from aux
+
+let range ?until n =
+  let stop = Option.value_map until ~default:(fun _ -> true) ~f:( < ) in
+  loop n (fun i _ -> if stop i then None else Some i)
 
 let lines_of_chars cstr =
   let f _ =
@@ -413,16 +450,6 @@ let lines_of_chars cstr =
         Some (Buffer.contents ans)
   in
   from f
-
-let rec drop_whilei xs ~f =
-  match peek xs with
-  | None -> ()
-  | Some a ->
-      if f (count xs) a
-      then (junk xs; drop_whilei xs ~f)
-      else ()
-
-let drop_while xs ~f = drop_whilei xs ~f:(fun _ a -> f a)
 
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
