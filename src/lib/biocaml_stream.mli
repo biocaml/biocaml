@@ -1,16 +1,16 @@
 (** This module is an enhancement of
     {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Stream.html}the
-    stdlib's [Stream] module}, whose specification and documentation
-    is largely inspired from
+    stdlib's [Stream] module}. It is largely inspired from
     {{:http://ocaml-batteries-team.github.com/batteries-included/hdoc2/BatEnum.html}Batteries's
-    [Enum] module}. However, it is written in a more core-styled way. *)
+    [Enum] module}. However, it is written in a more core-styled
+    way. *)
 
 open Core.Std
 
 include module type of Stream with type 'a t = 'a Stream.t
 
 (** A signature for data structures which may be converted to and from [Stream.t].
-      
+    
     If you create a new data structure, you should make it compatible
     with [Streamable].
 *)
@@ -28,40 +28,53 @@ end
 include Streamable with type 'a streamable = 'a t
 
 val iter : 'a t -> f:('a -> unit) -> unit
+(** [iter xs ~f] calls in turn [f x1], [f x2], ... *)
 
 exception Expected_streams_of_equal_length
 
 val iter2_exn : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
-  (** [iter2_exn a b ~f] calls in turn [f a1 b1; ...; f an bn]. @raise
-      [Expected_streams_of_equal_length] if the two streams have
-      different lengths, and no guarantee about which elements were
-      consumed. *)
+(** [iter2_exn a b ~f] calls in turn [f a1 b1], [f a2 b2], ... [f an
+    bn]. @raise [Expected_streams_of_equal_length] if the two
+    streams have different lengths, and no guarantee about which
+    elements were consumed. *)
+
 val iter2 : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
-  (** Same as [iter2_exn] except that it doesn't raise an exception if
-      the two streams have different lengths. *)
+(** Same as [iter2_exn] except that it doesn't raise an exception if
+    the two streams have different lengths. *)
 
 val exists: 'a t -> f:('a -> bool) -> bool
-  (** [exists e ~f] returns [true] if there is some [x] in [e] such
-      that [f x]*)
+(** [exists e ~f] returns [true] if there is some [x] in [e] such
+    that [f x]*)
 
 val for_all: 'a t -> f:('a -> bool) -> bool
-  (** [for_all e ~f] returns [true] if for every [x] in [e], [f x] is true*)
+(** [for_all e ~f] returns [true] if for every [x] in [e], [f x] is true*)
 
 val fold : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b
+(** [fold xs ~init ~f] returns [f (...(f (f init x1) x2)...) xn] *)
 
 val reduce : 'a t -> f:('a -> 'a -> 'a) -> 'a
+(** [reduce xs ~f] returns [f (...(f (f x1 x2) x3)...) xn] *)
 
 val sum : int t -> int
+(** [sum xs] returns the sum of the integers contained in [xs] *)
+
 val fsum : float t -> float 
+(** [fsum xs] returns the sum of the floats contained in [xs] *)
 
 val fold2_exn : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
+(** [fold2_exn xs ys ~init ~f] returns [f (...(f (f init x1 y1) x2
+    y2)...) xn yn]. @raise [Expected_streams_of_equal_length] if [xs]
+    and [ys] have different lengths. *)
+
 val fold2 : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
+(** Same as [fold2_exn] except that it doesn't raise an exception if
+    the two streams have different lengths. *)
 
 val scanl : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b t
-  (** A variant of [fold] producing a stream of its intermediate
-      values.  If [e] contains [x0], [x1], ..., [scanl f init e] is
-      the stream containing [init], [f init x0], [f (f init x0) x1],
-      [f (f (f init x0) x1) x2], ... *)
+(** A variant of [fold] producing a stream of its intermediate
+    values.  If [e] contains [x0], [x1], ..., [scanl f init e] is
+    the stream containing [init], [f init x0], [f (f init x0) x1],
+    [f (f (f init x0) x1) x2], ... *)
 
 val scan : 'a t -> f:('a -> 'a -> 'a) -> 'a t
   (** [scan] is similar to [scanl] but without the [init] value: if [e]
@@ -71,6 +84,13 @@ val scan : 'a t -> f:('a -> 'a -> 'a) -> 'a t
       For instance, [scan (1 -- 10) ~f:( * )] will produce an enumeration
       containing the successive values of the factorial function.*)
 
+
+(** Indexed variants of the previous higher-order functions. The index
+    provided to the [~f] argument is the count of the stream, that is
+    the number of discarded elements before the reaching the current
+    one. For functions iterating on two streams, the [~f] is thus
+    provided two indices, since the current count may differ from one
+    stream to another. *)
 val iteri : 'a t -> f:(int -> 'a -> unit) -> unit
 val iter2i_exn : 'a t -> 'b t -> f:(int -> int -> 'a -> 'b -> unit) -> unit
 val iter2i : 'a t -> 'b t -> f:(int -> int -> 'a -> 'b -> unit) -> unit
@@ -79,38 +99,53 @@ val fold2i_exn : 'a t -> 'b t -> init:'c -> f:(int -> int -> 'c -> 'a -> 'b -> '
 val fold2i : 'a t -> 'b t -> init:'c -> f:(int -> int -> 'c -> 'a -> 'b -> 'c) -> 'c
 
 val find : 'a t -> f:('a -> bool) -> 'a option
-  (** [find e ~f] returns either [Some x] where [x] is the first
-      element of [e] such that [f x] returns [true], consuming the
-      stream up to and including the found element, or [None] if no
-      such element exists in the stream, consuming the whole stream in
-      the search.
+(** [find e ~f] returns either [Some x] where [x] is the first
+    element of [e] such that [f x] returns [true], consuming the
+    stream up to and including the found element, or [None] if no
+    such element exists in the stream, consuming the whole stream in
+    the search.
 
-      Since [find] (eagerly) consumes a prefix of the stream, it
-      can be used several times on the same stream to find the
-      next element. *)
+    Since [find] (eagerly) consumes a prefix of the stream, it
+    can be used several times on the same stream to find the
+    next element. *)
 
 
 val find_exn : 'a t -> f:('a -> bool) -> 'a
+(** Same as [find] except that it raises an exception [Not_found]
+    instead of returning [None]. *)
+
 val find_map : 'a t -> f:('a -> 'b option) -> 'b option
+(** Similar to [find] *)
 
 val next: 'a t -> 'a option
 val next_exn: 'a t -> 'a
 val is_empty : 'a t -> bool
 
-  (** {6 Prefix and suffix} *)
+(** {6 Prefix and suffix} *)
+
 val take : int -> 'a t -> 'a t
+(** [take n xs] builds a fresh stream from [xs] containing the [d]
+    first elements of [xs] where [d = min n l] and [l] is the length
+    of [xs]. As it is fresh, the count of the resulting stream starts
+    from [0] whatever the count of [xs] is. *)
+
 val take_while : 'a t -> f:('a -> bool) -> 'a t
+
 val take_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
 
 val drop : int -> 'a t -> unit
+
 val drop_while : 'a t -> f:('a -> bool) -> unit
+
 val drop_whilei : 'a t -> f:(int -> 'a -> bool) -> unit
 
-  (** Similar to [drop] but returns a fresh stream obtained after
-      discarding the [n] first elements. Being a fresh stream, the
-      count of the returned stream starts from 0 *)
 val skip : int -> 'a t -> 'a t
+(** Similar to [drop] but returns a fresh stream obtained after
+    discarding the [n] first elements. Being a fresh stream, the
+    count of the returned stream starts from 0 *)
+
 val skip_while : 'a t -> f:('a -> bool) -> 'a t
+
 val skip_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
 
 val span : 'a t -> f:('a -> bool) -> 'a t * 'a t
