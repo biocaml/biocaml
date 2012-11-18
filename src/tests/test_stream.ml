@@ -4,6 +4,8 @@ open Printf
 
 open Biocaml_stream
 
+let printer = BatIO.to_string (BatList.print BatInt.print)
+
 let test_exists () =
   let f x = x mod 2 = 0 in
   assert_bool
@@ -51,10 +53,25 @@ let test_concat () =
     ~msg:"Concat grouped enum is idempotent"
     l m
 
+let test_uncombine () =
+  let l = [ 1,2; 3,4; 5,6; 7,8 ] in
+  let s1, s2 = of_list l |! uncombine in
+  let l2 = next_exn s2 :: [] in
+  let l2 = next_exn s2 :: l2 in
+  let l1 = next_exn s1 :: [] in
+  let l1 = next_exn s1 :: l1 in
+  let l1 = next_exn s1 :: l1 in
+  let l2 = next_exn s2 :: l2 in
+  let l2 = next_exn s2 :: l2 in
+  let l1 = next_exn s1 :: l1 in
+  assert_equal ~printer ~msg:"Check first list"  (List.rev l1) [ 1 ; 3 ; 5 ; 7 ] ;
+  assert_equal ~printer ~msg:"Check second list" (List.rev l2) [ 2 ; 4 ; 6 ; 8 ]
+
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
   "Group" >:: test_group;
   "Concat" >:: test_concat;
+  "Uncombine" >:: test_uncombine
 ]
 
 

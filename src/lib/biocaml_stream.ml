@@ -302,8 +302,57 @@ let concat xs =
   from aux
 
 
-let combine (xs, ys) = assert false
-let uncombine xs = assert false
+let combine (xs, ys) =
+  let aux _ =
+    match peek xs, peek ys with
+    | Some x, Some y -> 
+        junk xs ;
+        junk ys ;
+        Some (x,y)
+    | _ -> None
+  in
+  from aux
+
+let uncombine xs =
+  let whosfirst = ref `left
+  and lq = Queue.create ()
+  and rq = Queue.create () in
+  
+  let rec left i =
+    match !whosfirst with
+    | `left -> (
+      match next xs with
+      | None -> None
+      | Some (l,r) ->
+          Queue.enqueue rq r ;
+          Some l
+    )
+    | `right -> (
+      match Queue.dequeue lq with
+      | None -> 
+          whosfirst := `left ;
+          left i
+      | x -> x
+    )
+  and right i =
+    match !whosfirst with
+    | `right -> (
+      match next xs with
+      | None -> None
+      | Some (l,r) ->
+          Queue.enqueue lq l ;
+          Some r
+    )
+    | `left -> (
+      match Queue.dequeue rq with
+      | None -> 
+          whosfirst := `right ;
+          right i
+      | x -> x
+    )
+  in
+  from left, from right
+
 let merge xs ys ~cmp = assert false
 let partition xs ~f = assert false
 let uniq xs = assert false
