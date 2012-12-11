@@ -127,6 +127,15 @@ let test_merge () =
   in
   ignore (Array.init 10 f)
 
+let test_uniq () =
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check uniq'ed lists (by hand and by [uniq]"
+    [ 5;6;3;2;6;7;8 ]
+    ([ 5 ; 5 ; 6 ; 3 ; 3; 3 ; 2; 6; 7; 8; 8; 8] |! of_list |! uniq |! to_list)
+
+  
+
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
   "Range" >:: test_range;
@@ -136,6 +145,25 @@ let tests = "Stream" >::: [
   "Concat" >:: test_concat;
   "Uncombine" >:: test_uncombine;
   "Merge" >:: test_merge ;
-  "Partition" >:: test_partition
+  "Partition" >:: test_partition ;
+  "Uniq" >:: test_uniq ;
 ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
