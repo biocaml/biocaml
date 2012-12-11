@@ -134,6 +134,17 @@ let test_uniq () =
     [ 5;6;3;2;6;7;8 ]
     ([ 5 ; 5 ; 6 ; 3 ; 3; 3 ; 2; 6; 7; 8; 8; 8] |! of_list |! uniq |! to_list)
 
+let test_skip () =
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
+    [ 6;-1;-2;7;8 ]
+    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! skip 3 |! to_list) ;
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
+    [ 6;-1;-2;7;8 ]
+    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! skip_while ~f:(( > ) 0) |! to_list)
   
 
 let tests = "Stream" >::: [
@@ -141,6 +152,7 @@ let tests = "Stream" >::: [
   "Range" >:: test_range;
   "Iter" >:: test_iter;
   "Scan" >:: test_scan;
+  "Skip" >:: test_skip ;
   "Group" >:: test_group;
   "Concat" >:: test_concat;
   "Uncombine" >:: test_uncombine;
