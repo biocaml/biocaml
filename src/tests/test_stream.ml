@@ -109,6 +109,24 @@ let test_scan () =
     ~msg:"Check the construction of the first factorials"
     [1; 2; 6; 24; 120; 720; 5040; 40320; 362880; 3628800] factorials
 
+let test_merge () =
+  let rnd_list () =
+    List.(init 20 (fun _ -> Random.int 1000) |! sort ~cmp:Pervasives.compare)
+  in
+  let f _ =
+    let left = rnd_list () and right = rnd_list () in
+    let gold = List.sort ~cmp:Pervasives.compare (left @ right)
+    and merged =
+      merge (of_list left) (of_list right) ~cmp:Pervasives.compare
+      |! to_list
+    in
+    assert_equal
+      ~printer:int_list_printer
+      ~msg:"Check merged sorted lists equals sorted concatenated lists"
+      gold merged
+  in
+  ignore (Array.init 10 f)
+
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
   "Range" >:: test_range;
@@ -117,24 +135,7 @@ let tests = "Stream" >::: [
   "Group" >:: test_group;
   "Concat" >:: test_concat;
   "Uncombine" >:: test_uncombine;
+  "Merge" >:: test_merge ;
   "Partition" >:: test_partition
 ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

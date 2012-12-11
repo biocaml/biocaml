@@ -356,10 +356,10 @@ let uncombine xs =
 let merge xs ys ~cmp =
   let aux _ =
     match peek xs, peek ys with
-    | Some x as ex, Some y when cmp x y <= 0 -> ex
-    | Some _, (Some _ as ey) -> ey
-    | Some _ as ex, None -> ex
-    | None, (Some _ as ey) -> ey
+    | Some x as ex, Some y when cmp x y <= 0 -> junk xs ; ex
+    | Some _, (Some _ as ey) -> junk ys ; ey
+    | Some _ as ex, None -> junk xs ; ex
+    | None, (Some _ as ey) -> junk ys ; ey
     | None, None -> None
   in
   from aux
