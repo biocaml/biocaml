@@ -130,33 +130,49 @@ val take : int -> 'a t -> 'a t
     from [0] whatever the count of [xs] is. *)
 
 val take_while : 'a t -> f:('a -> bool) -> 'a t
-
-val take_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
+(** Same as [take] but takes elements from the input enum as long as
+    [f] evaluates to [true]. 
+*)
 
 val drop : int -> 'a t -> unit
+(** [drop n xs] is equivalent to calling [n] times [junk] on [xs]. *)
 
 val drop_while : 'a t -> f:('a -> bool) -> unit
-
-val drop_whilei : 'a t -> f:(int -> 'a -> bool) -> unit
+(** Similar to [drop]: [drop_while xs ~f] removes elements from [xs]
+    and stops when [f] evals to false on the head element. *)
 
 val skip : int -> 'a t -> 'a t
 (** Similar to [drop] but returns a fresh stream obtained after
-    discarding the [n] first elements. Being a fresh stream, the
-    count of the returned stream starts from 0 *)
+    discarding the [n] first elements. Being a fresh stream, the count
+    of the returned stream starts from 0. Beware though, that the
+    input and output streams are consuminmg the same resource, so
+    consuming one modify the other. *)
 
 val skip_while : 'a t -> f:('a -> bool) -> 'a t
+(** Similar to [skip]: [skip_while xs ~f] removes elements from [xs]
+    and stops when [f] evals to false on the head element. *)
 
+
+(** Indexed variants of the previous prefix/suffix constructors *)
+val take_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
+val drop_whilei : 'a t -> f:(int -> 'a -> bool) -> unit
 val skip_whilei : 'a t -> f:(int -> 'a -> bool) -> 'a t
 
+
 val span : 'a t -> f:('a -> bool) -> 'a t * 'a t
-  (** [span test e] produces two streams [(hd, tl)], such that
-      [hd] is the same as [take_while test e] and [tl] is the same
-      as [skip_while test e]. *)
+(** [span test e] produces two streams [(hd, tl)], such that
+    [hd] is the same as [take_while test e] and [tl] is the same
+    as [skip_while test e]. *)
 
 val group : 'a t -> f:('a -> 'b) -> 'a t t
+(** [group xs f] applies [f] to the elements of [xs] and distribute
+    them according to the return value of [f]. Let [ys] = [group xs
+    f], then [xs] = [concat ys] and in each stream [s] of [ys], all
+    values give the same value with [f]. *)
 
 val group_by : 'a t -> eq:('a -> 'a -> bool) -> 'a t t
-
+(** Same as [group] but with a comparison function instead of a
+    mapping. *)
 
 
 
@@ -168,9 +184,9 @@ val append : 'a t -> 'a t -> 'a t
 val concat : 'a t t -> 'a t
 
 val combine : 'a t * 'b t -> ('a * 'b) t
-  (** [combine] transforms a pair of streams into a stream of pairs of
-      corresponding elements. If one stream is short, excess elements
-      of the longer stream are ignored. *)
+(** [combine] transforms a pair of streams into a stream of pairs of
+    corresponding elements. If one stream is short, excess elements
+    of the longer stream are ignored. *)
 
 val uncombine : ('a * 'b) t -> 'a t * 'b t
   (** [uncombine] is the opposite of [combine] *)
