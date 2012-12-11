@@ -47,7 +47,7 @@ let to_list (_,sections) =
       
 module Parser = struct
   let junk_blank_lines lines =
-    Stream.skip_while (String.for_all ~f:Char.is_whitespace) lines
+    Stream.drop_while ~f:(String.for_all ~f:Char.is_whitespace) lines
 
   let tag_value (s':string) : string * string =
     let s = String.strip (String.drop_prefix s' 1) in
@@ -58,10 +58,10 @@ module Parser = struct
   (* lines should point to beginning of file, upon return will point
      to start of first section *)
   let header lines =
-    let lines' = Stream.keep_while
-      (fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines in
+    let lines' = Stream.take_while
+      ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines in
     let f accum l = (tag_value l)::accum in
-    let ans = List.rev (Stream.fold f [] lines') in
+    let ans = List.rev (Stream.fold ~f ~init:[] lines') in
     junk_blank_lines lines; ans
       
   (* lines should point to start of a section, upon return will point
@@ -73,14 +73,14 @@ module Parser = struct
     let num_hits = int_of_string (tv lines) in
     junk_blank_lines lines;
 
-    let lines' = Stream.keep_while
-                   (fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines in
+    let lines' = Stream.take_while
+                   ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines in
     let parse_line s =
       match String.split s '\t' with
       | [i; f] -> (Int.of_string i, Float.of_string f)
       | _ -> raise_bad ("data row must contain exactly two fields")
     in
-    let data = Stream.to_list (Stream.map parse_line lines') in
+    let data = Stream.to_list (Stream.map ~f:parse_line lines') in
     let data = List.sort ~cmp:(fun (p1,_) (p2,_) -> Pervasives.compare p1 p2) data in
     let sec = {sec_num=seq_num; sec_name=seq_name; sec_data=data} in
       if List.length data = num_hits then
@@ -90,7 +90,7 @@ module Parser = struct
          
   let of_file file =
     let of_channel cin =
-      let lines = Stream.map String.rstrip (Stream.lines_of_channel cin) in
+      let lines = Stream.map ~f:String.rstrip (Stream.lines_of_channel cin) in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
         try
           let hdr = header lines in

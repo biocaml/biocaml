@@ -3,6 +3,10 @@
 (**
    See
    {{:https://bitbucket.org/yminsky/ocaml-core/src/8808e3a2571f/base/core/lib/std.ml}std.ml}.
+
+   Semantics: (1) functions that return a stream return a "fresh"
+   stream, meaning that their count is set to 0. (2) indexed variants
+   of HOF use the internal count of the stream
 *)
 include module type of Core.Std
 
@@ -20,40 +24,7 @@ val flip : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
   (** [flip f] returns a function [g] that takes its arguments in the
       opposite order of [f], i.e. [f x y = g y x]. *)
 
-(** A more core-styled version of
-    {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Stream.html}the stdlib's [Stream] module}. *)
-module Stream: sig
-  include module type of Stream with type 'a t = 'a Stream.t
-  val next: 'a t -> 'a option
-  val next_exn: 'a t -> 'a
-  val lines_of_chars : char t -> string t
-  val keep_whilei : (int -> 'a -> bool) -> 'a t -> 'a t
-  val keep_while : ('a -> bool) -> 'a t -> 'a t
-  val truncate : int -> 'a t -> 'a t
-  val skip_whilei : (int -> 'a -> bool) -> 'a t -> unit
-  val skip_while : ('a -> bool) -> 'a t -> unit
-
-  val iter2_exn : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
-    (** [iter2_exn a b ~f] calls in turn [f a1 b1; ...; f an
-        bn]. @raise Invalid_argument if the two streams have different
-        lengths, and no guarantee about which elements were
-        consumed. *)
-
-  val fold : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
-  val to_list : 'a t -> 'a list
-  val map : ('a -> 'b) -> 'a Stream.t -> 'b t
-  val is_empty : 'a t -> bool
-  val lines_of_channel : in_channel -> string Stream.t
-
-  val result_to_exn :
-    ('output, 'error) Result.t t ->
-    error_to_exn:('error -> exn) ->
-    'output t
-      (** Convert exception-less stream to exception-ful
-          stream. Resulting stream raises exception at first error
-          seen. *)
-
-end
+module Stream : module type of Biocaml_stream
 
 module Lines : sig
   exception Error of (Biocaml_pos.t * string)

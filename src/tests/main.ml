@@ -1,6 +1,7 @@
 open OUnit
 
 let all_tests = [
+  Test_stream.tests;
   Test_fasta.tests;
   Test_interval_tree.tests;
   Test_phred_score.tests;
@@ -16,4 +17,8 @@ let all_tests = [
 
 let () =
   ignore(OUnit.run_test_tt_main ("All" >::: all_tests));
+
+
+
+
 

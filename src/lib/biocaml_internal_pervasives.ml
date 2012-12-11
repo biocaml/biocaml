@@ -1,6 +1,5 @@
 
 include Core.Std
-
 let try_finally_exn ~fend f x =
   match try `V (f x) with e -> `E e with
     | `V f_x -> fend x; f_x
@@ -10,93 +9,7 @@ let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text]
 
 let flip f x y = f y x
 
-module Stream = struct
-  include Stream
-
-  let next_exn = next
-  let next s = try Some (next_exn s) with Stream.Failure -> None
-
-  let lines_of_chars cstr =
-    let f _ =
-      match peek cstr with
-      | None -> None
-      | Some _ ->
-        let ans = Buffer.create 100 in
-        let rec loop () =
-          try
-            let c = next_exn cstr in
-            if c <> '\n' then (Buffer.add_char ans c; loop())
-          with Failure -> ()
-        in 
-        loop();
-        Some (Buffer.contents ans)
-    in
-    from f
-
-  let keep_whilei pred s =
-    let f _ =
-      match peek s with
-      | None -> None
-      | Some a ->
-        if pred (count s) a
-        then (junk s; Some a)
-        else None
-    in from f
-    
-  let keep_while pred = keep_whilei (fun _ a -> pred a)
-  let truncate k = keep_whilei (fun j _ -> j < k)
-  
-  let rec skip_whilei pred s =
-    match peek s with
-    | None -> ()
-    | Some a ->
-      if pred (count s) a
-      then (junk s; skip_whilei pred s)
-      else ()
-
-  let skip_while pred = skip_whilei (fun _ a -> pred a)
-
-  let rec iter2_exn a b ~f = match peek a, peek b with
-    | Some x, Some y -> (
-        junk a; junk b;
-        f x y;
-        iter2_exn a b ~f
-      )
-    | _, _ -> invalid_arg "Stream.iter2_exn given streams of different lengths"
-
-  let rec fold f accum s =
-    match peek s with
-      None -> accum
-    | Some a -> (junk s; fold f (f accum a) s)
-
-  let to_list t =
-    List.rev (fold (fun l b -> b::l) [] t)
-
-  let map f s =
-    let f _ =
-      try Some (f (next_exn s))
-      with Failure -> None
-    in from f
-
-  let is_empty s =
-    match peek s with None -> true | Some _ -> false
-
-  let lines_of_channel cin =
-    let f _ =
-      try Some (input_line cin)
-      with End_of_file -> None
-    in Stream.from f
-
-  let result_to_exn s ~error_to_exn =
-    from (fun _ ->
-      match next s with
-        | None -> None
-        | Some result -> match result with
-            | Ok x -> Some x
-            | Result.Error x -> raise (error_to_exn x)
-    )
-
-end
+module Stream = Biocaml_stream
 
 module Lines = struct
   module Pos = Biocaml_pos
@@ -113,7 +26,7 @@ module Lines = struct
         let pos = if file = "" then Pos.l n else Pos.fl file n in
         if strict then raise_error pos msg else accum
     in
-    Stream.fold f init lines
+    Stream.fold ~f ~init lines
 
   let fold_stream ?(strict=true) f init cstr =
     fold_stream' ~strict f init cstr
@@ -141,7 +54,7 @@ module Lines = struct
         if strict
         then raise_error (Pos.l (Stream.count lines)) m
         else ans
-    in List.rev (Stream.fold g [] lines)
+    in List.rev (Stream.fold ~f:g ~init:[] lines)
 
   let of_channel ?(strict=true) f cin =
     of_stream ~strict f (Stream.of_channel cin)
@@ -167,7 +80,7 @@ module With_result = struct
         | E e -> Error e
     end in
     M.the_fun ()
-    
+      
   let output_result r = `output r
   let output_ok o = `output (Ok o)
   let output_error e = `output (Error e)
