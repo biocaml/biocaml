@@ -4,7 +4,8 @@ open Printf
 
 open Biocaml_stream
 
-let printer = BatIO.to_string (BatList.print BatInt.print)
+let int_list_printer = BatIO.to_string (BatList.print BatInt.print)
+let int_list_tuple_printer = BatIO.to_string (BatTuple.Tuple2.print (BatList.print BatInt.print))
 
 let test_exists () =
   let f x = x mod 2 = 0 in
@@ -64,11 +65,10 @@ let test_uncombine () =
   let l2 = next_exn s2 :: l2 in
   let l2 = next_exn s2 :: l2 in
   let l1 = next_exn s1 :: l1 in
-  assert_equal ~printer ~msg:"Check first list"  (List.rev l1) [ 1 ; 3 ; 5 ; 7 ] ;
-  assert_equal ~printer ~msg:"Check second list" (List.rev l2) [ 2 ; 4 ; 6 ; 8 ]
+  assert_equal ~printer:int_list_printer ~msg:"Check first list"  (List.rev l1) [ 1 ; 3 ; 5 ; 7 ] ;
+  assert_equal ~printer:int_list_printer ~msg:"Check second list" (List.rev l2) [ 2 ; 4 ; 6 ; 8 ]
 
 let test_partition () = 
-  let printer = BatIO.to_string (BatTuple.Tuple2.print (BatList.print BatInt.print)) in
   let f x = x mod 2 = 0 in
   let l = List.init 100 ~f:(fun _ -> Random.int 10) in
   let r1 = Caml.List.partition f l in
@@ -78,12 +78,24 @@ let test_partition () =
     |! BatTuple.Tuple2.map to_list
   in 
   assert_equal
-    ~printer
+    ~printer:int_list_tuple_printer
     ~msg:"Check stream partition against list partition"
     r1 r2
 
+let test_iter () =
+  let l = [ 1;2;3;4;5;6 ] in
+  let c = ref [] in
+  let f x = c := x :: !c in
+  iter (Stream.of_list l) ~f ;
+  assert_equal 
+    ~printer:int_list_printer
+    ~msg:"Check list built with iter"
+    l (List.rev !c)
+    
+
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
+  "Iter" >:: test_iter;
   "Group" >:: test_group;
   "Concat" >:: test_concat;
   "Uncombine" >:: test_uncombine;
