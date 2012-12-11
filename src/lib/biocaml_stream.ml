@@ -424,15 +424,17 @@ let singleton x = init 1 (const x)
 let loop init ~f =
   let prev = ref init in
   let aux i =
-    match f i !prev with
-    | Some next as e -> prev := next ; e
-    | e -> e
+    if i = 0 then Some !prev
+    else 
+      match f i !prev with
+      | Some next as e -> prev := next ; e
+      | e -> e
   in
   from aux
 
 let range ?until n =
-  let stop = Option.value_map until ~default:(fun _ -> true) ~f:( < ) in
-  loop n (fun i _ -> if stop i then None else Some i)
+  let stop = Option.value_map until ~default:(fun _ -> true) ~f:( <= ) in
+  loop n (fun _ i -> if stop i then None else Some (i + 1))
 
 let lines_of_chars cstr =
   let f _ =

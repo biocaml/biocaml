@@ -3,6 +3,7 @@ open Core.Std
 open Printf
 
 open Biocaml_stream
+open Biocaml_stream.Infix
 
 let int_list_printer = BatIO.to_string (BatList.print BatInt.print)
 let int_list_tuple_printer = BatIO.to_string (BatTuple.Tuple2.print (BatList.print BatInt.print))
@@ -91,11 +92,28 @@ let test_iter () =
     ~printer:int_list_printer
     ~msg:"Check list built with iter"
     l (List.rev !c)
-    
+
+let test_range () =
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check the construction of range enumerations"
+    [1;2;3;4;5] (to_list (1 -- 5))
+
+let test_scan () =
+  let factorials =
+    scan (1 -- 10) ~f:( * )
+    |! to_list
+  in
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check the construction of the first factorials"
+    [1; 2; 6; 24; 120; 720; 5040; 40320; 362880; 3628800] factorials
 
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
+  "Range" >:: test_range;
   "Iter" >:: test_iter;
+  "Scan" >:: test_scan;
   "Group" >:: test_group;
   "Concat" >:: test_concat;
   "Uncombine" >:: test_uncombine;
