@@ -5,8 +5,9 @@ open Printf
 open Biocaml_stream
 open Biocaml_stream.Infix
 
-let int_list_printer = BatIO.to_string (BatList.print BatInt.print)
-let int_list_tuple_printer = BatIO.to_string (BatTuple.Tuple2.print (BatList.print BatInt.print))
+let int_list_printer il = String.concat ~sep:"; " (List.map il (sprintf "%d"))
+let int_list_tuple_printer (al, bl) =
+  sprintf "%s, %s" (int_list_printer al) (int_list_printer bl)
 
 let test_exists () =
   let f x = x mod 2 = 0 in
@@ -74,9 +75,9 @@ let test_partition () =
   let l = List.init 100 ~f:(fun _ -> Random.int 10) in
   let r1 = Caml.List.partition f l in
   let r2 =
-    of_list l
+   of_list l
     |! partition ~f
-    |! BatTuple.Tuple2.map to_list
+    |! (fun (a, b) -> (to_list a, to_list b))
   in 
   assert_equal
     ~printer:int_list_tuple_printer
