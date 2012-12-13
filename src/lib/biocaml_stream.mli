@@ -34,7 +34,7 @@ exception Expected_streams_of_equal_length
 
 val iter2_exn : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
 (** [iter2_exn a b ~f] calls in turn [f a1 b1], [f a2 b2], ... [f an
-    bn]. @raise [Expected_streams_of_equal_length] if the two
+    bn]. @raise Expected_streams_of_equal_length if the two
     streams have different lengths, and no guarantee about which
     elements were consumed. *)
 
@@ -63,7 +63,7 @@ val fsum : float t -> float
 
 val fold2_exn : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
 (** [fold2_exn xs ys ~init ~f] returns [f (...(f (f init x1 y1) x2
-    y2)...) xn yn]. @raise [Expected_streams_of_equal_length] if [xs]
+    y2)...) xn yn]. @raise Expected_streams_of_equal_length if [xs]
     and [ys] have different lengths. *)
 
 val fold2 : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
