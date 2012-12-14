@@ -320,7 +320,7 @@ module Bam_conversion = struct
                 (Biocaml_bam.Transform.string_to_raw
                    ?zlib_buffer_size:input_buffer_size ())
                 (Biocaml_bam.Transform.raw_to_item ()))
-             (map_result
+             (compose_result_left
                 (Biocaml_sam.Transform.item_to_raw ())
                 (Biocaml_sam.Transform.raw_to_string ())))
           ~f:(function
@@ -345,7 +345,7 @@ module Bam_conversion = struct
                 (Biocaml_bam.Transform.string_to_raw
                    ~zlib_buffer_size:(10 * input_buffer_size) ())
                 (Biocaml_bam.Transform.raw_to_item ()))
-             (map_result
+             (compose_result_left
                 (Biocaml_bam.Transform.item_to_raw ())
                 (Biocaml_bam.Transform.raw_to_string
                    ?zlib_buffer_size:output_buffer_size ())))

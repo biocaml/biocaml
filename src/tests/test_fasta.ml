@@ -158,7 +158,7 @@ let sequence_slicer_stream file =
   let slicer =
     Fasta.Transform.char_seq_item_to_raw_item ~items_per_line:4 () in
   let transform =
-    Biocaml_transform.(map_result
+    Biocaml_transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:5 file transform in
   stream
@@ -201,7 +201,7 @@ let score_slicer () =
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let slicer = Fasta.Transform.int_seq_item_to_raw_item ~items_per_line:3 () in
   let transform =
-    Biocaml_transform.(map_result
+    Biocaml_transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "name 1" (check_next_ok stream (`header "sequence 1|sid=4"));

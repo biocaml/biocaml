@@ -125,7 +125,7 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
             (Biocaml_bam.Transform.string_to_raw
                ~zlib_buffer_size:(10 * input_buffer_size) ())
             (Biocaml_bam.Transform.raw_to_item ()))
-         (map_result
+         (compose_result_left
             (Biocaml_sam.Transform.item_to_raw ())
             (Biocaml_sam.Transform.raw_to_string ())))
       ~f:(function
@@ -143,7 +143,7 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
 
 let fastq_file_trimmer filename =
   Biocaml_transform.(
-    map_result
+    compose_result_left
       (compose_results
          ~on_error:(function
          | `left sti ->

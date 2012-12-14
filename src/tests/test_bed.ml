@@ -55,7 +55,7 @@ let make_printer_stream ?more_columns file =
   let filename = "src/tests/data/" ^ file in
   let bed_parser = Biocaml_bed.Transform.string_to_t ?more_columns ~filename () in
   let printer = Biocaml_bed.Transform.t_to_string () in
-  let trans = Biocaml_transform.map_result bed_parser printer in
+  let trans = Biocaml_transform.compose_result_left bed_parser printer in
   let stream = TS.of_file ~buffer_size:10 filename trans in
   stream
     

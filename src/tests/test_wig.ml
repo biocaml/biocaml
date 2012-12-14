@@ -15,7 +15,7 @@ let file_reprinter_stream file =
   let t =
     Biocaml_wig.Transform.string_to_t ~filename () in
   let printer = Biocaml_wig.Transform.t_to_string () in
-  let transfo = Biocaml_transform.map_result t printer in
+  let transfo = Biocaml_transform.compose_result_left t printer in
   let stream = TS.of_file ~buffer_size:4 filename transfo in
   stream
 

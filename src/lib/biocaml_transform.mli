@@ -168,7 +168,7 @@ val compose_results_merge_error:
 
 (** Like {!compose_results} but only the first transform returns
     [Result.t]s. *)
-val map_result:
+val compose_result_left:
   ( 'input_left, ('middle, 'error) Core.Result.t) t ->
   ( 'middle, 'output_right) t ->
   ( 'input_left, ('output_right, 'error) Core.Result.t) t

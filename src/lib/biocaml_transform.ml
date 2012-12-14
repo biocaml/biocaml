@@ -202,9 +202,9 @@ let compose_results_merge_error ta tb =
   compose_results ta tb
     ~on_error:(function `left e -> `left e | `right e -> `right e)
 
-let map_result ta tb =
+let compose_result_left ta tb =
   let name =
-    sprintf "(map_result <%s> <%s>)"
+    sprintf "(compose_result_left <%s> <%s>)"
       Option.(value ~default:"" (name ta))
       Option.(value ~default:"" (name tb)) in
   make_general ~name ()
