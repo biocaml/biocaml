@@ -113,12 +113,12 @@ val compose: ('a, 'b) t -> ('b, 'c) t -> ('a, 'c) t
     result of applying [f] to the outputs of [t] and [u]. *)
 val mix : ('a1, 'b1) t -> ('a2, 'b2) t -> f:('b1 -> 'b2 -> 'c) -> ('a1 * 'a2, 'c) t
 
-(** [partially_compose t u ~destruct ~reconstruct] produces a
+(** [filter_compose t u ~destruct ~reconstruct] produces a
     transform that feeds a filtered subset of [t]s outputs to
     [u]. Only those outputs [ol] of [t] for which [destruct ol]
     returns [`Yes] are passsed on to [u]. The filterd out values are
     combined with [u]'s output using [reconstruct]. *)
-val partially_compose:
+val filter_compose:
   ('il, 'ol) t -> ('ir, 'our) t ->
   destruct:('ol -> [`Yes of 'ir | `No of 'filtered]) ->
   reconstruct:([`Filtered of 'filtered | `Done of 'our] -> 'result) ->

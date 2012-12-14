@@ -130,7 +130,7 @@ let mix ta tb ~f =
         end
       end)
 
-let partially_compose left right ~destruct ~reconstruct =
+let filter_compose left right ~destruct ~reconstruct =
   let name =
     sprintf "(part-compose <%s> <%s>)"
       Option.(value ~default:"" (name left))

@@ -120,7 +120,7 @@ module Transform = struct
 
   let embed_parser ?filename =
     let track_parser = string_to_string_content ?filename () in
-    Biocaml_transform.partially_compose
+    Biocaml_transform.filter_compose
       track_parser
       ~destruct:(function
       | Ok (`content s) -> `Yes (s ^ "\n")
@@ -135,7 +135,7 @@ module Transform = struct
     embed_parser ?filename
       (*
     let track_parser = string_to_string_content ?filename () in
-    Biocaml_transform.partially_compose
+    Biocaml_transform.filter_compose
       track_parser
       ~destruct:(function
       | Ok (`content s) -> `Yes (s ^ "\n")
