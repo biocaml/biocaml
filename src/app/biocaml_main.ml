@@ -315,8 +315,8 @@ module Bam_conversion = struct
     file_to_file ?input_buffer_size
       Biocaml_transform.(
         on_output
-          (bind_result_merge_error
-             (bind_result_merge_error
+          (compose_results_merge_error
+             (compose_results_merge_error
                 (Biocaml_bam.Transform.string_to_raw
                    ?zlib_buffer_size:input_buffer_size ())
                 (Biocaml_bam.Transform.raw_to_item ()))
@@ -340,8 +340,8 @@ module Bam_conversion = struct
     file_to_file ~input_buffer_size ?output_buffer_size
       Biocaml_transform.(
         on_output
-          (bind_result_merge_error
-             (bind_result_merge_error
+          (compose_results_merge_error
+             (compose_results_merge_error
                 (Biocaml_bam.Transform.string_to_raw
                    ~zlib_buffer_size:(10 * input_buffer_size) ())
                 (Biocaml_bam.Transform.raw_to_item ()))
@@ -457,25 +457,25 @@ module Bam_conversion = struct
     begin match tags with
     | `bam ->
       return (
-        Biocaml_transform.bind_result
+        Biocaml_transform.compose_results
           ~on_error:(function `left l -> l | `right r -> `bam_to_item r)
           (Biocaml_bam.Transform.string_to_raw
              ~zlib_buffer_size:(10 * input_buffer_size) ())
           (Biocaml_bam.Transform.raw_to_item ()))
     | `sam ->
       return (
-        Biocaml_transform.bind_result
+        Biocaml_transform.compose_results
           ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
           (Biocaml_sam.Transform.string_to_raw ())
           (Biocaml_sam.Transform.raw_to_item ()))
     | `gzip `sam ->
       return (
-        Biocaml_transform.bind_result
+        Biocaml_transform.compose_results
           ~on_error:(function `left l -> `unzip l | `right r -> r)
           (Biocaml_zip.Transform.unzip
              ~zlib_buffer_size:(10 * input_buffer_size)
              ~format:`gzip ())
-          (Biocaml_transform.bind_result
+          (Biocaml_transform.compose_results
              ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
              (Biocaml_sam.Transform.string_to_raw ())
              (Biocaml_sam.Transform.raw_to_item ())))
@@ -555,7 +555,7 @@ module Bed_operations = struct
           (Biocaml_bed.Transform.string_to_t ())
           ~f:(function Ok o -> Ok o | Error e -> Error (`bed e))
       | `gzip `bed ->
-        Biocaml_transform.bind_result
+        Biocaml_transform.compose_results
           ~on_error:(function `left l -> `unzip l | `right r -> `bed r)
           (Biocaml_zip.Transform.unzip
              ~zlib_buffer_size:(10 * input_buffer_size) ~format:`gzip ())
@@ -851,7 +851,7 @@ module Demultiplexer = struct
       let transform =
         match Biocaml_tags.guess_from_filename filename with
         | Ok (`gzip `fastq) | _ when String.is_suffix filename ".gz" ->
-          Biocaml_transform.bind_result
+          Biocaml_transform.compose_results
             ~on_error:(function `left l -> `unzip l | `right r -> r)
             (Biocaml_zip.Transform.unzip
                ~zlib_buffer_size:(3 * input_buffer_size) ~format:`gzip ())

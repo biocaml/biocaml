@@ -149,24 +149,24 @@ val make_result:
   unit ->
   ('input, ('a, 'b) Core.Result.t) t
 
-(** [bind_result t u] is like {!compose} but for transforms returning
+(** [compose_results t u] is like {!compose} but for transforms returning
     [Result.t]s. The [on_error] function specifies how errors in [t]
     or [u] should be converted into those in the resultant
     transform. *)
-val bind_result:
+val compose_results:
   on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
   ( 'input_left, ('middle, 'error_left) Core.Result.t) t ->
   ( 'middle, ('output_right, 'error_right) Core.Result.t) t ->
   ( 'input_left, ('output_right, 'error) Core.Result.t) t
 
-(** Like {!bind_result} but with a pre-specified [on_error]
+(** Like {!compose_results} but with a pre-specified [on_error]
     function. *)
-val bind_result_merge_error:
+val compose_results_merge_error:
   ('a, ('b, 'el) Core.Result.t) t ->
   ('b, ('d, 'er) Core.Result.t) t ->
   ('a, ('d, [ `left of 'el | `right of 'er ]) Core.Result.t) t
 
-(** Like {!bind_result} but only the first transform returns
+(** Like {!compose_results} but only the first transform returns
     [Result.t]s. *)
 val map_result:
   ( 'input_left, ('middle, 'error) Core.Result.t) t ->

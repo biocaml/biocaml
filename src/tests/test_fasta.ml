@@ -102,7 +102,7 @@ let score_parser () =
 let sequence_aggregator_stream file =
   let t = Fasta.Transform.string_to_char_seq_raw_item  () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
-  let transform = Biocaml_transform.bind_result_merge_error t aggregator in
+  let transform = Biocaml_transform.compose_results_merge_error t aggregator in
   let stream = TS.of_file ~buffer_size:5 file transform in
   stream
   
@@ -135,7 +135,7 @@ let score_aggregator () =
     Fasta.Transform.string_to_int_seq_raw_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
-  let transform = Biocaml_transform.bind_result_merge_error t aggregator in
+  let transform = Biocaml_transform.compose_results_merge_error t aggregator in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "scoaggr: 1"
     (check_next_ok stream  {Fasta.header="sequence 1|sid=4";
@@ -159,7 +159,7 @@ let sequence_slicer_stream file =
     Fasta.Transform.char_seq_item_to_raw_item ~items_per_line:4 () in
   let transform =
     Biocaml_transform.(map_result
-                         (bind_result_merge_error t aggregator) slicer) in
+                         (compose_results_merge_error t aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:5 file transform in
   stream
 
@@ -202,7 +202,7 @@ let score_slicer () =
   let slicer = Fasta.Transform.int_seq_item_to_raw_item ~items_per_line:3 () in
   let transform =
     Biocaml_transform.(map_result
-                         (bind_result_merge_error t aggregator) slicer) in
+                         (compose_results_merge_error t aggregator) slicer) in
   let stream = TS.of_file ~buffer_size:10 "src/tests/data/fasta_05.fa" transform in
   assert_bool "name 1" (check_next_ok stream (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (check_next_ok stream (`partial_sequence [42; 42; 224354;]));

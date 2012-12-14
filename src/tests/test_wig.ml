@@ -118,7 +118,7 @@ let test_to_bed_graph () =
     let t =
       Biocaml_wig.Transform.string_to_t ~filename () in
     let to_bg = Biocaml_wig.Transform.t_to_bed_graph () in
-    let transfo = Biocaml_transform.bind_result_merge_error t to_bg in
+    let transfo = Biocaml_transform.compose_results_merge_error t to_bg in
     let stream = TS.of_file ~buffer_size:7 filename transfo in
     stream in
   

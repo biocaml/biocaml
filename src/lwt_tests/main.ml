@@ -120,8 +120,8 @@ let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
 let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
   Biocaml_transform.(
     on_output
-      (bind_result_merge_error
-         (bind_result_merge_error
+      (compose_results_merge_error
+         (compose_results_merge_error
             (Biocaml_bam.Transform.string_to_raw
                ~zlib_buffer_size:(10 * input_buffer_size) ())
             (Biocaml_bam.Transform.raw_to_item ()))
@@ -144,7 +144,7 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
 let fastq_file_trimmer filename =
   Biocaml_transform.(
     map_result
-      (bind_result
+      (compose_results
          ~on_error:(function
          | `left sti ->
            `string (Sexp.to_string_hum (Biocaml_fastq.Error.sexp_of_t sti))
@@ -268,7 +268,7 @@ let cmd_just_parse_bam =
             let transform =
               Biocaml_transform.(
                 on_output
-                  (bind_result_merge_error
+                  (compose_results_merge_error
                      (Biocaml_bam.Transform.string_to_raw
                         ~zlib_buffer_size:(10 * input_buffer_size) ())
                      (Biocaml_bam.Transform.raw_to_item ()))

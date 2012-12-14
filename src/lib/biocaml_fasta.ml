@@ -211,7 +211,7 @@ let in_channel_to_char_seq_item_stream ?filename ?pedantic
     ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
   let y = Transform.char_seq_raw_item_to_item () in
   Biocaml_transform.(
-    bind_result x y ~on_error:(function `left x -> x | `right x -> x)
+    compose_results x y ~on_error:(function `left x -> x | `right x -> x)
     |! Pull_based.of_in_channel inp
     |! Pull_based.to_stream_result
   )
@@ -222,7 +222,7 @@ let in_channel_to_int_seq_item_stream ?filename ?pedantic
     ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
   let y = Transform.int_seq_raw_item_to_item () in
   Biocaml_transform.(
-    bind_result x y ~on_error:(function `left x -> x | `right x -> x)
+    compose_results x y ~on_error:(function `left x -> x | `right x -> x)
     |! Pull_based.of_in_channel inp
     |! Pull_based.to_stream_result
   )

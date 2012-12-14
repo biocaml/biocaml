@@ -175,9 +175,9 @@ let split_and_merge ta tb ~split ~merge =
         | `end_of_stream -> `end_of_stream
         end)
 
-let bind_result ~on_error ta tb =
+let compose_results ~on_error ta tb =
   let name =
-    sprintf "(bind_result <%s> <%s>)"
+    sprintf "(compose_results <%s> <%s>)"
       Option.(value ~default:"" (name ta))
       Option.(value ~default:"" (name tb)) in
   make_general ~name ()
@@ -198,8 +198,8 @@ let bind_result ~on_error ta tb =
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
 
-let bind_result_merge_error ta tb =
-  bind_result ta tb
+let compose_results_merge_error ta tb =
+  compose_results ta tb
     ~on_error:(function `left e -> `left e | `right e -> `right e)
 
 let map_result ta tb =

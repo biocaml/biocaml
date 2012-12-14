@@ -297,7 +297,7 @@ module Transform = struct
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
   let string_to_raw ?zlib_buffer_size () =
-    Biocaml_transform.bind_result 
+    Biocaml_transform.compose_results 
       ~on_error:(function
       | `left l -> `unzip l
       | `right r ->
