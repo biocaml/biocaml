@@ -43,7 +43,7 @@ end
 module Transform = struct
   let string_to_item ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+    Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next:(fun p ->
         let open Biocaml_transform.Line_oriented in
         if queued_lines p < 4 then
@@ -78,7 +78,7 @@ module Transform = struct
       Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
         sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
       ) () in
-    Biocaml_transform.make_stoppable ~name:"fastq_printer" ()
+    Biocaml_transform.make ~name:"fastq_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
         match (PQ.flush printer) with
@@ -92,7 +92,7 @@ module Transform = struct
         (match specification with
         | `beginning i -> sprintf "B:%d" i
         | `ending i -> sprintf "E:%d" i) in
-    Biocaml_transform.make_stoppable ~name ()
+    Biocaml_transform.make ~name ()
       ~feed:(fun r -> Queue.enqueue items r)
       ~next:(fun stopped ->
         begin match Queue.dequeue items with

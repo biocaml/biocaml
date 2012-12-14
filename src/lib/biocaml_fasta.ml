@@ -65,7 +65,7 @@ module Transform = struct
       sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
     let next =
       next ~parse_sequence ?pedantic ?sharp_comments ?semicolon_comments in
-    Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+    Biocaml_transform.Line_oriented.make ~name ?filename ~next ()
       ~on_error:(function `next e -> e
       | `incomplete_input e -> `incomplete_input e)
       
@@ -99,7 +99,7 @@ module Transform = struct
       Option.value_map comment_char ~default:"" ~f:(fun o -> sprintf "%c%s\n" o c)
     | `header n -> ">" ^ n ^ "\n"
     | `partial_sequence s -> (to_string s) ^ "\n") () in
-    Biocaml_transform.make_stoppable ~name:"fasta_printer" ()
+    Biocaml_transform.make ~name:"fasta_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
         match (PQ.flush printer) with
@@ -116,7 +116,7 @@ module Transform = struct
   let generic_aggregator ~flush ~add ~is_empty ~unnamed_sequence () =
     let current_name = ref None in
     let result = Queue.create () in
-    Biocaml_transform.make_stoppable ~name:"fasta_aggregator" ()
+    Biocaml_transform.make ~name:"fasta_aggregator" ()
       ~feed:(function
       | `header n ->
         Queue.enqueue result (!current_name, flush ());
@@ -167,7 +167,7 @@ module Transform = struct
 
   let char_seq_item_to_raw_item ?(items_per_line=80) () =
     let queue = Queue.create () in
-    Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
+    Biocaml_transform.make ~name:"fasta_slicer" ()
       ~feed:(fun {header=hdr; sequence=seq} ->
         Queue.enqueue queue (`header hdr);
         let rec loop idx =
@@ -187,7 +187,7 @@ module Transform = struct
       
   let int_seq_item_to_raw_item ?(items_per_line=27) () =
     let queue = Queue.create () in
-    Biocaml_transform.make_stoppable ~name:"fasta_slicer" ()
+    Biocaml_transform.make ~name:"fasta_slicer" ()
       ~feed:(fun {header=hdr; sequence=seq} ->
         Queue.enqueue queue (`header hdr);
         let rec loop l =

@@ -176,7 +176,7 @@ module Transform = struct
     let sharp_comments = List.mem tags `sharp_comments in
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next ~pedantic ~sharp_comments in
-    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+    Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next ()
 
 
@@ -196,7 +196,7 @@ module Transform = struct
       | `fixed_step_value v -> sprintf "%g\n" v
       | `bed_graph_value (chrom, start, stop, v) ->
         sprintf "%s %d %d %g\n" chrom start stop v) () in
-    Biocaml_transform.make_stoppable ~name:"wig_printer" ()
+    Biocaml_transform.make ~name:"wig_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
         match (PQ.flush printer) with
@@ -206,7 +206,7 @@ module Transform = struct
   let t_to_bed_graph () =
     let queue = Queue.create () in
     let current_state = ref None in
-    Biocaml_transform.make_stoppable ~name:"wig_to_variable_step" ()
+    Biocaml_transform.make ~name:"wig_to_variable_step" ()
       ~feed:(function
       | `comment _ -> ()
       | `bed_graph_value already_done ->

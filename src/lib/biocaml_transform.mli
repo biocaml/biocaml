@@ -26,7 +26,7 @@ type ('input, 'output) t
     has been [stop]ped. *)
 exception Feeding_stopped_transformation of string
 
-(** [make_stoppable ~feed ~next ()] creates a transform that can be
+(** [make ~feed ~next ()] creates a transform that can be
     fed with [feed] and read from with [next].
 
     - [feed input] should store [input] in a buffer, which is
@@ -47,7 +47,7 @@ exception Feeding_stopped_transformation of string
 
     - [name] an optional name for the transform that will be used in
     error messages. *)
-val make_stoppable:
+val make:
   ?name:string ->
   feed: ('input -> unit) ->
   next: (bool -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
@@ -140,9 +140,9 @@ val split_and_merge:
 (** {6 Result.t Outputs} Operations analogous to those above, but for
     transforms whose output types are [Result.t]s. *)
 
-(** Like {!make_stoppable} but the output is a [Result.t]. Also,
+(** Like {!make} but the output is a [Result.t]. Also,
     {!stop} is automatically called when an error occurs. *)
-val make_stoppable_with_error:
+val make_result:
   ?name:string ->
   feed: ('input -> unit) ->
   next: (bool -> [ `output of ('a, 'b) Core.Result.t | `end_of_stream | `not_ready ]) ->
@@ -217,7 +217,7 @@ module Line_oriented: sig
     (** Empty the buffer. Subsequent call to [contents] will return
         [(\[\], None)]. *)
 
-  val make_stoppable : ?name:string -> ?filename:string ->
+  val make : ?name:string -> ?filename:string ->
     next:(parsing_buffer ->
           [ `not_ready | `output of ('b, 'errnext) Core.Result.t ]) ->
     on_error:(
@@ -228,7 +228,7 @@ module Line_oriented: sig
     (string, ('b, 'err) Core.Result.t) t
   (** Build a stoppable line-oriented parsing_buffer. *)
 
-  val make_stoppable_merge_error :
+  val make_merge_error :
     ?name:string ->
     ?filename:string ->
     next:(parsing_buffer ->
@@ -239,7 +239,7 @@ module Line_oriented: sig
                           as 'b) Core.Result.t ]) ->
     unit ->
     (string, ('a, 'b) Core.Result.t) t
-(** Do like [make_stoppable] but merge [`incomplete_input _] with the
+(** Do like [make] but merge [`incomplete_input _] with the
     errors of [~next] (which must be polymorphic variants). *)
 
   val lines : unit -> (string, string) t
@@ -324,7 +324,7 @@ end
 
 (** The most general way to make a transform. All make functions above
     are implemented with this one. *)
-val make:
+val make_general:
   ?name:string ->
   next: (unit -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
   feed: ('input -> unit) ->

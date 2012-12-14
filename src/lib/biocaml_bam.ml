@@ -293,7 +293,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make_stoppable_with_error ()
+    Biocaml_transform.make_result ()
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
   let string_to_raw ?zlib_buffer_size () =
@@ -532,7 +532,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
       ~next
 
   let downgrade_alignement al ref_dict =
@@ -718,7 +718,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.push_back queue) ()
       ~next
       
   let uncompressed_bam_printer () : (raw_item, string) Biocaml_transform.t =
@@ -812,7 +812,7 @@ module Transform = struct
         dbg "s: %d" (String.length s);
         Buffer.clear buffer;
         `output s in
-    Biocaml_transform.make_stoppable ~name ~feed ~next ()
+    Biocaml_transform.make ~name ~feed ~next ()
       
   let raw_to_string ?zlib_buffer_size () =
     Biocaml_transform.compose

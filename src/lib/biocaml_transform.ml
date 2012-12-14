@@ -7,7 +7,7 @@ type ('input, 'output) t = {
   stop: unit -> unit;
 }
 
-let make ?name ~next ~feed ~stop () = {name; next; feed; stop }
+let make_general ?name ~next ~feed ~stop () = {name; next; feed; stop }
 
 exception Feeding_stopped_transformation of string
 
@@ -16,9 +16,9 @@ let next t = t.next ()
 let stop t = t.stop ()
 let name t = t.name
 
-let make_stoppable ?name ~feed ~next () =
+let make ?name ~feed ~next () =
   let stopped = ref false in
-  make ?name ()
+  make_general ?name ()
     ~feed:(fun x ->
       if not !stopped then
         feed x
@@ -27,10 +27,10 @@ let make_stoppable ?name ~feed ~next () =
     ~next:(fun () -> next !stopped)
     ~stop:(fun () -> stopped := true)
 
-let make_stoppable_with_error ?name ~feed ~next () =
+let make_result ?name ~feed ~next () =
   let stopped = ref false in
   let one_error_has_occured = ref false in
-  make ?name ()
+  make_general ?name ()
     ~feed:(fun x ->
       if not !stopped then
         feed x
@@ -48,7 +48,7 @@ let make_stoppable_with_error ?name ~feed ~next () =
 
 let identity ?name () =
   let q = Queue.create () in
-  make_stoppable ?name ~feed:(Queue.enqueue q) ()
+  make ?name ~feed:(Queue.enqueue q) ()
     ~next:(fun stopped ->
       match Queue.dequeue q with
       | Some o -> `output o
@@ -84,7 +84,7 @@ let compose ta tb =
     sprintf "(compose <%s> <%s>)"
       Option.(value ~default:"" (name ta))
       Option.(value ~default:"" (name tb)) in
-  make ~name ()
+  make_general ~name ()
     ~feed:(fun i -> feed ta i)
     ~stop:(fun () -> stop ta)
     ~next:(fun () ->
@@ -106,7 +106,7 @@ let mix ta tb ~f =
     sprintf "(mix <%s> <%s>)"
       Option.(value ~default:"" (name ta))
       Option.(value ~default:"" (name tb)) in
-  make ~name ()
+  make_general ~name ()
     ~feed:(fun (a, b) -> feed ta a; feed tb b)
     ~stop:(fun () -> stop ta; stop tb)
     ~next:(fun () ->
@@ -135,7 +135,7 @@ let partially_compose left right ~destruct ~reconstruct =
     sprintf "(part-compose <%s> <%s>)"
       Option.(value ~default:"" (name left))
       Option.(value ~default:"" (name right)) in
-  make ~name ()
+  make_general ~name ()
     ~feed:(fun i -> feed left i)
     ~stop:(fun () -> stop left)
     ~next:(fun () ->
@@ -159,7 +159,7 @@ let split_and_merge ta tb ~split ~merge =
   let name = sprintf "(merge <%s> <%s>)"
     Option.(value ~default:"" (name ta))
     Option.(value ~default:"" (name tb)) in
-  make ~name ()
+  make_general ~name ()
     ~feed:(fun z ->
       match split z with
       | `left a -> feed ta a
@@ -180,7 +180,7 @@ let bind_result ~on_error ta tb =
     sprintf "(bind_result <%s> <%s>)"
       Option.(value ~default:"" (name ta))
       Option.(value ~default:"" (name tb)) in
-  make ~name ()
+  make_general ~name ()
     ~feed:(fun i -> feed ta i)
     ~stop:(fun () -> stop ta)
     ~next:(fun () ->
@@ -207,7 +207,7 @@ let map_result ta tb =
     sprintf "(map_result <%s> <%s>)"
       Option.(value ~default:"" (name ta))
       Option.(value ~default:"" (name tb)) in
-  make ~name ()
+  make_general ~name ()
     ~feed:(fun i -> feed ta i)
     ~stop:(fun () -> stop ta)
     ~next:(fun () ->
@@ -289,7 +289,7 @@ module Line_oriented = struct
 
   let lines () =
     let buf = parsing_buffer () in
-    make_stoppable ~name:"lines"
+    make ~name:"lines"
       ~feed:(feed_string buf)
       ~next:(function
         | true -> (match next_line buf with
@@ -308,9 +308,9 @@ module Line_oriented = struct
       )
       ()
 
-  let make_stoppable ?name ?filename ~next ~on_error () =
+  let make ?name ?filename ~next ~on_error () =
     let lo_parser = parsing_buffer ?filename () in
-    make_stoppable ?name ()
+    make ?name ()
       ~feed:(feed_string lo_parser)
       ~next:(fun stopped ->
         match next lo_parser with
@@ -329,8 +329,8 @@ module Line_oriented = struct
           ) else
             `not_ready)
 
-  let make_stoppable_merge_error =
-    make_stoppable
+  let make_merge_error =
+    make
       ~on_error:(function
         | `next e -> e
         | `incomplete_input e -> `incomplete_input e)

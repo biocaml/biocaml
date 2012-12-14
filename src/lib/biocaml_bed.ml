@@ -80,7 +80,7 @@ module Transform = struct
   let string_to_t ?filename ?(more_columns=`best_effort) () =
     let name = sprintf "bed_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next more_columns in
-    Biocaml_transform.Line_oriented.make_stoppable ~name ?filename ~next ()
+    Biocaml_transform.Line_oriented.make ~name ?filename ~next ()
       ~on_error:(function `next n -> n
       | `incomplete_input e -> `incomplete_input e)
       
@@ -94,7 +94,7 @@ module Transform = struct
             | `Float f -> Float.to_string f
             | `Int i -> Int.to_string i
             | `String s -> s) |! String.concat ~sep:" ")) in
-    Biocaml_transform.make_stoppable ~name:"bed_printer" ()
+    Biocaml_transform.make ~name:"bed_printer" ()
       ~feed:(fun r ->
         PQ.feed printer r)
       ~next:(fun stopped ->

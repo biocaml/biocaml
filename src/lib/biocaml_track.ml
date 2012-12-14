@@ -85,7 +85,7 @@ module Transform = struct
 
   let string_to_string_content ?filename () =
     let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+    Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next ()
 
   let needs_escaping s =
@@ -111,7 +111,7 @@ module Transform = struct
       | `browser (`unknown s) -> sprintf "browser %s\n" s
       | `content s ->
         if add_content_new_line then s ^ "\n" else s) () in
-    Biocaml_transform.make_stoppable ~name:"string_track_printer" ()
+    Biocaml_transform.make ~name:"string_track_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
         match (PQ.flush printer) with

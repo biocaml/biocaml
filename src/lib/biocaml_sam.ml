@@ -445,7 +445,7 @@ module Transform = struct
           
   let string_to_raw ?filename () =
     let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+    Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next ()
 
   let reference_sequence_to_header rs =
@@ -552,7 +552,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
       ~next
       
   let downgrade_alignment al =
@@ -675,7 +675,7 @@ module Transform = struct
         output_ok (`header ("SQ", reference_sequence_to_header o))
       end
     in
-    Biocaml_transform.make_stoppable ~name ~feed:(Dequeue.push_back raw_queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
       ~next
 
       
@@ -694,7 +694,7 @@ module Transform = struct
         (List.map l (fun (a,b) -> sprintf "%s:%s" a b) |! String.concat ~sep:"\t")
       | `alignment a -> alignment_to_string a
       ) () in
-    Biocaml_transform.make_stoppable ~name:"sam_printer" ()
+    Biocaml_transform.make ~name:"sam_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
         match (PQ.flush printer) with

@@ -143,7 +143,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make_stoppable_with_error ()
+    Biocaml_transform.make_result ()
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
   let gzip_default_header =
@@ -229,6 +229,6 @@ module Transform = struct
             `not_ready
         end
     in
-    Biocaml_transform.make_stoppable ()
+    Biocaml_transform.make ()
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next 
 end

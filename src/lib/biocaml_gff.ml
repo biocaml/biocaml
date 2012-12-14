@@ -196,7 +196,7 @@ module Transform = struct
     let version =
       List.find_map tags (function `version v -> Some v | _ -> None) in
     let next = next ~pedantic ?version in
-    Biocaml_transform.Line_oriented.make_stoppable_merge_error
+    Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next ()
       
       
@@ -234,7 +234,7 @@ module Transform = struct
            ));
       ] ^ "\n"
       ) in
-    Biocaml_transform.make_stoppable ~name:"gff_printer" ()
+    Biocaml_transform.make ~name:"gff_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
         match (PQ.flush printer) with
