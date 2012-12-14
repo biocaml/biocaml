@@ -54,6 +54,21 @@ let identity ?name () =
       | Some o -> `output o
       | None -> if stopped then `end_of_stream else `not_ready)
 
+let stream_transformation tr en =
+  let rec loop_until_ready tr en =
+    match next tr with
+    | `output o -> Some o
+    | `end_of_stream -> None
+    | `not_ready ->
+      begin match Stream.next en with
+      | None -> stop tr; loop_until_ready tr en
+      | Some s ->
+        feed tr s;
+        loop_until_ready tr en
+      end
+  in
+  Stream.from (fun _ -> loop_until_ready tr en)
+
 let on_input t ~f =
   { t with feed = fun x -> t.feed (f x) }
 
@@ -84,6 +99,81 @@ let compose ta tb =
       | `output o -> feed tb o; call_tb_next ()
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
+
+let mix ta tb ~f =
+  let a_buffer = ref None in
+  let name =
+    sprintf "(mix <%s> <%s>)"
+      Option.(value ~default:"" (name ta))
+      Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun (a, b) -> feed ta a; feed tb b)
+    ~stop:(fun () -> stop ta; stop tb)
+    ~next:(fun () ->
+      begin match !a_buffer with
+      | None ->
+        begin match next ta with
+        | `output oa ->
+          begin match next tb with
+          | `output ob -> `output (f oa ob)
+          | `not_ready -> a_buffer := Some oa; `not_ready
+          | `end_of_stream -> `end_of_stream
+          end
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
+        end
+      | Some oa ->
+        begin match next tb with
+        | `output ob -> `output (f oa ob)
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
+        end
+      end)
+
+let partially_compose left right ~destruct ~reconstruct =
+  let name =
+    sprintf "(part-compose <%s> <%s>)"
+      Option.(value ~default:"" (name left))
+      Option.(value ~default:"" (name right)) in
+  make ~name ()
+    ~feed:(fun i -> feed left i)
+    ~stop:(fun () -> stop left)
+    ~next:(fun () ->
+      let call_right_next () =
+        begin match next right with
+        | `output o -> `output (reconstruct (`Done o))
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
+        end
+      in
+      match next left with
+      | `output o ->
+        begin match destruct o with
+        | `Yes y -> feed right y; call_right_next ()
+        | `No n -> `output (reconstruct (`Filtered n))
+        end
+      | `not_ready -> call_right_next ()
+      | `end_of_stream -> stop right; call_right_next ())
+
+let split_and_merge ta tb ~split ~merge =
+  let name = sprintf "(merge <%s> <%s>)"
+    Option.(value ~default:"" (name ta))
+    Option.(value ~default:"" (name tb)) in
+  make ~name ()
+    ~feed:(fun z ->
+      match split z with
+      | `left a -> feed ta a
+      | `right b -> feed tb b)
+    ~stop:(fun () -> stop ta; stop tb)
+    ~next:(fun () ->
+      match next ta with
+      | `output o -> `output (merge (`left o))
+      | `not_ready | `end_of_stream ->
+        begin match next tb with
+        | `output o -> `output (merge (`right o))
+        | `not_ready -> `not_ready
+        | `end_of_stream -> `end_of_stream
+        end)
 
 let bind_result ~on_error ta tb =
   let name =
@@ -134,95 +224,6 @@ let map_result ta tb =
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
 
-let partially_compose left right ~destruct ~reconstruct =
-  let name =
-    sprintf "(part-compose <%s> <%s>)"
-      Option.(value ~default:"" (name left))
-      Option.(value ~default:"" (name right)) in
-  make ~name ()
-    ~feed:(fun i -> feed left i)
-    ~stop:(fun () -> stop left)
-    ~next:(fun () ->
-      let call_right_next () =
-        begin match next right with
-        | `output o -> `output (reconstruct (`Done o))
-        | `not_ready -> `not_ready
-        | `end_of_stream -> `end_of_stream
-        end
-      in
-      match next left with
-      | `output o ->
-        begin match destruct o with
-        | `Yes y -> feed right y; call_right_next ()
-        | `No n -> `output (reconstruct (`Filtered n))
-        end
-      | `not_ready -> call_right_next ()
-      | `end_of_stream -> stop right; call_right_next ())
-
-let mix ta tb ~f =
-  let a_buffer = ref None in
-  let name =
-    sprintf "(mix <%s> <%s>)"
-      Option.(value ~default:"" (name ta))
-      Option.(value ~default:"" (name tb)) in
-  make ~name ()
-    ~feed:(fun (a, b) -> feed ta a; feed tb b)
-    ~stop:(fun () -> stop ta; stop tb)
-    ~next:(fun () ->
-      begin match !a_buffer with
-      | None ->
-        begin match next ta with
-        | `output oa ->
-          begin match next tb with
-          | `output ob -> `output (f oa ob)
-          | `not_ready -> a_buffer := Some oa; `not_ready
-          | `end_of_stream -> `end_of_stream
-          end
-        | `not_ready -> `not_ready
-        | `end_of_stream -> `end_of_stream
-        end
-      | Some oa ->
-        begin match next tb with
-        | `output ob -> `output (f oa ob)
-        | `not_ready -> `not_ready
-        | `end_of_stream -> `end_of_stream
-        end
-      end)
-
-let split_and_merge ta tb ~split ~merge =
-  let name = sprintf "(merge <%s> <%s>)"
-    Option.(value ~default:"" (name ta))
-    Option.(value ~default:"" (name tb)) in
-  make ~name ()
-    ~feed:(fun z ->
-      match split z with
-      | `left a -> feed ta a
-      | `right b -> feed tb b)
-    ~stop:(fun () -> stop ta; stop tb)
-    ~next:(fun () ->
-      match next ta with
-      | `output o -> `output (merge (`left o))
-      | `not_ready | `end_of_stream ->
-        begin match next tb with
-        | `output o -> `output (merge (`right o))
-        | `not_ready -> `not_ready
-        | `end_of_stream -> `end_of_stream
-        end)
-
-let stream_transformation tr en =
-  let rec loop_until_ready tr en =
-    match next tr with
-    | `output o -> Some o
-    | `end_of_stream -> None
-    | `not_ready ->
-      begin match Stream.next en with
-      | None -> stop tr; loop_until_ready tr en
-      | Some s ->
-        feed tr s;
-        loop_until_ready tr en
-      end
-  in
-  Stream.from (fun _ -> loop_until_ready tr en)
 
 module Line_oriented = struct
 

@@ -1,131 +1,169 @@
-(** Generic stream-transformations for parsing, pretty-printing, and
-more … *)
+(** Buffered transforms. A buffered transform represents a method for
+    converting a stream of [input]s to a stream of [output]s. However,
+    [input]s can also be buffered, i.e. you can feed [input]s to the
+    transform and pull out [output]s later. There is no requirement
+    that 1 input produces exactly 1 output. It is common that multiple
+    (contiguous) input values are needed to construct a single output,
+    and vice versa.
 
-type ('input, 'output) t
-(** Basic type a of a Cryptokit-styled transformation:
-    an [('input, 'output) t] is a buffered transformation
-    that can be fed with ['input]
-    values, stopped, and "pulled form" providing
-    ['output] values.
-    A {i "stoppable"} transformation is a transformation that fulfills
-    the following requirements: {ul
-     {li after [stop] has been called, the [next] should return
-     [`end_of_stream] at some point.}
-     {li calling [feed t] after having called [stop t] is erroneous and
-     should throw [Feeding_stopped_transformation name].}
-    }
+    Buffered transforms serve as a general method for working with
+    streams of data and flexibly composing mappings from [input]s to
+    [output]s. The buffering aspect supports asynchronous programming
+    interfaces. Parsers and printers throughout Biocaml are
+    implemented with this module whenever possible.
 
+    Often mappings need to account for errors, e.g. an input string
+    cannot be converted to an integer. Several methods below
+    explicitly support buffered transforms where the output type is a
+    [Result.t].
 *)
 
-val make:
-  ?name:string ->
-  next: (unit -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
-  feed: ('input -> unit) ->
-  stop: (unit -> unit) ->
-  unit ->
-  ('input, 'output) t
-(** Build a basic transformation. *)
+(** Type of a buffered transform converting ['input]s to
+    ['output]s. *)
+type ('input, 'output) t
 
+(** Exception thrown when {!feed} is called on a transform after it
+    has been {!stop}ped. *)
 exception Feeding_stopped_transformation of string
-(** Exception thrown by "stoppable" transformations.  *)
 
-val feed: ('input, 'output) t -> 'input -> unit
+(** [make_stoppable ~feed ~next ()] creates a transform that can be
+    fed with [feed] and read from with [next].
 
-val next:
-  ('input, 'output) t -> [ `output of 'output | `end_of_stream | `not_ready ]
+    - [feed input] should store [input] in a buffer, which is
+    presumably a shared state also available to [next].
 
-val stop: ('input, 'output) t -> unit
+    - [next stopped] should remove values from the buffer, convert it
+    to an [`output] and return this output, or return [`not_ready] if
+    there are not enough buffered inputs to create an output value, or
+    return [`end_of_stream] if the buffer has been stopped, as
+    determined by the supplied argument, and there is no more
+    input. Depending on the specifics of the transform, it may be the
+    case that the buffer has been stopped but there is not enough
+    input to create an output value. It is the caller's choice how to
+    handle this or any other kind of error, e.g. make the return type
+    a [Result.t].
 
-val name: ('input, 'output) t -> string option
-
-val make_stoppable: ?name:string ->
+    - [name] an optional name for the transform that will be used in
+    error messages.
+*)
+val make_stoppable:
+  ?name:string ->
   feed: ('input -> unit) ->
   next: (bool -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
   unit ->
   ('input, 'output) t
-(** Make a "stoppable" transformation easily, [make_stoppable] takes care of
-    raising [Feeding_stopped_transformation] in case of wrong use, and calls the
-    [~next] argument with a boolean value indicating if the transformation
-    has been stopped. *)
 
-val make_stoppable_with_error: ?name:string ->
-  feed: ('input -> unit) ->
-  next: (bool -> [ `output of ('a, 'b) Core.Result.t
-                 | `end_of_stream | `not_ready ]) ->
-  unit ->
-  ('input, ('a, 'b) Core.Result.t) t
-(** Make a stoppable transformation like [make_stoppable] but also
-    stop the stream after the first error is detected. *)
+(** [feed t i] stores [i] into the buffered transform.
 
+    @raise Feeding_stopped_transformation [name] if called on a [t]
+    that has been {!stop}ped.
+*)
+val feed: ('input, 'output) t -> 'input -> unit
+
+(** [next t] returns an output value if possible, [`not_ready] if [t]
+    needs to be fed with more input before it can produce an output,
+    or [`end_of_stream] if [t] has been stopped and has no more
+    data. *)
+val next: ('input, 'output) t -> [ `output of 'output | `end_of_stream | `not_ready ]
+
+(** [stop t] declares [t] to be stopped, which means subsequent calls to:
+
+    - [feed t _] will raise [Feeding_stopped_transformation]. Feeding
+    a stopped transform is not allowed.
+
+    - [next t] will eventually return [`end_of_stream], not
+    necessarily the immediate next call as there may still be
+    buffered values available for output.
+*)
+val stop: ('input, 'output) t -> unit
+
+(** [name t] returns the name of [t]. *)
+val name: ('input, 'output) t -> string option
+
+(** [identity ()] returns a transform that simply returns its inputs
+    as outputs without modification. *)
 val identity: ?name:string -> unit -> ('a, 'a) t
-(** Create a stoppable, buffering transform that does nothing else. *)
 
-val on_input:
-  ('input_a, 'output) t ->
-  f:('input_b -> 'input_a) ->
-  ('input_b, 'output) t
-(** Map the input of a t (pre-processor). *)
+(** [stream_transformation t] returns a function [f] that behaves like
+    [t] but the inputs and outputs are on standard OCaml streams. *)
+val stream_transformation:
+  ('input, 'output) t -> ('input Stream.t -> 'output Stream.t)
 
-val on_output:
-  ('input, 'output_a) t ->
-  f:('output_a -> 'output_b) ->
-  ('input, 'output_b) t
-(** Map the output of a t (post-processor). *)
+(** [on_input f t] returns a transform that converts its inputs with
+    [f] and feeds the results to [t]. *)
+val on_input: ('b, 'c) t -> f:('a -> 'b) -> ('a, 'c) t
 
-val compose:
-  ( 'input_left, 'middle) t ->
-  ( 'middle, 'output_right) t ->
-  ( 'input_left, 'output_right) t
-(** Compose (or {i Sequence}) two transforms. *)
+(** [on_output t f] returns a transform that behaves like [t] except
+    the outputs are first converted by [f]. *)
+val on_output: ('a, 'b) t -> f:('b -> 'c) -> ('a, 'c) t
 
-val bind_result:
-  on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
-  ( 'input_left, ('middle, 'error_left) Core.Result.t) t ->
-  ( 'middle, ('output_right, 'error_right) Core.Result.t) t ->
-  ( 'input_left, ('output_right, 'error) Core.Result.t) t
-(** Compose (or {i Sequence}) two transforms that return [Result.t] values. *)
+(** [compose t u] composes [t] and [u]. *)
+val compose: ('a, 'b) t -> ('b, 'c) t -> ('a, 'c) t
 
-val bind_result_merge_error:
-  ('a, ('b, 'el) Core.Result.t) t ->
-  ('b, ('d, 'er) Core.Result.t) t ->
-  ('a, ('d, [ `left of 'el | `right of 'er ]) Core.Result.t) t
-(** Compose like [bind_result] but consider the error types compatible
-    (or “merge-able”). *)
+(** [mix t u f] returns a transform that takes as input a pair of the
+    inputs expected by [t] and [u], and outputs a single value that is the
+    result of applying [f] to the outputs of [t] and [u]. *)
+val mix : ('a1, 'b1) t -> ('a2, 'b2) t -> f:('b1 -> 'b2 -> 'c) -> ('a1 * 'a2, 'c) t
 
-val map_result:
-  ( 'input_left, ('middle, 'error) Core.Result.t) t ->
-  ( 'middle, 'output_right) t ->
-  ( 'input_left, ('output_right, 'error) Core.Result.t) t
-
-val mix :
-  ( 'input_left, 'output_left) t ->
-  ( 'input_right, 'output_right) t ->
-  f:('output_left -> 'output_right -> 'output_f) ->
-  ( 'input_left * 'input_right, 'output_f) t
-(** Create a transformation that merges the output of two transformations.  *)
-
+(** [partially_compose t u ~destruct ~reconstruct] produces a
+    transform that feeds a filtered subset of [t]s outputs to
+    [u]. Only those outputs [ol] of [t] for which [destruct ol]
+    returns [`Yes] are passsed on to [u]. The filterd out values are
+    combined with [u]'s output using [reconstruct]. *)
 val partially_compose:
   ('il, 'ol) t -> ('ir, 'our) t ->
   destruct:('ol -> [`Yes of 'ir | `No of 'filtered]) ->
   reconstruct:([`Filtered of 'filtered | `Done of 'our] -> 'result) ->
   ('il, 'result) t
-(** Partially compose two transformations by providing a filtering
-    function ([~destruct]) and a joining function ([~reconstruct]). *)
 
+(** [split_and_merge t u ~split ~merge] returns a transform whose
+    input is split using [split], passing the result either to [t] or [u],
+    and then the outputs of [t] and [u] are combined using [merge]. There
+    is no guarantee about the order in which the inputs are fed to [t] and
+    [u] (it depends on the buffering done by the individual input
+    transforms). *)
 val split_and_merge:
   ('il, 'ol) t -> ('ir, 'our) t ->
   split:('input -> [`left of 'il | `right of 'ir]) ->
   merge:([`left of 'ol | `right of 'our] -> 'output) ->
   ('input, 'output) t
-(** Split the flow between two transformations thanks to a splitting
-    and a merging functions on their different inputs/outputs. The
-    resulting transformation may not respect the order of the inputs (it
-    depends on the buffering done by the individual input transforms). *)
 
-val stream_transformation:
-  ('input, 'output) t -> 'input Stream.t -> 'output Stream.t
-(** Make a transformation between standard OCaml streams that may
-    raise exceptions. *)
+
+(** {6 [Result.t] Outputs} *)
+
+(** Like {!make_stoppable} but the output is a [Result.t]. Also,
+    {!stop} is automatically called when an error occurs. *)
+val make_stoppable_with_error:
+  ?name:string ->
+  feed: ('input -> unit) ->
+  next: (bool -> [ `output of ('a, 'b) Core.Result.t | `end_of_stream | `not_ready ]) ->
+  unit ->
+  ('input, ('a, 'b) Core.Result.t) t
+
+(** [bind_result t u] is like {!compose} but for transforms returning
+    [Result.t]s. The [on_error] function specifies how errors in [t]
+    or [u] should be converted into those in the resultant
+    transform. *)
+val bind_result:
+  on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
+  ( 'input_left, ('middle, 'error_left) Core.Result.t) t ->
+  ( 'middle, ('output_right, 'error_right) Core.Result.t) t ->
+  ( 'input_left, ('output_right, 'error) Core.Result.t) t
+
+(** Like {!bind_result} but with a pre-specified [on_error]
+    function. *)
+val bind_result_merge_error:
+  ('a, ('b, 'el) Core.Result.t) t ->
+  ('b, ('d, 'er) Core.Result.t) t ->
+  ('a, ('d, [ `left of 'el | `right of 'er ]) Core.Result.t) t
+
+(** Like {!bind_result} but only the first transform returns
+    [Result.t]s. *)
+val map_result:
+  ( 'input_left, ('middle, 'error) Core.Result.t) t ->
+  ( 'middle, 'output_right) t ->
+  ( 'input_left, ('output_right, 'error) Core.Result.t) t
+
 
 (** A buffering parsing_buffer for line-oriented formats. *)
 module Line_oriented: sig
@@ -271,3 +309,15 @@ module Pull_based: sig
   (** Convert a stream to an OCaml [Stream.t] of [Result.t] values. *)
 
 end
+
+
+(** {6 Low-level API} *)
+
+val make:
+  ?name:string ->
+  next: (unit -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
+  feed: ('input -> unit) ->
+  stop: (unit -> unit) ->
+  unit ->
+  ('input, 'output) t
+    (** Build a basic transformation. *)
