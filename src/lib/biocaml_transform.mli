@@ -3,8 +3,8 @@
     [input]s can also be buffered, i.e. you can feed [input]s to the
     transform and pull out [output]s later. There is no requirement
     that 1 input produces exactly 1 output. It is common that multiple
-    (contiguous) input values are needed to construct a single output,
-    and vice versa.
+    input values are needed to construct a single output, and vice
+    versa.
 
     Buffered transforms serve as a general method for working with
     streams of data and flexibly composing mappings from [input]s to
@@ -22,8 +22,8 @@
     ['output]s. *)
 type ('input, 'output) t
 
-(** Exception thrown when {!feed} is called on a transform after it
-    has been {!stop}ped. *)
+(** Exception thrown when [feed] is called on a transform after it
+    has been [stop]ped. *)
 exception Feeding_stopped_transformation of string
 
 (** [make_stoppable ~feed ~next ()] creates a transform that can be
@@ -37,15 +37,16 @@ exception Feeding_stopped_transformation of string
     there are not enough buffered inputs to create an output value, or
     return [`end_of_stream] if the buffer has been stopped, as
     determined by the supplied argument, and there is no more
-    input. Depending on the specifics of the transform, it may be the
-    case that the buffer has been stopped but there is not enough
-    input to create an output value. It is the caller's choice how to
-    handle this or any other kind of error, e.g. make the return type
-    a [Result.t].
+    input.
+
+    Depending on the specifics of the transform, it may be the case
+    that the buffer has been stopped but there is not enough input to
+    create an output value. It is the caller's choice how to handle
+    this or any other kind of error, e.g. make the return type a
+    [Result.t].
 
     - [name] an optional name for the transform that will be used in
-    error messages.
-*)
+    error messages. *)
 val make_stoppable:
   ?name:string ->
   feed: ('input -> unit) ->
@@ -56,8 +57,7 @@ val make_stoppable:
 (** [feed t i] stores [i] into the buffered transform.
 
     @raise Feeding_stopped_transformation [name] if called on a [t]
-    that has been {!stop}ped.
-*)
+    that has been [stop]ped. *)
 val feed: ('input, 'output) t -> 'input -> unit
 
 (** [next t] returns an output value if possible, [`not_ready] if [t]
@@ -73,8 +73,7 @@ val next: ('input, 'output) t -> [ `output of 'output | `end_of_stream | `not_re
 
     - [next t] will eventually return [`end_of_stream], not
     necessarily the immediate next call as there may still be
-    buffered values available for output.
-*)
+    buffered values available for output. *)
 val stop: ('input, 'output) t -> unit
 
 (** [name t] returns the name of [t]. *)
@@ -88,6 +87,15 @@ val identity: ?name:string -> unit -> ('a, 'a) t
     [t] but the inputs and outputs are on standard OCaml streams. *)
 val stream_transformation:
   ('input, 'output) t -> ('input Stream.t -> 'output Stream.t)
+
+
+(** {6 Compose} Buffered transforms are mutable and one should not
+    expect nice mathematical properties from composing them. The
+    intention here is to provide building blocks that allow the
+    creation of more complex transforms from simpler ones. Only the
+    final resultant transform should be used. Feeding/reading the
+    transforms being composed is likely to lead to violations of the
+    stated behavior of the above operations. *)
 
 (** [on_input f t] returns a transform that converts its inputs with
     [f] and feeds the results to [t]. *)
@@ -129,7 +137,8 @@ val split_and_merge:
   ('input, 'output) t
 
 
-(** {6 [Result.t] Outputs} *)
+(** {6 Result.t Outputs} Operations analogous to those above, but for
+    transforms whose output types are [Result.t]s. *)
 
 (** Like {!make_stoppable} but the output is a [Result.t]. Also,
     {!stop} is automatically called when an error occurs. *)
@@ -313,6 +322,8 @@ end
 
 (** {6 Low-level API} *)
 
+(** The most general way to make a transform. All make functions above
+    are implemented with this one. *)
 val make:
   ?name:string ->
   next: (unit -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
@@ -320,4 +331,3 @@ val make:
   stop: (unit -> unit) ->
   unit ->
   ('input, 'output) t
-    (** Build a basic transformation. *)
