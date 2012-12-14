@@ -1,18 +1,16 @@
 open Biocaml_internal_pervasives
 
-
 type ('input, 'output) t = {
   name: string option;
   next: unit -> [ `output of 'output | `end_of_stream | `not_ready ];
   feed: 'input -> unit;
   stop: unit -> unit;
 }
-  
 
 let make ?name ~next ~feed ~stop () = {name; next; feed; stop }
 
 exception Feeding_stopped_transformation of string
-  
+
 let feed t i = t.feed i
 let next t = t.next ()
 let stop t = t.stop ()
@@ -41,7 +39,7 @@ let make_stoppable_with_error ?name ~feed ~next () =
     ~next:(fun () ->
       if !one_error_has_occured
       then `end_of_stream
-      else 
+      else
         begin match next !stopped with
         | `output (Error _) as e -> one_error_has_occured := true;  e
         | other -> other
@@ -58,6 +56,7 @@ let identity ?name () =
 
 let on_input t ~f =
   { t with feed = fun x -> t.feed (f x) }
+
 let on_output t ~f =
   { t with next = fun () ->
       match t.next () with
@@ -134,7 +133,7 @@ let map_result ta tb =
       | `output (Error o) -> `output (Error o)
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
-  
+
 let partially_compose left right ~destruct ~reconstruct =
   let name =
     sprintf "(part-compose <%s> <%s>)"
@@ -159,7 +158,7 @@ let partially_compose left right ~destruct ~reconstruct =
         end
       | `not_ready -> call_right_next ()
       | `end_of_stream -> stop right; call_right_next ())
-            
+
 let mix ta tb ~f =
   let a_buffer = ref None in
   let name =
@@ -189,7 +188,7 @@ let mix ta tb ~f =
         | `end_of_stream -> `end_of_stream
         end
       end)
-    
+
 let split_and_merge ta tb ~split ~merge =
   let name = sprintf "(merge <%s> <%s>)"
     Option.(value ~default:"" (name ta))
@@ -209,8 +208,7 @@ let split_and_merge ta tb ~split ~merge =
         | `not_ready -> `not_ready
         | `end_of_stream -> `end_of_stream
         end)
-  
-    
+
 let stream_transformation tr en =
   let rec loop_until_ready tr en =
     match next tr with
@@ -225,7 +223,7 @@ let stream_transformation tr en =
       end
   in
   Stream.from (fun _ -> loop_until_ready tr en)
-    
+
 module Line_oriented = struct
 
   type parsing_buffer = {
@@ -243,9 +241,9 @@ module Line_oriented = struct
 
   let feed_line p s =
     Queue.enqueue p.lines s
-      
+
   let feed_string p s =
-    let lines = String.split s ~on:'\n' in 
+    let lines = String.split s ~on:'\n' in
     let rec faux = function
       | [] -> assert false
       | [ "" ] -> (* last char was a "\n" *) ()
@@ -256,21 +254,23 @@ module Line_oriented = struct
         faux t
     in
     match p.unfinished_line, lines with
-    | _, [] -> ()
-    | None, l -> faux l
-    | Some s, h :: t ->
-      p.unfinished_line <- None;
-      faux ((s ^ h) :: t)
-        
+      | _, [] -> ()
+      | None, l -> faux l
+      | Some s, h :: t ->
+        p.unfinished_line <- None;
+        faux ((s ^ h) :: t)
+
   let queued_lines p = Queue.length p.lines
+
   let next_line p =
     let l = Queue.dequeue p.lines in
     if l <> None then (
       p.parsed_lines <- p.parsed_lines + 1;
     );
     l
-      
+
   exception No_next_line
+
   let next_line_exn p =
     match next_line p with
     | Some s -> s
@@ -284,7 +284,7 @@ module Line_oriented = struct
 
   let contents p = Queue.to_list p.lines, p.unfinished_line
 
-  let empty p = (Queue.clear p.lines; p.unfinished_line <- None) 
+  let empty p = (Queue.clear p.lines; p.unfinished_line <- None)
 
   let lines () =
     let buf = parsing_buffer () in
@@ -331,8 +331,8 @@ module Line_oriented = struct
   let make_stoppable_merge_error =
     make_stoppable
       ~on_error:(function
-      | `next e -> e
-      | `incomplete_input e -> `incomplete_input e)
+        | `next e -> e
+        | `incomplete_input e -> `incomplete_input e)
 
 end
 
@@ -355,7 +355,7 @@ module Printer_queue = struct
       buffer; clear_buffer;
       to_string;
     }
-  
+
   let feed p r = Queue.enqueue p.records r
 
   let flush p =
@@ -375,7 +375,7 @@ end
 
 module Pull_based = struct
 
-  type 'a stream = unit -> 'a  
+  type 'a stream = unit -> 'a
 
   let of_feeder feeder tr =
     let rec feed_and_take () =
@@ -386,25 +386,27 @@ module Pull_based = struct
         | Some s -> feed tr s; feed_and_take ()
         | None -> stop tr; feed_and_take ()
         end
-      | `end_of_stream -> `end_of_stream in
+      | `end_of_stream -> `end_of_stream
+    in
     feed_and_take
 
-    
   let of_in_channel  ?(buffer_size=4096) ic tr =
     let buf = String.create buffer_size in
     let read_string () =
       match In_channel.input ~buf ic ~pos:0 ~len:buffer_size with
       | 0 -> None
-      | len -> Some (String.sub buf ~pos:0 ~len) in
+      | len -> Some (String.sub buf ~pos:0 ~len)
+    in
     of_feeder read_string tr
-    
+
   let of_file ?buffer_size file tr =
     let ic = In_channel.create file in
     let next = of_in_channel ?buffer_size ic tr in
     (fun () ->
       let n = next () in
       if n = `end_of_stream then In_channel.close ic;
-      n)
+      n
+    )
 
   let next t = t ()
 
@@ -420,7 +422,5 @@ module Pull_based = struct
       match t () with
       | `output o -> Some o
       | `end_of_stream -> None)
-    
-end
 
-  
+end

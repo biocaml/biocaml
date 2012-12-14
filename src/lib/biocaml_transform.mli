@@ -1,9 +1,7 @@
 (** Generic stream-transformations for parsing, pretty-printing, and
 more … *)
 
-
-
-type ('input, 'output) t 
+type ('input, 'output) t
 (** Basic type a of a Cryptokit-styled transformation:
     an [('input, 'output) t] is a buffered transformation
     that can be fed with ['input]
@@ -20,7 +18,7 @@ type ('input, 'output) t
 *)
 
 val make:
-  ?name:string -> 
+  ?name:string ->
   next: (unit -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
   feed: ('input -> unit) ->
   stop: (unit -> unit) ->
@@ -29,15 +27,18 @@ val make:
 (** Build a basic transformation. *)
 
 exception Feeding_stopped_transformation of string
-(** Exception thrown by "stoppable" transformations.  *) 
-    
+(** Exception thrown by "stoppable" transformations.  *)
+
 val feed: ('input, 'output) t -> 'input -> unit
-val next: 
+
+val next:
   ('input, 'output) t -> [ `output of 'output | `end_of_stream | `not_ready ]
+
 val stop: ('input, 'output) t -> unit
+
 val name: ('input, 'output) t -> string option
 
-val make_stoppable: ?name:string -> 
+val make_stoppable: ?name:string ->
   feed: ('input -> unit) ->
   next: (bool -> [ `output of 'output | `end_of_stream | `not_ready ]) ->
   unit ->
@@ -47,7 +48,7 @@ val make_stoppable: ?name:string ->
     [~next] argument with a boolean value indicating if the transformation
     has been stopped. *)
 
-val make_stoppable_with_error: ?name:string -> 
+val make_stoppable_with_error: ?name:string ->
   feed: ('input -> unit) ->
   next: (bool -> [ `output of ('a, 'b) Core.Result.t
                  | `end_of_stream | `not_ready ]) ->
@@ -55,17 +56,17 @@ val make_stoppable_with_error: ?name:string ->
   ('input, ('a, 'b) Core.Result.t) t
 (** Make a stoppable transformation like [make_stoppable] but also
     stop the stream after the first error is detected. *)
-    
+
 val identity: ?name:string -> unit -> ('a, 'a) t
 (** Create a stoppable, buffering transform that does nothing else. *)
 
-val on_input: 
+val on_input:
   ('input_a, 'output) t ->
   f:('input_b -> 'input_a) ->
   ('input_b, 'output) t
 (** Map the input of a t (pre-processor). *)
 
-val on_output: 
+val on_output:
   ('input, 'output_a) t ->
   f:('output_a -> 'output_b) ->
   ('input, 'output_b) t
@@ -76,7 +77,7 @@ val compose:
   ( 'middle, 'output_right) t ->
   ( 'input_left, 'output_right) t
 (** Compose (or {i Sequence}) two transforms. *)
-    
+
 val bind_result:
   on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
   ( 'input_left, ('middle, 'error_left) Core.Result.t) t ->
@@ -84,7 +85,7 @@ val bind_result:
   ( 'input_left, ('output_right, 'error) Core.Result.t) t
 (** Compose (or {i Sequence}) two transforms that return [Result.t] values. *)
 
-val bind_result_merge_error: 
+val bind_result_merge_error:
   ('a, ('b, 'el) Core.Result.t) t ->
   ('b, ('d, 'er) Core.Result.t) t ->
   ('a, ('d, [ `left of 'el | `right of 'er ]) Core.Result.t) t
@@ -95,13 +96,13 @@ val map_result:
   ( 'input_left, ('middle, 'error) Core.Result.t) t ->
   ( 'middle, 'output_right) t ->
   ( 'input_left, ('output_right, 'error) Core.Result.t) t
-    
+
 val mix :
   ( 'input_left, 'output_left) t ->
   ( 'input_right, 'output_right) t ->
   f:('output_left -> 'output_right -> 'output_f) ->
   ( 'input_left * 'input_right, 'output_f) t
-(** Create a transformation that merges the output of two transformations.  *) 
+(** Create a transformation that merges the output of two transformations.  *)
 
 val partially_compose:
   ('il, 'ol) t -> ('ir, 'our) t ->
@@ -120,7 +121,7 @@ val split_and_merge:
     and a merging functions on their different inputs/outputs. The
     resulting transformation may not respect the order of the inputs (it
     depends on the buffering done by the individual input transforms). *)
-    
+
 val stream_transformation:
   ('input, 'output) t -> 'input Stream.t -> 'output Stream.t
 (** Make a transformation between standard OCaml streams that may
@@ -128,20 +129,19 @@ val stream_transformation:
 
 (** A buffering parsing_buffer for line-oriented formats. *)
 module Line_oriented: sig
-    
+
   type parsing_buffer
-  
+
   val parsing_buffer: ?filename:string -> unit -> parsing_buffer
   (** Create a "parser"; the optional [filename] is used only to
       create error locations. *)
-    
+
   val feed_line: parsing_buffer -> string -> unit
   (** Feed the parser with a line. *)
 
   val feed_string: parsing_buffer -> string -> unit
   (** Feed the parser with an arbitrary string buffer. *)
 
-    
   val queued_lines: parsing_buffer -> int
   (** Get the number of lines ready-to-use in the buffer/queue. *)
 
@@ -149,7 +149,7 @@ module Line_oriented: sig
   (** Tell if the parser's buffers are empty or not. For instance, when there is no
       more content to feed and [next_line] returns [None], [is_empty p =
       true] means that the content did not end with a complete line. *)
-    
+
   val next_line: parsing_buffer -> string option
   (** Get the next line. *)
 
@@ -158,7 +158,7 @@ module Line_oriented: sig
 
   val next_line_exn: parsing_buffer -> string
   (** Get the next line, but throw [No_next_line] if there is no line to return. *)
-    
+
   val current_position: parsing_buffer -> Biocaml_pos.t
   (** Get the current position in the stream. *)
 
@@ -220,7 +220,7 @@ module Printer_queue: sig
   (** Get the current transformed content. *)
 
   val is_empty: 'a t -> bool
-(** Check if the printer-queue is empty. *) 
+  (** Check if the printer-queue is empty. *)
 
 end
 
@@ -233,7 +233,7 @@ module Pull_based: sig
   type 'a stream
   (** A stream container. *)
 
-  val next: 'a stream -> 'a 
+  val next: 'a stream -> 'a
   (** Call the basic operation of a stream. *)
 
   val of_feeder:
@@ -250,7 +250,7 @@ module Pull_based: sig
     [ `end_of_stream | `output of 'a ] stream
   (** Create a stream from an [in_channel]. The transformation is fed
       with strings of size [buffer_size] ({i or less}). *)
-    
+
   val of_file :
     ?buffer_size:int ->
     string ->
@@ -263,11 +263,11 @@ module Pull_based: sig
     error_to_exn:('error -> exn) ->
     [ `end_of_stream | `output of ('output, 'error) Core.Result.t ] stream ->
     'output Stream.t
-  (** Convert a stream to an exception-full OCaml [Stream.t]. *) 
+  (** Convert a stream to an exception-full OCaml [Stream.t]. *)
 
   val to_stream_result:
     [ `end_of_stream | `output of ('output, 'error) Core.Result.t ] stream ->
     ('output, 'error) Core.Result.t Stream.t
-  (** Convert a stream to an OCaml [Stream.t] of [Result.t] values. *) 
-      
+  (** Convert a stream to an OCaml [Stream.t] of [Result.t] values. *)
+
 end
