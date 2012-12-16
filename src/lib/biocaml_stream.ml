@@ -462,6 +462,11 @@ let lines_of_channel cin =
     with End_of_file -> None
   in Stream.from f
 
+let lines_to_channel oc xs =
+  iter
+    xs
+    ~f:(fun l -> output_string oc l ; output_char oc '\n')
+
 let result_to_exn s ~error_to_exn =
   from (fun _ ->
     match next s with
