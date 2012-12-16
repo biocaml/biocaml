@@ -216,7 +216,7 @@ val range : ?until:int -> int -> int t
 
 val lines_of_chars : char t -> string t
 val lines_of_channel : in_channel -> string Stream.t
-val lines_to_channel : out_channel -> string Stream.t -> unit
+val lines_to_channel : string Stream.t -> out_channel -> unit
 
 val to_list : 'a t -> 'a list
 val result_to_exn :
