@@ -14,7 +14,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="transform_boxes_model.svg">
+   sodipodi:docname="transform_split_merge.svg">
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -41,7 +41,7 @@
      fit-margin-bottom="0">
     <sodipodi:guide
        orientation="0,1"
-       position="559.34375,206.5"
+       position="564.28571,298.57143"
        id="guide4879" />
     <sodipodi:guide
        orientation="1,0"
@@ -353,7 +353,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -519,13 +519,13 @@
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m 194.7466,344.39791 c 15.64352,-24.00757 32.23103,-47.4907 81.42858,-52.85714"
+       d="m 194.7466,344.39791 c 15.64352,-24.00757 27.94532,-41.90237 78.57144,-41.90237"
        id="path3763-9-3-5"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m 192.7857,414.3979 c 12.88953,28.78343 29.10349,53.06475 87.14287,60"
+       d="m 192.7857,414.3979 c 12.88953,28.78343 19.10349,56.66906 78.57144,56.66906"
        id="path3763-9-3-7"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
@@ -537,7 +537,7 @@
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m 401.35714,471.54075 c 38.6291,5.77197 51.73747,-25.93771 80.53234,-54.2857"
+       d="m 401.35714,471.54075 c 38.6291,-0.47379 51.73747,-25.93771 80.53234,-54.2857"
        id="path3763-9-3-50"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
@@ -555,24 +555,24 @@
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="150.09967"
-       y="292.08301"
+       x="164.6711"
+       y="288.20981"
        id="text2987-01-1-7"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="150.09967"
-         y="292.08301"
+         x="164.6711"
+         y="288.20981"
          id="tspan2991-1-5-2">`left _</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="154.38528"
-       y="486.36874"
+       x="172.2991"
+       y="502.49554"
        id="text2987-01-1-6"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="154.38528"
-         y="486.36874"
+         x="172.2991"
+         y="502.49554"
          id="tspan2991-1-5-9">`right _</tspan></text>
     <text
        xml:space="preserve"
@@ -619,24 +619,24 @@
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="434.64758"
-       y="303.89105"
+       x="401.35715"
+       y="286.7482"
        id="text2987-01-1-7-5"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="434.64758"
-         y="303.89105"
+         x="401.35715"
+         y="286.7482"
          id="tspan2991-1-5-2-4">`left _</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="450.10797"
-       y="488.17676"
+       x="401.35715"
+       y="502.49554"
        id="text2987-01-1-6-2"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="450.10797"
-         y="488.17676"
+         x="401.35715"
+         y="502.49554"
          id="tspan2991-1-5-9-1">`right _</tspan></text>
   </g>
 </svg>
