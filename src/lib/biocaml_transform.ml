@@ -255,7 +255,8 @@ module Line_oriented = struct
         faux t
     in
     match p.unfinished_line, lines with
-      | _, [] -> ()
+      | _, [] -> assert false
+      | _, [""] -> ()
       | None, l -> faux l
       | Some s, h :: t ->
         p.unfinished_line <- None;
