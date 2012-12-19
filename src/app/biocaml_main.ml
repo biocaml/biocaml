@@ -18,7 +18,7 @@ module Command_line = struct
 
   let lwts_to_run = ref ([]: unit Lwt.t list)
   let uses_lwt () =
-    Spec.step (fun lwt -> lwts_to_run := lwt :: !lwts_to_run)
+    Spec.step (fun lwt () -> lwts_to_run := lwt :: !lwts_to_run)
 
 
   let input_buffer_size_flag () =

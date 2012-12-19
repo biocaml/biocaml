@@ -35,7 +35,6 @@ Library biocaml
            , Biocaml_zip
            , Biocaml_bam
            , Biocaml_pos
-           , Biocaml_std
            , Biocaml_about
            , Biocaml_accu
            , Biocaml_bar
@@ -43,7 +42,6 @@ Library biocaml
            , Biocaml_bpmap
            , Biocaml_cel
            , Biocaml_chrName
-           , Biocaml_comments
            , Biocaml_entrez
            , Biocaml_fasta
            , Biocaml_fastq
@@ -66,7 +64,6 @@ Library biocaml
            , Biocaml_sgr
            , Biocaml_strandName
            , Biocaml_stream
-           , Biocaml_table
            , Biocaml_track
            , Biocaml_tags
            , Biocaml_wig

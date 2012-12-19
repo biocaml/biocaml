@@ -168,7 +168,7 @@ let cmd_convert =
         +> anon ("INPUT-FILE" %: string)
         +> anon ("OUT-DIR" %: string)
       )
-      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir ->
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir () ->
         let transform input_buffer_size =
           let tags =
             match Biocaml_tags.guess_from_filename input_file with
@@ -239,7 +239,7 @@ let cmd_just_parse_bam =
         bench_flags ()
         +> anon ("BAM-FILE" %: string)
       )
-      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam ->
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam () ->
         let results = ref [] in
         List.iter input_buffer_sizes (fun input_buffer_size ->
           let start = Time.now () in

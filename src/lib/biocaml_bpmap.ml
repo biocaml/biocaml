@@ -1,4 +1,7 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
+module Msg = Biocaml_msg
+module Pos = Biocaml_pos
+module Stream = Biocaml_stream
 
 type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Biocaml_seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}
@@ -47,19 +50,19 @@ module Parser = struct
 
   let bpmap ~chr_map file =
     let parse file cin =
-      let lines = Stream.map String.strip_final_cr (Stream.lines_of_channel cin) in
+      let lines = Stream.lines_of_channel cin in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
         try
-          ignore (header (Stream.next lines));
-          Stream.to_list (Stream.map (row ~chr_map) lines)
+          ignore (header (Stream.next_exn lines));
+          Stream.to_list (Stream.map ~f:(row ~chr_map) lines)
         with 
             Failure msg | Bad msg -> raise_bad (err msg)
     in
-    try_finally_exn (parse file) ~fend:close_in (open_in file)
+    try_finally_exn (parse file) ~fend:In_channel.close (open_in file)
 
 end
   
-let of_file ?(chr_map=identity) file = Parser.bpmap ~chr_map file
+let of_file ?(chr_map=ident) file = Parser.bpmap ~chr_map file
 
 let row_to_string r =
   let (pmx,pmy) = r.pmcoord in
@@ -76,7 +79,7 @@ let row_to_string r =
       
 let to_file file t =
   let print cout =
-    output_endline cout (String.concat ~sep:"\t" col_names);
-    List.iter ((output_endline cout) <-- row_to_string) t
+    fprintf cout "%s\n" (String.concat ~sep:"\t" col_names);
+    List.iter ~f:(fun x -> fprintf cout "%s\n" (row_to_string x)) t
   in
-  try_finally_exn print ~fend:close_out (open_out_safe file)
+  Out_channel.with_file file ~f:print

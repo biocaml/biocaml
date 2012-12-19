@@ -1,8 +1,5 @@
-open Batteries
-open Printf
 open Biocaml
-module Lines = Biocaml_std.Lines
-module Msg = Biocaml_std.Msg
+open Core.Std
 
 let prog_name = Sys.argv.(0)
 
@@ -61,7 +58,7 @@ let options_to_params (t:options) : params =
   if t.option_help then (printf "%s\n" usage; exit 0);
   
   let exists x =
-    if not (Sys.file_exists x) then
+    if (Sys.file_exists x) = `No then
       failwith (sprintf "%s: no such file or directory" x)
   in
  (* 
@@ -113,13 +110,13 @@ type sgr_pt = string * int * string
 let validate_num (x:string) : unit =
   try ignore (int_of_string x)
   with Failure _ ->
-    try ignore (float_of_string x)
+    try ignore (Float.of_string x)
     with Failure _ -> failwith (sprintf "%s: not a number" x)
         
 (* Return chr, pos, and value from given SGR line. The numeric value
    is returned as a string. *)
 let parse line : sgr_pt =
-  match String.nsplit line "\t" with
+  match String.split line ~on:'\t' with
     | [chr;pos;x] ->
         validate_num x;
         chr, int_of_string pos, x
@@ -140,7 +137,8 @@ try
           let chr,pos,x = parse line in
           print_wig chr (pos-1) pos x
         in
-        Lines.iter_file f params.in_file
+        In_channel.with_file params.in_file ~f:(fun i ->
+          In_channel.iter_lines i ~f);
 
     | BasepairStairstep ->
         (* Print values from [prev]ious point up to but 'not'
@@ -168,13 +166,15 @@ try
             | Some prev -> (from_to prev curr; Some curr)
         in
         
-        (
-          match Lines.fold_file f None params.in_file with
-            | None -> (* the file was empty *)
-                () 
-            | Some (chr,pos,x) -> (* print the last line *)
-                print_wig chr (pos-1) pos x 
-        )
+        let final =
+          In_channel.with_file params.in_file ~f:(fun i ->
+            In_channel.fold_lines i ~f ~init:None) in
+        begin match final with
+        | None -> (* the file was empty *)
+          () 
+        | Some (chr,pos,x) -> (* print the last line *)
+          print_wig chr (pos-1) pos x 
+        end
           
     | Interval ->
         (* pt2, pt1, and pt0 are a window of three points, where
@@ -214,23 +214,25 @@ try
               )
         in
         
-        match Lines.fold_file f (None,None) params.in_file with
-          | None,None -> (* file was empty *)
-              ()
-          | None, Some (chr,pos,x) -> (* file had just one line *)
-              failwith (sprintf "only one data line for chromosome %s" chr)
-          | Some _, None -> invalid_arg "loop invariant violated"
-          |  Some (chr2,pos2,x2), Some (chr1,pos1,x1) ->
-               if chr2 <> chr1 then
-                 failwith (sprintf "only one data line for chromosomes %s and %s" chr2 chr1)
-               else if x2 = x1 then
-                 print_wig chr2 (pos2-1) pos1 x2
-               else
-                 (print_wig chr2 (pos2-1) (pos1-1) x2;
-                  print_wig chr1 (pos1-1) pos1 x1)
+        let final =
+          In_channel.with_file params.in_file ~f:(fun i ->
+            In_channel.fold_lines i ~f ~init:(None, None)) in
+        begin match final with
+        | None,None -> (* file was empty *)
+          ()
+        | None, Some (chr,pos,x) -> (* file had just one line *)
+          failwith (sprintf "only one data line for chromosome %s" chr)
+        | Some _, None -> invalid_arg "loop invariant violated"
+        |  Some (chr2,pos2,x2), Some (chr1,pos1,x1) ->
+          if chr2 <> chr1 then
+            failwith (sprintf "only one data line for chromosomes %s and %s" chr2 chr1)
+          else if x2 = x1 then
+            print_wig chr2 (pos2-1) pos1 x2
+          else
+            (print_wig chr2 (pos2-1) (pos1-1) x2;
+             print_wig chr1 (pos1-1) pos1 x1)
+        end
                    
 with
   | Failure msg | Getopt.Error msg (* | Track.TrackLine.Bad msg *) ->
       eprintf "%s: %s\n" prog_name msg
-  | Lines.Error(pos,msg) ->
-      eprintf "%s: %s\n" prog_name (Msg.err ~pos msg)
