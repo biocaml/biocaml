@@ -1,5 +1,4 @@
-open Batteries
-open Printf
+open Core.Std
 
 let prog_name = Sys.argv.(0)
 
@@ -44,7 +43,7 @@ let options_to_params (t:options) : params =
   ;
   
   let exists x =
-    if not (Sys.file_exists x) then
+    if (Sys.file_exists x) = `No then
       failwith (sprintf "%s: no such file or directory" x)
   in
   
@@ -88,20 +87,21 @@ let parse_cmdline () : params =
 try
   let params = parse_cmdline() in
   let string_is_whitespace s =
-    String.fold_left (fun a b -> a && Char.is_whitespace b) true s in
+    String.fold ~f:(fun a b -> a && Char.is_whitespace b) ~init:true s in
   let f line =
-    if String.starts_with line "##" then ()
+    if String.is_prefix line "##" then ()
     else if string_is_whitespace line then ()
     else
       try
-        match String.nsplit line "\t" with
+        match String.split line ~on:'\t' with
           | chr::_::_::lo::hi::_ ->
               printf "%s\t%d\t%d\n" chr (int_of_string lo - 1) (int_of_string hi)
           | _ -> failwith "expecting at least 5 columns"
       with Failure msg -> (if params.strict then failwith msg else ())
   in
 
-  Biocaml_std.Lines.iter_file f params.in_file
+  In_channel.with_file params.in_file ~f:(fun i ->
+    In_channel.iter_lines i ~f);
 
 with
     Failure msg | Getopt.Error msg -> eprintf "%s: %s\n" prog_name msg
