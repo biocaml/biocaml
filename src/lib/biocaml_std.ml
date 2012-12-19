@@ -1,6 +1,5 @@
 
 include Printf
-let (<--) f g = fun x -> f (g x)
 let identity = fun x -> x
 
 let try_finally_exn ~fend f x =
@@ -12,9 +11,6 @@ let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text]
 let output_endline cout s = output_string cout s; output_string cout "\n"
 
 let flip = BatPervasives.flip
-let ( |> ) = BatPervasives.( |> )
-let ( -| ) = BatPervasives.( -| )
-let ( |- ) = BatPervasives.( |- )
 
 module List = struct 
   include List
