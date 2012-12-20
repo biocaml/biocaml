@@ -4,7 +4,7 @@
  * functions
  *)
 
-open Printf
+open Biocaml_internal_pervasives
 
 type 'a t = Empty | Node of 'a node 
 and 'a node = {
@@ -32,11 +32,11 @@ let height = function
   | Node n -> n.height
 
 let left_end = function
-  | Empty -> max_int 
+  | Empty -> Int.max_value
   | Node n -> n.left_end
 
 let right_end = function
-  | Empty -> min_int 
+  | Empty -> Int.min_value
   | Node n -> n.right_end
 
 let rec cardinal = function
@@ -64,7 +64,7 @@ let interval_distance lo hi lo' hi' =
   else min (abs (lo' - hi)) (abs (lo - hi'))
   
 let tree_distance lo hi = function
-  | Empty -> max_int
+  | Empty -> Int.max_value
   | Node n -> interval_distance lo hi n.left_end n.right_end
 
 
