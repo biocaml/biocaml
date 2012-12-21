@@ -1,19 +1,17 @@
+open Biocaml_internal_pervasives
 open OUnit
 open Biocaml_phred_score
 
 let visible_chars = 
-  let open BatPervasives in
-  33 -- 126 |> BatList.of_enum
+  List.range ~stride:1 ~start:`inclusive ~stop:`inclusive 33 126
 
 let test_ascii_conv () = 
-  let open BatPervasives in
   assert_bool 
     "ASCII conversion failed"
-    (List.for_all 
-       (fun i -> 
-	 let x = i - 33 in (* substract default offset *)
-	 (of_int_exn |- to_ascii_exn |- of_ascii_exn |- to_int) x = x)
-       visible_chars)
+    (List.for_all visible_chars ~f:(fun i -> 
+      let x = i - 33 in (* substract default offset *)
+      (x |! of_int_exn |! to_ascii_exn |! of_ascii_exn |! to_int) = x)
+    )
 
 let tests = "Phred_score" >::: [
   "ASCII conversion" >:: test_ascii_conv;
