@@ -1,5 +1,32 @@
+module Stream = Biocaml_stream
+
+include Core.Common
+module List = struct
+  include Core.Std.List
+
+  type 'a streamable = 'a t
+
+  let stream = Stream.of_list
+
+  let of_stream strm =
+    strm
+    |! Stream.fold ~init:[] ~f:(fun l a -> a::l)
+    |! List.rev
+end
 module Arg = Core.Std.Arg
-module Array = Core.Std.Array
+module Array = struct
+  include Core.Std.Array
+
+  type 'a streamable = 'a t
+
+  let stream a =
+    Stream.from (fun i ->
+      try Some a.(i)
+      with Invalid_argument _ -> None
+    )
+
+  let of_stream strm = List.of_stream strm |! Array.of_list
+end
 include Array.Infix
 module Backtrace = Core.Std.Backtrace
 module Bag = Core.Std.Bag
@@ -13,7 +40,6 @@ module Bool = Core.Std.Bool
 module Caml = Core.Std.Caml
 module Char = Core.Std.Char
 module Command = Core.Std.Command
-include Core.Common
 module Dequeue = Core.Std.Dequeue
 module Exn = Core.Std.Exn
 module Filename = Core.Std.Filename
@@ -30,7 +56,6 @@ module Interfaces = Core.Std.Interfaces
 include Interfaces
 module Interval = Core.Std.Interval
 module Lazy = Core.Std.Lazy
-module List = Core.Std.List
 include List.Infix
 module Map = Core.Std.Map
 module Monad = Core.Std.Monad
@@ -63,8 +88,6 @@ let try_finally_exn ~fend f x =
 let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 
 let flip f x y = f y x
-
-module Stream = Biocaml_stream
 
 module Lines = struct
   module Pos = Biocaml_pos

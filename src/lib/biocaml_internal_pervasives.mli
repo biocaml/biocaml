@@ -9,9 +9,18 @@
    of HOF use the internal count of the stream
 *)
 
+module Stream : module type of Biocaml_stream
 
+include module type of Core.Common
+module List : sig
+  include module type of Core.Std.List
+  include Stream.Streamable
+end
 module Arg : module type of Core.Std.Arg
-module Array : module type of Core.Std.Array
+module Array : sig
+  include module type of Core.Std.Array
+  include Stream.Streamable
+end
 include module type of Array.Infix
 module Backtrace : module type of Core.Std.Backtrace
 module Bag : module type of Core.Std.Bag
@@ -25,7 +34,6 @@ module Bool : module type of Core.Std.Bool
 module Caml : module type of Core.Std.Caml
 module Char : module type of Core.Std.Char
 module Command : module type of Core.Std.Command
-include module type of Core.Common
 module Dequeue : module type of Core.Std.Dequeue
 module Exn : module type of Core.Std.Exn
 module Filename : module type of Core.Std.Filename
@@ -42,7 +50,6 @@ module Interfaces : module type of Core.Std.Interfaces
 include module type of Interfaces
 module Interval : module type of Core.Std.Interval
 module Lazy : module type of Core.Std.Lazy
-module List : module type of Core.Std.List
 include module type of List.Infix
 module Map : module type of Core.Std.Map
 module Monad : module type of Core.Std.Monad
@@ -80,8 +87,6 @@ val open_out_safe : string -> out_channel
 val flip : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
   (** [flip f] returns a function [g] that takes its arguments in the
       opposite order of [f], i.e. [f x y = g y x]. *)
-
-module Stream : module type of Biocaml_stream
 
 module Lines : sig
   exception Error of (Biocaml_pos.t * string)
