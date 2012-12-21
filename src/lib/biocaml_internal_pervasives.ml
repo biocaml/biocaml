@@ -1,5 +1,60 @@
+module Arg = Core.Std.Arg
+module Array = Core.Std.Array
+include Array.Infix
+module Backtrace = Core.Std.Backtrace
+module Bag = Core.Std.Bag
+module Big_int = Core.Std.Big_int
+module Bigbuffer = Core.Std.Bigbuffer
+module Bigstring = Core.Std.Bigstring
+module Bigsubstring = Core.Std.Bigsubstring
+module Bin_prot = Core.Std.Bin_prot
+module Binary_packing = Core.Std.Binary_packing
+module Bool = Core.Std.Bool
+module Caml = Core.Std.Caml
+module Char = Core.Std.Char
+module Command = Core.Std.Command
+include Core.Common
+module Dequeue = Core.Std.Dequeue
+module Exn = Core.Std.Exn
+module Filename = Core.Std.Filename
+module Float = Core.Std.Float
+module Fn = Core.Std.Fn
+module Hashtbl = Core.Std.Hashtbl
+module Int = Core.Std.Int
+include Int.Infix
+module In_channel = Core.Std.In_channel
+module Int32 = Core.Std.Int32
+module Int63 = Core.Std.Int63
+module Int64 = Core.Std.Int64
+module Interfaces = Core.Std.Interfaces
+include Interfaces
+module Interval = Core.Std.Interval
+module Lazy = Core.Std.Lazy
+module List = Core.Std.List
+include List.Infix
+module Map = Core.Std.Map
+module Monad = Core.Std.Monad
+module Nat = Core.Std.Nat
+module Nativeint = Core.Std.Nativeint
+module Num = Core.Std.Num
+module Option = Core.Std.Option
+module Out_channel = Core.Std.Out_channel
+module Printexc = Core.Std.Printexc
+module Printf = Core.Std.Printf
+include Printf
+module Queue = Core.Std.Queue
+module Random = Core.Std.Random
+module Ratio = Core.Std.Ratio
+module Result = Core.Std.Result
+include Result.Export
+module Set = Core.Std.Set
+include Sexplib.Conv
+module Stack = Core.Std.Stack
+module String = Core.Std.String
+include String.Infix
+module Sys = Core.Std.Sys
+module Time = Core.Std.Time
 
-include Core.Std
 let try_finally_exn ~fend f x =
   match try `V (f x) with e -> `E e with
     | `V f_x -> fend x; f_x

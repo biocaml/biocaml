@@ -8,7 +8,64 @@
    stream, meaning that their count is set to 0. (2) indexed variants
    of HOF use the internal count of the stream
 *)
-include module type of Core.Std
+
+
+module Arg : module type of Core.Std.Arg
+module Array : module type of Core.Std.Array
+include module type of Array.Infix
+module Backtrace : module type of Core.Std.Backtrace
+module Bag : module type of Core.Std.Bag
+module Big_int : module type of Core.Std.Big_int
+module Bigbuffer : module type of Core.Std.Bigbuffer
+module Bigstring : module type of Core.Std.Bigstring
+module Bigsubstring : module type of Core.Std.Bigsubstring
+module Bin_prot : module type of Core.Std.Bin_prot
+module Binary_packing : module type of Core.Std.Binary_packing
+module Bool : module type of Core.Std.Bool
+module Caml : module type of Core.Std.Caml
+module Char : module type of Core.Std.Char
+module Command : module type of Core.Std.Command
+include module type of Core.Common
+module Dequeue : module type of Core.Std.Dequeue
+module Exn : module type of Core.Std.Exn
+module Filename : module type of Core.Std.Filename
+module Float : module type of Core.Std.Float
+module Fn : module type of Core.Std.Fn
+module Hashtbl : module type of Core.Std.Hashtbl
+module Int : module type of Core.Std.Int
+include module type of Int.Infix
+module In_channel : module type of Core.Std.In_channel
+module Int32 : module type of Core.Std.Int32
+module Int63 : module type of Core.Std.Int63
+module Int64 : module type of Core.Std.Int64
+module Interfaces : module type of Core.Std.Interfaces
+include module type of Interfaces
+module Interval : module type of Core.Std.Interval
+module Lazy : module type of Core.Std.Lazy
+module List : module type of Core.Std.List
+include module type of List.Infix
+module Map : module type of Core.Std.Map
+module Monad : module type of Core.Std.Monad
+module Nat : module type of Core.Std.Nat
+module Nativeint : module type of Core.Std.Nativeint
+module Num : module type of Core.Std.Num
+module Option : module type of Core.Std.Option
+module Out_channel : module type of Core.Std.Out_channel
+module Printexc : module type of Core.Std.Printexc
+module Printf : module type of Core.Std.Printf
+include module type of Printf
+module Queue : module type of Core.Std.Queue
+module Random : module type of Core.Std.Random
+module Ratio : module type of Core.Std.Ratio
+module Result : module type of Core.Std.Result
+include module type of Result.Export
+module Set : module type of Core.Std.Set
+include module type of Sexplib.Conv
+module Stack : module type of Core.Std.Stack
+module String : module type of Core.Std.String
+include module type of String.Infix
+module Sys : module type of Core.Std.Sys
+module Time : module type of Core.Std.Time
 
 val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
   (** [try_finally_exn fend f a] will run [x = f a], then run [fend
