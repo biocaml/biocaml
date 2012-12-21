@@ -1,6 +1,4 @@
-open Batteries
-open Core.Std
-open Printf
+include Biocaml_internal_pervasives
 
 type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
 
@@ -34,11 +32,11 @@ let collection_of_string = function
 let attrs_of_string =
   let rex = Pcre.regexp "; +(?<K>[^\"]+) \"(?<V>[^\"]*)\"" in
   fun s ->
-    let r = Pcre.exec_all ~rex s in
-    BatEnum.combine
-      (BatArray.enum r /@ (Pcre.get_named_substring rex "K"),
-       BatArray.enum r /@ (Pcre.get_named_substring rex "V"))
-    |> BatList.of_enum
+    let r : Pcre.substrings array = Pcre.exec_all ~rex s in
+    Stream.(Infix.(combine
+      (Array.stream r /@ (Pcre.get_named_substring rex "K"),
+       Array.stream r /@ (Pcre.get_named_substring rex "V"))))
+    |! List.of_stream
 
 
 let transpose m = 
@@ -54,13 +52,13 @@ let space_split =
   Pcre.split ~rex
 
 let load_matrix ~path ~id =
-  BatFile.lines_of (path ^ "/" ^ id ^ ".pfm")
-  /@ String.lstrip
-  /@ space_split
-  /@ Array.of_list
-  /@ Array.map ~f:(Float.of_string |- Int.of_float)
-  |> BatArray.of_enum
-  |> transpose
+  In_channel.read_lines (path ^ "/" ^ id ^ ".pfm")
+  |! List.map ~f:String.lstrip
+  |! List.map ~f:space_split
+  |! List.map ~f:Array.of_list
+  |! List.map ~f:(Array.map ~f:(fun x -> x |! Float.of_string |! Int.of_float))
+  |! Array.of_list
+  |! transpose
 
 let load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path = 
   let attrs = attrs_of_string attrs in 
@@ -85,31 +83,10 @@ let load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path =
   }
 
 let load path =
-  BatFile.lines_of (path ^ "/matrix_list.txt")
-  /@ (fun l -> split l ~on:'\t')
-  /@ (function
+  In_channel.read_lines (path ^ "/matrix_list.txt")
+  |! List.map ~f:(fun l -> split l ~on:'\t')
+  |! List.map ~f:(function
       | [ id ; info ; factor_name ; factor_class ; attrs ] -> 
           load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path
       | l -> 
           failwithf "Biocaml_jaspar.load: incorrect fields\n%s" (String.concat ~sep:"\n" l) ())
-  |> BatList.of_enum
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
