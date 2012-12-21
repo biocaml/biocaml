@@ -14,8 +14,6 @@ type motif = {
   matrix : int array array ;
 }
 
-let split = Core.Core_string.split
-
 let collection_of_string = function
   | "CNE" -> CNE
   | "FAM" -> FAM
@@ -84,7 +82,7 @@ let load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path =
 
 let load path =
   In_channel.read_lines (path ^ "/matrix_list.txt")
-  |! List.map ~f:(fun l -> split l ~on:'\t')
+  |! List.map ~f:(fun l -> String.split l ~on:'\t')
   |! List.map ~f:(function
       | [ id ; info ; factor_name ; factor_class ; attrs ] -> 
           load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path
