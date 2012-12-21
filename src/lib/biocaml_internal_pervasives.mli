@@ -14,12 +14,12 @@ module Stream : module type of Biocaml_stream
 include module type of Core.Common
 module List : sig
   include module type of Core.Std.List
-  include Stream.Streamable
+  include Stream.Streamable with type 'a streamable = 'a t
 end
 module Arg : module type of Core.Std.Arg
 module Array : sig
   include module type of Core.Std.Array
-  include Stream.Streamable
+  include Stream.Streamable with type 'a streamable = 'a t
 end
 include module type of Array.Infix
 module Backtrace : module type of Core.Std.Backtrace
