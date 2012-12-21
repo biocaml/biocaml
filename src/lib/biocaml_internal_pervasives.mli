@@ -17,7 +17,10 @@ module List : sig
   include Stream.Streamable
 end
 module Arg : module type of Core.Std.Arg
-module Array : module type of Core.Std.Array
+module Array : sig
+  include module type of Core.Std.Array
+  include Stream.Streamable
+end
 include module type of Array.Infix
 module Backtrace : module type of Core.Std.Backtrace
 module Bag : module type of Core.Std.Bag
