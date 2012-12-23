@@ -64,7 +64,7 @@ module Selection = struct
   let of_enum e =
     let accu = Accu.create ISet.empty fst (fun (_,r) -> Range.(ISet.add_range r.lo r.hi)) in
     Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
-    Map.of_enum (Accu.enum accu)
+    Map.of_enum (BatStream.enum (Accu.stream accu))
 end
 
 
@@ -111,7 +111,7 @@ module LMap = struct
       Accu.create T.empty (fst |- fst)
         (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
     Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
-    Map.of_enum (Accu.enum accu)
+    Map.of_enum (BatStream.enum (Accu.stream accu))
 
 end
 

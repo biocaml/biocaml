@@ -12,6 +12,7 @@
 module Stream : module type of Biocaml_stream
 
 include module type of Core.Common
+val ( |? ) : 'a option -> 'a -> 'a
 module List : sig
   include module type of Core.Std.List
   include Stream.Streamable with type 'a streamable = 'a t
@@ -39,7 +40,11 @@ module Exn : module type of Core.Std.Exn
 module Filename : module type of Core.Std.Filename
 module Float : module type of Core.Std.Float
 module Fn : module type of Core.Std.Fn
-module Hashtbl : module type of Core.Std.Hashtbl
+module Hashtbl : sig
+  include module type of Core.Std.Hashtbl
+  val stream : ('a, 'b) t -> ('a * 'b) Stream.t
+  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) t
+end
 module Int : module type of Core.Std.Int
 include module type of Int.Infix
 module In_channel : module type of Core.Std.In_channel

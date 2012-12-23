@@ -1,6 +1,7 @@
 module Stream = Biocaml_stream
 
 include Core.Common
+let ( |? ) x default = Core.Option.value ~default x
 module List = struct
   include Core.Std.List
 
@@ -45,7 +46,15 @@ module Exn = Core.Std.Exn
 module Filename = Core.Std.Filename
 module Float = Core.Std.Float
 module Fn = Core.Std.Fn
-module Hashtbl = Core.Std.Hashtbl
+module Hashtbl = struct
+  include Core.Std.Hashtbl
+  let stream t = Stream.of_list (to_alist t)
+  let of_stream xs =
+    let t = Poly.create () in
+    Stream.iter xs ~f:(fun (key,data) -> Poly.replace t ~key ~data) ;
+    t
+end
+
 module Int = Core.Std.Int
 include Int.Infix
 module In_channel = Core.Std.In_channel
