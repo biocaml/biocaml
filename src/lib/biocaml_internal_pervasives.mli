@@ -20,6 +20,9 @@ module Arg : module type of Core.Std.Arg
 module Array : sig
   include module type of Core.Std.Array
   include Stream.Streamable with type 'a streamable = 'a t
+
+  (** [range xs] is the stream of all valid indices in [xs] *)
+  val range : 'a t -> int Stream.t
 end
 include module type of Array.Infix
 module Backtrace : module type of Core.Std.Backtrace

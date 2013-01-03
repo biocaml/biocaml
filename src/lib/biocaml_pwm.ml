@@ -1,4 +1,4 @@
-open Batteries
+open Biocaml_internal_pervasives
 
 type count_matrix = int array array
 type background = float array
@@ -11,10 +11,10 @@ let int_of_char = function
   | 't' | 'T' -> 3
   | _ -> 4
 
-let flat_background () = Array.make 4 0.25
+let flat_background () = Caml.Array.make 4 0.25
 
 let background_of_sequence seq pc =
-  let counts = Array.make 4 0
+  let counts = Caml.Array.make 4 0
   and n = ref 0 in
   for i = 0 to String.length seq - 1 do
     let k = int_of_char seq.[i] in
@@ -44,23 +44,24 @@ let reverse_complement a = Array.(
 let make mat bg = Array.(
   map
     (fun p ->
-      let n = fold_left ( + ) 0 p in
+      let n = fold ~f:( + ) ~init:0 p in
       let r = 
-	mapi 
-	  (fun i x -> log ((float x +. bg.(i)) /. float n /. bg.(i)))
-	  p in
+	mapi p ~f:(fun i x -> 
+	  log ((float x +. bg.(i)) /. float n /. bg.(i))
+	)
+      in
       let n_case = 
 	range p 
-        |> Enum.fold (fun accu i -> accu +. bg.(i) *. r.(i)) 0. in
+        |! Stream.fold ~f:(fun accu i -> accu +. bg.(i) *. r.(i)) ~init:0. in
       append r [| n_case |])
     mat
 )
 
 let tandem ?(orientation = `direct) ~spacer mat1 mat2 bg =
   Array.concat [
-    (if orientation = `everted then reverse_complement else identity) (make mat1 bg) ;
-    Array.init spacer (fun _ -> Array.make 5 0.) ;
-    (if orientation = `inverted then reverse_complement else identity) (make mat2 bg)
+    (if orientation = `everted then reverse_complement else ident) (make mat1 bg) ;
+    Array.init spacer (fun _ -> Caml.Array.make 5 0.) ;
+    (if orientation = `inverted then reverse_complement else ident) (make mat2 bg)
   ]
 
 
@@ -83,7 +84,7 @@ let scan = gen_scan (fun pos score l -> (pos, score) :: l) []
 
 let best_hit mat seq = 
   let (pos, _) as r = 
-    gen_scan (fun p1 s1 ((p2,s2) as r2) -> if s1 > s2 then (p1, s1) else r2) (-1, neg_infinity) mat seq neg_infinity
+    gen_scan (fun p1 s1 ((p2,s2) as r2) -> if s1 > s2 then (p1, s1) else r2) (-1, Float.neg_infinity) mat seq Float.neg_infinity
   in
   if pos < 0 then raise (Invalid_argument "Biocaml_pwm.best_hit: sequence shorter than the matrix")
   else r
