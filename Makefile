@@ -43,8 +43,11 @@ distclean:
 	$(RM) TAGS
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
 
+TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
+TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
+
 TAGS:
-	otags -o TAGS `find src -regex ".*\.ml"`
+	otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS `find src -regex ".*\.ml"`
 
 CURR_DIR=$(shell basename $(CURDIR))
 PKG=biocaml
