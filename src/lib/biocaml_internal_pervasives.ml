@@ -27,6 +27,8 @@ module Array = struct
     )
 
   let of_stream strm = List.of_stream strm |! Array.of_list
+
+  let range xs = Stream.Infix.(0 --^ (length xs))
 end
 include Array.Infix
 module Backtrace = Core.Std.Backtrace
