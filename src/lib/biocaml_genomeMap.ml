@@ -108,7 +108,7 @@ module LMap = struct
 
   let of_enum e =
     let accu =
-      Accu.create T.empty (fst |- fst)
+      Accu.create T.empty (fun x -> fst x |> fst)
         (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
     Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
     Map.of_enum (BatStream.enum (Accu.stream accu))
