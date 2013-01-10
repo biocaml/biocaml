@@ -23,6 +23,14 @@ let of_stream x = x
 
 exception Expected_streams_of_equal_length
 
+let of_list l =
+  let lr = ref l in
+  let f _ = match !lr with
+    | h :: t -> lr := t ; Some h
+    | [] -> None 
+  in
+  from f
+
 let rec iteri xs ~f =
   match peek xs with
   | Some x -> f (count xs) x ; junk xs ; iteri xs ~f
