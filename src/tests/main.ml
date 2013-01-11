@@ -13,6 +13,7 @@ let all_tests = [
   Test_track.tests;
   Test_sam.tests;
   Test_zip.tests;
+  Test_rset.tests;
 ]
 
 let () =
