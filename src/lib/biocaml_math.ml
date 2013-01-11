@@ -146,19 +146,19 @@ let quantile_normalization aa =
 
 let histogram (type t) ?(cmp=Pervasives.compare) arr =
   let module M = struct
-    include BatMap.Make(struct
+    include Map.Make(struct
       type t_ = t (* required only because OCaml doesn't have type non-rec definitions *)
       type t = t_
       let compare = cmp
+      let sexp_of_t _ = assert false 
+      let t_of_sexp _ = assert false
     end)
-    include Labels
-    include Exceptionless
   end
   in
   let f (mp : int M.t) (a:t) =
-    match M.find a mp with
-    | Some e -> M.add a (e + 1) mp
-    | None -> M.add a 1 mp
+    match M.find mp a with
+    | Some e -> M.add mp a (e + 1)
+    | None -> M.add mp a 1
   in
   let mp = Array.fold ~f ~init:M.empty arr in
   let ans = M.fold ~f:(fun ~key ~data ans -> (key,data)::ans) mp ~init:[] in

@@ -110,41 +110,4 @@ let diff s t =
 
 let subset s t = is_empty (diff s t)
 
-  (*
-module Test = struct
-    
-  let make_int_set (l : (int * int) list) : Int.Set.t =
-    let f accum (lo,hi) =
-      if lo > hi then
-        accum
-      else
-        let v = Range.make lo hi in
-        Int.Set.union accum (Int.Set.of_list (Range.to_list v))
-    in
-    List.fold_left ~f ~init:Int.Set.empty l
-      
-  let test vl1 vl2 =
-    let intset1 = Test.timesf "making first IntSet" make_int_set vl1 in
-    let intset2 = Test.timesf "making second IntSet" make_int_set vl2 in
-    let set1 = Test.timesf "making first efficient set" of_range_list vl1 in
-    let set2 = Test.timesf "making second efficient set" of_range_list vl2 in
-    
-    let is_good intset_op set_op op_name =
-      let ans1 = Test.timesf ("naive " ^ op_name) (intset_op intset1) intset2 in
-      let ans2 = Test.timesf ("efficient " ^ op_name) (set_op set1) set2 in
-      if IntSet.to_list ans1 = to_list ans2
-      then print_endline (op_name ^ " test PASSED\n")
-      else print_endline (op_name ^ " test FAILED\n")
-    in
-    is_good IntSet.inter inter "intersection";
-    is_good IntSet.union union "union";
-    is_good IntSet.diff diff "diff"
-
-  let default_test () =
-    let f () = BatList.init 10000 (fun _ -> let x = Random.int 100 in x, Random.int 20 + x) in
-    let st = Random.get_state () in
-    Random.init 42 ;
-    test (f ()) (f ()) ;
-    Random.set_state st
-end
-  *)
+  

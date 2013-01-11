@@ -24,8 +24,8 @@ let () =
     exit 1
   );
   let tmp = Filename.temp_file "ocamlinit" ".ml" in
-  let o = open_out tmp in
-  fprintf o "
+  Out_channel.with_file tmp ~f:(fun o ->
+    fprintf o "
 #use \"topfind\";;
 #thread;;
 #require \"core, zip, sqlite3, unix, batteries, xmlm, pcre\"
@@ -33,6 +33,6 @@ let () =
 #load \"biocaml.cma\";;
 open Core.Std;;
 " biocaml_dir;
-  close_out o;
+  );
   command "ocaml -init %s" tmp;
   Sys.remove tmp
