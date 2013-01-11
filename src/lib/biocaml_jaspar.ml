@@ -28,8 +28,15 @@ let collection_of_string = function
     
     
 let attrs_of_string =
-  let rex = Pcre.regexp "; +(?<K>[^\"]+) \"(?<V>[^\"]*)\"" in
+  let ans = ref None in
   fun s ->
+    let rex = match !ans with
+      | None ->
+          let r = Pcre.regexp "; +(?<K>[^\"]+) \"(?<V>[^\"]*)\"" in
+          ans := Some r;
+          r
+      | Some r -> r
+    in
     let r : Pcre.substrings array = Pcre.exec_all ~rex s in
     Stream.(Infix.(combine
       (Array.stream r /@ (Pcre.get_named_substring rex "K"),
