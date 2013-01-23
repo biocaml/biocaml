@@ -42,6 +42,7 @@ distclean:
 	$(RM) src/lib/biocaml.mllib
 	$(RM) TAGS
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
+	$(RM) setup.ml
 
 TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
 TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
