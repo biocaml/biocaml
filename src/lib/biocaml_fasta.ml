@@ -205,45 +205,46 @@ module Transform = struct
         | None -> if stopped then `end_of_stream else `not_ready)
 end      
 
-let in_channel_to_char_seq_item_stream ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
-  let x = Transform.string_to_char_seq_raw_item
-    ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
-  let y = Transform.char_seq_raw_item_to_item () in
-  Biocaml_transform.(
-    compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! Pull_based.of_in_channel inp
-    |! Pull_based.to_stream_result
-  )
-  
-let in_channel_to_int_seq_item_stream ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
-  let x = Transform.string_to_int_seq_raw_item
-    ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
-  let y = Transform.int_seq_raw_item_to_item () in
-  Biocaml_transform.(
-    compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! Pull_based.of_in_channel inp
-    |! Pull_based.to_stream_result
-  )
-
-module Exceptionful = struct
-  exception Error of Error.t
-  
-  let error_to_exn err = Error err
+module Result = struct
 
   let in_channel_to_char_seq_item_stream ?filename ?pedantic
       ?sharp_comments ?semicolon_comments inp =
-    Stream.result_to_exn ~error_to_exn (
-      in_channel_to_char_seq_item_stream ?filename ?pedantic
-        ?sharp_comments ?semicolon_comments inp
+    let x = Transform.string_to_char_seq_raw_item
+      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+    let y = Transform.char_seq_raw_item_to_item () in
+    Biocaml_transform.(
+      compose_results x y ~on_error:(function `left x -> x | `right x -> x)
+      |! Pull_based.of_in_channel inp
+      |! Pull_based.to_stream_result
     )
 
   let in_channel_to_int_seq_item_stream ?filename ?pedantic
       ?sharp_comments ?semicolon_comments inp =
-    Stream.result_to_exn ~error_to_exn (
-      in_channel_to_int_seq_item_stream ?filename ?pedantic
-        ?sharp_comments ?semicolon_comments inp
+    let x = Transform.string_to_int_seq_raw_item
+      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+    let y = Transform.int_seq_raw_item_to_item () in
+    Biocaml_transform.(
+      compose_results x y ~on_error:(function `left x -> x | `right x -> x)
+      |! Pull_based.of_in_channel inp
+      |! Pull_based.to_stream_result
     )
 
 end
+
+exception Error of Error.t
+
+let error_to_exn err = Error err
+
+let in_channel_to_char_seq_item_stream ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  Stream.result_to_exn ~error_to_exn (
+    Result.in_channel_to_char_seq_item_stream ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp
+  )
+
+let in_channel_to_int_seq_item_stream ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  Stream.result_to_exn ~error_to_exn (
+    Result.in_channel_to_int_seq_item_stream ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp
+  )
