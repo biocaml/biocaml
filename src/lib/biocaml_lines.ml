@@ -1,5 +1,4 @@
 open Biocaml_internal_pervasives
-module Transform = Biocaml_transform
 
 type item = string
 
@@ -77,24 +76,49 @@ module Buffer = struct
 
   let empty p = (Queue.clear p.lines; p.unfinished_line <- None)
 
+end
+
+module Transform = struct
+
+  let string_to_item () =
+    let buf = Buffer.parsing_buffer () in
+    Biocaml_transform.make ~name:"lines"
+      ~feed:(Buffer.feed_string buf)
+      ~next:(function
+        | true -> (match Buffer.next_line buf with
+            | Some line -> `output line
+            | None -> (match Buffer.contents buf with
+                | [], None -> `end_of_stream
+                | [], Some unfinished_line ->
+                    (Buffer.empty buf; `output unfinished_line)
+                | _ -> assert false
+              )
+          )
+        | false -> (match Buffer.next_line buf with
+            | None -> `not_ready
+            | Some line -> `output line
+          )
+      )
+      ()
+
   let make ?name ?filename ~next ~on_error () =
-    let lo_parser = parsing_buffer ?filename () in
-    Transform.make ?name ()
-      ~feed:(feed_string lo_parser)
+    let lo_parser = Buffer.parsing_buffer ?filename () in
+    Biocaml_transform.make ?name ()
+      ~feed:(Buffer.feed_string lo_parser)
       ~next:(fun stopped ->
         match next lo_parser with
         | `output (Ok r) -> `output (Ok r)
         | `output (Error r) -> `output (Error (on_error (`next r)))
         | `not_ready ->
           if stopped then (
-            if is_empty lo_parser then
+            if Buffer.is_empty lo_parser then
               `end_of_stream
             else
-              let l,o = contents lo_parser in
+              let l,o = Buffer.contents lo_parser in
               `output
                 (Error
                     (on_error
-                        (`incomplete_input (current_position lo_parser, l, o))))
+                        (`incomplete_input (Buffer.current_position lo_parser, l, o))))
           ) else
             `not_ready)
 
@@ -105,24 +129,3 @@ module Buffer = struct
         | `incomplete_input e -> `incomplete_input e)
 
 end
-
-let lines () =
-  let buf = Buffer.parsing_buffer () in
-  Transform.make ~name:"lines"
-    ~feed:(Buffer.feed_string buf)
-    ~next:(function
-      | true -> (match Buffer.next_line buf with
-          | Some line -> `output line
-          | None -> (match Buffer.contents buf with
-              | [], None -> `end_of_stream
-              | [], Some unfinished_line ->
-                  (Buffer.empty buf; `output unfinished_line)
-              | _ -> assert false
-            )
-        )
-      | false -> (match Buffer.next_line buf with
-          | None -> `not_ready
-          | Some line -> `output line
-        )
-    )
-    ()

@@ -10,12 +10,6 @@ type item = private string
     line ended with a newline or false otherwise. *)
 val string_to_items : string -> (item list * bool)
 
-(** Return a transform that converts a stream of arbitrary strings to
-    a stream of lines. If the input terminates without a newline,
-    the trailing string is still considered a line. *)
-val lines : unit -> (string, string) Biocaml_transform.t
-
-
 (** Buffer of lines. *)
 module Buffer : sig
 
@@ -61,9 +55,18 @@ module Buffer : sig
       [(\[\], None)]. *)
   val empty : t -> unit
 
+end
+
+module Transform : sig
+
+  (** Return a transform that converts a stream of arbitrary strings
+      to a stream of lines. If the input terminates without a newline,
+      the trailing string is still considered a line. *)
+  val string_to_item : unit -> (string, string) Biocaml_transform.t
+
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->
-    next:(t ->
+    next:(Buffer.t ->
       [ `not_ready | `output of ('b, 'errnext) Core.Result.t ]) ->
     on_error:(
       [`next of 'errnext
@@ -77,7 +80,7 @@ module Buffer : sig
   val make_merge_error :
     ?name:string ->
     ?filename:string ->
-    next:(t ->
+    next:(Buffer.t ->
       [ `not_ready
       | `output of ('a,
                    [> `incomplete_input of
