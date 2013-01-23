@@ -22,7 +22,7 @@ module Buffer = struct
     filename : string option;
   }
 
-  let parsing_buffer ?filename () =
+  let make ?filename () =
     {unfinished_line = None;
      lines = Queue.create ();
      parsed_lines = 0;
@@ -81,7 +81,7 @@ end
 module Transform = struct
 
   let string_to_item () =
-    let buf = Buffer.parsing_buffer () in
+    let buf = Buffer.make () in
     Biocaml_transform.make ~name:"lines"
       ~feed:(Buffer.feed_string buf)
       ~next:(function
@@ -102,7 +102,7 @@ module Transform = struct
       ()
 
   let make ?name ?filename ~next ~on_error () =
-    let lo_parser = Buffer.parsing_buffer ?filename () in
+    let lo_parser = Buffer.make ?filename () in
     Biocaml_transform.make ?name ()
       ~feed:(Buffer.feed_string lo_parser)
       ~next:(fun stopped ->

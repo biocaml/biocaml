@@ -18,9 +18,10 @@ module Buffer : sig
   (** The exception thrown by [next_line_exn]. *)
   exception No_next_line
 
-  (** Create a "parser"; the optional [filename] is used only to
-      create error locations. *)
-  val parsing_buffer: ?filename:string -> unit -> t
+  (** Make a new empty buffer. The optional [filename] is used only
+      for error reporting; it should be set to the name of the file,
+      if any, from which you will feed the buffer. *)
+  val make: ?filename:string -> unit -> t
 
   (** Feed the parser with a line. *)
   val feed_line: t -> item -> unit
