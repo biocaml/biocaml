@@ -12,6 +12,7 @@ module GenomeMap      = Biocaml_genomeMap
 module Gff            = Biocaml_gff          
 module Histogram      = Biocaml_histogram    
 module Jaspar         = Biocaml_jaspar
+module Lines          = Biocaml_lines
 module Math           = Biocaml_math         
 module Phred_score    = Biocaml_phred_score   
 module Pwm            = Biocaml_pwm
