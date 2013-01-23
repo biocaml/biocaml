@@ -17,7 +17,7 @@ module Buffer = struct
 
   type t = {
     mutable unfinished_line : string option;
-    lines : string Queue.t;
+    lines : item Queue.t;
     mutable parsed_lines : int;
     filename : string option;
   }

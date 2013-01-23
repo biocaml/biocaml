@@ -23,7 +23,7 @@ module Buffer : sig
   val parsing_buffer: ?filename:string -> unit -> t
 
   (** Feed the parser with a line. *)
-  val feed_line: t -> string -> unit
+  val feed_line: t -> item -> unit
 
   (** Feed the parser with an arbitrary string buffer. *)
   val feed_string: t -> string -> unit
@@ -38,11 +38,11 @@ module Buffer : sig
   val is_empty: t -> bool
 
   (** Get the next line. *)
-  val next_line: t -> string option
+  val next_line: t -> item option
 
   (** Get the next line, but throw [No_next_line] if there is no line
       to return. *)
-  val next_line_exn: t -> string
+  val next_line_exn: t -> item
 
   (** Get the current position in the stream. *)
   val current_position: t -> Biocaml_pos.t
@@ -62,7 +62,7 @@ module Transform : sig
   (** Return a transform that converts a stream of arbitrary strings
       to a stream of lines. If the input terminates without a newline,
       the trailing string is still considered a line. *)
-  val string_to_item : unit -> (string, string) Biocaml_transform.t
+  val string_to_item : unit -> (string, item) Biocaml_transform.t
 
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->
