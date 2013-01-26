@@ -1,5 +1,8 @@
 open Biocaml_internal_pervasives
 open Result
+module Sam = Biocaml_sam
+module Phred_score = Biocaml_phred_score
+module Zip = Biocaml_zip
 
 type raw_alignment = {
   qname : string;
@@ -69,9 +72,9 @@ module Transform = struct
 
 
   type item_to_raw_error =
-  [ `cannot_get_sequence of Biocaml_sam.alignment
+  [ `cannot_get_sequence of Sam.alignment
   | `header_line_not_first of string
-  | `reference_name_not_found of Biocaml_sam.alignment * string ]
+  | `reference_name_not_found of Sam.alignment * string ]
   with sexp
 
   let dbg fmt = Debug.make "BAM" fmt
@@ -304,7 +307,7 @@ module Transform = struct
         match r with
         | `no -> failwith "got `right `no"
         | #raw_bam_error as a -> `bam a)
-      (Biocaml_zip.Transform.unzip ~format:`gzip ?zlib_buffer_size ())
+      (Zip.Transform.unzip ~format:`gzip ?zlib_buffer_size ())
       (uncompressed_bam_parser ())
 
   let parse_optional ?(pos=0) ?len buf =
@@ -436,14 +439,14 @@ module Transform = struct
     let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
     while_ok lines (fun idx line ->
       dbg "parse_sam_header %d %s" idx line;
-      Biocaml_sam.Low_level_parsing.parse_header_line idx line
+      Sam.Low_level_parsing.parse_header_line idx line
       >>= fun raw_sam ->
       begin match raw_sam with
       | `comment s -> return (`comment s)
       | `header ("HD", l) ->
         if idx <> 0
         then fail (`header_line_not_first idx)
-        else Biocaml_sam.Low_level_parsing.expand_header_line l
+        else Sam.Low_level_parsing.expand_header_line l
       | `header h -> return (`header h)
       end)
 
@@ -475,9 +478,9 @@ module Transform = struct
     >>= fun () ->
     parse_optional optional >>= fun optional_content ->
     return (`alignment {
-      Biocaml_sam.
+      Sam.
       query_template_name = qname;
-      flags = Biocaml_sam.Flags.of_int flag;
+      flags = Sam.Flags.of_int flag;
       reference_sequence;
       position = if pos = -1 then None else Some (pos + 1);
       mapping_quality =if mapq = 255 then None else Some mapq;
@@ -486,13 +489,13 @@ module Transform = struct
       next_position = if pnext = -1 then None else Some (pnext + 1);
       template_length  = if tlen = 0 then None else Some tlen;
       sequence = `string seq;
-      quality = Array.map qual ~f:Biocaml_phred_score.of_int_exn;
+      quality = Array.map qual ~f:Phred_score.of_int_exn;
       optional_content;
     })
 
 
   let raw_to_item () :
-      (raw_item, (Biocaml_sam.item, _) Result.t) Biocaml_transform.t=
+      (raw_item, (Sam.item, _) Result.t) Biocaml_transform.t=
     let name = "bam_item_parser" in
     let raw_queue = Dequeue.create ~dummy:(`header "no") () in
     let raw_items_count = ref 0 in
@@ -517,7 +520,7 @@ module Transform = struct
             | Error e -> output_error e
             end
           | `reference_information ri ->
-            let make_ref_info (s, i) = Biocaml_sam.reference_sequence s i in
+            let make_ref_info (s, i) = Sam.reference_sequence s i in
             reference_information := Array.map ri ~f:make_ref_info;
             next stopped
           | `alignment a ->
@@ -536,7 +539,7 @@ module Transform = struct
       ~next
 
   let downgrade_alignement al ref_dict =
-    let module S = Biocaml_sam in
+    let module S = Sam in
     let find_ref s =
       begin match Array.findi ref_dict (fun _ n -> n.S.ref_name = s) with
       | Some (i, _) -> return i
@@ -605,7 +608,7 @@ module Transform = struct
     >>= fun next_ref_id ->
     let pnext = Option.value ~default:0 al.S.next_position - 1 in
     let tlen = Option.value ~default:0 al.S.template_length in
-    let qual = Array.map al.S.quality ~f:Biocaml_phred_score.to_int in
+    let qual = Array.map al.S.quality ~f:Phred_score.to_int in
     let optional =
       let rec content typ = function
         | `array (t, v) ->
@@ -654,7 +657,7 @@ module Transform = struct
       next_ref_id; pnext; tlen; seq; qual; optional;}
 
   let item_to_raw () :
-      (Biocaml_sam.item, (raw_item, _) Result.t) Biocaml_transform.t =
+      (Sam.item, (raw_item, _) Result.t) Biocaml_transform.t =
     let name = "bam_item_downgrader" in
     let queue = Dequeue.create ~dummy:(`header ("no", [])) () in
     let items_count = ref 0 in
@@ -707,7 +710,7 @@ module Transform = struct
             ref_dict_done := true;
             Dequeue.push_front queue (`alignment al);
             output_ok (`reference_information (Array.map !ref_dict ~f:(fun rs ->
-              let open Biocaml_sam in
+              let open Sam in
               (rs.ref_name, rs.ref_length))))
           end
           else begin
@@ -817,5 +820,5 @@ module Transform = struct
   let raw_to_string ?zlib_buffer_size () =
     Biocaml_transform.compose
       (uncompressed_bam_printer ())
-      (Biocaml_zip.Transform.zip ~format:`gzip ?zlib_buffer_size ())
+      (Zip.Transform.zip ~format:`gzip ?zlib_buffer_size ())
 end

@@ -24,7 +24,7 @@ let collection_of_string = function
   | "PBM_HLH" -> PBM_HLH
   | "SPLICE" -> SPLICE
   | "POLII" -> POLII
-  | s -> failwithf "Biocaml_jaspar.collection_of_string: unknown collection %s" s ()
+  | s -> failwithf "Jaspa.collection_of_string: unknown collection %s" s ()
     
     
 let attrs_of_string =
@@ -94,4 +94,4 @@ let load path =
       | [ id ; info ; factor_name ; factor_class ; attrs ] -> 
           load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path
       | l -> 
-          failwithf "Biocaml_jaspar.load: incorrect fields\n%s" (String.concat ~sep:"\n" l) ())
+          failwithf "Jaspa.load: incorrect fields\n%s" (String.concat ~sep:"\n" l) ())

@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+module Pos = Biocaml_pos
 
 type item = string
 
@@ -67,7 +68,7 @@ module Buffer = struct
     | None -> raise No_next_line
 
   let current_position p =
-    Biocaml_pos.make ?file:p.filename ~line:p.parsed_lines ()
+    Pos.make ?file:p.filename ~line:p.parsed_lines ()
 
   let is_empty p =
     Queue.is_empty p.lines && p.unfinished_line = None

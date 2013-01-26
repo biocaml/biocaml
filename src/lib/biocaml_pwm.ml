@@ -86,7 +86,7 @@ let best_hit mat seq =
   let (pos, _) as r = 
     gen_scan (fun p1 s1 ((p2,s2) as r2) -> if s1 > s2 then (p1, s1) else r2) (-1, Float.neg_infinity) mat seq Float.neg_infinity
   in
-  if pos < 0 then raise (Invalid_argument "Biocaml_pwm.best_hit: sequence shorter than the matrix")
+  if pos < 0 then raise (Invalid_argument "Pwm.best_hit: sequence shorter than the matrix")
   else r
 
 

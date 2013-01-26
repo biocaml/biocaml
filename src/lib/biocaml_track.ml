@@ -1,5 +1,8 @@
 open Biocaml_internal_pervasives
 open Result
+module Wig = Biocaml_wig
+module Gff = Biocaml_gff
+module Bed = Biocaml_bed
 
 type t = [
 | `track of (string * string) list
@@ -127,11 +130,11 @@ module Transform = struct
       | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
       | Error _ as n -> `No n)
       
-  type wig_parser_error = [ parse_error | Biocaml_wig.parse_error ]
-  type wig_t = [ track | Biocaml_wig.t]
+  type wig_parser_error = [ parse_error | Wig.parse_error ]
+  type wig_t = [ track | Wig.t]
   let string_to_wig ?filename () =
     let wig_parser =
-      Biocaml_wig.Transform.string_to_t ?filename () in
+      Wig.Transform.string_to_t ?filename () in
     embed_parser ?filename
       (*
     let track_parser = string_to_string_content ?filename () in
@@ -148,10 +151,10 @@ module Transform = struct
       | `Done (Ok o) -> Ok (o :> wig_t)
       | `Done (Error e) -> Error (e :> wig_parser_error))
 
-  type gff_parse_error = [parse_error | Biocaml_gff.parse_error]
-  type gff_t = [track | Biocaml_gff.stream_item]
+  type gff_parse_error = [parse_error | Gff.parse_error]
+  type gff_t = [track | Gff.stream_item]
   let string_to_gff ?filename ?tags () =
-    let gff = Biocaml_gff.Transform.string_to_item ?filename () in
+    let gff = Gff.Transform.string_to_item ?filename () in
     embed_parser  ?filename gff
       ~reconstruct:(function
       | `Filtered (Ok f) -> Ok (f :> gff_t)
@@ -159,10 +162,10 @@ module Transform = struct
       | `Done (Ok o) -> Ok (o :> gff_t)
       | `Done (Error e) -> Error (e :> gff_parse_error))
 
-  type bed_parse_error = [parse_error| Biocaml_bed.parse_error]
-  type bed_t = [track |  Biocaml_bed.t content ]
+  type bed_parse_error = [parse_error| Bed.parse_error]
+  type bed_t = [track |  Bed.t content ]
   let string_to_bed ?filename  ?more_columns  () =
-    let bed = Biocaml_bed.Transform.string_to_t ?filename ?more_columns () in
+    let bed = Bed.Transform.string_to_t ?filename ?more_columns () in
     embed_parser  ?filename bed
       ~reconstruct:(function
       | `Filtered (Ok f) -> Ok (f :> bed_t)
@@ -181,21 +184,21 @@ module Transform = struct
         track)
 
   let wig_to_string () =
-    let wig = Biocaml_wig.Transform.t_to_string () in
+    let wig = Wig.Transform.t_to_string () in
     make_printer wig ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x
-      | #Biocaml_wig.t as y -> `right y)
+      | #Wig.t as y -> `right y)
 
   let gff_to_string ?tags () =
-    let gff = Biocaml_gff.Transform.item_to_string ?tags () in
+    let gff = Gff.Transform.item_to_string ?tags () in
     make_printer gff ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x
-      | #Biocaml_gff.stream_item as y -> `right y)
+      | #Gff.stream_item as y -> `right y)
 
   let bed_to_string () =
-    let bed = Biocaml_bed.Transform.t_to_string () in
+    let bed = Bed.Transform.t_to_string () in
     make_printer bed ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x

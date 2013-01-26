@@ -38,7 +38,7 @@ let leaf_exn f k x =
         )
     | D _ -> raise Not_found
   with Not_found -> 
-    invalid_arg (sprintf "Biocaml_entrez.leaf: no %s child" k)
+    invalid_arg (sprintf "Entrez.leaf: no %s child" k)
 
 let ileaf_exn = leaf_exn int_of_string
 let sleaf_exn = leaf_exn Fn.id
@@ -180,7 +180,7 @@ let summary_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fc
 
 let esummary_url ?retstart ?retmax db ids =
   if List.length ids > 200 
-  then raise (Invalid_argument "Biocaml_entrez.esummary_url: cannot fetch more than 200 summaries") ;
+  then raise (Invalid_argument "Entrez.esummary_url: cannot fetch more than 200 summaries") ;
   summary_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database db) ;
     Some ("id", String.concat ~sep:"," ids) ;
@@ -199,7 +199,7 @@ let string_of_retmode = function
 
 let efetch_url ?rettype ?retmode ?retstart ?retmax ?strand ?seq_start ?seq_stop db ids =
   if List.length ids > 200 
-  then raise (Invalid_argument "Biocaml_entrez.efetch_url: cannot fetch more than 200 records") ;
+  then raise (Invalid_argument "Entrez.efetch_url: cannot fetch more than 200 records") ;
   fetch_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database db) ;
     Some ("id", String.concat ~sep:"," ids) ;
@@ -249,7 +249,7 @@ module Make(F : Fetch) = struct
       with _ -> (
         try `string (sleaf_exn "Object-id_str" x)
         with _ -> 
-          invalid_arg (sprintf "Biocaml_entrez.Make.Object_id.of_xml: %s" (string_of_tree x))
+          invalid_arg (sprintf "Entrez.Make.Object_id.of_xml: %s" (string_of_tree x))
       )
   end
 
@@ -388,7 +388,7 @@ module Make(F : Fetch) = struct
     | 9 -> `miscRNA
     | 10 -> `ncRNA
     | 11 -> `ncRNA
-    | n -> invalid_arg (sprintf "Biocaml_entrez.Make.Gene.type_of_int: %d" n)
+    | n -> invalid_arg (sprintf "Entrez.Make.Gene.type_of_int: %d" n)
 
     let parse_entrez_gene = function
     | E ("Entrezgene",_,_) as x -> Some {

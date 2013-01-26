@@ -2,8 +2,9 @@ open Biocaml_internal_pervasives
 module Msg = Biocaml_msg
 module Pos = Biocaml_pos
 module Stream = Biocaml_stream
+module Seq = Biocaml_seq
 
-type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Biocaml_seq.t}
+type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}
 
 type t = row list
@@ -42,8 +43,8 @@ module Parser = struct
             version = ver;
             chr_name = chr;
             start_pos = int_of_string pos;
-            sequence = try Biocaml_seq.of_string seq
-                       with Biocaml_seq.Bad m -> raise_bad m
+            sequence = try Seq.of_string seq
+                       with Seq.Bad m -> raise_bad m
           }
       }
     | _ -> raise_bad "expecting 7 columns"
@@ -74,7 +75,7 @@ let row_to_string r =
        string_of_int mmy;
        r.probe.org_name ^ ":" ^ r.probe.version ^ ";" ^ r.probe.chr_name;
        string_of_int (r.probe.start_pos);
-       Biocaml_seq.to_string (r.probe.sequence)
+       Seq.to_string (r.probe.sequence)
       ]
       
 let to_file file t =

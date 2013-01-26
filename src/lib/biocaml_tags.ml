@@ -1,11 +1,13 @@
 open Biocaml_internal_pervasives
 open Result
+module Gff = Biocaml_gff
+module Wig = Biocaml_wig
 
 type t = [
 | `gzip of t
 | `raw_zip of t
-| `gff of Biocaml_gff.tag list
-| `wig of Biocaml_wig.tag list
+| `gff of Gff.tag list
+| `wig of Wig.tag list
 | `bam
 | `sam
 | `bed
@@ -21,8 +23,8 @@ let rec guess_from_filename filename =
     return (`gzip t)
   | (_, Some term) ->
     begin match term with
-    | "gff" -> return (`gff Biocaml_gff.default_tags)
-    | "wig" -> return (`wig Biocaml_wig.default_tags)
+    | "gff" -> return (`gff Gff.default_tags)
+    | "wig" -> return (`wig Wig.default_tags)
     | "bam" -> return `bam
     | "sam" -> return `sam
     | "bed" -> return `bed

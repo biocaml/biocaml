@@ -56,7 +56,7 @@ module Base64 = struct
       let v = Array1.create float64 fortran_layout npeaks in
       if little_endian then little64 s ~npeaks v else big64 s ~npeaks v;
       v
-    else invalid_arg "Biocaml_mzData: <peak> precision must be 32 or 64"
+    else invalid_arg "MzData: <peak> precision must be 32 or 64"
 end
 
 (* XML helper functions
@@ -79,7 +79,7 @@ let rec get_next_data xml =
     skip_tag xml; (* ensure the corresponding close tag is read *)
     get_next_data xml
   | `El_end ->
-    failwith "Biocaml_mzData.spectrums: got tag while looking for XML data"
+    failwith "MzData.spectrums: got tag while looking for XML data"
   | _ -> get_next_data xml
 
 let rec return_on_end_tag xml v =
@@ -89,7 +89,7 @@ let rec return_on_end_tag xml v =
   | _ -> return_on_end_tag xml v
 
 let rec attribute_exn name = function
-  | [] -> failwith "Biocaml_mzData.spectrums: attribute not found"
+  | [] -> failwith "MzData.spectrums: attribute not found"
   | ((_, n), v) :: tl -> if n = name then v else attribute_exn name tl
 
 let rec attribute name = function
@@ -174,7 +174,7 @@ let rec vec_of_binary_data xml =
     let data = get_next_data xml in
     let v = Base64.decode ~precision ~little_endian data in
     if Array1.dim v <> length then
-      failwith(sprintf "Biocaml_mzData: Invalid XML: <data> expected \
+      failwith(sprintf "MzData: Invalid XML: <data> expected \
                         length: %i, got: %i" length (Array1.dim v));
     return_on_end_tag xml v (* </data> *)
   | _ -> vec_of_binary_data xml

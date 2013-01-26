@@ -96,7 +96,7 @@ let fold xs ~init ~f = foldi xs ~init ~f:(const f)
 let reduce xs ~f =
   match next xs with
   | Some init -> fold xs ~init ~f
-  | None -> invalid_arg "Biocaml_stream.reduce: stream should contain at least one element"
+  | None -> invalid_arg "Stream.reduce: stream should contain at least one element"
 
 let sum = reduce ~f:( + )
 let fsum = reduce ~f:( +. )
@@ -138,7 +138,7 @@ let scanl xs ~init ~f =
 let scan xs ~f =
   match next xs with 
   | Some init -> scanl xs ~init ~f
-  | None -> invalid_arg "Biocaml_stream.scan: input stream should contain at least one value"
+  | None -> invalid_arg "Stream.scan: input stream should contain at least one value"
 
 let take_whilei xs ~f =
   let aux i =
