@@ -17,7 +17,7 @@
 
 (* http://www.umanitoba.ca/afs/plant_science/psgendb/local/install/ncbi_cxx--Jun_15_2010/src/algo/ms/formats/mzdata/mzData.dtd *)
 
-open Printf
+open Biocaml_internal_pervasives
 open Bigarray
 
 type vec = (float, float64_elt, fortran_layout) Array1.t
@@ -121,11 +121,11 @@ module Precursor = struct
       let name = attribute_exn "name" attr in
       let value = attribute_exn "value" attr in
       if name = "MassToChargeRatio" then
-        get_ionSelection xml { p with mz = float_of_string value } depth
+        get_ionSelection xml { p with mz = Float.of_string value } depth
       else if name = "ChargeState" then
-        get_ionSelection xml { p with z = float_of_string value } depth
+        get_ionSelection xml { p with z = Float.of_string value } depth
       else if name = "Intensity" then
-        get_ionSelection xml { p with int = float_of_string value } depth
+        get_ionSelection xml { p with int = Float.of_string value } depth
       else
         get_ionSelection xml p depth
     | `El_start _ -> get_ionSelection xml p (depth + 1)
@@ -146,7 +146,7 @@ module Precursor = struct
     match Xmlm.input xml with
     | `El_start((_, "precursor"), attr) ->
       let mslevel = int_of_string(attribute_exn "msLevel" attr) in
-      let p = get_precursor xml { mslevel; mz = nan; z = nan; int = nan } in
+      let p = get_precursor xml { mslevel; mz = Float.nan; z = Float.nan; int = Float.nan } in
       add_list xml (p :: pl)
     | `El_start _ -> skip_tag xml;  add_list xml pl
     | `El_end -> pl                      (* </precursorList> *)

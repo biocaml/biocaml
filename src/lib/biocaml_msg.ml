@@ -1,5 +1,4 @@
-open Printf
-
+open Biocaml_internal_pervasives
 module Pos = Biocaml_pos
 
 let msg ?(pre="MSG") ?pos msg =
@@ -24,7 +23,7 @@ let print_err = print_msg ~pre:"ERROR"
 let print_warn = print_msg ~pre:"WARNING"
 let print_bug = print_msg ~pre:"BUG"
 
-let max_array_length_error = "Out of memory, possibly because trying to construct array of size greater than " ^ (string_of_int Sys.max_array_length)
+let max_array_length_error = "Out of memory, possibly because trying to construct array of size greater than " ^ (string_of_int Array.max_length)
 
 module Tree = struct
   type t = T of string * t list
@@ -39,7 +38,7 @@ module Tree = struct
       let msg = pre ^ msg in
       if List.length sub_msgs = 0
       then msg
-      else msg ^ "\n" ^ (String.concat "\n" (List.map (loop (depth+1)) sub_msgs)) 
+      else msg ^ "\n" ^ (String.concat ~sep:"\n" (List.map ~f:(loop (depth+1)) sub_msgs)) 
     in loop 0 t
 end
   

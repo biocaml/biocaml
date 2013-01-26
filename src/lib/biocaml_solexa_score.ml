@@ -1,4 +1,4 @@
-open Biocaml_internal_pervasives;; open Printf
+open Biocaml_internal_pervasives
 
 exception Error of string
 

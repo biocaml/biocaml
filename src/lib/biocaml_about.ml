@@ -1,4 +1,4 @@
-open Printf
+open Biocaml_internal_pervasives
 
 (* This values should probably be generated automatically by the script generating the distribution. *)
 let major_version = 0
