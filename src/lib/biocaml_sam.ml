@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-open With_result
+open Result
 
 let dbg fmt = Debug.make "SAM" fmt
 

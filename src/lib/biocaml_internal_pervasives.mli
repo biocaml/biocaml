@@ -72,7 +72,20 @@ include module type of Printf
 module Queue : module type of Core.Std.Queue
 module Random : module type of Core.Std.Random
 module Ratio : module type of Core.Std.Ratio
-module Result : module type of Core.Std.Result
+module Result : sig
+
+  include module type of Core.Std.Result
+
+  (** Map the function [f] on the list until the first error is
+      met. *)
+  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) t) ->
+    ('b list, 'e) t
+
+  val output_result : 'a -> [> `output of 'a ]
+  val output_ok : 'a -> [> `output of ('a, 'b) t ]
+  val output_error : 'a -> [> `output of ('b, 'a) t ]
+
+end
 include module type of Result.Export
 module Set : module type of Core.Std.Set
 include module type of Sexplib.Conv
@@ -146,21 +159,6 @@ module Parse : sig
       escapable_string ~stop_before:\['='; '@'\]  "sdf\tsd\000 sdf \@fdsaf";;
       = ("sdf\tsd\000 sdf ", Some '\@', "fdsa")
       ]} *)
-
-end
-
-(** More operations for the [Result.t] monad. *)
-module With_result: sig
-
-  include module type of Result
-
-  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) Result.t) ->
-    ('b list, 'e) Result.t
-  (** Map the function [f] on the list until the first error is met. *)
-
-  val output_result : 'a -> [> `output of 'a ]
-  val output_ok : 'a -> [> `output of ('a, 'b) t ]
-  val output_error : 'a -> [> `output of ('b, 'a) t ]
 
 end
 

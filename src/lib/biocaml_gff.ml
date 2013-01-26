@@ -40,7 +40,7 @@ type parse_error =
 | `wrong_url_escaping of Biocaml_pos.t * string ]
 
 module Transform = struct
-  open With_result
+  open Result
 
     
   let parse_string msg pos i =

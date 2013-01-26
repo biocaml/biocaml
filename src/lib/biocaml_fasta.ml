@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-open With_result
+open Result
 module Pos = Biocaml_pos
 
 type char_seq = string with sexp

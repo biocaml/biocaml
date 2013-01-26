@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-open With_result
+open Result
 
 type t = [
 | `gzip of t

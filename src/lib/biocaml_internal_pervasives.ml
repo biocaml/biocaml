@@ -81,7 +81,31 @@ include Printf
 module Queue = Core.Std.Queue
 module Random = Core.Std.Random
 module Ratio = Core.Std.Ratio
-module Result = Core.Std.Result
+module Result = struct
+
+  include Core.Std.Result
+
+  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) t)) =
+    let module M = struct
+      exception E of error
+      let the_fun () =
+        let run () =
+          List.mapi l (fun i x ->
+            match f i x with
+            | Ok o -> o
+            | Error e -> raise (E e))
+        in
+        try Ok (run ())
+        with
+        | E e -> Error e
+    end in
+    M.the_fun ()
+
+  let output_result r = `output r
+  let output_ok o = `output (Ok o)
+  let output_error e = `output (Error e)
+
+end
 include Result.Export
 module Set = Core.Std.Set
 include Sexplib.Conv
@@ -150,32 +174,6 @@ module Lines = struct
 
 end
 
-module With_result = struct
-
-  include Result
-    
-  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) Result.t)) =
-    let module M = struct
-      exception E of error 
-      let the_fun () =
-        let run () =
-          List.mapi l (fun i x ->
-            match f i x with
-            | Ok o -> o
-            | Error e -> raise (E e))
-        in
-        try Ok (run ())
-        with
-        | E e -> Error e
-    end in
-    M.the_fun ()
-      
-  let output_result r = `output r
-  let output_ok o = `output (Ok o)
-  let output_error e = `output (Error e)
-
-end
-  
 module Url = struct
 
   let escape s =

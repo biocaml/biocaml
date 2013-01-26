@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-open With_result
+open Result
 
 type t = string * int * int * [`Float of float| `Int of int | `String of string] list
 with sexp
