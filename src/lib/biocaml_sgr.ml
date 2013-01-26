@@ -52,7 +52,8 @@ let of_channel ?(chr_map=ident) ?(increment_bp=0) cin =
       try parse_line' ' ' line
       with Bad msg -> failwith msg
   in
-  Lines.of_channel parse_line cin
+  In_channel.input_lines cin
+  |! List.map ~f:parse_line
     
 let of_file ?(chr_map=ident) ?(increment_bp=0) file = 
   try_finally_exn (of_channel ~chr_map ~increment_bp)
