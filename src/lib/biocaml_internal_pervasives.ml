@@ -122,8 +122,6 @@ let try_finally_exn ~fend f x =
 
 let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 
-let flip f x y = f y x
-
 module Url = struct
 
   let escape s =

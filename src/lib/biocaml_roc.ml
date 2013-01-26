@@ -10,8 +10,8 @@ type confusion_matrix = {
 let make ~pos ~neg = 
   let pos = Array.of_enum pos
   and neg = Array.of_enum neg in
-  Array.sort (flip compare) pos ;
-  Array.sort (flip compare) neg ;
+  Array.sort (fun x y -> compare y x) pos ;
+  Array.sort (fun x y -> compare y x) neg ;
   let sorted_elements = 
     Enum.merge
       ( > )

@@ -105,10 +105,6 @@ val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
 val open_out_safe : string -> out_channel
   (** Like [open_out] but will not overwrite existing file. *)
 
-val flip : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
-  (** [flip f] returns a function [g] that takes its arguments in the
-      opposite order of [f], i.e. [f x y = g y x]. *)
-
 (** Operations on URL-style encodings. *)
 module Url : sig
 
