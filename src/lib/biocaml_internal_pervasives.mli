@@ -109,18 +109,6 @@ val flip : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
   (** [flip f] returns a function [g] that takes its arguments in the
       opposite order of [f], i.e. [f x y = g y x]. *)
 
-module Lines : sig
-  exception Error of (Biocaml_pos.t * string)
-  val fold_stream' : ?file:string -> ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
-  val fold_stream : ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
-  val fold_channel' : ?file:string -> ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
-  val fold_channel : ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
-  val fold_file : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a
-  val iter_file : ?strict:bool -> (string -> unit) -> string -> unit
-  val of_stream : ?strict:bool -> (string -> 'a) -> char Stream.t -> 'a List.t
-  val of_channel : ?strict:bool -> (string -> 'a) -> in_channel -> 'a List.t
-end
-
 (** Operations on URL-style encodings. *)
 module Url : sig
 
