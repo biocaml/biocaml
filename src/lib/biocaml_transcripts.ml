@@ -61,7 +61,7 @@ let of_composite_channel
     in
     SSMap.add_with nm chr (g (nm,chr,st,fn)) acc
   in
-  let ans = Lines.fold_channel f SSMap.empty ic in
+  let ans = In_channel.fold_lines ic ~init:SSMap.empty ~f in
   let folder k1 k2 acc elem = elem::acc in
   let ans = List.rev (SSMap.fold folder [] ans) in
   add_length_to_transcripts ans
