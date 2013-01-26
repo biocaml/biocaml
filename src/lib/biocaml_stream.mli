@@ -232,6 +232,17 @@ val init : int -> f:(int -> 'a) -> 'a t
 val singleton : 'a -> 'a t
 val loop : 'a -> f:(int -> 'a -> 'a option) -> 'a t
 
+(** [unfold a0 f] returns the stream [b0, b1, ..., bn], where
+
+    - [f a0 = Some (b0,a1)],
+    - [f a1 = Some (b1,a2)],
+    - ...
+    - [f an = Some (bn,a(n+1))],
+    - [f a(n+1) = None]
+
+    The stream is infinite if [f] never returns None. *)
+val unfold : 'a -> ('a -> ('b * 'a) option) -> 'b t
+
 module Infix : sig
   val ( -- ) : int -> int -> int t
     (** As [range], without the label.

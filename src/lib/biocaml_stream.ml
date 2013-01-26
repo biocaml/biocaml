@@ -484,6 +484,13 @@ let result_to_exn s ~error_to_exn =
       | Result.Error x -> raise (error_to_exn x)
   )
 
+let unfold init f =
+  let a = ref init in
+  from (fun () -> match f !a with
+    | Some (b, a_next) -> (a := a_next; Some b)
+    | None -> None
+  )
+
 module Infix = struct
   let ( -- ) x y = range x ~until:y
 
