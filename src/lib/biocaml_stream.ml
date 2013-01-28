@@ -486,7 +486,7 @@ let result_to_exn s ~error_to_exn =
 
 let unfold init f =
   let a = ref init in
-  from (fun () -> match f !a with
+  from (fun _ -> match f !a with
     | Some (b, a_next) -> (a := a_next; Some b)
     | None -> None
   )
