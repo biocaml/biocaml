@@ -7,7 +7,6 @@
     sensitivity and specificity of the classifier as a function of a
     score threshold.
 *)
-open Batteries
 
 type confusion_matrix = private {
   tp : int ;
@@ -16,7 +15,7 @@ type confusion_matrix = private {
   fn : int ;
 }
 
-val make : pos:float Enum.t -> neg:float Enum.t -> (float * confusion_matrix) Enum.t
+val make : pos:float Stream.t -> neg:float Stream.t -> (float * confusion_matrix) Stream.t
 (** Given an enum [pos] (resp. [neg]) of scores from positive (resp. negative) instances, [make ~pos ~neg] 
     builds an enum of confusion matrices by setting an decreasing acceptance threshold. The result has at 
     least one first value, which is the confusion matrix for an [infinity] threshold. The subsequent
@@ -31,7 +30,7 @@ val negative_predictive_value : confusion_matrix -> float
 val false_discovery_rate : confusion_matrix -> float
 val f1_score : confusion_matrix -> float
 
-val auc : (float * float) Enum.t -> float
+val auc : (float * float) Stream.t -> float
 (** [auc e] computes the area above the X-axis and under the piecewise linear curve 
     passing through the points in [e]. Assumes that the points come with increasing 
     x-coordinate. *)

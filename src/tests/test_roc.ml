@@ -1,12 +1,11 @@
-open Batteries
-open Printf
+open Biocaml_internal_pervasives
 open OUnit
 open Biocaml_roc
 
 let auc pos neg = 
-  make ~pos:(List.enum pos) ~neg:(List.enum neg)
-  /@ (fun (_,cm) -> sensitivity cm, specificity cm)
-  |> auc
+  make ~pos:(List.stream pos) ~neg:(List.stream neg)
+  |! Stream.map ~f:(fun (_,cm) -> sensitivity cm, specificity cm)
+  |! auc
 
 (* 
  * This is a test against the R library ROCR. The reference result
@@ -60,7 +59,7 @@ let test_against_rocr () =
   let open BatPervasives in
   assert_bool 
     "Test against ROCR failed"
-    (abs_float (auc rocr_pos rocr_neg -. 0.8341875) < 0.00001)
+    (Float.abs (auc rocr_pos rocr_neg -. 0.8341875) < 0.00001)
 
 let tests = "PhredScore" >::: [
   "Test against ROCR implementation" >:: test_against_rocr;
