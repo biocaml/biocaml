@@ -10,11 +10,11 @@ type confusion_matrix = {
 let make ~pos ~neg = 
   let pos = Array.of_stream pos
   and neg = Array.of_stream neg in
-  Array.sort (fun x y -> compare y x) pos ;
-  Array.sort (fun x y -> compare y x) neg ;
+  Array.sort (Fn.flip compare) pos ;
+  Array.sort (Fn.flip compare) neg ;
   let sorted_elements = 
     Stream.merge
-      ~cmp:(fun x y -> compare y x)
+      ~cmp:(Fn.flip compare)
       (Array.stream pos |! Stream.map ~f:(fun x -> x, `pos))
       (Array.stream neg |! Stream.map ~f:(fun x -> x, `neg))
   and initial = {
