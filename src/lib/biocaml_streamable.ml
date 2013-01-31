@@ -12,7 +12,7 @@ module type S = sig
   (** Return a stream containing all elements of given data
       structure. Exact semantics depend on implementation. For
       example, elements in stream may or may not be ordered. *)
-  val stream : 'a t -> 'a Stream.t
+  val to_stream : 'a t -> 'a Stream.t
 
   (** Return a data structure containing all elements in given stream,
       fully consuming the stream. Exact semantics depend on

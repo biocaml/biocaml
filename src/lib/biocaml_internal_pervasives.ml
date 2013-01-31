@@ -6,7 +6,7 @@ let ( |? ) x default = Core.Option.value ~default x
 module List = struct
   include Core.Std.List
 
-  let stream = Stream.of_list
+  let to_stream = Stream.of_list
 
   let of_stream strm =
     strm
@@ -17,7 +17,7 @@ module Arg = Core.Std.Arg
 module Array = struct
   include Core.Std.Array
 
-  let stream a =
+  let to_stream a =
     Stream.from (fun i ->
       try Some a.(i)
       with Invalid_argument _ -> None

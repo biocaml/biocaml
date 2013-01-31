@@ -15,8 +15,8 @@ let make ~pos ~neg =
   let sorted_elements = 
     Stream.merge
       ~cmp:(Fn.flip compare)
-      (Array.stream pos |! Stream.map ~f:(fun x -> x, `pos))
-      (Array.stream neg |! Stream.map ~f:(fun x -> x, `neg))
+      (Array.to_stream pos |! Stream.map ~f:(fun x -> x, `pos))
+      (Array.to_stream neg |! Stream.map ~f:(fun x -> x, `neg))
   and initial = {
     tp = 0 ;
     tn = Array.length neg ;

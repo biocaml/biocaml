@@ -11,7 +11,7 @@ let is_empty s =
 
 let empty () = from (const None)
 
-let stream x = x
+let to_stream x = x
 let of_stream x = x
 
 exception Expected_streams_of_equal_length
