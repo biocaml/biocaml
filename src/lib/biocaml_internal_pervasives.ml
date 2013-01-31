@@ -6,8 +6,6 @@ let ( |? ) x default = Core.Option.value ~default x
 module List = struct
   include Core.Std.List
 
-  type 'a streamable = 'a t
-
   let stream = Stream.of_list
 
   let of_stream strm =
@@ -18,8 +16,6 @@ end
 module Arg = Core.Std.Arg
 module Array = struct
   include Core.Std.Array
-
-  type 'a streamable = 'a t
 
   let stream a =
     Stream.from (fun i ->

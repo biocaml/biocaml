@@ -11,7 +11,6 @@ let is_empty s =
 
 let empty () = from (const None)
 
-type 'a streamable = 'a t
 let stream x = x
 let of_stream x = x
 
