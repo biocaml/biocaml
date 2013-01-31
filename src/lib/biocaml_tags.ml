@@ -12,6 +12,7 @@ type t = [
 | `sam
 | `bed
 | `fastq
+| `fasta of [`int | `char | `unknown ]
 ] with sexp
 
   
@@ -29,6 +30,7 @@ let rec guess_from_filename filename =
     | "sam" -> return `sam
     | "bed" -> return `bed
     | "fastq" -> return `fastq
+    | "fasta" -> return (`fasta `unknown)
     | u -> fail (`extension_unknown u)
     end
   | (_, None) -> fail (`extension_absent)
