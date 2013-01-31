@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+open Result
 module Pos = Biocaml_pos
 
 type item = string
@@ -99,6 +100,30 @@ module Transform = struct
             | None -> `not_ready
             | Some line -> `output line
           )
+      )
+      ()
+
+  let group2 () =
+    let queue : (item * item) Queue.t= Queue.create () in
+    let item1 = ref None in
+    Biocaml_transform.make ~name:"group2"
+      ~feed:(function item -> match !item1 with
+        | Some item1' -> (
+            Queue.enqueue queue (item1', item);
+            item1 := None
+          )
+        | None -> item1 := Some item
+      )
+      ~next:(fun stopped -> match Queue.dequeue queue with
+        | Some ij -> output_ok ij
+        | None ->
+          if not stopped then
+            `not_ready
+          else
+            (match !item1 with
+             | None -> `end_of_stream
+             | Some _ -> output_error `premature_end_of_input
+            )
       )
       ()
 

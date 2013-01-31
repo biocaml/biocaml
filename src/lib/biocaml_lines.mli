@@ -65,6 +65,15 @@ module Transform : sig
       the trailing string is still considered a line. *)
   val string_to_item : unit -> (string, item) Biocaml_transform.t
 
+  (** Return a transform that converts a stream of lines to a stream
+      of pairs of lines. It is considered an error if input ends with an
+      odd number of lines. *)
+  val group2 :
+    unit ->
+    (item,
+    (item * item, [ `premature_end_of_input ]) Core.Std.Result.t) Biocaml_transform.t
+
+
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->
     next:(Buffer.t ->
