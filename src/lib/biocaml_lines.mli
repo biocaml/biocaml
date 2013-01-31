@@ -5,6 +5,18 @@
     character. *)
 type item = private string
 
+(** Errors.
+
+    - [`premature_end_of_input] - expected more lines than available.
+*)
+module Error : sig
+
+  type t = [
+  | `premature_end_of_input
+  ]
+
+end
+
 (** [string_to_items s] splits [s] on newline characters, returning
     the resuling list of lines. The returned bool is true if the final
     line ended with a newline or false otherwise. *)

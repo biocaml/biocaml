@@ -4,6 +4,14 @@ module Pos = Biocaml_pos
 
 type item = string
 
+module Error = struct
+
+  type t = [
+  | `premature_end_of_input
+  ]
+
+end
+
 let string_to_items s =
   match String.split ~on:'\n' s with
   | [] -> assert false
