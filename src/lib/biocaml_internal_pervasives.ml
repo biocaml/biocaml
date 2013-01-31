@@ -1,4 +1,5 @@
 module Stream = Biocaml_stream
+module type Streamable = Biocaml_streamable.S
 
 include Core.Common
 let ( |? ) x default = Core.Option.value ~default x

@@ -65,6 +65,7 @@ Library biocaml
            , Biocaml_sgr
            , Biocaml_strandName
            , Biocaml_stream
+           , Biocaml_streamable
            , Biocaml_track
            , Biocaml_tags
            , Biocaml_wig

@@ -8,6 +8,8 @@
 (** Type of streams holding values of type ['a]. *)
 type 'a t = 'a Stream.t
 
+include Biocaml_streamable.S with type 'a streamable = 'a t
+
 (** Raised when asking for an element of an empty stream, and by
     {!Genlex} parsers when none of the first components of the stream
     patterns is accepted.
@@ -358,22 +360,3 @@ module Infix : sig
   val ( //@ ) : 'a t -> ('a -> 'b option) -> 'b t
   (** [s //@ f] is equivalent to [filter_map f s] *)
 end
-
-(** A signature for data structures which may be converted to and from
-    [Stream.t].
-
-    If you create a new data structure, you should make it compatible
-    with [Streamable].
-*)
-module type Streamable = sig
-  type 'a streamable
-      (** The type of the datastructure *)
-
-  val stream : 'a streamable -> 'a t
-  (** Return an enumeration of the elements of the data structure *)
-
-  val of_stream : 'a t -> 'a streamable
-  (** Build a data structure from an enumeration *)
-end
-
-include Streamable with type 'a streamable = 'a t
