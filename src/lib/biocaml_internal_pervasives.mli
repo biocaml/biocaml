@@ -16,12 +16,12 @@ include module type of Core.Common
 val ( |? ) : 'a option -> 'a -> 'a
 module List : sig
   include module type of Core.Std.List
-  include Streamable with type 'a streamable = 'a t
+  include Streamable with type 'a t := 'a t
 end
 module Arg : module type of Core.Std.Arg
 module Array : sig
   include module type of Core.Std.Array
-  include Streamable with type 'a streamable = 'a t
+  include Streamable with type 'a t := 'a t
 
   (** [range xs] is the stream of all valid indices in [xs] *)
   val range : 'a t -> int Stream.t

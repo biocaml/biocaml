@@ -8,7 +8,7 @@
 (** Type of streams holding values of type ['a]. *)
 type 'a t = 'a Stream.t
 
-include Biocaml_streamable.S with type 'a streamable = 'a t
+include Biocaml_streamable.S with type 'a t := 'a t
 
 (** Raised when asking for an element of an empty stream, and by
     {!Genlex} parsers when none of the first components of the stream
