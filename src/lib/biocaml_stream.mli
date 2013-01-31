@@ -34,7 +34,7 @@ val next: 'a t -> 'a option
 
 (** Return first element in given stream and remove it from the
     stream.
-    @raise {!Stream.Failure} if the stream is empty. *)
+    @raise Stream.Failure if the stream is empty. *)
 val next_exn: 'a t -> 'a
 
 (** Return first element of given stream without removing it from the
