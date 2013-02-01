@@ -31,6 +31,7 @@ module Bigsubstring : module type of Core.Std.Bigsubstring
 module Bin_prot : module type of Core.Std.Bin_prot
 module Binary_packing : module type of Core.Std.Binary_packing
 module Bool : module type of Core.Std.Bool
+module Buffer : module type of Core.Std.Caml.Buffer
 module Caml : module type of Core.Std.Caml
 module Char : module type of Core.Std.Char
 module Command : module type of Core.Std.Command

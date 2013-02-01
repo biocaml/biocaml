@@ -37,6 +37,7 @@ module Bigsubstring = Core.Std.Bigsubstring
 module Bin_prot = Core.Std.Bin_prot
 module Binary_packing = Core.Std.Binary_packing
 module Bool = Core.Std.Bool
+module Buffer = Core.Std.Caml.Buffer
 module Caml = Core.Std.Caml
 module Char = Core.Std.Char
 module Command = Core.Std.Command
