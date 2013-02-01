@@ -149,6 +149,17 @@ val make_result:
   unit ->
   ('input, ('a, 'b) Core.Result.t) t
 
+(** Like [on_output] but on the successful  part of the {i output}. *)
+val on_ok: ('input, ('ok, 'error) Core.Result.t) t ->
+  f:('ok -> 'still_ok) ->
+  ('input, ('still_ok, 'error) Core.Result.t) t
+
+(** Like [on_output] but on the erroneous  part of the {i output}. *)
+val on_error: ('input, ('ok, 'error) Core.Result.t) t ->
+  f:('error -> 'another_errror) ->
+  ('input, ('ok, 'another_errror) Core.Result.t) t
+
+    
 (** [compose_results t u] is like {!compose} but for transforms returning
     [Result.t]s. The [on_error] function specifies how errors in [t]
     or [u] should be converted into those in the resultant

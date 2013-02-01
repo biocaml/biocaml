@@ -176,6 +176,16 @@ let split_and_merge ta tb ~split ~merge =
         | `end_of_stream -> `end_of_stream
         end)
 
+let on_ok tr ~f =
+  on_output tr ~f:(function
+  | Ok o -> Ok (f o)
+  | Error e -> Error e)
+
+let on_error tr ~f =
+  on_output tr ~f:(function
+  | Ok o -> Ok o
+  | Error e -> Error (f e))
+
 let compose_results ~on_error ta tb =
   let name =
     sprintf "(compose_results <%s> <%s>)"
