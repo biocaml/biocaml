@@ -437,36 +437,8 @@ let range ?until n =
   let stop = Option.value_map until ~default:(fun _ -> true) ~f:( <= ) in
   loop n (fun _ i -> if stop i then None else Some (i + 1))
 
-let lines_of_chars cstr =
-  let f _ =
-    match peek cstr with
-    | None -> None
-    | Some _ ->
-        let ans = Buffer.create 100 in
-        let rec loop () =
-          try
-            let c = next_exn cstr in
-            if c <> '\n' then (Buffer.add_char ans c; loop())
-          with Failure -> ()
-        in 
-        loop();
-        Some (Buffer.contents ans)
-  in
-  from f
-
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
-
-let lines_of_channel cin =
-  let f _ =
-    try Some (input_line cin)
-    with End_of_file -> None
-  in Stream.from f
-
-let lines_to_channel xs oc =
-  iter
-    xs
-    ~f:(fun l -> output_string oc l ; output_char oc '\n')
 
 let result_to_exn s ~error_to_exn =
   from (fun _ ->
@@ -504,4 +476,3 @@ module Infix = struct
   let ( // ) x f = filter x ~f
   let ( //@ ) x f = filter_map x ~f
 end
-

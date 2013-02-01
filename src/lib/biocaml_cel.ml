@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-
+module Lines = Biocaml_lines
 module Msg = Biocaml_msg
 module Pos = Biocaml_pos
 module Bpmap = Biocaml_bpmap
@@ -145,13 +145,13 @@ module Parser = struct
 
   let cel file =
     let of_channel cin =
-      let lines = Stream.lines_of_channel cin in
+      let lines = Lines.of_channel cin in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
       try
-        Stream.drop_while ~f:(fun s -> not (line_is_section isection_name s)) lines;
+        Stream.drop_while ~f:(fun (s : Lines.item) -> not (line_is_section isection_name (s :> string))) lines;
         if Stream.is_empty lines
         then failwith (isection_name ^ " section not found");
-        intensity_section lines
+        intensity_section (Stream.map lines ~f:(fun (x : Lines.item) -> (x :> string)))
       with
         Failure msg | Bad msg -> raise_bad (err msg)
     in

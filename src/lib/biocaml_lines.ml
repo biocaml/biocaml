@@ -167,3 +167,31 @@ module Transform = struct
         | `incomplete_input e -> `incomplete_input e)
 
 end
+
+let of_char_stream cstr =
+  let module Buffer = Biocaml_internal_pervasives.Buffer in
+  let f _ = match Stream.peek cstr with
+    | None -> None
+    | Some _ ->
+      let ans = Buffer.create 100 in
+      let rec loop () =
+        try
+          let c = Stream.next_exn cstr in
+          if c <> '\n' then (Buffer.add_char ans c; loop())
+        with Core.Std.Caml.Stream.Failure -> ()
+      in 
+      loop();
+      Some (Buffer.contents ans)
+  in
+  Stream.from f
+
+let of_channel cin =
+  let f _ =
+    try Some (input_line cin)
+    with End_of_file -> None
+  in Stream.from f
+
+let to_channel xs oc =
+  Stream.iter xs ~f:(fun l ->
+    output_string oc l ; output_char oc '\n'
+  )

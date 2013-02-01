@@ -314,13 +314,6 @@ val uniq : 'a t -> 'a t
 val to_list : 'a t -> 'a list
 
 
-(** {6 Lines} *)
-
-val lines_of_chars : char t -> string t
-val lines_of_channel : in_channel -> string t
-val lines_to_channel : string t -> out_channel -> unit
-
-
 (** {6 Result.t's} *)
 
 (** Convert exception-less stream to exception-ful stream. Resulting

@@ -17,6 +17,10 @@ module Error : sig
 
 end
 
+val of_char_stream : char Stream.t -> item Stream.t
+val of_channel : in_channel -> item Stream.t
+val to_channel : item Stream.t -> out_channel -> unit
+
 (** [string_to_items s] splits [s] on newline characters, returning
     the resuling list of lines. The returned bool is true if the final
     line ended with a newline or false otherwise. *)
