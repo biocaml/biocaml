@@ -3,7 +3,7 @@ open Flow
 open Biocaml_app_common
 open Biocaml
 
-  
+
 module Genlex = struct
   include Genlex
   let sexp_of_token = function
@@ -17,12 +17,11 @@ module Genlex = struct
 end
 let spec_lexer = Genlex.make_lexer [":"; "with"; "without"; "="; "("; ")"]
 
-  
+
 let parse_spec_aux s =
   let open Genlex in
   let parse_meta_int = function
     | Int i :: t -> return (`int i, t)
-    (* | Float f :: t -> (`float f, t) *)
     | Ident "random" :: Int m :: Int n :: t -> return (`random (m, n), t)
     | l -> error (`not_a_meta_int l)
   in
@@ -42,9 +41,9 @@ let parse_spec_aux s =
     let rec parse_fastq acc =  function
       | Ident "special_end" :: []
       | [] -> return acc
-      | Kwd "with" :: Ident "N" :: t -> 
+      | Kwd "with" :: Ident "N" :: t ->
         parse_fastq (`with_n :: acc) t
-      | Kwd "without" :: Ident "N" :: t -> 
+      | Kwd "without" :: Ident "N" :: t ->
         parse_fastq (`without_n :: acc) t
       | Kwd "with" :: Ident "read" :: Ident "length" :: Kwd "=" :: some ->
         parse_meta_int some
@@ -58,23 +57,15 @@ let parse_spec_aux s =
   | tokens ->
     error (`uknown_specification tokens)
   end
+
 let parse_spec s =
   parse_spec_aux s
   >>< begin function
   | Ok o -> return o
   | Error e -> error (`parse_specification e)
   end
-  
 
-    
 
-  
-(*  try
-    return (Sexp.of_string s |! spec_of_sexp)
-  with
-    e -> error (`parse_spcification e)
-*)
-    
 let io_with_out_channel out ?buffer_size ~f =
   begin match out with
   | `stdout -> return Lwt_io.stdout
@@ -100,10 +91,10 @@ let io_with_out_channel out ?buffer_size ~f =
       end
     end
   end
-      
+
 let io_fprintf out fmt =
   ksprintf (fun s -> wrap_io (Lwt_io.fprint out) s) fmt
-  
+
 let random_fastq_transform ~args () =
   let todo = ref 0 in
   let seq_num = ref 0 in
@@ -144,13 +135,13 @@ let random_fastq_transform ~args () =
         let sequence = make_read () in
         let qualities = make_qualities sequence in
         `output (Fastq.(
-          { name = sprintf "Random sequence: %d" !seq_num; 
+          { name = sprintf "Random sequence: %d" !seq_num;
             sequence;
             comment = "";
             qualities } )))
     ~feed:(fun () -> incr todo)
 
-  
+
 let do_random ~output_file ~gzip ~nb_items spec =
   let zlib_buffer_size  = 4200 in
   let output_meta_channel =
@@ -190,13 +181,13 @@ let do_random ~output_file ~gzip ~nb_items spec =
     return ()
   end
   >>= fun () ->
-    
-  
+
+
   return ()
 
 
 
-    
+
 let stringify m =
   m >>< begin function
   | Ok o -> return o
@@ -207,13 +198,13 @@ let stringify m =
         [ `expecting_with_out_but_got of Genlex.token list
         | `lexical of string
         | `not_a_meta_int of Genlex.token list
-        | `uknown_specification of Genlex.token list ] 
+        | `uknown_specification of Genlex.token list ]
     ] >> e |! Sexp.to_string_hum)
   end
 
 let do_random ~output_file ~gzip ~nb_items spec =
   stringify (do_random ~output_file ~gzip ~nb_items  spec)
-  
+
 let command =
   let open Command_line in
   let spec =
