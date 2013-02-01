@@ -89,11 +89,11 @@ module Transform = struct
     let printer =
       Biocaml_transform.Printer_queue.make ()
         ~to_string:(fun (n, b, e, l) ->
-          sprintf "%s %d %d %s\n" n b e
+          sprintf "%s\t%d\t%d\t%s\n" n b e
             (List.map l (function
             | `Float f -> Float.to_string f
             | `Int i -> Int.to_string i
-            | `String s -> s) |! String.concat ~sep:" ")) in
+            | `String s -> s) |! String.concat ~sep:"\t")) in
     Biocaml_transform.make ~name:"bed_printer" ()
       ~feed:(fun r ->
         PQ.feed printer r)
