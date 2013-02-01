@@ -80,6 +80,10 @@ val of_string : string -> char t
     appears to return values although the channel has been closed. *)
 val of_channel : in_channel -> char t
 
+(** Return a stream of strings from the input. Each string has length
+    at most [buffer_size]. *)
+val strings_of_channel : ?buffer_size:int -> in_channel -> string t
+
 (** [range p until:q] creates a stream of integers [[p, p+1, ..., q]].
     If [until] is omitted, the enumeration is not bounded. Behaviour
     is not-specified once [max_int] has been reached.*)

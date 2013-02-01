@@ -457,6 +457,17 @@ let unfold init f =
     | None -> None
   )
 
+(* Default buffer_size set to UNIX_BUFFER_SIZE in OCaml's
+   otherlibs/unix/unixsupport.h, but unsure if this is a good
+   choice. *)
+let strings_of_channel ?(buffer_size=65536) inp =
+  let buf = String.create buffer_size in
+  from (fun _ ->
+    match In_channel.input inp ~buf ~pos:0 ~len:buffer_size with
+    | 0 -> None
+    | len -> Some (String.sub buf ~pos:0 ~len)
+  )
+
 module Infix = struct
   let ( -- ) x y = range x ~until:y
 
