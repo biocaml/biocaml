@@ -1,6 +1,7 @@
 
 open Core.Std
 open Flow
+open Biocaml
 
 
 let verbose = ref false
@@ -205,4 +206,85 @@ let push_to_the_max ~out_channel ~transform input =
   flush_transform ~out_channel ~transform
 
 
+type output_error =
+[ `bam of Biocaml_bam.Transform.item_to_raw_error
+| `sam of Biocaml_sam.Error.item_to_raw 
+]
+with sexp_of
+type output_transform = [
+| `to_sam_item of (Sam.item, (string, output_error) Result.t) Transform.t
+| `to_gff of(Gff.stream_item, string) Transform.t
+| `to_wig of (Wig.t, string) Transform.t
+| `to_bed of (Bed.t, string) Transform.t
+| `to_fastq of (Fastq.item, string) Transform.t
+| `to_char_fasta of (Fasta.char_seq Fasta.Transform.raw_item, string) Transform.t
+| `to_int_fasta of (Fasta.int_seq Fasta.Transform.raw_item, string) Transform.t
+]
+let output_transform_name = function
+| `to_sam_item _ -> "to_sam_item"
+| `to_gff _ -> "to_gff"
+| `to_wig _ -> "to_wig"
+| `to_bed _ -> "to_bed"
+| `to_fastq _ -> "to_fastq"
+| `to_char_fasta _ -> "to_char_fasta"
+| `to_int_fasta _ -> "to_int_fasta"
+    
+let output_transform_of_tags ~zlib_buffer_size output_tags =
+  let rec output_transform ?with_zip  ~zlib_buffer_size output_tags =
+    let with_zip_result t =
+      match with_zip with
+      | Some z -> Transform.compose_result_left t z
+      | None -> t
+    in
+    let with_zip_no_error t =
+      match with_zip with
+      | Some z -> Transform.compose t z 
+      | None -> t
+    in
+    let to_sam_item t = return (`to_sam_item (with_zip_result t) : output_transform) in
+    match output_tags with
+    | `raw_zip tags ->
+      output_transform
+        ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`raw ())
+        ~zlib_buffer_size tags
+    | `gzip tags ->
+      output_transform
+        ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`gzip ())
+        ~zlib_buffer_size tags
+    | `bam ->
+      to_sam_item (
+        Transform.compose_result_left
+          (Transform.on_output 
+             (Bam.Transform.item_to_raw ())
+             (function Ok o -> Ok o | Error e -> Error (`bam e)))
+          (Bam.Transform.raw_to_string ~zlib_buffer_size ()))
+    | `sam ->
+      to_sam_item (
+        Transform.compose_result_left
+          (Transform.on_output 
+             (Sam.Transform.item_to_raw ())
+             (function Ok o -> Ok o | Error e -> Error (`sam e)))
+          (Sam.Transform.raw_to_string ()))
+    | `gff tag_list ->
+      let t = Gff.Transform.item_to_string ~tags:tag_list () in
+      return (`to_gff (with_zip_no_error t) : output_transform)
+    | `wig tag_list ->
+      let t = Wig.Transform.t_to_string  ~tags:tag_list () in
+      return (`to_wig (with_zip_no_error t) : output_transform)
+    | `bed ->
+      let t = Bed.Transform.t_to_string  () in
+      return (`to_bed (with_zip_no_error t) : output_transform)
+    | `fastq ->
+      let t = Fastq.Transform.item_to_string () in
+      return (`to_fastq (with_zip_no_error t) : output_transform)
+    | `fasta `unknown
+    | `fasta `char ->
+    (* TODO output warning? if `unknown *)
+      let t = Fasta.Transform.char_seq_raw_item_to_string () in
+      return (`to_char_fasta (with_zip_no_error t) : output_transform)
+    | `fasta `int ->
+      let t = Fasta.Transform.int_seq_raw_item_to_string () in
+      return (`to_int_fasta (with_zip_no_error t) : output_transform)
+  in
+  output_transform ~zlib_buffer_size output_tags
 
