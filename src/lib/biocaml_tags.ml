@@ -45,3 +45,13 @@ let rec guess_from_filename filename =
     | u -> fail (`extension_unknown u)
     end
   | (_, None) -> fail (`extension_absent)
+
+    
+let of_string s =
+  let open Sexplib in
+  try return (t_of_sexp (Sexp.of_string s))
+  with e -> fail (`parse_tags e)
+
+let to_string t =
+  let open Sexplib in
+  sexp_of_t t |! Sexp.to_string_hum
