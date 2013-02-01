@@ -4,6 +4,10 @@ module Pos = Biocaml_pos
 
 type item = string
 
+let lstrip = String.lstrip
+let rstrip = String.rstrip
+let strip = String.strip
+
 module Error = struct
 
   type t = [
