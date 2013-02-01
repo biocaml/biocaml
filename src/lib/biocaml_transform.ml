@@ -235,6 +235,22 @@ let compose_result_left ta tb =
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
 
+class type ['input, 'output] object_t = object
+  method next: [ `output of 'output | `end_of_stream | `not_ready ]
+  method feed:  'input -> unit
+  method stop: unit
+end
+let to_object tr =
+object
+  method next = next tr
+  method feed s = feed tr s
+  method stop = stop tr
+end
+let of_object o =
+  make_general ~name:(sprintf "of_object_%d" (Oo.id o))
+    ~next:(fun () -> o#next) 
+    ~feed:(fun s -> o#feed s)
+    ~stop:(fun () -> o#stop) ()
 
 module Line_oriented = struct
 

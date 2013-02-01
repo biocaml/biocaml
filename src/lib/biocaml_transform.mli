@@ -184,6 +184,18 @@ val compose_result_left:
   ( 'middle, 'output_right) t ->
   ( 'input_left, ('output_right, 'error) Core.Result.t) t
 
+(** {3 Communication with other libraries} *)
+
+(** Generic transform type. *)
+class type ['input, 'output] object_t = object
+  method next: [ `output of 'output | `end_of_stream | `not_ready ]
+  method feed:  'input -> unit
+  method stop: unit
+end
+val to_object: ('a, 'b) t -> ('a, 'b) object_t
+val of_object: ('a, 'b) object_t -> ('a, 'b) t
+
+(** {3 Deprecated} *)
 
 (** A buffering parsing_buffer for line-oriented formats. *)
 module Line_oriented: sig
