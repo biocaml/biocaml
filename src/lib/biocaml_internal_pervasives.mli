@@ -1,12 +1,7 @@
-(** Internal "standard" library. *)
-
-(**
-   See
-   {{:https://bitbucket.org/yminsky/ocaml-core/src/8808e3a2571f/base/core/lib/std.ml}std.ml}.
-
-   Semantics: (1) functions that return a stream return a "fresh"
-   stream, meaning that their count is set to 0. (2) indexed variants
-   of HOF use the internal count of the stream
+(** Internal "standard" library. This module is not part of the
+    Biocaml API and subject to change at any time. Biocaml uses Core, and
+    for the most part, this module simply includes Core modules, sometimes
+    with a few functions added. A few modules are completely new.
 *)
 
 module Stream : module type of Biocaml_stream

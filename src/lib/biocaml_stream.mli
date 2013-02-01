@@ -2,8 +2,11 @@
     {{:http://caml.inria.fr/pub/docs/manual-ocaml/libref/Stream.html}the
     stdlib's [Stream] module}. It is largely inspired from
     {{:http://ocaml-batteries-team.github.com/batteries-included/hdoc2/BatEnum.html}Batteries's
-    [Enum] module}. However, it is written in a more core-styled
-    way. *)
+    [Enum] module}, but follows the style of Core.
+
+   In general, functions that return a stream return a "fresh"
+   stream, meaning that their count is set to 0.
+ *)
 
 (** Type of streams holding values of type ['a]. *)
 type 'a t = 'a Stream.t
