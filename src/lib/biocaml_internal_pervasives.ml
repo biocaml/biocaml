@@ -1,5 +1,5 @@
 module Stream = Biocaml_stream
-module type Streamable = Biocaml_streamable.S
+module Streamable = Biocaml_streamable
 
 include Core.Common
 let ( |? ) x default = Core.Option.value ~default x
@@ -48,7 +48,7 @@ module Float = Core.Std.Float
 module Fn = Core.Std.Fn
 module Hashtbl = struct
   include Core.Std.Hashtbl
-  let stream t = Stream.of_list (to_alist t)
+  let to_stream t = Stream.of_list (to_alist t)
   let of_stream xs =
     let t = Poly.create () in
     Stream.iter xs ~f:(fun (key,data) -> Poly.replace t ~key ~data) ;

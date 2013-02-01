@@ -5,18 +5,18 @@
 *)
 
 module Stream : module type of Biocaml_stream
-module type Streamable = Biocaml_streamable.S
+module Streamable : module type of Biocaml_streamable
 
 include module type of Core.Common
 val ( |? ) : 'a option -> 'a -> 'a
 module List : sig
   include module type of Core.Std.List
-  include Streamable with type 'a t := 'a t
+  include Streamable.S with type 'a t := 'a t
 end
 module Arg : module type of Core.Std.Arg
 module Array : sig
   include module type of Core.Std.Array
-  include Streamable with type 'a t := 'a t
+  include Streamable.S with type 'a t := 'a t
 
   (** [range xs] is the stream of all valid indices in [xs] *)
   val range : 'a t -> int Stream.t
@@ -42,8 +42,7 @@ module Float : module type of Core.Std.Float
 module Fn : module type of Core.Std.Fn
 module Hashtbl : sig
   include module type of Core.Std.Hashtbl
-  val stream : ('a, 'b) t -> ('a * 'b) Stream.t
-  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) t
+  include Streamable.S2 with type ('a,'b) t := ('a,'b) t
 end
 module Int : module type of Core.Std.Int
 include module type of Int.Infix
