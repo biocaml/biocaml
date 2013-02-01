@@ -3,6 +3,7 @@ open Core.Std
 include Stream
 let next_exn = next
 let next s = try Some (next_exn s) with Stream.Failure -> None
+let npeek s n = npeek n s
 
 let is_empty s =
   match peek s with 
@@ -143,7 +144,7 @@ let take_whilei xs ~f =
     
 let take_while xs ~f = take_whilei xs ~f:(const f)
 
-let take k xs = 
+let take xs k = 
   let end_index = count xs + k in
   take_whilei xs ~f:(fun j _ -> j < end_index)
     
@@ -154,7 +155,7 @@ let rec drop_whilei xs ~f =
 
 let drop_while xs ~f = drop_whilei xs ~f:(const f)
 
-let drop n xs =
+let drop xs n =
   let end_index = count xs + n in
   drop_whilei xs ~f:(fun j _ -> j < end_index)
 
@@ -164,8 +165,8 @@ let skip_whilei xs ~f =
 
 let skip_while xs ~f = skip_whilei xs ~f:(const f)
   
-let skip n xs =
-  drop n xs ;
+let skip xs n =
+  drop xs n ;
   from (fun _ -> next xs)
 
 let span xs ~f =

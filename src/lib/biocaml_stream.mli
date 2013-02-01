@@ -44,10 +44,10 @@ val next_exn: 'a t -> 'a
     stream, or [None] if the stream is empty. *)
 val peek : 'a t -> 'a option
 
-(** [npeek n s] returns a list of the first [n] elements in stream
+(** [npeek s n] returns a list of the first [n] elements in stream
     [s], or all of its remaining elements if less than [n] elements
     are available. The elements are not removed from the stream. *)
-val npeek : int -> 'a t -> 'a list
+val npeek : 'a t -> int -> 'a list
 
 (** Discard first element of given stream or do nothing if the stream
     is empty. *)
@@ -230,18 +230,18 @@ val find_map : 'a t -> f:('a -> 'b option) -> 'b option
     stream, or convert a stream into another data structure.
 *)
 
-(** [take n xs] builds a fresh stream from [xs] containing the [d]
+(** [take xs n] builds a fresh stream from [xs] containing the [d]
     first elements of [xs] where [d = min n l] and [l] is the length
     of [xs]. As it is fresh, the count of the resulting stream starts
     from [0] whatever the count of [xs] is. *)
-val take : int -> 'a t -> 'a t
+val take : 'a t -> int -> 'a t
 
 (** Same as [take] but takes elements from the input enum as long as
     [f] evaluates to [true]. *)
 val take_while : 'a t -> f:('a -> bool) -> 'a t
 
-(** [drop n xs] is equivalent to calling [n] times [junk] on [xs]. *)
-val drop : int -> 'a t -> unit
+(** [drop xs n] is equivalent to calling [n] times [junk] on [xs]. *)
+val drop : 'a t -> int -> unit
 
 (** Similar to [drop]: [drop_while xs ~f] removes elements from [xs]
     and stops when [f] evals to false on the head element. *)
@@ -252,7 +252,7 @@ val drop_while : 'a t -> f:('a -> bool) -> unit
     of the returned stream starts from 0. Beware though, that the
     input and output streams are consuminmg the same resource, so
     consuming one modify the other. *)
-val skip : int -> 'a t -> 'a t
+val skip : 'a t -> int -> 'a t
 
 (** Similar to [skip]: [skip_while xs ~f] removes elements from [xs]
     and stops when [f] evals to false on the head element. *)
