@@ -277,29 +277,6 @@ let input_transform_name = function
 | `from_int_fasta _ -> "from_int_fasta"
 
 
-type output_error =
-[ `bam of Biocaml_bam.Transform.item_to_raw_error
-| `sam of Biocaml_sam.Error.item_to_raw 
-]
-with sexp_of
-type output_transform = [
-| `to_sam_item of (Sam.item, (string, output_error) Result.t) Transform.t
-| `to_gff of(Gff.stream_item, string) Transform.t
-| `to_wig of (Wig.t, string) Transform.t
-| `to_bed of (Bed.t, string) Transform.t
-| `to_fastq of (Fastq.item, string) Transform.t
-| `to_char_fasta of (Fasta.char_seq Fasta.Transform.raw_item, string) Transform.t
-| `to_int_fasta of (Fasta.int_seq Fasta.Transform.raw_item, string) Transform.t
-]
-let output_transform_name = function
-| `to_sam_item _ -> "to_sam_item"
-| `to_gff _ -> "to_gff"
-| `to_wig _ -> "to_wig"
-| `to_bed _ -> "to_bed"
-| `to_fastq _ -> "to_fastq"
-| `to_char_fasta _ -> "to_char_fasta"
-| `to_int_fasta _ -> "to_int_fasta"
-    
 let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
   let with_unzip t =
     match with_unzip with
@@ -376,66 +353,42 @@ let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
     in
     return (`from_int_fasta (with_unzip t) : input_transform)
 
-let rec output_transform ?with_zip ~zlib_buffer_size output_tags =
-  let with_zip_result t =
-    match with_zip with
-    | Some z -> Transform.compose_result_left t z
-    | None -> t
-  in
-  let with_zip_no_error t =
-    match with_zip with
-    | Some z -> Transform.compose t z 
-    | None -> t
-  in
-  let to_sam_item t = return (`to_sam_item (with_zip_result t) : output_transform) in
-  match output_tags with
-  | `raw_zip tags ->
-    output_transform
-      ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`raw ())
-      ~zlib_buffer_size tags
-  | `gzip tags ->
-    output_transform
-      ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`gzip ())
-      ~zlib_buffer_size tags
-  | `bam ->
-    to_sam_item (
-      Transform.compose_result_left
-        (Transform.on_output 
-           (Bam.Transform.item_to_raw ())
-           (function Ok o -> Ok o | Error e -> Error (`bam e)))
-        (Bam.Transform.raw_to_string ~zlib_buffer_size ()))
-  | `sam ->
-    to_sam_item (
-      Transform.compose_result_left
-        (Transform.on_output 
-           (Sam.Transform.item_to_raw ())
-           (function Ok o -> Ok o | Error e -> Error (`sam e)))
-        (Sam.Transform.raw_to_string ()))
-  | `gff tag_list ->
-    let t = Gff.Transform.item_to_string ~tags:tag_list () in
-    return (`to_gff (with_zip_no_error t) : output_transform)
-  | `wig tag_list ->
-    let t = Wig.Transform.t_to_string  ~tags:tag_list () in
-    return (`to_wig (with_zip_no_error t) : output_transform)
-  | `bed ->
-    let t = Bed.Transform.t_to_string  () in
-    return (`to_bed (with_zip_no_error t) : output_transform)
-  | `fastq ->
-    let t = Fastq.Transform.item_to_string () in
-    return (`to_fastq (with_zip_no_error t) : output_transform)
-  | `fasta `unknown
-  | `fasta `char ->
-    (* TODO output warning? if `unknown *)
-    let t = Fasta.Transform.char_seq_raw_item_to_string () in
-    return (`to_char_fasta (with_zip_no_error t) : output_transform)
-  | `fasta `int ->
-    let t = Fasta.Transform.int_seq_raw_item_to_string () in
-    return (`to_int_fasta (with_zip_no_error t) : output_transform)
 
-let parse_tags s =
-  try return (Tags.t_of_sexp (Sexp.of_string s))
-  with e -> error (`parse_tags e)
-let tags_to_string t = Tags.sexp_of_t t |! Sexp.to_string_hum
+let filename_chop_all_extensions filename =
+  let rec f filename =
+    match Filename.split_extension filename with
+    | (n, None) -> n
+    | (n, Some s) -> f n
+  in
+  f filename
+
+let filename_make_new base extension =
+  sprintf "%s-%s.%s" base Time.(now () |! to_filename_string) extension
+  
+let transform_stringify_errors t =
+  Transform.on_error t
+    ~f:(fun e -> `string (Sexp.to_string_hum (sexp_of_input_error e)))
+
+    
+let transforms_to_do
+    input_files_tags_and_transforms meta_output_transform output_tags =
+  let rec loop acc l = 
+    match l, meta_output_transform with
+    | [], _ -> return acc
+    | (filename, tags, `from_fastq tri) :: t, `to_fastq tro -> 
+      let m =
+        let transfo = Transform.compose_result_left tri tro
+                      |! transform_stringify_errors in
+        let out_extension = Tags.default_extension output_tags in
+        let base = filename_chop_all_extensions filename in
+        `file_to_file (filename, transfo, filename_make_new base out_extension)
+      in
+      loop (m :: acc) t
+    | _ ->
+      error (`not_implemented)
+  in
+  loop [] input_files_tags_and_transforms
+
   
 let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
   begin
@@ -449,32 +402,49 @@ let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
         >>= fun meta_transform ->
         return (file_optionally_tagged, tags, meta_transform)
       | Some (one, two) ->
-        parse_tags two
+        of_result (Tags.of_string two)
         >>= fun tags ->
         input_transform ~zlib_buffer_size tags
         >>= fun meta_transform ->
         return (one, tags, meta_transform))
     >>= fun input_files_tags_and_transforms ->
-    parse_tags output_tags
+    of_result (Tags.of_string output_tags)
     >>= fun tags ->
-    output_transform ~zlib_buffer_size:(output_buffer_size) tags
+    output_transform_of_tags ~zlib_buffer_size:(output_buffer_size) tags
     >>= fun meta_output_transform ->
     while_sequential input_files_tags_and_transforms (fun (filename, tags, tr) ->
       dbg "Convert %s (%s) %s %s"
-        filename (tags_to_string tags) (input_transform_name tr)
+        filename (Tags.to_string tags) (input_transform_name tr)
         (output_transform_name meta_output_transform)
     )
     >>= fun _ ->
-    
-    return ()
+    transforms_to_do input_files_tags_and_transforms meta_output_transform tags
+    >>= fun transforms ->
+
+    for_concurrent transforms begin function
+    | `file_to_file (filein, tr, fileout) ->
+      dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
+      IO.Transform.file_to_file (Transform.to_object tr)
+        ~input_buffer_size filein ~output_buffer_size fileout 
+    end
+    >>= fun (results, errors) ->
+    begin match errors with
+    | [] -> return ()
+    | some -> error (`errors some)
+    end
   end
   >>< begin function
   | Ok () -> return ()
   | Error e ->
     error (
       <:sexp_of< [ `extension_absent
+                 | `errors of [ `transform of
+                     [ `io_exn of exn
+                     | `stopped_before_end_of_stream
+                     | `transform_error of [ `string of string ] ] ] list
+                 | `not_implemented
                  | `extension_unknown of string
-                 | `parse_tags of exn] >> e
+                 | `parse_tags of exn ] >> e
       |! Sexp.to_string_hum)
   end
              
