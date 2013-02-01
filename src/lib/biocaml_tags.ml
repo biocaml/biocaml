@@ -15,6 +15,17 @@ type t = [
 | `fasta of [`int | `char | `unknown ]
 ] with sexp
 
+let rec default_extension = function
+| `gzip t -> sprintf "%s.gz" (default_extension t)
+| `raw_zip t -> sprintf "%s.rawzip" (default_extension t)
+| `gff _ -> "gff"
+| `wig _ -> "wig"
+| `bam     -> "bam"  
+| `sam     -> "sam"
+| `bed     -> "bed"
+| `fastq   -> "fastq"
+| `fasta _ -> "fasta" 
+
   
 let rec guess_from_filename filename =
   match Filename.split_extension filename with

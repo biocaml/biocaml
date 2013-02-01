@@ -11,6 +11,8 @@ type t = [
 | `fasta of [`int | `char | `unknown ]
 ] with sexp
 
+val default_extension: t -> string
+  
 val guess_from_filename: string ->
   (t, [> `extension_absent | `extension_unknown of string ]) Core.Result.t
 
