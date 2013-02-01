@@ -15,7 +15,7 @@ module Genlex = struct
     | Char s ->   Sexp.Atom (sprintf "[Char %S]" (String.of_char s))
 
 end
-let spec_lexer = Genlex.make_lexer [":"; "with"; "without"; "="; "("; ")"]
+let spec_lexer = Genlex.make_lexer [":"; "with"; "without"; "="; "("; ")"; "and"]
 
 
 let parse_spec_aux s =
@@ -28,19 +28,21 @@ let parse_spec_aux s =
   let char_stream = String.to_list (s ^ " special_end") |! Stream.of_list in
   begin try
     let tokens = Biocaml_stream.to_list (spec_lexer char_stream) in
-    match List.last tokens with
-    | Some (Ident "special_end") ->
-      return tokens
-    | None -> error (`lexical "Nothing parsed")
-    | Some i -> error (`lexical "Unfinished Input")
+    match List.rev tokens with
+    | (Ident "special_end") :: more ->
+      return (List.rev more)
+    | [] -> error (`lexical "Nothing parsed")
+    | i -> error (`lexical "Unfinished Input")
     with
     | Stream.Error e -> error (`lexical e)
   end
   >>= begin function
   | Ident f :: t when String.lowercase f = "fastq" ->
     let rec parse_fastq acc =  function
-      | Ident "special_end" :: []
       | [] -> return acc
+      | Kwd "and" :: [] -> error (`expecting_spec_but_got [])
+      | Kwd "and" :: q :: t when acc <> [] ->
+        parse_fastq acc (q :: t)
       | Kwd "with" :: Ident "N" :: t ->
         parse_fastq (`with_n :: acc) t
       | Kwd "without" :: Ident "N" :: t ->
@@ -49,11 +51,33 @@ let parse_spec_aux s =
         parse_meta_int some
         >>= fun (meta_int, rest) ->
         parse_fastq (`read_length meta_int :: acc) rest
-      | l -> error (`expecting_with_out_but_got l)
+      | l -> error (`expecting_spec_but_got l)
     in
     parse_fastq [] t
     >>= fun spec ->
     return (`fastq spec)
+  | Ident f :: t when String.lowercase f = "bed" ->
+    let rec get_columns acc = function
+      | [] 
+      | Kwd "and" :: _ as l -> return (acc, l)
+      | Ident "int" :: l -> get_columns (`int :: acc) l 
+      | Ident "float" :: l -> get_columns (`float :: acc) l 
+      | l -> error (`expecting_column_type_or_closing_parenthesis l)
+    in
+    let rec parse_bed acc = function
+      | [] -> return acc
+      | Kwd "and" :: [] -> error (`expecting_spec_but_got [])
+      | Kwd "and" :: q :: t when acc <> [] ->
+        parse_bed acc (q :: t)
+      | Kwd "with" :: Ident "columns" :: t ->
+        get_columns [] t
+        >>= fun (cols, rest) ->
+        parse_bed (`columns (List.rev cols) :: acc) rest
+      | l -> error (`expecting_spec_but_got l)
+    in
+    parse_bed [] t
+    >>= fun args ->
+    return (`bed args)
   | tokens ->
     error (`uknown_specification tokens)
   end
@@ -141,6 +165,48 @@ let random_fastq_transform ~args () =
             qualities } )))
     ~feed:(fun () -> incr todo)
 
+let random_bed_transform ~args () =
+  let columns =
+    List.find_map args (function `columns m -> Some m | _ -> None)
+    |! Option.value ~default:[] in
+  let todo = ref 0 in
+  let seq_num = ref 0 in
+  let make_item seqnum =
+    let span = Random.int 4242 in
+    let start = Random.int 3 *  seqnum in
+    let rest =
+      List.map columns (function
+      | `int -> `Int (Random.int 42)
+      | `float -> `Float (Random.float 1000.)) in
+    (sprintf "chr%d" seqnum, start, start + span, rest)
+  in
+  Transform.make ()
+    ~next:(fun stopped ->
+      match !todo, stopped with
+      | 0, true -> `end_of_stream
+      | 0, false -> `not_ready
+      | n, _  when n < 0 -> assert false
+      | n, _ ->
+        decr todo;
+        incr seq_num;
+        `output (make_item !seq_num))
+    ~feed:(fun () -> incr todo)
+
+let do_output output_meta_channel transform nb_items =
+  io_with_out_channel output_meta_channel (fun out ->
+    let rec loop = function
+      | 0 -> io_fprintf out "%!"
+      | n ->
+        Transform.feed transform ();
+        begin match Transform.next transform with
+        | `not_ready | `end_of_stream -> assert false
+        | `output s ->
+          io_fprintf out "%s" s
+          >>= fun () ->
+          loop (n - 1)
+        end
+    in
+    loop nb_items)
 
 let do_random ~output_file ~gzip ~nb_items spec =
   let zlib_buffer_size  = 4200 in
@@ -153,30 +219,20 @@ let do_random ~output_file ~gzip ~nb_items spec =
   let tags, args =
     match spec with
     | `fastq args -> if gzip then (`gzip `fastq, args) else (`fastq, args)
+    | `bed args -> if gzip then (`gzip `bed, args) else (`bed, args) 
   in
   output_transform_of_tags ~zlib_buffer_size tags
   >>= begin function
   | `to_fastq tr ->
     let transform = Transform.compose (random_fastq_transform ~args ()) tr in
-    io_with_out_channel output_meta_channel (fun out ->
-      let rec loop = function
-        | 0 -> io_fprintf out "%!"
-        | n ->
-          Transform.feed transform ();
-          begin match Transform.next transform with
-          | `not_ready | `end_of_stream -> assert false
-          | `output s ->
-            io_fprintf out "%s" s
-            >>= fun () ->
-            loop (n - 1)
-          end
-      in
-      loop nb_items)
-    >>= fun () ->
-    return ()
+    do_output output_meta_channel transform nb_items
+  | `to_bed tr ->
+    let transform = Transform.compose (random_bed_transform ~args ()) tr in
+    do_output output_meta_channel transform nb_items
+
   | _ ->
     io_with_out_channel `stdout (fun out ->
-      io_fprintf out "not to-fastq!\n%!")
+      io_fprintf out "not implemented!\n%!")
     >>= fun () ->
     return ()
   end
@@ -195,7 +251,8 @@ let stringify m =
     error (<:sexp_of< [
     | `io_exn of exn
     | `parse_specification of
-        [ `expecting_with_out_but_got of Genlex.token list
+        [ `expecting_spec_but_got of Genlex.token list
+        | `expecting_column_type_or_closing_parenthesis of Genlex.token list
         | `lexical of string
         | `not_a_meta_int of Genlex.token list
         | `uknown_specification of Genlex.token list ]
