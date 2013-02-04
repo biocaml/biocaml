@@ -92,11 +92,6 @@ let join_pair t1 t2 =
   end
 
 
-let map_list_parallel_with_index l ~f =
-  let c = ref (-1) in
-    (* TODO: fix bug: there is no order warranty !! *)
-  for_concurrent l ~f:(fun x -> incr c; f !c x)
-
 let check_barcode ~mismatch ~position ~barcode sequence =
   let allowed_mismatch = ref mismatch in
   let index = ref 0 in
@@ -159,7 +154,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
   >>= fun () ->
 
   for_concurrent demux_specification (fun {name_prefix; barcoding} ->
-    map_list_parallel_with_index read_files (fun i _ ->
+    for_concurrent_with_index read_files (fun i _ ->
       let actual_filename, transform =
         match gzip_output with
         | None ->
@@ -211,7 +206,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
     if List.for_all all_the_nexts ((=) None)
     then return ()
     else begin
-      map_list_parallel_with_index all_the_nexts (fun i -> function
+      for_concurrent_with_index all_the_nexts (fun i -> function
       | Some (Ok item) -> return item
       | Some (Error e) ->
         failf "error while parsing read %d: %s" (i + 1) (string_of_error e)
