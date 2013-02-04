@@ -58,10 +58,10 @@ let parse_spec_aux s =
     return (`fastq spec)
   | Ident f :: t when String.lowercase f = "bed" ->
     let rec get_columns acc = function
-      | [] 
+      | []
       | Kwd "and" :: _ as l -> return (acc, l)
-      | Ident "int" :: l -> get_columns (`int :: acc) l 
-      | Ident "float" :: l -> get_columns (`float :: acc) l 
+      | Ident "int" :: l -> get_columns (`int :: acc) l
+      | Ident "float" :: l -> get_columns (`float :: acc) l
       | l -> error (`expecting_column_type_or_closing_parenthesis l)
     in
     let rec parse_bed acc = function
@@ -89,35 +89,6 @@ let parse_spec s =
   | Error e -> error (`parse_specification e)
   end
 
-
-let io_with_out_channel out ?buffer_size ~f =
-  begin match out with
-  | `stdout -> return Lwt_io.stdout
-  | `strerr -> return Lwt_io.stderr
-  | `file file ->
-    wrap_io (Lwt_io.open_file ~mode:Lwt_io.output ?buffer_size) file
-  end
-  >>= fun outchan ->
-  begin
-    f outchan
-    >>< begin function
-    | Ok o ->
-      wrap_io Lwt_io.close outchan
-      >>= fun () ->
-      return o
-    | Error e ->
-      begin match out with
-      | `file _ ->
-        wrap_io Lwt_io.close outchan
-        >>= fun _ ->
-        error e
-      | _ -> error e
-      end
-    end
-  end
-
-let io_fprintf out fmt =
-  ksprintf (fun s -> wrap_io (Lwt_io.fprint out) s) fmt
 
 let random_fastq_transform ~args () =
   let todo = ref 0 in
@@ -193,15 +164,15 @@ let random_bed_transform ~args () =
     ~feed:(fun () -> incr todo)
 
 let do_output output_meta_channel transform nb_items =
-  io_with_out_channel output_meta_channel (fun out ->
+  IO.with_out_channel output_meta_channel (fun out ->
     let rec loop = function
-      | 0 -> io_fprintf out "%!"
+      | 0 -> return ()
       | n ->
         Transform.feed transform ();
         begin match Transform.next transform with
         | `not_ready | `end_of_stream -> assert false
         | `output s ->
-          io_fprintf out "%s" s
+          IO.write out s
           >>= fun () ->
           loop (n - 1)
         end
@@ -219,7 +190,7 @@ let do_random ~output_file ~gzip ~nb_items spec =
   let tags, args =
     match spec with
     | `fastq args -> if gzip then (`gzip `fastq, args) else (`fastq, args)
-    | `bed args -> if gzip then (`gzip `bed, args) else (`bed, args) 
+    | `bed args -> if gzip then (`gzip `bed, args) else (`bed, args)
   in
   output_transform_of_tags ~zlib_buffer_size tags
   >>= begin function
@@ -230,11 +201,7 @@ let do_random ~output_file ~gzip ~nb_items spec =
     let transform = Transform.compose (random_bed_transform ~args ()) tr in
     do_output output_meta_channel transform nb_items
 
-  | _ ->
-    io_with_out_channel `stdout (fun out ->
-      io_fprintf out "not implemented!\n%!")
-    >>= fun () ->
-    return ()
+  | _ -> error (`not_implemented)
   end
   >>= fun () ->
 
@@ -250,6 +217,7 @@ let stringify m =
   | Error e ->
     error (<:sexp_of< [
     | `io_exn of exn
+    | `not_implemented
     | `parse_specification of
         [ `expecting_spec_but_got of Genlex.token list
         | `expecting_column_type_or_closing_parenthesis of Genlex.token list
