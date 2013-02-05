@@ -364,21 +364,39 @@ let filename_chop_all_extensions filename =
 
 let filename_make_new base extension =
   sprintf "%s-%s.%s" base Time.(now () |! to_filename_string) extension
-  
+
 let transform_stringify_errors t =
   Transform.on_error t
-    ~f:(fun e -> `string (Sexp.to_string_hum (sexp_of_input_error e)))
+    ~f:(function
+    | `input e -> `string (Sexp.to_string_hum (sexp_of_input_error e))
+    | `output e -> `string (Sexp.to_string_hum (sexp_of_output_error e))
+    )
 
-    
+
 let transforms_to_do
     input_files_tags_and_transforms meta_output_transform output_tags =
-  let rec loop acc l = 
-    match l, meta_output_transform with
+  let rec loop acc l =
+    match l, (meta_output_transform : output_transform) with
     | [], _ -> return acc
-    | (filename, tags, `from_fastq tri) :: t, `to_fastq tro -> 
+    | (filename, tags, `from_fastq tri) :: t, `to_fastq tro ->
       let m =
-        let transfo = Transform.compose_result_left tri tro
-                      |! transform_stringify_errors in
+        let transfo =
+          Transform.(
+            compose_result_left
+              (on_error tri (fun e -> `input e)) tro)
+          |! transform_stringify_errors in
+        let out_extension = Tags.default_extension output_tags in
+        let base = filename_chop_all_extensions filename in
+        `file_to_file (filename, transfo, filename_make_new base out_extension)
+      in
+      loop (m :: acc) t
+    | (filename, tags, `from_sam_item tri) :: t, `to_sam_item tro ->
+      let m =
+        let transfo =
+          Transform.compose_results
+            ~on_error:(function `left e -> `input e | `right e -> `output e)
+            tri tro
+          |! transform_stringify_errors in
         let out_extension = Tags.default_extension output_tags in
         let base = filename_chop_all_extensions filename in
         `file_to_file (filename, transfo, filename_make_new base out_extension)
