@@ -78,6 +78,10 @@ let parse_spec_aux s =
     parse_bed [] t
     >>= fun args ->
     return (`bed args)
+  | Ident f :: t when String.lowercase f = "sam" ->
+    return (`sam [])
+  | Ident f :: t when String.lowercase f = "bam" ->
+    return (`bam [])
   | tokens ->
     error (`uknown_specification tokens)
   end
@@ -88,6 +92,24 @@ let parse_spec s =
   | Ok o -> return o
   | Error e -> error (`parse_specification e)
   end
+
+let random_dna ?(with_n=true) read_length_spec =
+  let length =
+    match read_length_spec with
+    | `int n -> n
+    | `random (n, m) -> n + Random.int m
+  in
+  String.init length (fun _ ->
+    match Random.int (if with_n then 5 else 4) with
+    | 0 -> 'A'
+    | 1 -> 'C'
+    | 2 -> 'G'
+    | 3 -> 'T'
+    | _ -> 'N')
+
+let random_quality_array seq =
+  Array.init (String.length seq) (fun _ ->
+    Phred_score.of_probability_exn (Random.float 1.0))
 
 
 let random_fastq_transform ~args () =
@@ -100,20 +122,7 @@ let random_fastq_transform ~args () =
     match List.find args (function `without_n -> true | _ -> false) with
     | Some _ -> false
     | _ -> true in
-  let make_read () =
-    let length =
-      match read_length_spec with
-      | `int n -> n
-      | `random (n, m) -> n + Random.int m
-    in
-    String.init length (fun _ ->
-      match Random.int (if with_n then 5 else 4) with
-      | 0 -> 'A'
-      | 1 -> 'C'
-      | 2 -> 'G'
-      | 3 -> 'T'
-      | _ -> 'N')
-  in
+  let make_read () = random_dna ~with_n read_length_spec in
   let make_qualities read =
     String.map read (fun _ ->
       Phred_score.(of_int_exn (Random.int (126 - 33)) |! to_ascii_exn))
@@ -163,14 +172,101 @@ let random_bed_transform ~args () =
         `output (make_item !seq_num))
     ~feed:(fun () -> incr todo)
 
+let random_sam_item_transform ~args () =
+  let total_chromosomes = 23 in
+  let read_length_spec = `random (42, 100) in
+  let with_n = false in
+  let header_done = ref false in
+  let todo = ref 0 in
+  let chromosomes_to_go = ref total_chromosomes in
+  let ref_dictionary =
+    Array.init !chromosomes_to_go ~f:(fun i ->
+      {Sam.ref_name = sprintf "chr%d" i;
+       Sam.ref_length = (Random.int 999_999_999 + 100_000_000);
+       Sam.ref_assembly_identifier = None;
+       Sam.ref_checksum = None; Sam.ref_species = None;
+       Sam.ref_uri = None; Sam.ref_unknown = []} )
+      in
+
+  let make_item () =
+    if not !header_done then (
+      header_done := true;
+      `header_line ("1.0", `unsorted, [])
+    ) else if !chromosomes_to_go > 0 then (
+      let name =
+        ref_dictionary.(total_chromosomes - !chromosomes_to_go).Sam.ref_name in
+      let length =
+        ref_dictionary.(total_chromosomes - !chromosomes_to_go).Sam.ref_length
+      in
+      decr chromosomes_to_go;
+      `header ("SQ", [("SN", name); ("LN", Int.to_string length)])
+    ) else if !chromosomes_to_go = 0 then (
+      decr chromosomes_to_go;
+      (`header
+          ("PG",
+           [("ID", "Bowtie"); ("VN", "0.12.7");
+            ("CL",
+             "\"/usr/local/bowtie-0.12.7/bowtie -k 1 --best --sam \
+              --phred33-quals -p 3 bowtie_index/mm9/mm9 \
+              Sskdjkdjs.fastq this_one_.sam\"")]))
+    ) else if !chromosomes_to_go = -1 then (
+      decr chromosomes_to_go;
+      (`reference_sequence_dictionary ref_dictionary)
+    ) else (
+      decr chromosomes_to_go;
+      let ref_seq = ref_dictionary.(Random.int total_chromosomes) in
+      let sequence = random_dna ~with_n read_length_spec in
+      let qualities = random_quality_array sequence in
+      (`alignment
+          {Sam.query_template_name = sprintf "some.%d" (- !chromosomes_to_go - 2);
+           Sam.flags = Sam.Flags.of_int 16;
+           Sam.reference_sequence = `reference_sequence ref_seq;
+           Sam.position = Some 3003188;
+           Sam.mapping_quality = None;
+           Sam.cigar_operations = [|`M 25|];
+           Sam.next_reference_sequence = `none;
+           Sam.next_position = None; Sam.template_length = None;
+           Sam.sequence = `string sequence;
+           Sam.quality = qualities;
+           Sam.optional_content = [
+             ("XA", 'C', `int 0);
+             ("MD", 'Z', `string "25");
+             ("NM", 'C', `int 0)]
+          })
+    )
+  in
+  Transform.make ()
+    ~next:(fun stopped ->
+      match !todo, stopped with
+      | 0, true -> `end_of_stream
+      | 0, false -> `not_ready
+      | n, _  when n < 0 -> assert false
+      | n, _ ->
+        decr todo;
+        `output (make_item ()))
+    ~feed:(fun () -> incr todo)
+
+
 let do_output output_meta_channel transform nb_items =
   IO.with_out_channel output_meta_channel (fun out ->
     let rec loop = function
-      | 0 -> return ()
+      | 0 ->
+        Transform.stop transform;
+        let rec all () =
+          begin match Transform.next transform with
+          | `not_ready -> all ()
+          | `end_of_stream -> return ()
+          | `output s ->
+            IO.write out s
+            >>= fun () ->
+            all ()
+          end in
+        all ()
       | n ->
         Transform.feed transform ();
         begin match Transform.next transform with
-        | `not_ready | `end_of_stream -> assert false
+        | `not_ready -> loop (n - 1)
+        | `end_of_stream -> assert false
         | `output s ->
           IO.write out s
           >>= fun () ->
@@ -191,6 +287,8 @@ let do_random ~output_file ~gzip ~nb_items spec =
     match spec with
     | `fastq args -> if gzip then (`gzip `fastq, args) else (`fastq, args)
     | `bed args -> if gzip then (`gzip `bed, args) else (`bed, args)
+    | `sam args -> if gzip then (`gzip `sam, args) else (`sam, args)
+    | `bam args -> if gzip then (`gzip `bam, args) else (`bam, args)
   in
   output_transform_of_tags ~zlib_buffer_size tags
   >>= begin function
@@ -199,6 +297,16 @@ let do_random ~output_file ~gzip ~nb_items spec =
     do_output output_meta_channel transform nb_items
   | `to_bed tr ->
     let transform = Transform.compose (random_bed_transform ~args ()) tr in
+    do_output output_meta_channel transform nb_items
+  | `to_sam_item tr ->
+    let transform =
+      Transform.(
+        compose (random_sam_item_transform ~args ()) tr
+        |! on_output ~f:(function
+          | Ok o -> o
+          | Error e ->
+            failwith "ERROR in SAM/BAM OUTPUT")
+      ) in
     do_output output_meta_channel transform nb_items
 
   | _ -> error (`not_implemented)
