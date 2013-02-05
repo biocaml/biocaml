@@ -310,28 +310,28 @@ let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
         (Sam.Transform.raw_to_item ()))
   | `gff gff_tag_list ->
     let t =
-      Transform.on_output  
+      Transform.on_output
         (Gff.Transform.string_to_item ~tags:gff_tag_list ())
         (function Ok o -> Ok o | Error e -> Error (`gff e))
     in
     return (`from_gff (with_unzip t) : input_transform)
   | `wig wig_tag_list ->
     let t =
-      Transform.on_output  
+      Transform.on_output
         (Wig.Transform.string_to_t ~tags:wig_tag_list ())
         (function Ok o -> Ok o | Error e -> Error (`wig e))
     in
     return (`from_wig (with_unzip t) : input_transform)
   | `bed ->
     let t =
-      Transform.on_output  
+      Transform.on_output
         (Bed.Transform.string_to_t ())
         (function Ok o -> Ok o | Error e -> Error (`bed e))
     in
     return (`from_bed (with_unzip t) : input_transform)
   | `fastq ->
     let t =
-      Transform.on_output  
+      Transform.on_output
         (Fastq.Transform.string_to_item ())
         (function Ok o -> Ok o | Error e -> Error (`fastq e))
     in
@@ -340,14 +340,14 @@ let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
   | `fasta `char ->
     (* TODO output warning? if `unknown *)
     let t =
-      Transform.on_output  
+      Transform.on_output
         (Fasta.Transform.string_to_char_seq_raw_item ())
         (function Ok o -> Ok o | Error e -> Error (`fasta e))
     in
     return (`from_char_fasta (with_unzip t) : input_transform)
   | `fasta `int ->
     let t =
-      Transform.on_output  
+      Transform.on_output
         (Fasta.Transform.string_to_int_seq_raw_item ())
         (function Ok o -> Ok o | Error e -> Error (`fasta e))
     in
@@ -389,7 +389,7 @@ let transforms_to_do
   in
   loop [] input_files_tags_and_transforms
 
-  
+
 let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
   begin
     let zlib_buffer_size = 2 * input_buffer_size in
@@ -425,7 +425,7 @@ let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
     | `file_to_file (filein, tr, fileout) ->
       dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
       IO.Transform.file_to_file (Transform.to_object tr)
-        ~input_buffer_size filein ~output_buffer_size fileout 
+        ~input_buffer_size filein ~output_buffer_size fileout
     end
     >>= fun (results, errors) ->
     begin match errors with
@@ -447,7 +447,7 @@ let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
                  | `parse_tags of exn ] >> e
       |! Sexp.to_string_hum)
   end
-             
+
 
 let command =
   let open Command_line in
