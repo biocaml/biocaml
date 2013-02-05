@@ -16,7 +16,7 @@ module Http_method = struct
 
   let shell_command_to_string s =
     dbg "Running %S" s >>= fun () ->
-    Sys.get_system_command_output s
+    System.get_system_command_output s
     >>= fun (stdo, stde) ->
     return stdo
 
