@@ -17,14 +17,8 @@ module Genlex = struct
 end
 let spec_lexer = Genlex.make_lexer [":"; "with"; "without"; "="; "("; ")"; "and"]
 
-
 let parse_spec_aux s =
   let open Genlex in
-  let parse_meta_int = function
-    | Int i :: t -> return (`int i, t)
-    | Ident "random" :: Int m :: Int n :: t -> return (`random (m, n), t)
-    | l -> error (`not_a_meta_int l)
-  in
   let char_stream = String.to_list (s ^ " special_end") |! Stream.of_list in
   begin try
     let tokens = Biocaml_stream.to_list (spec_lexer char_stream) in
@@ -36,52 +30,95 @@ let parse_spec_aux s =
     with
     | Stream.Error e -> error (`lexical e)
   end
-  >>= begin function
-  | Ident f :: t when String.lowercase f = "fastq" ->
-    let rec parse_fastq acc =  function
-      | [] -> return acc
-      | Kwd "and" :: [] -> error (`expecting_spec_but_got [])
-      | Kwd "and" :: q :: t when acc <> [] ->
-        parse_fastq acc (q :: t)
-      | Kwd "with" :: Ident "N" :: t ->
-        parse_fastq (`with_n :: acc) t
-      | Kwd "without" :: Ident "N" :: t ->
-        parse_fastq (`without_n :: acc) t
-      | Kwd "with" :: Ident "read" :: Ident "length" :: Kwd "=" :: some ->
-        parse_meta_int some
-        >>= fun (meta_int, rest) ->
-        parse_fastq (`read_length meta_int :: acc) rest
-      | l -> error (`expecting_spec_but_got l)
-    in
-    parse_fastq [] t
-    >>= fun spec ->
-    return (`fastq spec)
-  | Ident f :: t when String.lowercase f = "bed" ->
+  >>= fun tokens ->
+  let parse_meta_int = function
+    | Int i :: t -> return (`int i, t)
+    | Ident "random" :: Int m :: Int n :: t -> return (`random (m, n), t)
+    | l -> error (`not_a_meta_int l)
+  in
+  let parse_with_or_without_n ?(default=`with_n) = function
+    | Kwd "with" :: Ident "N" :: t ->
+      (`with_n, t, true)
+    | Kwd "without" :: Ident "N" :: t ->
+      (`without_n, t, true)
+    | l -> (default, l, false)
+  in
+  let read_length_spec = function
+    | Kwd "with" :: Ident "read" :: Ident "length" :: Kwd "=" :: some ->
+      parse_meta_int some
+      >>= fun (meta_int, rest) ->
+      return (`read_length meta_int, rest, true)
+    | l -> return (`none, l, false)
+  in
+  let typed_columns =
     let rec get_columns acc = function
       | []
       | Kwd "and" :: _ as l -> return (acc, l)
       | Ident "int" :: l -> get_columns (`int :: acc) l
       | Ident "float" :: l -> get_columns (`float :: acc) l
-      | l -> error (`expecting_column_type_or_closing_parenthesis l)
+      | l -> error (`expecting_column_type_or_and_but_got l)
     in
-    let rec parse_bed acc = function
-      | [] -> return acc
-      | Kwd "and" :: [] -> error (`expecting_spec_but_got [])
-      | Kwd "and" :: q :: t when acc <> [] ->
-        parse_bed acc (q :: t)
-      | Kwd "with" :: Ident "columns" :: t ->
-        get_columns [] t
-        >>= fun (cols, rest) ->
-        parse_bed (`columns (List.rev cols) :: acc) rest
-      | l -> error (`expecting_spec_but_got l)
+    function
+    | Kwd "with" :: Ident "columns" :: t ->
+      get_columns [] t
+      >>= fun (cols, rest) ->
+      return (`columns (List.rev cols), rest, true)
+    | l -> return (`none, l, false)
+  in
+  let rec parse_list how acc = function
+    | [] -> return acc
+    | Kwd "and" :: [] as l -> error (`expecting_spec_but_got l)
+    | Kwd "and" :: q :: t as l when acc = [] -> error (`expecting_spec_but_got l)
+    | Kwd "and" :: q :: t
+    | q :: t ->
+      how acc (q :: t)
+  in
+  let rec parse_bam_or_sam accumulator current_list =
+    let wn, next, advance_wn = parse_with_or_without_n current_list in
+    read_length_spec next
+    >>= fun (rls, next, advance_rls) ->
+    if advance_wn || advance_rls then
+      parse_list parse_bam_or_sam (rls :: wn :: accumulator) next
+    else
+      error (`expecting_spec_but_got current_list)
+  in
+  let rec parse_fastq accumulator current_list =
+    let wn, next, advance_wn = parse_with_or_without_n current_list in
+    read_length_spec next
+    >>= fun (rls, next, advance_rls) ->
+    if advance_wn || advance_rls then
+      parse_list parse_fastq (rls :: wn :: accumulator) next
+    else
+      error (`expecting_spec_but_got current_list)
+  in
+  let parse_bed l =
+    let rec parse_bed_aux accumulator current_list =
+      typed_columns current_list
+      >>= fun (cols, next, advanced) ->
+      if advanced then
+        parse_list parse_bed_aux (cols :: accumulator) next
+      else
+        error (`expecting_spec_but_got current_list)
     in
-    parse_bed [] t
+    parse_list parse_bed_aux [] l
+  in
+  begin match tokens with
+  | Ident f :: t when String.lowercase f = "fastq" ->
+    parse_list parse_fastq [] t
+    >>= fun spec ->
+    return (`fastq spec)
+  | Ident f :: t when String.lowercase f = "bed" ->
+    parse_bed t
     >>= fun args ->
     return (`bed args)
   | Ident f :: t when String.lowercase f = "sam" ->
-    return (`sam [])
+    parse_list parse_bam_or_sam [] t
+    >>= fun args ->
+    return (`sam args)
   | Ident f :: t when String.lowercase f = "bam" ->
-    return (`bam [])
+    parse_list parse_bam_or_sam [] t
+    >>= fun args ->
+    return (`bam args)
   | tokens ->
     error (`uknown_specification tokens)
   end
@@ -174,8 +211,13 @@ let random_bed_transform ~args () =
 
 let random_sam_item_transform ~args () =
   let total_chromosomes = 23 in
-  let read_length_spec = `random (42, 100) in
-  let with_n = false in
+  let read_length_spec =
+    List.find_map args (function `read_length m -> Some m | _ -> None)
+    |! Option.value ~default:(`int 50) in
+  let with_n =
+    match List.find args (function `without_n -> true | _ -> false) with
+    | Some _ -> false
+    | _ -> true in
   let header_done = ref false in
   let todo = ref 0 in
   let chromosomes_to_go = ref total_chromosomes in
@@ -328,7 +370,7 @@ let stringify m =
     | `not_implemented
     | `parse_specification of
         [ `expecting_spec_but_got of Genlex.token list
-        | `expecting_column_type_or_closing_parenthesis of Genlex.token list
+        | `expecting_column_type_or_and_but_got of Genlex.token list
         | `lexical of string
         | `not_a_meta_int of Genlex.token list
         | `uknown_specification of Genlex.token list ]
