@@ -4,6 +4,8 @@ open Flow
 open Biocaml_app_common
 
 let cmd_info =
+  let say fmt =
+    ksprintf (fun s -> wrap_deferred_lwt (fun () -> Lwt_io.print s)) fmt in
   Command_line.(
     basic ~summary:"Get information about files"
       Spec.(
@@ -12,14 +14,14 @@ let cmd_info =
       )
       (fun files ->
         let f s =
-          wrap_io (Lwt_io.printf "File: %S\n") s
+          say "File: %S\n" s
           >>= fun () ->
           begin match Biocaml_tags.guess_from_filename s with
           | Ok tags ->
-            wrap_io (Lwt_io.printf "  Inferred Tags: %s\n")
+            say "  Inferred Tags: %s\n"
               (Biocaml_tags.sexp_of_t tags |! Sexp.to_string_hum)
           | Error e ->
-            wrap_io (Lwt_io.printf "  Cannot retrieve tags: %s\n")
+            say "  Cannot retrieve tags: %s\n"
               begin match e with
               | `extension_absent -> "no extension"
               | `extension_unknown s -> sprintf "unknown extension: %S" s

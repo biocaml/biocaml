@@ -67,15 +67,17 @@ let load_rset () =
   in
   (map, on_output)
 
+let say fmt =
+  ksprintf (fun s -> wrap_deferred_lwt (fun () -> Lwt_io.print s)) fmt
 
 let intersects map name low high =
   match Map.find map name with
   | Some tree_ref ->
     if Biocaml_interval_tree.intersects !tree_ref ~low ~high
-    then wrap_io Lwt_io.printf "Yes\n"
-    else wrap_io Lwt_io.printf "No\n"
+    then say "Yes\n"
+    else say "No\n"
   | None ->
-    wrap_io (Lwt_io.printf "Record for %S not found\n") name
+    say "Record for %S not found\n" name
 
 let rset_folding ~fold_operation ~fold_init
     ~input_buffer_size max_read_bytes input_files =
@@ -97,7 +99,7 @@ let rset_folding ~fold_operation ~fold_init
     |! Biocaml_rSet.to_range_list
     |! List.fold ~init:(return ()) ~f:(fun m (low, high) ->
       m >>= fun () ->
-      wrap_io (Lwt_io.printf "%s\t%d\t%d\n" name low) high))
+      say "%s\t%d\t%d\n" name low high))
 
 let command =
   Command_line.(
@@ -145,7 +147,7 @@ let command =
                List.fold (Biocaml_rSet.to_range_list !data) ~init:(return ())
                  ~f:(fun m (low, high) ->
                    m >>= fun () ->
-                   wrap_io (Lwt_io.printf "%s\t%d\t%d\n" key low) high))
+                   say "%s\t%d\t%d\n" key low high))
            end
            >>< common_error_to_string));
       ("union",

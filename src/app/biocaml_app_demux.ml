@@ -85,7 +85,7 @@ let sexp_of_demux_specification l =
 
 
 let join_pair t1 t2 =
-  wrap_io (Lwt_list.map_p ident) [t1; t2]
+  wrap_deferred_lwt (fun () -> Lwt_list.map_p ident [t1; t2])
   >>= begin function
   | [ r1; r2] -> return (r1, r2)
   | _ -> failf "join_pair did not return 2 elements"
@@ -122,7 +122,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
     ~output_buffer_size ~demux_specification =
 
   for_concurrent read_files (fun filename ->
-    wrap_io () ~f:(fun () ->
+    wrap_deferred_lwt (fun () ->
       Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size filename))
     >>= fun inp ->
     let transform =
@@ -141,7 +141,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
 
   let close_all_inputs () =
     while_sequential transform_inputs (fun (_, i) ->
-      wrap_io Lwt_io.close i)
+      wrap_deferred_lwt (fun () -> Lwt_io.close i))
     >>= fun _ ->
     return ()
   in
@@ -167,7 +167,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
              (Biocaml_zip.Transform.zip ~format:`gzip ~level
                 ~zlib_buffer_size:output_buffer_size ()))
       in
-      wrap_io () ~f:(fun () ->
+      wrap_deferred_lwt (fun () ->
         Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
                   actual_filename))
       >>= fun o ->
@@ -179,7 +179,8 @@ let perform ~mismatch ?gzip_output ?do_statistics
     | (outs, some_errors) ->
       close_all_inputs ()
       >>= fun () ->
-      while_sequential outs (fun (_, o) -> wrap_io Lwt_io.close o)
+      while_sequential outs (fun (_, o) ->
+        wrap_deferred_lwt (fun () -> Lwt_io.close o))
       >>= fun _ ->
       error (`openning_files some_errors)
     end)
@@ -188,7 +189,8 @@ let perform ~mismatch ?gzip_output ?do_statistics
     close_all_inputs ()
     >>= fun () ->
     while_sequential output_specs (fun (_, outs, _, _) ->
-      while_sequential outs (fun (_, o) -> wrap_io Lwt_io.close o))
+      while_sequential outs (fun (_, o) ->
+        wrap_deferred_lwt (fun () -> Lwt_io.close o)))
   in
   let check_errors = function
     | [] -> return ()
@@ -255,8 +257,10 @@ let perform ~mismatch ?gzip_output ?do_statistics
   begin match do_statistics with
   | Some s ->
     let open Lwt_io in
-    wrap_io (open_file ~mode:output ~buffer_size:output_buffer_size) s >>= fun o ->
-    wrap_io (fprintf o) ";; library_name read_count 0_mismatch_read_count\n"
+    wrap_deferred_lwt (fun () ->
+      open_file ~mode:output ~buffer_size:output_buffer_size s) >>= fun o ->
+    wrap_deferred_lwt (fun () ->
+      fprintf o ";; library_name read_count 0_mismatch_read_count\n")
     >>= fun () ->
     return (Some o)
   | None -> return None
@@ -266,23 +270,24 @@ let perform ~mismatch ?gzip_output ?do_statistics
     for_concurrent os ~f:(fun (transform, out_channel) ->
       Biocaml_transform.stop transform;
       flush_transform ~out_channel ~transform >>= fun () ->
-      wrap_io Lwt_io.close out_channel)
+      wrap_deferred_lwt (fun () -> Lwt_io.close out_channel))
     >>= fun (_, errors) ->
       (* TODO: check errors *)
     begin match stats, stats_channel with
     | Some { read_count; no_mismatch_read_count }, Some o ->
-      wrap_io () ~f:(fun () ->
+      wrap_deferred_lwt (fun () ->
         Lwt_io.fprintf o "(%S %d %d)\n" name
           read_count no_mismatch_read_count)
     | _, _ -> return ()
     end
   )
   >>= fun _ ->
-  for_concurrent transform_inputs (fun (_, i) -> wrap_io Lwt_io.close i)
+  for_concurrent transform_inputs (fun (_, i) ->
+    wrap_deferred_lwt (fun () -> Lwt_io.close i))
   >>= fun (_, errors) ->
     (* TODO: check errors *)
   Option.value_map stats_channel ~default:(return ())
-    ~f:(fun c -> wrap_io Lwt_io.close c)
+    ~f:(fun c -> wrap_deferred_lwt (fun () -> Lwt_io.close c))
 
 let parse_configuration s =
   let open Sexp in
@@ -399,10 +404,10 @@ let command =
       begin fun ~input_buffer_size ~output_buffer_size
         mismatch_cl gzip_cl demux_cl spec undetermined_cl stats_cl
         read_files_cl ->
-          begin 
+          begin
             begin match spec with
             | Some s ->
-              wrap_io () ~f:(fun () ->
+              wrap_deferred_lwt (fun () ->
                 Lwt_io.(with_file ~mode:input s (fun i -> read i)))
               >>| parse_configuration
             | None -> return (None, None, None, None, None, None)
@@ -453,12 +458,12 @@ let command =
               Sexp.to_string_hum
                 (<:sexp_of<
                     [ `failure of string
-                    | `io_exn of exn
+                    | `lwt_exn of exn
                     | `io_multi_error of
                         [ `failure of string
-                        | `io_exn of exn
-                        | `openning_files of [ `io_exn of exn ] list ] list
-                    | `openning_files of [ `io_exn of exn ] list ] >>
+                        | `lwt_exn of exn
+                        | `openning_files of [ `lwt_exn of exn ] list ] list
+                    | `openning_files of [ `lwt_exn of exn ] list ] >>
                     e)
             in
             error s

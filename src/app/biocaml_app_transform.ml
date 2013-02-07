@@ -211,7 +211,7 @@ module Bam_conversion = struct
         ~buffer_size:output_buffer_size wigfile (fun o ->
           Bed_set.fold bed_set ~init:(return ()) ~f:(fun prev (chr, b, e, f) ->
             prev >>= fun () ->
-            wrap_io (fprintf o "%s %d %d %g\n" chr b e) f)
+            wrap_deferred_lwt (fun () -> fprintf o "%s %d %d %g\n" chr b e f))
         )
     )
 

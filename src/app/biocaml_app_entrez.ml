@@ -7,7 +7,8 @@ module Http_method = struct
   type t = string -> (string, string) Result.t Lwt.t
 
   let detect_exe exe =
-    wrap_io Lwt_unix.system ("which \"" ^ exe ^ "\" > /dev/null 2>&1")
+    wrap_deferred_lwt (fun () ->
+      Lwt_unix.system ("which \"" ^ exe ^ "\" > /dev/null 2>&1"))
     >>= fun ps ->
     begin match ps with
     | Lwt_unix.WEXITED 0 -> return true
@@ -45,7 +46,7 @@ open Lwt
 
 exception Fetch_error of [
 | `failure of string
-| `io_exn of exn
+| `lwt_exn of exn
 | `system_command_error of
     string * [ `exited of int
              | `exn of exn

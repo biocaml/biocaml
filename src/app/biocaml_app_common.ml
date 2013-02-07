@@ -17,8 +17,11 @@ let failf fmt =
 let common_error_to_string = begin function
   | Ok () -> return ()
   | Error (`failure c) -> error (c)
-  | Error (`io_exn e) -> error (sprintf "IO: %s" (Exn.to_string e))
+  | Error (`lwt_exn e) -> error (sprintf "Lwt-exn: %s" (Exn.to_string e))
 end
+
+let wrap_deferred_lwt f =
+  wrap_deferred (fun () -> f ()) ~on_exn:(fun e -> `lwt_exn e)
 
 module Command_line = struct
   include  Command
@@ -74,7 +77,7 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
         let rec print_all stopped =
           match Biocaml_transform.next transfo with
           | `output (Ok s) ->
-            wrap_io (write o) s
+            wrap_deferred_lwt  (fun () -> write o s)
             >>= fun () ->
             print_all stopped
           | `end_of_stream ->
@@ -92,7 +95,7 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
             dbg "=====  ERROR: %s\n%!" s
         in
         let rec loop () =
-          wrap_io (read ~count:input_buffer_size) i
+          wrap_deferred_lwt (fun () -> read ~count:input_buffer_size i)
           >>= fun read_string ->
           (* dbg verbose "read_string: %d" (String.length read_string) *)
           (* >>= fun () -> *)
@@ -149,7 +152,7 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
             (Biocaml_sam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
       in
       let rec loop c =
-        wrap_io (read ~count:input_buffer_size) i
+        wrap_deferred_lwt (fun () -> read ~count:input_buffer_size i)
         >>= fun read_string ->
         let read_bytes = (String.length read_string) + c in
         dbg "read_string: %d, c: %d" (String.length read_string) c
@@ -174,7 +177,7 @@ let pull_next ~in_channel ~transform =
     | `output o -> return (Some o)
     | `end_of_stream -> return None
     | `not_ready ->
-      wrap_io () ~f:(fun () ->
+      wrap_deferred_lwt (fun () ->
         Lwt_io.(read ~count:(buffer_size in_channel) in_channel))
       >>= fun read_string ->
       if read_string = ""
@@ -193,7 +196,7 @@ let flush_transform ~out_channel ~transform =
   let rec loop () =
     match Biocaml_transform.next transform with
     | `output o ->
-      Lwt_io.(wrap_io (write out_channel) o)
+      Lwt_io.(wrap_deferred_lwt (fun () -> write out_channel o))
       >>= fun () ->
       loop ()
     | `end_of_stream -> return ()
@@ -208,7 +211,7 @@ let push_to_the_max ~out_channel ~transform input =
 
 type output_error =
 [ `bam of Biocaml_bam.Transform.item_to_raw_error
-| `sam of Biocaml_sam.Error.item_to_raw 
+| `sam of Biocaml_sam.Error.item_to_raw
 ]
 with sexp_of
 type output_transform = [
@@ -228,7 +231,7 @@ let output_transform_name = function
 | `to_fastq _ -> "to_fastq"
 | `to_char_fasta _ -> "to_char_fasta"
 | `to_int_fasta _ -> "to_int_fasta"
-    
+
 let output_transform_of_tags ~zlib_buffer_size output_tags =
   let rec output_transform ?with_zip  ~zlib_buffer_size output_tags =
     let with_zip_result t =
@@ -238,7 +241,7 @@ let output_transform_of_tags ~zlib_buffer_size output_tags =
     in
     let with_zip_no_error t =
       match with_zip with
-      | Some z -> Transform.compose t z 
+      | Some z -> Transform.compose t z
       | None -> t
     in
     let to_sam_item t = return (`to_sam_item (with_zip_result t) : output_transform) in
@@ -254,14 +257,14 @@ let output_transform_of_tags ~zlib_buffer_size output_tags =
     | `bam ->
       to_sam_item (
         Transform.compose_result_left
-          (Transform.on_output 
+          (Transform.on_output
              (Bam.Transform.item_to_raw ())
              (function Ok o -> Ok o | Error e -> Error (`bam e)))
           (Bam.Transform.raw_to_string ~zlib_buffer_size ()))
     | `sam ->
       to_sam_item (
         Transform.compose_result_left
-          (Transform.on_output 
+          (Transform.on_output
              (Sam.Transform.item_to_raw ())
              (function Ok o -> Ok o | Error e -> Error (`sam e)))
           (Sam.Transform.raw_to_string ()))
