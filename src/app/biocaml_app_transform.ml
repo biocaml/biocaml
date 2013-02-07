@@ -372,6 +372,38 @@ let transform_stringify_errors t =
     | `output e -> `string (Sexp.to_string_hum (sexp_of_output_error e))
     )
 
+let fastq_item_to_sam_item () =
+  let queue =
+    Queue.of_list [
+      `header_line ("1.0", `unsorted, []);
+      `reference_sequence_dictionary [| |];
+    ] in
+  Transform.make () ~name:"fastq_item_to_sam_item"
+    ~next:(fun stopped ->
+      match Queue.dequeue queue with
+      | Some s -> `output s
+      | None -> if stopped then `end_of_stream else `not_ready)
+    ~feed:(fun { Fastq.name; sequence; comment; qualities } ->
+      let quality =
+        String.to_array qualities
+        |! Array.map ~f:(fun c ->
+          Phred_score.(of_ascii c |! Option.value ~default:(of_probability_exn 0.1)))
+      in
+      Queue.enqueue queue
+        (`alignment {
+          Sam.
+          query_template_name = name;
+          flags = Sam.Flags.of_int 0;
+          reference_sequence = `none;
+          position = None;
+          mapping_quality = None;
+          cigar_operations = [| |];
+          next_reference_sequence = `none;
+          next_position = None;
+          template_length = None;
+          sequence = `string sequence;
+          quality;
+          optional_content = []; }))
 
 let transforms_to_do
     input_files_tags_and_transforms meta_output_transform output_tags =
@@ -396,6 +428,18 @@ let transforms_to_do
           Transform.compose_results
             ~on_error:(function `left e -> `input e | `right e -> `output e)
             tri tro
+          |! transform_stringify_errors in
+        let out_extension = Tags.default_extension output_tags in
+        let base = filename_chop_all_extensions filename in
+        `file_to_file (filename, transfo, filename_make_new base out_extension)
+      in
+      loop (m :: acc) t
+    | (filename, tags, `from_fastq tri) :: t, `to_sam_item tro ->
+      let m =
+        let transfo =
+          Transform.(compose_results
+            ~on_error:(function `left e -> `input e | `right e -> `output e)
+            tri (compose (fastq_item_to_sam_item ()) tro))
           |! transform_stringify_errors in
         let out_extension = Tags.default_extension output_tags in
         let base = filename_chop_all_extensions filename in
