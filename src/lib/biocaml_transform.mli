@@ -83,9 +83,9 @@ val name: ('input, 'output) t -> string option
     as outputs without modification. *)
 val identity: ?name:string -> unit -> ('a, 'a) t
 
-(** [to_stream_fn t] returns a function [f] that behaves like
+(** [to_stream_fun t] returns a function [f] that behaves like
     [t] but the inputs and outputs are on standard OCaml streams. *)
-val to_stream_fn:
+val to_stream_fun:
   ('input, 'output) t -> ('input Stream.t -> 'output Stream.t)
 
 

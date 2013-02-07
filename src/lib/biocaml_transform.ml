@@ -55,7 +55,7 @@ let identity ?name () =
       | Some o -> `output o
       | None -> if stopped then `end_of_stream else `not_ready)
 
-let to_stream_fn tr en =
+let to_stream_fun tr en =
   let rec loop_until_ready tr en =
     match next tr with
     | `output o -> Some o
