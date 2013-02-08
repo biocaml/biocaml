@@ -10,7 +10,7 @@ type ('input, 'output) t = {
 
 let make_general ?name ~next ~feed ~stop () = {name; next; feed; stop }
 
-exception Feeding_stopped_transformation of string
+exception Feeding_stopped_transform of string
 
 let feed t i = t.feed i
 let next t = t.next ()
@@ -24,7 +24,7 @@ let make ?name ~feed ~next () =
       if not !stopped then
         feed x
       else
-        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+        raise (Feeding_stopped_transform Option.(value ~default:"" name)))
     ~next:(fun () -> next !stopped)
     ~stop:(fun () -> stopped := true)
 
@@ -36,7 +36,7 @@ let make_result ?name ~feed ~next () =
       if not !stopped then
         feed x
       else
-        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+        raise (Feeding_stopped_transform Option.(value ~default:"" name)))
     ~next:(fun () ->
       if !one_error_has_occured
       then `end_of_stream

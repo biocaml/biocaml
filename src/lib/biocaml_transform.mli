@@ -24,7 +24,7 @@ type ('input, 'output) t
 
 (** Exception thrown when [feed] is called on a transform after it
     has been [stop]ped. *)
-exception Feeding_stopped_transformation of string
+exception Feeding_stopped_transform of string
 
 (** [make ~feed ~next ()] creates a transform that can be
     fed with [feed] and read from with [next].
@@ -56,7 +56,7 @@ val make:
 
 (** [feed t i] stores [i] into the buffered transform.
 
-    @raise Feeding_stopped_transformation [name] if called on a [t]
+    @raise Feeding_stopped_transform [name] if called on a [t]
     that has been [stop]ped. *)
 val feed: ('input, 'output) t -> 'input -> unit
 
@@ -68,7 +68,7 @@ val next: ('input, 'output) t -> [ `output of 'output | `end_of_stream | `not_re
 
 (** [stop t] declares [t] to be stopped, which means subsequent calls to:
 
-    - [feed t _] will raise [Feeding_stopped_transformation]. Feeding
+    - [feed t _] will raise [Feeding_stopped_transform]. Feeding
     a stopped transform is not allowed.
 
     - [next t] will eventually return [`end_of_stream], not
