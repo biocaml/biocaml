@@ -60,8 +60,8 @@ let test_reverse_complement () =
   let m' = reverse_complement m in
   let m'' = reverse_complement m' in
   let a = (m :> float array array)
-  and a' = (m' :> float array array)
-  and a'' = (m'' :> float array array) in
+  and a' = (m' : t :> float array array)
+  and a'' = (m'' : t :> float array array) in
   assert_bool 
     "Reverse complement should be idempotent" 
     (a = a'') ;
