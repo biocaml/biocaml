@@ -210,10 +210,9 @@ let cmd_convert =
               In_channel.with_file input_file ~f:(fun inch ->
                 Out_channel.with_file outfile ~f:(fun ouch ->
                   let stream =
-                    Biocaml_transform.Pull_based.(
-                      of_in_channel ~buffer_size:input_buffer_size inch transform
-                      |! to_stream_exn ~error_to_exn:(function `string s -> Failure s)
-                    ) in
+                    Biocaml_transform.in_channel_strings_to_stream ~buffer_size:input_buffer_size inch transform
+                    |! Biocaml_stream.result_to_exn ~error_to_exn:(function `string s -> Failure s)
+                  in
                   Stream.iter (fun s -> Out_channel.output_string ouch s) stream
                 )
               )
