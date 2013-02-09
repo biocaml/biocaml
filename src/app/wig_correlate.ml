@@ -110,9 +110,9 @@ let corr meth wig_file1 wig_file2 : float =
           ~on_error:ident
           (Biocaml_wig.Transform.string_to_t ())
           (Biocaml_wig.Transform.t_to_bed_graph ()) in
-      Biocaml_transform.Pull_based.(
-        of_file file transfo
-        |! to_stream_exn
+      In_channel.with_file file ~f:(fun inp ->
+        Biocaml_transform.in_channel_strings_to_stream inp transfo
+        |! Biocaml_stream.result_to_exn
             ~error_to_exn:(function
             | `left e ->
               failwithf "Parsing error %s"
