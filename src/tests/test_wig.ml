@@ -1,14 +1,13 @@
-
 open OUnit
-open Core.Std
+open Biocaml_internal_pervasives
+module Transform = Biocaml_transform
 
-module TS = Biocaml_transform.Pull_based
 let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
   let t =
     Biocaml_wig.Transform.string_to_t  ~filename () in
-  let stream = TS.of_file ~buffer_size:10 filename t in
-  stream
+  In_channel.with_file filename ~f:(fun ic ->
+    Transform.in_channel_strings_to_stream ~buffer_size:10 ic t)
 
 let file_reprinter_stream file =
   let filename = "src/tests/data/" ^ file in
@@ -16,20 +15,20 @@ let file_reprinter_stream file =
     Biocaml_wig.Transform.string_to_t ~filename () in
   let printer = Biocaml_wig.Transform.t_to_string () in
   let transfo = Biocaml_transform.compose_result_left t printer in
-  let stream = TS.of_file ~buffer_size:4 filename transfo in
-  stream
+  In_channel.with_file filename ~f:(fun ic ->
+    Transform.in_channel_strings_to_stream ~buffer_size:4 ic transfo)
 
 let check_output s m v =
-  assert_bool (sprintf "check_output: %s" m) (TS.next s = `output (Ok v))
+  assert_bool (sprintf "check_output: %s" m) (Stream.next s = Some (Ok v))
 let check_error s m f =
   assert_bool (sprintf "check_error: %s" m) (
-    match TS.next s with
-    | `output (Error e) -> f e
+    match Stream.next s with
+    | Some (Error e) -> f e
     | _ -> false)
 let check_end s =
-  assert_bool "check_end 1" (TS.next s = `end_of_stream);
-  assert_bool "check_end 2" (TS.next s = `end_of_stream);
-  assert_bool "check_end 3" (TS.next s = `end_of_stream);
+  assert_bool "check_end 1" (Stream.next s = None);
+  assert_bool "check_end 2" (Stream.next s = None);
+  assert_bool "check_end 3" (Stream.next s = None);
   ()
 
 let test_parser () =
@@ -119,9 +118,8 @@ let test_to_bed_graph () =
       Biocaml_wig.Transform.string_to_t ~filename () in
     let to_bg = Biocaml_wig.Transform.t_to_bed_graph () in
     let transfo = Biocaml_transform.compose_results_merge_error t to_bg in
-    let stream = TS.of_file ~buffer_size:7 filename transfo in
-    stream in
-  
+    In_channel.with_file filename ~f:(fun ic ->
+      Transform.in_channel_strings_to_stream ~buffer_size:7 ic transfo) in
   let s = stream "wig_01.wig" in
 
   check_output s "" ( ("chr19", 49304701, 49304850, 10.));
