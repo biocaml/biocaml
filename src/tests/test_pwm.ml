@@ -1,5 +1,5 @@
 open OUnit
-open Batteries
+open Biocaml_internal_pervasives
 open Biocaml.Pwm
 
 let random_dna_char () = match Random.int 8 with
@@ -27,7 +27,7 @@ let balmer_freqs = [|
 
 let balmer_counts = 
   Array.map 
-    (Array.map (fun f -> int_of_float (float 309 *. f)))
+    ~f:(Array.map ~f:(fun f -> Float.to_int (float 309 *. f)))
     balmer_freqs
 
 let dr5_matrix ?seq () = 
@@ -47,11 +47,11 @@ let test_c_and_caml_versions_agree () =
   let c_res = fast_scan mat seq (-10.)
   and ocaml_res = scan mat seq (-10.) in
   assert_bool "Hits number" List.(length c_res = length ocaml_res) ;
-  assert_bool "Same positions" List.(map fst c_res = map fst ocaml_res) ;
+  assert_bool "Same positions" List.(map ~f:fst c_res = map ~f:fst ocaml_res) ;
   let eps =
-    List.(fold_left2 
-	    (fun accu (_,x1) (_,x2) -> Pervasives.max accu (abs_float (x1 -. x2))) 
-	    0. c_res ocaml_res)
+    List.(fold2_exn
+	    ~f:(fun accu (_,x1) (_,x2) -> Pervasives.max accu (Float.abs (x1 -. x2))) 
+	    ~init:0. c_res ocaml_res)
   in assert_bool "Score no more different than eps=1e-4" (eps < 1e-4)
 
 let test_reverse_complement () = 
@@ -73,14 +73,14 @@ let test_best_hit () =
   let m = dr5_matrix () in
   let sequences = Array.init 1000 (fun _ -> random_dna_string 10000) in
   let f s =
-    let all_hits = scan m s neg_infinity
+    let all_hits = scan m s Float.neg_infinity
     and _, best_hit = best_hit m s in
-    let best_of_all_hits = List.fold_left (fun accu (_, s) -> max accu s) neg_infinity all_hits in
+    let best_of_all_hits = List.fold_left ~f:(fun accu (_, s) -> max accu s) ~init:Float.neg_infinity all_hits in
     best_hit = best_of_all_hits
   in
   assert_bool
     "best_hit returns the best position found by scan"
-    Array.(for_all f sequences)
+    Array.(for_all ~f sequences)
 
 let tests = "PhredScore" >::: [
   "C version doesn't crash" >:: test_c_version_doesnt_crash;
