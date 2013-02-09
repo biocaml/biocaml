@@ -1,7 +1,6 @@
 open OUnit
 open Biocaml_internal_pervasives
-module Fasta = Biocaml_fasta
-module Transform = Biocaml_transform
+open Biocaml
 
 let make_stream file =
   let t =
@@ -105,7 +104,7 @@ let score_parser () =
 let sequence_aggregator_stream file =
   let t = Fasta.Transform.string_to_char_seq_raw_item  () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
-  let transform = Biocaml_transform.compose_results_merge_error t aggregator in
+  let transform = Transform.compose_results_merge_error t aggregator in
   In_channel.with_file file ~f:(fun ic ->
     Transform.in_channel_strings_to_stream ~buffer_size:5 ic transform)
 
@@ -138,7 +137,7 @@ let score_aggregator () =
     Fasta.Transform.string_to_int_seq_raw_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
-  let transform = Biocaml_transform.compose_results_merge_error t aggregator in
+  let transform = Transform.compose_results_merge_error t aggregator in
   let stream = In_channel.with_file "src/tests/data/fasta_05.fa" ~f:(fun ic ->
     Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform) in
   assert_bool "scoaggr: 1"
@@ -162,7 +161,7 @@ let sequence_slicer_stream file =
   let slicer =
     Fasta.Transform.char_seq_item_to_raw_item ~items_per_line:4 () in
   let transform =
-    Biocaml_transform.(compose_result_left
+    Transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
   In_channel.with_file file ~f:(fun ic ->
     Transform.in_channel_strings_to_stream ~buffer_size:5 ic transform)
@@ -205,7 +204,7 @@ let score_slicer () =
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let slicer = Fasta.Transform.int_seq_item_to_raw_item ~items_per_line:3 () in
   let transform =
-    Biocaml_transform.(compose_result_left
+    Transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
   let stream = In_channel.with_file "src/tests/data/fasta_05.fa" ~f:(fun ic ->
     Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform) in

@@ -1,11 +1,11 @@
-open Biocaml_internal_pervasives
 open OUnit
-open Biocaml_roc
+open Biocaml_internal_pervasives
+open Biocaml
 
 let auc pos neg = 
-  make ~pos:(List.to_stream pos) ~neg:(List.to_stream neg)
-  |! Stream.map ~f:(fun (_,cm) -> sensitivity cm, specificity cm)
-  |! auc
+  Roc.make ~pos:(List.to_stream pos) ~neg:(List.to_stream neg)
+  |! Stream.map ~f:(fun (_,cm) -> Roc.sensitivity cm, Roc.specificity cm)
+  |! Roc.auc
 
 (* 
  * This is a test against the R library ROCR. The reference result

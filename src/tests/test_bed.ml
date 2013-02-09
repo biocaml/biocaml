@@ -1,11 +1,10 @@
 open OUnit
 open Biocaml_internal_pervasives
-module Bed = Biocaml_bed
-module Transform = Biocaml_transform
+open Biocaml
 
 let make_stream ?more_columns file : ((Bed.t, Bed.parse_error) Result.t) Stream.t =
   let filename = "src/tests/data/" ^ file in
-  let bed_parser = Biocaml_bed.Transform.string_to_t ?more_columns ~filename () in
+  let bed_parser = Bed.Transform.string_to_t ?more_columns ~filename () in
   In_channel.with_file filename ~f:(fun inp ->
     Transform.in_channel_strings_to_stream ~buffer_size:10 inp bed_parser
   )
@@ -54,9 +53,9 @@ let test_parser () =
 
 let make_printer_stream ?more_columns file =
   let filename = "src/tests/data/" ^ file in
-  let bed_parser = Biocaml_bed.Transform.string_to_t ?more_columns ~filename () in
-  let printer = Biocaml_bed.Transform.t_to_string () in
-  let trans = Biocaml_transform.compose_result_left bed_parser printer in
+  let bed_parser = Bed.Transform.string_to_t ?more_columns ~filename () in
+  let printer = Bed.Transform.t_to_string () in
+  let trans = Transform.compose_result_left bed_parser printer in
   In_channel.with_file filename ~f:(fun ic ->
     Transform.in_channel_strings_to_stream ~buffer_size:10 ic trans
   )

@@ -1,8 +1,5 @@
-
-(* Test for Biocaml_rSet *)
-
 open OUnit
-open Core.Std
+open Biocaml_internal_pervasives
 open Biocaml
 
 module Test = struct

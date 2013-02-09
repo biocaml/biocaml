@@ -1,6 +1,6 @@
 open OUnit
 open Batteries
-open Biocaml_pwm
+open Biocaml.Pwm
 
 let random_dna_char () = match Random.int 8 with
     0 -> 'a'

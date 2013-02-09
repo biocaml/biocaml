@@ -1,9 +1,7 @@
 open OUnit
 open Batteries
 open Printf
-
-module Range = Biocaml_range
-module Interval_tree = Biocaml_interval_tree
+open Biocaml
 
 module ListImpl = struct
   type 'a t = (int * int * 'a) list
