@@ -1,4 +1,4 @@
-.PHONY: build doc test all install uninstall reinstall clean distclean
+.PHONY: build doc doctest test all install uninstall reinstall clean distclean
 
 SETUP = ocaml setup.ml
 
@@ -9,6 +9,17 @@ all: build
 
 doc: setup.data build
 	$(SETUP) -doc $(DOCFLAGS)
+
+doclib/index.html: setup.data build
+	mkdir -p doclib
+	ocamlfind ocamldoc \
+	  -syntax camlp4o -package batteries,xmlm,zip,pcre,core,sexplib.syntax \
+	  -charset UTF-8 -d doclib/ -t "The Biocaml Library" -html \
+	  -keep-code -colorize-code _build/src/lib/*.mli _build/src/lib/*.ml \
+	  -sort -I _build/src/lib/. \
+	  -intro src/doc/intro.txt
+
+doctest: doclib/index.html
 
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
