@@ -277,54 +277,6 @@ module Printer_queue: sig
 
 end
 
-(** {3 Non-cooperative Streams } *)
-
-(** Pull-based streams built out of transforms (inherently
-    non-cooperative). *)
-module Pull_based: sig
-
-  type 'a stream
-  (** A stream container. *)
-
-  val next: 'a stream -> 'a
-  (** Call the basic operation of a stream. *)
-
-  val of_feeder:
-    (unit -> 'input option) ->
-    ('input, 'a) t ->
-    [ `end_of_stream | `output of 'a ] stream
-  (** Create a stream from a feeding function. The transform is
-      fed with the function's output ([None] means end-of-stream). *)
-
-  val of_in_channel:
-    ?buffer_size:int ->
-    in_channel ->
-    (string, 'a) t ->
-    [ `end_of_stream | `output of 'a ] stream
-  (** Create a stream from an [in_channel]. The transformation is fed
-      with strings of size [buffer_size] ({i or less}). *)
-
-  val of_file :
-    ?buffer_size:int ->
-    string ->
-    (string, 'a) t ->
-    [ `end_of_stream | `output of 'a ] stream
-  (** Like [of_in_channel] but internally open the file and close it on
-      [`end_of_stream] ({b Warning:} the channel is not closed on [`error _]. *)
-
-  val to_stream_exn:
-    error_to_exn:('error -> exn) ->
-    [ `end_of_stream | `output of ('output, 'error) Core.Result.t ] stream ->
-    'output Stream.t
-  (** Convert a stream to an exception-full OCaml [Stream.t]. *)
-
-  val to_stream_result:
-    [ `end_of_stream | `output of ('output, 'error) Core.Result.t ] stream ->
-    ('output, 'error) Core.Result.t Stream.t
-  (** Convert a stream to an OCaml [Stream.t] of [Result.t] values. *)
-
-end
-
 
 (** {6 Low-level API} *)
 
