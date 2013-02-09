@@ -7,9 +7,6 @@ type error =
 | `right of Biocaml_bed.parse_error
 ]
 
-type foo =
-  (string, (Biocaml_bed.t, error) Result.t) Biocaml_transform.t
-
 let some_ok x = Some (Ok x)
 
 let make_stream () : ((Biocaml_bed.t, error) Result.t) Stream.t * (unit -> unit) =
@@ -17,7 +14,7 @@ let make_stream () : ((Biocaml_bed.t, error) Result.t) Stream.t * (unit -> unit)
   let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
   Unix.system (sprintf "gzip -c %s > %s" file tmp) |! ignore;
 
-  let unzip_and_parse : foo =
+  let unzip_and_parse =
     Biocaml_transform.compose_results_merge_error
       (Biocaml_zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
       (Biocaml_bed.Transform.string_to_t
