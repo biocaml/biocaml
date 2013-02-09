@@ -88,6 +88,12 @@ val identity: ?name:string -> unit -> ('a, 'a) t
 val to_stream_fun:
   ('input, 'output) t -> ('input Stream.t -> 'output Stream.t)
 
+(** [in_channel_strings_to_stream ic t] returns a stream of ['output]s
+    given a transform [t] that knows how to produce ['output]s from
+    strings. The strings are read from the in_channel. *)
+val in_channel_strings_to_stream :
+  ?buffer_size:int -> in_channel -> (string, 'output) t -> 'output Stream.t
+
 
 (** {6 Compose} Buffered transforms are mutable and one should not
     expect nice mathematical properties from composing them. The
