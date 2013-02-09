@@ -184,7 +184,7 @@ module Error : sig
 
 end
 
-val in_channel_to_item_stream : ?filename:string -> in_channel ->
+val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
   (item, Error.parse) Core.Result.t Stream.t
 
 module Low_level_parsing: sig
