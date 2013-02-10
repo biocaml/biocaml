@@ -6,9 +6,9 @@ let make_stream file =
   let t =
     Fasta.Transform.string_to_char_seq_raw_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
-  In_channel.with_file file ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
-  )
+  let ic = open_in file in
+  Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
+
 
 let check_next_ok stream v = Stream.next stream = Some (Ok v)
 
@@ -84,8 +84,8 @@ let score_parser () =
   let t = 
     Fasta.Transform.string_to_int_seq_raw_item ~pedantic:true 
       ~sharp_comments:true ~semicolon_comments:true () in
-  let stream = In_channel.with_file "src/tests/data/fasta_05.fa" ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:100 ic t) in
+  let ic = open_in "src/tests/data/fasta_05.fa" in
+  let stream = Transform.in_channel_strings_to_stream ~buffer_size:100 ic t in
   parse_comments stream;
   assert_bool "Name 1" (check_next_ok stream (`header "sequence 1|sid=4"));
   ignore (Stream.next stream);
@@ -105,8 +105,8 @@ let sequence_aggregator_stream file =
   let t = Fasta.Transform.string_to_char_seq_raw_item  () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
   let transform = Transform.compose_results_merge_error t aggregator in
-  In_channel.with_file file ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:5 ic transform)
+  let ic = open_in file in
+  Transform.in_channel_strings_to_stream ~buffer_size:5 ic transform
 
 let sequence_aggregator () =
   let stream = sequence_aggregator_stream "src/tests/data/fasta_02.fa" in
@@ -138,8 +138,8 @@ let score_aggregator () =
       ~sharp_comments:true ~semicolon_comments:true () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let transform = Transform.compose_results_merge_error t aggregator in
-  let stream = In_channel.with_file "src/tests/data/fasta_05.fa" ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform) in
+  let ic = open_in "src/tests/data/fasta_05.fa" in
+  let stream = Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform in
   assert_bool "scoaggr: 1"
     (check_next_ok stream  {Fasta.header="sequence 1|sid=4";
                             sequence=[42; 42; 224354; 54325543;
@@ -163,8 +163,8 @@ let sequence_slicer_stream file =
   let transform =
     Transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
-  In_channel.with_file file ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:5 ic transform)
+  let ic = open_in file in
+  Transform.in_channel_strings_to_stream ~buffer_size:5 ic transform
 
 let sequence_slicer () =
   let stream = sequence_slicer_stream "src/tests/data/fasta_02.fa" in
@@ -206,8 +206,8 @@ let score_slicer () =
   let transform =
     Transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
-  let stream = In_channel.with_file "src/tests/data/fasta_05.fa" ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform) in
+  let ic = open_in "src/tests/data/fasta_05.fa" in
+  let stream = Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform in
   assert_bool "name 1" (check_next_ok stream (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (check_next_ok stream (`partial_sequence [42; 42; 224354;]));
   assert_bool "sco: 2" (check_next_ok stream (`partial_sequence [54325543; 54354544; 543554;]));

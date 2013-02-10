@@ -6,8 +6,8 @@ let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
   let t =
     Wig.Transform.string_to_t  ~filename () in
-  In_channel.with_file filename ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:10 ic t)
+  let ic = open_in filename in
+  Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
 
 let file_reprinter_stream file =
   let filename = "src/tests/data/" ^ file in
@@ -15,8 +15,8 @@ let file_reprinter_stream file =
     Wig.Transform.string_to_t ~filename () in
   let printer = Wig.Transform.t_to_string () in
   let transfo = Transform.compose_result_left t printer in
-  In_channel.with_file filename ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size:4 ic transfo)
+  let ic = open_in filename in
+  Transform.in_channel_strings_to_stream ~buffer_size:4 ic transfo
 
 let check_output s m v =
   assert_bool (sprintf "check_output: %s" m) (Stream.next s = Some (Ok v))
@@ -118,8 +118,8 @@ let test_to_bed_graph () =
       Wig.Transform.string_to_t ~filename () in
     let to_bg = Wig.Transform.t_to_bed_graph () in
     let transfo = Transform.compose_results_merge_error t to_bg in
-    In_channel.with_file filename ~f:(fun ic ->
-      Transform.in_channel_strings_to_stream ~buffer_size:7 ic transfo) in
+    let ic = open_in filename in
+    Transform.in_channel_strings_to_stream ~buffer_size:7 ic transfo in
   let s = stream "wig_01.wig" in
 
   check_output s "" ( ("chr19", 49304701, 49304850, 10.));

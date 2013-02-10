@@ -19,8 +19,8 @@ let make_stream () : ((Bed.t, error) Result.t) Stream.t * (unit -> unit) =
       (Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
       (Bed.Transform.string_to_t
          ~more_columns:(`enforce [`string; `int; `float]) ()) in
-  let stream = In_channel.with_file tmp ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ic unzip_and_parse) in
+  let ic = open_in tmp in
+  let stream = Transform.in_channel_strings_to_stream ic unzip_and_parse in
   (stream, fun () -> Sys.remove tmp)
 
 let test_unzip () =
@@ -50,9 +50,8 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   cmd "gzip %s" tmp2;
   cmd "cat %s.gz %s.gz > %s.gz" tmp1 tmp2 tmp3;
   let t = Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size () in
-  let s = In_channel.with_file (sprintf "%s.gz" tmp3) ~f:(fun ic ->
-    Transform.in_channel_strings_to_stream ~buffer_size ic t)
-  in
+  let ic = open_in (sprintf "%s.gz" tmp3) in
+  let s = Transform.in_channel_strings_to_stream ~buffer_size ic t in
   let l = Stream.npeek s 300 in
   let expected = sprintf "%s\n%s\n" first second in
   let obtained =
