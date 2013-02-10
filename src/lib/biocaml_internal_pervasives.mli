@@ -87,7 +87,11 @@ module Result : sig
 
 end
 include module type of Result.Export
-module Set : module type of Core.Std.Set
+module Set : sig
+  include module type of Core.Std.Set
+  val to_stream : ('a, 'b) t -> 'a Stream.t
+  val of_stream : 'a Stream.t -> 'a Poly.t
+end
 include module type of Sexplib.Conv
 module Stack : module type of Core.Std.Stack
 module String : module type of Core.Std.String

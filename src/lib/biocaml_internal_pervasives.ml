@@ -109,7 +109,12 @@ module Result = struct
 
 end
 include Result.Export
-module Set = Core.Std.Set
+module Set = struct
+  include Core.Std.Set
+  let to_stream t = Stream.of_list (to_list t)
+  let of_stream xs =
+    Stream.fold xs ~init:Poly.empty ~f:(fun accu e -> Poly.add accu e) ;
+end
 include Sexplib.Conv
 module Stack = Core.Std.Stack
 module String = Core.Std.String

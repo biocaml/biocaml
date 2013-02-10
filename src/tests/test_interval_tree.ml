@@ -4,8 +4,6 @@ open Printf
 open Biocaml
 open Stream.Infix
 
-module Set = BatSet
-
 module ListImpl = struct
   type 'a t = (int * int * 'a) list
 
@@ -154,9 +152,9 @@ let test_find_intersecting_elem2 () =
   for i = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |! List.of_stream
     and lo, hi, _ = random_interval  ~ub:1000 () in
-    let l = L.(find_intersecting_elem lo hi (of_list intervals)) |! BatStream.enum |! Set.of_enum
-    and t = T.(find_intersecting_elem lo hi (of_list intervals)) |! BatStream.enum |! Set.of_enum in
-    assert_equal Set.(cardinal (union (diff l t) (diff t l))) 0 ;
+    let l = L.(find_intersecting_elem lo hi (of_list intervals)) |! Set.of_stream
+    and t = T.(find_intersecting_elem lo hi (of_list intervals)) |! Set.of_stream in
+    assert_equal Set.(length (union (diff l t) (diff t l))) 0 ;
   (* [assert_equal l t] is not a valid test because sets cannot be
      compared with ( = ). Indeed, a set is an AVL tree whose structure
      may depend on the order its elements were added: ( = ) compare
