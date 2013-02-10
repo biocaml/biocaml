@@ -14,6 +14,7 @@ module Gff            = Biocaml_gff
 module Histogram      = Biocaml_histogram    
 module Interval_tree  = Biocaml_interval_tree
 module Jaspar         = Biocaml_jaspar
+module Line           = Biocaml_line
 module Lines          = Biocaml_lines
 module Math           = Biocaml_math         
 module MzData         = Biocaml_mzData

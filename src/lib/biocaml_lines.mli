@@ -1,9 +1,6 @@
-(** Lines of a file. The end of a line is indicated by a single
-    newline character. *)
+(** Lines of a file. *)
 
-(** A single line, possibly empty, without the ending newline
-    character. *)
-type item = private string
+type item = private Biocaml_line.t
 
 (** Errors.
 
@@ -20,29 +17,6 @@ end
 val of_char_stream : char Stream.t -> item Stream.t
 val of_channel : in_channel -> item Stream.t
 val to_channel : item Stream.t -> out_channel -> unit
-
-(** [string_to_items s] splits [s] on newline characters, returning
-    the resuling list of lines. The returned bool is true if the final
-    line ended with a newline or false otherwise. *)
-val string_to_items : string -> (item list * bool)
-
-
-(** {6 String Operations}
-
-    A value [x : item] can always be coerced into a string by doing [x
-    :> string]. However, sometimes even this bit of notation is
-    cumbersome. To help avoid it, we import some string functions here
-    so they can be directly used on [item] types. Many string
-    functions, e.g. concatentation, do not guarantee that the result
-    will be a line, and so are not included here. For documentation,
-    see
-    {{:https://ocaml.janestreet.com/ocaml-core/latest/doc/core/String.html}
-    Core's String module}.
-*)
-
-val lstrip : ?drop:(char -> bool) -> item -> item
-val rstrip : ?drop:(char -> bool) -> item -> item
-val strip : ?drop:(char -> bool) -> item -> item
 
 (** Buffer of lines. *)
 module Buffer : sig
@@ -84,7 +58,7 @@ module Buffer : sig
 
   (** Return any remaining lines and the unfinished string, without
       removing them from the buffer. *)
-  val contents : t -> string list * string option
+  val contents : t -> item list * string option
 
   (** Empty the buffer. Subsequent call to [contents] will return
       [(\[\], None)]. *)
@@ -114,7 +88,7 @@ module Transform : sig
       [ `not_ready | `output of ('b, 'errnext) Core.Result.t ]) ->
     on_error:(
       [`next of 'errnext
-      | `incomplete_input of Biocaml_pos.t * string list * string option] ->
+      | `incomplete_input of Biocaml_pos.t * item list * string option] ->
         'err) ->
     unit ->
     (string, ('b, 'err) Core.Result.t) Biocaml_transform.t
@@ -128,7 +102,7 @@ module Transform : sig
       [ `not_ready
       | `output of ('a,
                    [> `incomplete_input of
-                     Biocaml_pos.t * string list * string option ]
+                     Biocaml_pos.t * item list * string option ]
                      as 'b) Core.Result.t ]) ->
     unit ->
     (string, ('a, 'b) Core.Result.t) Biocaml_transform.t

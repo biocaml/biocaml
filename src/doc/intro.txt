@@ -48,6 +48,11 @@ Biocaml_pwm
 Biocaml_roc
 }
 
+{8 Strings}
+{!modules:
+Biocaml_line
+}
+
 {8 Utilities}
 {!modules:
 Biocaml_about
