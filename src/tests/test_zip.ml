@@ -30,7 +30,7 @@ let test_unzip () =
   assert_bool "03 chrA" (Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
   assert_bool "03 chrB" (Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
   assert_bool "03 chrC" (Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
-  assert_raises Caml.Stream.Failure (fun () -> Stream.next s);
+  assert_bool "03 EOF" (Stream.next s = None);
   clean_up ()
 
 let cmd fmt = ksprintf (fun s ->
