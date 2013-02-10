@@ -16,16 +16,14 @@ include Biocaml_streamable.S with type 'a t := 'a t
 (** Raised when asking for an element of an empty stream, and by
     {!Genlex} parsers when none of the first components of the stream
     patterns is accepted.
-
-exception Failure
 *)
+exception Failure
 
 (** Raised by {!Genlex} parsers when the first component of a stream
     pattern is accepted, but one of the following components is
     rejected.
-
-exception Error of string
 *)
+exception Error of string
 
 (** Raised by operations working on more than one stream where all
     streams are expected to be of the same length. *)
