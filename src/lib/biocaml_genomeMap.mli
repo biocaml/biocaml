@@ -1,4 +1,3 @@
-open Batteries
 type range = Biocaml_range.t
 type 'a location = 'a * range
 
@@ -54,10 +53,10 @@ module LSet : sig
       intersection with one of the locations in [lmap], and returns
       [false] otherwise *)
 
-  val closest : 'a location -> 'a t -> 'a location * int
+  val closest : 'a location -> 'a t -> ('a location * int) option
   (** [closest loc lset] returns the location in [lset] that is the
       closest to [loc], along with the actual (minimal)
-      distance. Throws [Not_found] if there is no location in [lset]
+      distance. Returns [None] if there is no location in [lset]
       that comes from the same sequence than [loc]. *)
     
   val intersecting_elems : 'a location -> 'a t -> 'a location Stream.t
@@ -78,10 +77,10 @@ module LMap : sig
         intersection with one of the locations in [lmap], and returns
         [false] otherwise *)
 
-  val closest : 'a location -> ('a,'b) t -> 'a location * 'b * int
+  val closest : 'a location -> ('a,'b) t -> ('a location * 'b * int) option
     (** [closest loc lmap] returns the location in [lmap] that is the 
         closest to [loc], along with its annotation and the actual (minimal) 
-        distance. Throws [Not_found] if there is no location in [lmap] 
+        distance. Returns [None] if there is no location in [lmap] 
         that comes from the same sequence than [loc]. *)
 
   val intersecting_elems : 'a location -> ('a, 'b) t -> ('a location * 'b) Stream.t

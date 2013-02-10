@@ -54,7 +54,6 @@ module Hashtbl = struct
     Stream.iter xs ~f:(fun (key,data) -> Poly.replace t ~key ~data) ;
     t
 end
-
 module Int = Core.Std.Int
 include Int.Infix
 module In_channel = Core.Std.In_channel
@@ -66,7 +65,12 @@ include Interfaces
 module Interval = Core.Std.Interval
 module Lazy = Core.Std.Lazy
 include List.Infix
-module Map = Core.Std.Map
+module Map = struct
+  include Core.Std.Map
+  let to_stream t = Stream.of_list (to_alist t)
+  let of_stream xs =
+    Stream.fold xs ~init:Poly.empty ~f:(fun accu (key,data) -> Poly.add accu ~key ~data) ;
+end
 module Monad = Core.Std.Monad
 module Nat = Core.Std.Nat
 module Nativeint = Core.Std.Nativeint

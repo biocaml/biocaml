@@ -49,6 +49,7 @@ Library biocaml
            , Biocaml_gff
            , Biocaml_histogram
            , Biocaml_interval_tree
+           , Biocaml_iset
            , Biocaml_jaspar
            , Biocaml_line
            , Biocaml_lines

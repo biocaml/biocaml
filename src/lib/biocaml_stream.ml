@@ -457,6 +457,10 @@ let unfold init f =
     | None -> None
   )
 
+let of_lazy s =
+  let next i = next (Lazy.force s) in
+  from next
+
 (* Default buffer_size set to UNIX_BUFFER_SIZE in OCaml's
    otherlibs/unix/unixsupport.h, but unsure if this is a good
    choice. *)

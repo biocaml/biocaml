@@ -55,7 +55,11 @@ include module type of Interfaces
 module Interval : module type of Core.Std.Interval
 module Lazy : module type of Core.Std.Lazy
 include module type of List.Infix
-module Map : module type of Core.Std.Map
+module Map : sig
+  include module type of Core.Std.Map
+  val to_stream : ('a, 'b, 'c) t -> ('a * 'b) Stream.t
+  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) Poly.t
+end
 module Monad : module type of Core.Std.Monad
 module Nat : module type of Core.Std.Nat
 module Nativeint : module type of Core.Std.Nativeint
