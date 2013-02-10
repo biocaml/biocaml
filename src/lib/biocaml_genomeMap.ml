@@ -1,4 +1,8 @@
-open Batteries
+open Biocaml_internal_pervasives
+open Stream.Infix
+
+module ISet = Batteries.ISet
+module Map = Batteries.Map
 
 type range = Biocaml_range.t
 type 'a location = 'a * range
@@ -49,7 +53,7 @@ module Selection = struct
       inter
 	Range.(add_range r.lo r.hi empty)
 	(Map.find k dom)
-  |> cardinal
+  |! cardinal
     with Not_found -> 0
   )
 
@@ -57,26 +61,27 @@ module Selection = struct
     try Range.(iset_intersects_range r.lo r.hi (Map.find k dom))
     with Not_found -> false
       
-  let enum dom =
-    (Map.enum dom) /@ (fun (k,s) -> Enum.map (fun (lo,hi) -> k, Range.make lo hi) (ISet.enum s))
-      |> Enum.concat
+  let to_stream dom =
+    (Map.enum dom |! BatStream.of_enum) 
+    /@ (fun (k,s) -> Stream.map ~f:(fun (lo,hi) -> k, Range.make lo hi) (ISet.enum s |! BatStream.of_enum))
+      |! Stream.concat
 
-  let of_enum e =
+  let of_stream e =
     let accu = Accu.create ISet.empty fst (fun (_,r) -> Range.(ISet.add_range r.lo r.hi)) in
-    Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
+    Stream.iter ~f:(fun loc -> Accu.add accu loc loc ) e ;
     Map.of_enum (BatStream.enum (Accu.stream accu))
 end
 
 
 module type Signal = sig
   type ('a,'b) t
-  val make : ('b list -> 'c) -> ('a location * 'c) Enum.t -> ('a,'c) t
+  val make : ('b list -> 'c) -> ('a location * 'c) Stream.t -> ('a,'c) t
 
   val eval : 'a -> int -> ('a,'b) t -> 'b
 
   val fold : ('a -> Range.t -> 'b -> 'c -> 'c) -> ('a,'b) t -> 'c -> 'c
 
-  val enum : ('a,'b) t -> ('a location * 'b) Enum.t
+  val to_stream : ('a,'b) t -> ('a location * 'b) Stream.t
 end
 
 module LMap = struct
@@ -99,19 +104,19 @@ module LMap = struct
     try 
       T.find_intersecting_elem lo hi (Map.find k lmap)
       /@ (fun (lo,hi,x) -> (k, Range.make lo hi), x)
-    with Not_found -> Enum.empty ()
+    with Not_found -> Stream.empty ()
 
-  let enum dom =
-    (Map.enum dom) 
-    /@ (fun (k,t) -> Enum.map (fun (lo,hi,x) -> (k, Range.make lo hi), x) (T.enum t))
-    |> Enum.concat
+  let to_stream dom =
+    (BatMap.enum dom|!BatStream.of_enum) 
+    /@ (fun (k,t) -> Stream.map ~f:(fun (lo,hi,x) -> (k, Range.make lo hi), x) (T.to_stream t))
+    |! Stream.concat
 
-  let of_enum e =
+  let of_stream e =
     let accu =
-      Accu.create T.empty (fun x -> fst x |> fst)
+      Accu.create T.empty (fun x -> fst x |! fst)
         (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
-    Enum.iter (fun loc -> Accu.add accu loc loc ) e ;
-    Map.of_enum (BatStream.enum (Accu.stream accu))
+    Stream.iter ~f:(fun loc -> Accu.add accu loc loc ) e ;
+    BatMap.of_enum (BatStream.enum (Accu.stream accu))
 
 end
 
@@ -129,8 +134,8 @@ module LSet = struct
   let intersecting_elems loc lset = 
     LMap.intersecting_elems loc lset /@ fst
 
-  let enum lset = LMap.enum lset /@ fst
-  let of_enum e = e /@ (fun x -> x, ()) |> LMap.of_enum
+  let to_stream lset = LMap.to_stream lset /@ fst
+  let of_stream e = e /@ (fun x -> x, ()) |! LMap.of_stream
 
 end
 
@@ -138,7 +143,7 @@ end
 module type LMap_spec = sig
   type ('a,'b) t
 
-  val make : ('a location * 'b) Enum.t -> ('a,'b) t
+  val make : ('a location * 'b) Stream.t -> ('a,'b) t
 
   val fold : ('a -> Range.t -> 'b -> 'c -> 'c) -> ('a,'b) t -> 'c -> 'c
 
@@ -146,7 +151,7 @@ module type LMap_spec = sig
 
   val intersects : 'a location -> ('a,'b) t -> bool
 
-  val enum : ('a,'b) t -> ('a location * 'b) Enum.t
+  val to_stream : ('a,'b) t -> ('a location * 'b) Stream.t
 
   val union : ('a,'b) t -> ('a,'b) t -> ('a,'b) t
   val add : 'a location -> 'b -> ('a,'b) t -> ('a,'b) t
