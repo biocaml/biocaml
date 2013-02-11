@@ -3,7 +3,7 @@ open OUnit
 open Biocaml_roc
 
 let auc pos neg = 
-  make ~pos:(List.stream pos) ~neg:(List.stream neg)
+  make ~pos:(List.to_stream pos) ~neg:(List.to_stream neg)
   |! Stream.map ~f:(fun (_,cm) -> sensitivity cm, specificity cm)
   |! auc
 

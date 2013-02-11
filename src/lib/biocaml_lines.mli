@@ -5,10 +5,44 @@
     character. *)
 type item = private string
 
+(** Errors.
+
+    - [`premature_end_of_input] - expected more lines than available.
+*)
+module Error : sig
+
+  type t = [
+  | `premature_end_of_input
+  ]
+
+end
+
+val of_char_stream : char Stream.t -> item Stream.t
+val of_channel : in_channel -> item Stream.t
+val to_channel : item Stream.t -> out_channel -> unit
+
 (** [string_to_items s] splits [s] on newline characters, returning
     the resuling list of lines. The returned bool is true if the final
     line ended with a newline or false otherwise. *)
 val string_to_items : string -> (item list * bool)
+
+
+(** {6 String Operations}
+
+    A value [x : item] can always be coerced into a string by doing [x
+    :> string]. However, sometimes even this bit of notation is
+    cumbersome. To help avoid it, we import some string functions here
+    so they can be directly used on [item] types. Many string
+    functions, e.g. concatentation, do not guarantee that the result
+    will be a line, and so are not included here. For documentation,
+    see
+    {{:https://ocaml.janestreet.com/ocaml-core/latest/doc/core/String.html}
+    Core's String module}.
+*)
+
+val lstrip : ?drop:(char -> bool) -> item -> item
+val rstrip : ?drop:(char -> bool) -> item -> item
+val strip : ?drop:(char -> bool) -> item -> item
 
 (** Buffer of lines. *)
 module Buffer : sig
@@ -64,6 +98,15 @@ module Transform : sig
       to a stream of lines. If the input terminates without a newline,
       the trailing string is still considered a line. *)
   val string_to_item : unit -> (string, item) Biocaml_transform.t
+
+  (** Return a transform that converts a stream of lines to a stream
+      of pairs of lines. It is considered an error if input ends with an
+      odd number of lines. *)
+  val group2 :
+    unit ->
+    (item,
+    (item * item, [ `premature_end_of_input ]) Core.Std.Result.t) Biocaml_transform.t
+
 
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->

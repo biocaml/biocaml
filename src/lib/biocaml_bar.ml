@@ -1,5 +1,5 @@
 open Biocaml_internal_pervasives
-
+module Lines = Biocaml_lines
 module Msg = Biocaml_msg
 module Pos = Biocaml_pos
 
@@ -90,7 +90,7 @@ module Parser = struct
          
   let of_file file =
     let of_channel cin =
-      let lines = Stream.map ~f:String.rstrip (Stream.lines_of_channel cin) in
+      let lines = Stream.map ~f:(fun (x : Lines.item) -> String.rstrip (x :> string)) (Lines.of_channel cin) in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
         try
           let hdr = header lines in

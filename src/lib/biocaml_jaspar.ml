@@ -39,8 +39,8 @@ let attrs_of_string =
     in
     let r : Pcre.substrings array = Pcre.exec_all ~rex s in
     Stream.(Infix.(combine
-      (Array.stream r /@ (Pcre.get_named_substring rex "K"),
-       Array.stream r /@ (Pcre.get_named_substring rex "V"))))
+      (Array.to_stream r /@ (Pcre.get_named_substring rex "K"),
+       Array.to_stream r /@ (Pcre.get_named_substring rex "V"))))
     |! List.of_stream
 
 

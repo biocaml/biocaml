@@ -3,6 +3,7 @@ open Core.Std
 include Stream
 let next_exn = next
 let next s = try Some (next_exn s) with Stream.Failure -> None
+let npeek s n = npeek n s
 
 let is_empty s =
   match peek s with 
@@ -11,14 +12,7 @@ let is_empty s =
 
 let empty () = from (const None)
 
-module type Streamable = sig
-  type 'a streamable
-  val stream : 'a streamable -> 'a t
-  val of_stream : 'a t -> 'a streamable
-end
-
-type 'a streamable = 'a t
-let stream x = x
+let to_stream x = x
 let of_stream x = x
 
 exception Expected_streams_of_equal_length
@@ -150,7 +144,7 @@ let take_whilei xs ~f =
     
 let take_while xs ~f = take_whilei xs ~f:(const f)
 
-let take k xs = 
+let take xs k = 
   let end_index = count xs + k in
   take_whilei xs ~f:(fun j _ -> j < end_index)
     
@@ -161,7 +155,7 @@ let rec drop_whilei xs ~f =
 
 let drop_while xs ~f = drop_whilei xs ~f:(const f)
 
-let drop n xs =
+let drop xs n =
   let end_index = count xs + n in
   drop_whilei xs ~f:(fun j _ -> j < end_index)
 
@@ -171,8 +165,8 @@ let skip_whilei xs ~f =
 
 let skip_while xs ~f = skip_whilei xs ~f:(const f)
   
-let skip n xs =
-  drop n xs ;
+let skip xs n =
+  drop xs n ;
   from (fun _ -> next xs)
 
 let span xs ~f =
@@ -444,36 +438,8 @@ let range ?until n =
   let stop = Option.value_map until ~default:(fun _ -> true) ~f:( <= ) in
   loop n (fun _ i -> if stop i then None else Some (i + 1))
 
-let lines_of_chars cstr =
-  let f _ =
-    match peek cstr with
-    | None -> None
-    | Some _ ->
-        let ans = Buffer.create 100 in
-        let rec loop () =
-          try
-            let c = next_exn cstr in
-            if c <> '\n' then (Buffer.add_char ans c; loop())
-          with Failure -> ()
-        in 
-        loop();
-        Some (Buffer.contents ans)
-  in
-  from f
-
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
-
-let lines_of_channel cin =
-  let f _ =
-    try Some (input_line cin)
-    with End_of_file -> None
-  in Stream.from f
-
-let lines_to_channel xs oc =
-  iter
-    xs
-    ~f:(fun l -> output_string oc l ; output_char oc '\n')
 
 let result_to_exn s ~error_to_exn =
   from (fun _ ->
@@ -489,6 +455,17 @@ let unfold init f =
   from (fun _ -> match f !a with
     | Some (b, a_next) -> (a := a_next; Some b)
     | None -> None
+  )
+
+(* Default buffer_size set to UNIX_BUFFER_SIZE in OCaml's
+   otherlibs/unix/unixsupport.h, but unsure if this is a good
+   choice. *)
+let strings_of_channel ?(buffer_size=65536) inp =
+  let buf = String.create buffer_size in
+  from (fun _ ->
+    match In_channel.input inp ~buf ~pos:0 ~len:buffer_size with
+    | 0 -> None
+    | len -> Some (String.sub buf ~pos:0 ~len)
   )
 
 module Infix = struct
@@ -511,4 +488,3 @@ module Infix = struct
   let ( // ) x f = filter x ~f
   let ( //@ ) x f = filter_map x ~f
 end
-

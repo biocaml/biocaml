@@ -1,0 +1,77 @@
+{C {{:http://biocaml.org}biocaml.org} }
+
+All modules are named with a [Biocaml_] prefix to avoid name clashes
+with other libraries. For convenience, every module Biocaml_foo is
+renamed as Foo under the main {!module: Biocaml} module. Thus, do
+[open Biocaml] in your code to use the shorter names.
+
+{8 Files}
+{!modules:
+Biocaml_bam
+Biocaml_bar
+Biocaml_bed
+Biocaml_bpmap
+Biocaml_cel
+Biocaml_fasta
+Biocaml_fastq
+Biocaml_gff
+Biocaml_jaspar
+Biocaml_lines
+Biocaml_mzData
+Biocaml_sam
+Biocaml_sgr
+Biocaml_track
+Biocaml_wig
+Biocaml_zip
+}
+
+{8 Internet}
+{!modules:
+Biocaml_entrez
+}
+
+{8 Data Structures}
+{!modules:
+Biocaml_accu
+Biocaml_genomeMap
+Biocaml_histogram
+Biocaml_range
+Biocaml_rSet
+Biocaml_stream
+Biocaml_streamable
+}
+
+{8 Analysis}
+{!modules:
+Biocaml_math
+Biocaml_pwm
+Biocaml_roc
+}
+
+{8 Utilities}
+{!modules:
+Biocaml_about
+Biocaml_chrName
+Biocaml_msg
+Biocaml_pos
+Biocaml_phred_score
+Biocaml_romanNum
+Biocaml_solexa_score
+Biocaml_strandName
+Biocaml_tags
+Biocaml_transform
+}
+
+{8 Incubator}
+{!modules:
+Biocaml_interval_tree
+Biocaml_sbml
+Biocaml_seq
+}
+
+{8 Internal}
+{!modules:
+Biocaml_internal_pervasives
+}
+
+{!indexlist}

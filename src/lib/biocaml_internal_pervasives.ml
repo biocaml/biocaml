@@ -1,13 +1,12 @@
 module Stream = Biocaml_stream
+module Streamable = Biocaml_streamable
 
 include Core.Common
 let ( |? ) x default = Core.Option.value ~default x
 module List = struct
   include Core.Std.List
 
-  type 'a streamable = 'a t
-
-  let stream = Stream.of_list
+  let to_stream = Stream.of_list
 
   let of_stream strm =
     strm
@@ -18,9 +17,7 @@ module Arg = Core.Std.Arg
 module Array = struct
   include Core.Std.Array
 
-  type 'a streamable = 'a t
-
-  let stream a =
+  let to_stream a =
     Stream.from (fun i ->
       try Some a.(i)
       with Invalid_argument _ -> None
@@ -40,6 +37,7 @@ module Bigsubstring = Core.Std.Bigsubstring
 module Bin_prot = Core.Std.Bin_prot
 module Binary_packing = Core.Std.Binary_packing
 module Bool = Core.Std.Bool
+module Buffer = Core.Std.Caml.Buffer
 module Caml = Core.Std.Caml
 module Char = Core.Std.Char
 module Command = Core.Std.Command
@@ -50,7 +48,7 @@ module Float = Core.Std.Float
 module Fn = Core.Std.Fn
 module Hashtbl = struct
   include Core.Std.Hashtbl
-  let stream t = Stream.of_list (to_alist t)
+  let to_stream t = Stream.of_list (to_alist t)
   let of_stream xs =
     let t = Poly.create () in
     Stream.iter xs ~f:(fun (key,data) -> Poly.replace t ~key ~data) ;

@@ -3,6 +3,7 @@ module Msg = Biocaml_msg
 module Pos = Biocaml_pos
 module Stream = Biocaml_stream
 module Seq = Biocaml_seq
+module Lines = Biocaml_lines
 
 type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}
@@ -51,11 +52,11 @@ module Parser = struct
 
   let bpmap ~chr_map file =
     let parse file cin =
-      let lines = Stream.lines_of_channel cin in
+      let lines = Lines.of_channel cin in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
         try
-          ignore (header (Stream.next_exn lines));
-          Stream.to_list (Stream.map ~f:(row ~chr_map) lines)
+          ignore (header ((Stream.next_exn lines) : Lines.item :> string));
+          Stream.to_list (Stream.map ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string)) lines)
         with 
             Failure msg | Bad msg -> raise_bad (err msg)
     in

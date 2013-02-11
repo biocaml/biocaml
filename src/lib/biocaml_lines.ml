@@ -1,7 +1,20 @@
 open Biocaml_internal_pervasives
+open Result
 module Pos = Biocaml_pos
 
 type item = string
+
+let lstrip = String.lstrip
+let rstrip = String.rstrip
+let strip = String.strip
+
+module Error = struct
+
+  type t = [
+  | `premature_end_of_input
+  ]
+
+end
 
 let string_to_items s =
   match String.split ~on:'\n' s with
@@ -102,6 +115,30 @@ module Transform = struct
       )
       ()
 
+  let group2 () =
+    let queue : (item * item) Queue.t= Queue.create () in
+    let item1 = ref None in
+    Biocaml_transform.make ~name:"group2"
+      ~feed:(function item -> match !item1 with
+        | Some item1' -> (
+            Queue.enqueue queue (item1', item);
+            item1 := None
+          )
+        | None -> item1 := Some item
+      )
+      ~next:(fun stopped -> match Queue.dequeue queue with
+        | Some ij -> output_ok ij
+        | None ->
+          if not stopped then
+            `not_ready
+          else
+            (match !item1 with
+             | None -> `end_of_stream
+             | Some _ -> output_error `premature_end_of_input
+            )
+      )
+      ()
+
   let make ?name ?filename ~next ~on_error () =
     let lo_parser = Buffer.make ?filename () in
     Biocaml_transform.make ?name ()
@@ -130,3 +167,31 @@ module Transform = struct
         | `incomplete_input e -> `incomplete_input e)
 
 end
+
+let of_char_stream cstr =
+  let module Buffer = Biocaml_internal_pervasives.Buffer in
+  let f _ = match Stream.peek cstr with
+    | None -> None
+    | Some _ ->
+      let ans = Buffer.create 100 in
+      let rec loop () =
+        try
+          let c = Stream.next_exn cstr in
+          if c <> '\n' then (Buffer.add_char ans c; loop())
+        with Core.Std.Caml.Stream.Failure -> ()
+      in 
+      loop();
+      Some (Buffer.contents ans)
+  in
+  Stream.from f
+
+let of_channel cin =
+  let f _ =
+    try Some (input_line cin)
+    with End_of_file -> None
+  in Stream.from f
+
+let to_channel xs oc =
+  Stream.iter xs ~f:(fun l ->
+    output_string oc l ; output_char oc '\n'
+  )

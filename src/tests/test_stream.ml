@@ -140,7 +140,7 @@ let test_skip () =
     ~printer:int_list_printer
     ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
     [ 6;-1;-2;7;8 ]
-    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! skip 3 |! to_list) ;
+    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! Fn.flip skip 3 |! to_list) ;
   assert_equal
     ~printer:int_list_printer
     ~msg:"Check [skip]'ed lists (by hand and by [uniq]"

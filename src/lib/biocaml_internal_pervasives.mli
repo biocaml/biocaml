@@ -1,26 +1,22 @@
-(** Internal "standard" library. *)
-
-(**
-   See
-   {{:https://bitbucket.org/yminsky/ocaml-core/src/8808e3a2571f/base/core/lib/std.ml}std.ml}.
-
-   Semantics: (1) functions that return a stream return a "fresh"
-   stream, meaning that their count is set to 0. (2) indexed variants
-   of HOF use the internal count of the stream
+(** Internal "standard" library. This module is not part of the
+    Biocaml API and subject to change at any time. Biocaml uses Core, and
+    for the most part, this module simply includes Core modules, sometimes
+    with a few functions added. A few modules are completely new.
 *)
 
 module Stream : module type of Biocaml_stream
+module Streamable : module type of Biocaml_streamable
 
 include module type of Core.Common
 val ( |? ) : 'a option -> 'a -> 'a
 module List : sig
   include module type of Core.Std.List
-  include Stream.Streamable with type 'a streamable = 'a t
+  include Streamable.S with type 'a t := 'a t
 end
 module Arg : module type of Core.Std.Arg
 module Array : sig
   include module type of Core.Std.Array
-  include Stream.Streamable with type 'a streamable = 'a t
+  include Streamable.S with type 'a t := 'a t
 
   (** [range xs] is the stream of all valid indices in [xs] *)
   val range : 'a t -> int Stream.t
@@ -35,6 +31,7 @@ module Bigsubstring : module type of Core.Std.Bigsubstring
 module Bin_prot : module type of Core.Std.Bin_prot
 module Binary_packing : module type of Core.Std.Binary_packing
 module Bool : module type of Core.Std.Bool
+module Buffer : module type of Core.Std.Caml.Buffer
 module Caml : module type of Core.Std.Caml
 module Char : module type of Core.Std.Char
 module Command : module type of Core.Std.Command
@@ -45,8 +42,7 @@ module Float : module type of Core.Std.Float
 module Fn : module type of Core.Std.Fn
 module Hashtbl : sig
   include module type of Core.Std.Hashtbl
-  val stream : ('a, 'b) t -> ('a * 'b) Stream.t
-  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) t
+  include Streamable.S2 with type ('a,'b) t := ('a,'b) t
 end
 module Int : module type of Core.Std.Int
 include module type of Int.Infix
