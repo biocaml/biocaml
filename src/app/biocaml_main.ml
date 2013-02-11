@@ -47,6 +47,7 @@ let () =
         ("entrez", Biocaml_app_entrez.command);
         ("demux", Biocaml_app_demux.command);
         ("random", Biocaml_app_random.command);
+        ("alignments", Biocaml_app_count_alignments.command);
         ("info", cmd_info);
       ] in
     run whole_thing;
