@@ -142,7 +142,16 @@ val iter2 : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
     elements were consumed. *)
 val iter2_exn : 'a t -> 'b t -> f:('a -> 'b -> unit) -> unit
 
-(** [fold xs ~init ~f] returns [f (...(f (f init x0) x1)...) xn]. *)
+(** [fold xs ~init ~f] returns [f (...(f (f init x0) x1)...) xn], that
+    is for the stream [a0; a1; ...; an] does the following calculations:
+
+    - b1 = f init a0
+    - b2 = f b1 a1
+    - ...
+    - bn = f b(n-1) a(n-1)
+    
+    and returns [bn]
+*)
 val fold : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b
 
 (** Like [fold] but operates on two streams. Processing continues
@@ -156,14 +165,23 @@ val fold2 : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
 val fold2_exn : 'a t -> 'b t -> init:'c -> f:('c -> 'a -> 'b -> 'c) -> 'c
 
 (** Like [fold] but all intermediate values are returned, not just the
-    final value. If given stream [s] is [x0; x1; ...], then [scanl f
-    init s] is the stream containing [init; f init x0; f (f init x0)
-    x1; f (f (f init x0) x1) x2, ...]. *)
+    final value. If given stream [s] is [a0; a1; ...], then [scanl f
+    init s] is the stream containing 
+
+    - b0 = init
+    - b1 = f b0 a0
+    - b2 = f b1 a1
+    - ...
+. *)
 val scanl : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b t
 
 (** [scan] is similar to [scanl] but without the [init] value: if [s]
-    contains [x0], [x1], [x2] ..., [scan s ~f] is the enumeration
-    containing [x0], [f x0 x1], [f (f x0 x1) x2]...
+    contains [x0], [x1], [x2] ..., [scan s ~f] contains
+
+    - y0 = x0
+    - y1 = f y0 x1
+    - y2 = f y1 x2
+    - ...
 
     For instance, [scan (1 -- 10) ~f:( * )] will produce an enumeration
     containing the successive values of the factorial function.*)
