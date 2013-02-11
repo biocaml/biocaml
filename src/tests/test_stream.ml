@@ -1,9 +1,7 @@
 open OUnit
-open Core.Std
-open Printf
-
-open Biocaml_stream
-open Biocaml_stream.Infix
+open Biocaml_internal_pervasives
+open Biocaml.Stream
+open Biocaml.Stream.Infix
 
 let int_list_printer il = String.concat ~sep:"; " (List.map il (sprintf "%d"))
 let int_list_tuple_printer (al, bl) =

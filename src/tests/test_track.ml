@@ -1,13 +1,12 @@
-
 open OUnit
-open Core.Std
-
+open Biocaml_internal_pervasives
+open Biocaml
 
 let test_parser () =
-  let transfo = Biocaml_track.Transform.string_to_string_content () in
+  let transfo = Track.Transform.string_to_string_content () in
   let test_line l f =
-    Biocaml_transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Biocaml_transform.next transfo))
+    Transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Transform.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -45,10 +44,10 @@ let test_parser () =
   ()
 
 let test_wig_parser () =
-  let transfo = Biocaml_track.Transform.string_to_wig () in
+  let transfo = Track.Transform.string_to_wig () in
   let test_line l f =
-    Biocaml_transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Biocaml_transform.next transfo))
+    Transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Transform.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -64,13 +63,12 @@ let test_wig_parser () =
   ()
     
 let test_gff_parser () =
-  let transfo = Biocaml_track.Transform.string_to_gff () in
+  let transfo = Track.Transform.string_to_gff () in
   let test_line l f =
-    Biocaml_transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Biocaml_transform.next transfo))
+    Transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Transform.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
-  let open Biocaml_gff in
 
   test_output "# some comment" (`comment " some comment");
   test_output "track a=\"b b\" \"c c\"="
@@ -80,7 +78,7 @@ let test_gff_parser () =
     "big%20spaced%20name"; ".";  "."; "42"; "43"; "2e12"; "."; "."; ""
   ])
     (`record
-        {seqname = "big spaced name"; source = None; feature = None;
+        {Gff.seqname = "big spaced name"; source = None; feature = None;
          pos = (42, 43); score = Some (2e12); strand = `not_applicable;
          phase = None; attributes = []});
   ()
@@ -88,11 +86,11 @@ let test_gff_parser () =
 
 let test_bed_parser () =
   let transfo =
-    Biocaml_track.Transform.string_to_bed
+    Track.Transform.string_to_bed
       ~more_columns:(`enforce [`string; `int; `float]) () in
   let test_line l f =
-    Biocaml_transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Biocaml_transform.next transfo))
+    Transform.feed transfo (l ^ "\n");
+    assert_bool l (f (Transform.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -106,10 +104,10 @@ let test_bed_parser () =
   ()
 
 let test_printer () =
-  let transfo = Biocaml_track.Transform.string_content_to_string () in
+  let transfo = Track.Transform.string_content_to_string () in
   let test_line i l =
-    Biocaml_transform.feed transfo i;
-    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+    Transform.feed transfo i;
+    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -119,10 +117,10 @@ let test_printer () =
   ()
 
 let test_wig_printer () =
-  let transfo = Biocaml_track.Transform.wig_to_string () in
+  let transfo = Track.Transform.wig_to_string () in
   let test_line i l =
-    Biocaml_transform.feed transfo i;
-    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+    Transform.feed transfo i;
+    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -132,29 +130,28 @@ let test_wig_printer () =
   ()
 
 let test_gff_printer () =
-  let transfo = Biocaml_track.Transform.gff_to_string () in
+  let transfo = Track.Transform.gff_to_string () in
   let test_line i l =
-    Biocaml_transform.feed transfo i;
-    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+    Transform.feed transfo i;
+    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
   in
-  let open Biocaml_gff in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
   test_line (`track ["a", "bb"; "some long", "one even longer"])
     "track a=bb \"some long\"=\"one even longer\"";
   test_line 
     (`record
-        {seqname = "big spaced name"; source = None; feature = None;
+        {Gff.seqname = "big spaced name"; source = None; feature = None;
          pos = (42, 43); score = Some (2.); strand = `not_applicable;
          phase = None; attributes = []})
     "big%20spaced%20name\t.\t.\t42\t43\t2\t.\t.\t";
   ()
 
 let test_bed_printer () =
-  let transfo = Biocaml_track.Transform.bed_to_string () in
+  let transfo = Track.Transform.bed_to_string () in
   let test_line i l =
-    Biocaml_transform.feed transfo i;
-    assert_bool l (Biocaml_transform.next transfo = `output (l ^ "\n"))
+    Transform.feed transfo i;
+    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`track ["a", "bb"; "some long", "one even longer"])

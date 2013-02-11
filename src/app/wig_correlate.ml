@@ -1,5 +1,5 @@
 open Biocaml
-open Core.Std
+open Biocaml_internal_pervasives
 
 let prog_name = Sys.argv.(0)
 
@@ -110,9 +110,9 @@ let corr meth wig_file1 wig_file2 : float =
           ~on_error:ident
           (Biocaml_wig.Transform.string_to_t ())
           (Biocaml_wig.Transform.t_to_bed_graph ()) in
-      Biocaml_transform.Pull_based.(
-        of_file file transfo
-        |! to_stream_exn
+      In_channel.with_file file ~f:(fun inp ->
+        Biocaml_transform.in_channel_strings_to_stream inp transfo
+        |! Biocaml_stream.result_to_exn
             ~error_to_exn:(function
             | `left e ->
               failwithf "Parsing error %s"
@@ -122,7 +122,7 @@ let corr meth wig_file1 wig_file2 : float =
             | `right `not_in_fixed_step_state ->
               failwith "Parsing error not_in_fixed_step_state")
       )
-      |! Stream.npeek Int.max_value
+      |! Fn.flip Stream.npeek Int.max_value
     in
     let cmp (chr1,lo1,hi1,_) (chr2,lo2,hi2,_) =
       compare (chr1,lo1,hi1) (chr2,lo2,hi2) in

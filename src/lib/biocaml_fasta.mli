@@ -133,6 +133,7 @@ end
 exception Error of Error.t
 
 val in_channel_to_char_seq_item_stream :
+  ?buffer_size:int ->
   ?filename:string ->
   ?pedantic:bool ->
   ?sharp_comments:bool ->
@@ -143,6 +144,7 @@ val in_channel_to_char_seq_item_stream :
         discarded. @raise Error in case of any errors. *)
 
 val in_channel_to_int_seq_item_stream :
+  ?buffer_size:int ->
   ?filename:string ->
   ?pedantic:bool ->
   ?sharp_comments:bool ->
@@ -155,6 +157,7 @@ val in_channel_to_int_seq_item_stream :
 module Result : sig
 
   val in_channel_to_char_seq_item_stream :
+    ?buffer_size:int ->
     ?filename:string ->
     ?pedantic:bool ->
     ?sharp_comments:bool ->
@@ -163,6 +166,7 @@ module Result : sig
     (char_seq item, Error.t) Core.Result.t Stream.t
 
   val in_channel_to_int_seq_item_stream :
+    ?buffer_size:int ->
     ?filename:string ->
     ?pedantic:bool ->
     ?sharp_comments:bool ->

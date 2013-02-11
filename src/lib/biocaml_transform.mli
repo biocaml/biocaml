@@ -24,7 +24,7 @@ type ('input, 'output) t
 
 (** Exception thrown when [feed] is called on a transform after it
     has been [stop]ped. *)
-exception Feeding_stopped_transformation of string
+exception Feeding_stopped_transform of string
 
 (** [make ~feed ~next ()] creates a transform that can be
     fed with [feed] and read from with [next].
@@ -56,7 +56,7 @@ val make:
 
 (** [feed t i] stores [i] into the buffered transform.
 
-    @raise Feeding_stopped_transformation [name] if called on a [t]
+    @raise Feeding_stopped_transform [name] if called on a [t]
     that has been [stop]ped. *)
 val feed: ('input, 'output) t -> 'input -> unit
 
@@ -68,7 +68,7 @@ val next: ('input, 'output) t -> [ `output of 'output | `end_of_stream | `not_re
 
 (** [stop t] declares [t] to be stopped, which means subsequent calls to:
 
-    - [feed t _] will raise [Feeding_stopped_transformation]. Feeding
+    - [feed t _] will raise [Feeding_stopped_transform]. Feeding
     a stopped transform is not allowed.
 
     - [next t] will eventually return [`end_of_stream], not
@@ -87,6 +87,12 @@ val identity: ?name:string -> unit -> ('a, 'a) t
     [t] but the inputs and outputs are on standard OCaml streams. *)
 val to_stream_fun:
   ('input, 'output) t -> ('input Stream.t -> 'output Stream.t)
+
+(** [in_channel_strings_to_stream ic t] returns a stream of ['output]s
+    given a transform [t] that knows how to produce ['output]s from
+    strings. The strings are read from the in_channel. *)
+val in_channel_strings_to_stream :
+  ?buffer_size:int -> in_channel -> (string, 'output) t -> 'output Stream.t
 
 
 (** {6 Compose} Buffered transforms are mutable and one should not
@@ -291,54 +297,6 @@ module Printer_queue: sig
 
   val is_empty: 'a t -> bool
   (** Check if the printer-queue is empty. *)
-
-end
-
-(** {3 Non-cooperative Streams } *)
-
-(** Pull-based streams built out of transforms (inherently
-    non-cooperative). *)
-module Pull_based: sig
-
-  type 'a stream
-  (** A stream container. *)
-
-  val next: 'a stream -> 'a
-  (** Call the basic operation of a stream. *)
-
-  val of_feeder:
-    (unit -> 'input option) ->
-    ('input, 'a) t ->
-    [ `end_of_stream | `output of 'a ] stream
-  (** Create a stream from a feeding function. The transform is
-      fed with the function's output ([None] means end-of-stream). *)
-
-  val of_in_channel:
-    ?buffer_size:int ->
-    in_channel ->
-    (string, 'a) t ->
-    [ `end_of_stream | `output of 'a ] stream
-  (** Create a stream from an [in_channel]. The transformation is fed
-      with strings of size [buffer_size] ({i or less}). *)
-
-  val of_file :
-    ?buffer_size:int ->
-    string ->
-    (string, 'a) t ->
-    [ `end_of_stream | `output of 'a ] stream
-  (** Like [of_in_channel] but internally open the file and close it on
-      [`end_of_stream] ({b Warning:} the channel is not closed on [`error _]. *)
-
-  val to_stream_exn:
-    error_to_exn:('error -> exn) ->
-    [ `end_of_stream | `output of ('output, 'error) Core.Result.t ] stream ->
-    'output Stream.t
-  (** Convert a stream to an exception-full OCaml [Stream.t]. *)
-
-  val to_stream_result:
-    [ `end_of_stream | `output of ('output, 'error) Core.Result.t ] stream ->
-    ('output, 'error) Core.Result.t Stream.t
-  (** Convert a stream to an OCaml [Stream.t] of [Result.t] values. *)
 
 end
 

@@ -1,4 +1,3 @@
-open Batteries
 type range = Biocaml_range.t
 type 'a location = 'a * range
 
@@ -16,17 +15,17 @@ module Selection : sig
 
   val intersection_size : 'a location -> 'a t -> int
 
-  val enum : 'a t -> 'a location Enum.t
+  val to_stream : 'a t -> 'a location Stream.t
 
-  val of_enum : 'a location Enum.t -> 'a t
-    (** [of_enum e] computes a selection as the union of the locations contained in [e] *)
+  val of_stream : 'a location Stream.t -> 'a t
+    (** [of_stream e] computes a selection as the union of the locations contained in [e] *)
 
 end
 
 (** Partial function over the genome: each base may be associated to a value. *)
 module type Signal = sig
   type ('a,'b) t
-  val make : ('b list -> 'c) -> ('a location * 'c) Enum.t -> ('a,'c) t
+  val make : ('b list -> 'c) -> ('a location * 'c) Stream.t -> ('a,'c) t
 
   val eval : 'a -> int -> ('a,'b) t -> 'b
   (** function evaluation at some point in the genome *)
@@ -34,7 +33,7 @@ module type Signal = sig
   val fold : ('a -> range -> 'b -> 'c -> 'c) -> ('a,'b) t -> 'c -> 'c
   (** folds on constant intervals of the function, in increasing order *)
 
-  val enum : ('a,'b) t -> ('a location * 'b) Enum.t
+  val to_stream : ('a,'b) t -> ('a location * 'b) Stream.t
   (** enumeration over all constant intervals of the function, in increasing order *)
 end
 
@@ -42,8 +41,8 @@ end
 module LSet : sig
   type 'a t
 
-  val enum : 'a t -> 'a location Enum.t
-  val of_enum : 'a location Enum.t -> 'a t
+  val to_stream : 'a t -> 'a location Stream.t
+  val of_stream : 'a location Stream.t -> 'a t
 
 
   (* val fold : ('a -> range -> 'b -> 'b) -> 'a t -> 'b -> 'b *)
@@ -54,13 +53,13 @@ module LSet : sig
       intersection with one of the locations in [lmap], and returns
       [false] otherwise *)
 
-  val closest : 'a location -> 'a t -> 'a location * int
+  val closest : 'a location -> 'a t -> ('a location * int) option
   (** [closest loc lset] returns the location in [lset] that is the
       closest to [loc], along with the actual (minimal)
-      distance. Throws [Not_found] if there is no location in [lset]
+      distance. Returns [None] if there is no location in [lset]
       that comes from the same sequence than [loc]. *)
     
-  val intersecting_elems : 'a location -> 'a t -> 'a location Enum.t
+  val intersecting_elems : 'a location -> 'a t -> 'a location Stream.t
   (** [intersecting_elems loc lset] returns an enumeration of all
       locations in [lset] that intersect [loc]. *)
 
@@ -70,21 +69,21 @@ end
 module LMap : sig
   type ('a,'b) t
 
-  val enum : ('a, 'b) t -> ('a location * 'b) Enum.t
-  val of_enum : ('a location * 'b) Enum.t -> ('a, 'b) t
+  val to_stream : ('a, 'b) t -> ('a location * 'b) Stream.t
+  val of_stream : ('a location * 'b) Stream.t -> ('a, 'b) t
 
   val intersects : 'a location -> ('a,'b) t -> bool
     (** [intersects loc lmap] returns [true] if [loc] has a non-empty
         intersection with one of the locations in [lmap], and returns
         [false] otherwise *)
 
-  val closest : 'a location -> ('a,'b) t -> 'a location * 'b * int
+  val closest : 'a location -> ('a,'b) t -> ('a location * 'b * int) option
     (** [closest loc lmap] returns the location in [lmap] that is the 
         closest to [loc], along with its annotation and the actual (minimal) 
-        distance. Throws [Not_found] if there is no location in [lmap] 
+        distance. Returns [None] if there is no location in [lmap] 
         that comes from the same sequence than [loc]. *)
 
-  val intersecting_elems : 'a location -> ('a, 'b) t -> ('a location * 'b) Enum.t
+  val intersecting_elems : 'a location -> ('a, 'b) t -> ('a location * 'b) Stream.t
   (** [intersecting_elems loc lmap] returns an enumeration of elements
       in [lmap] whose location intersects with [loc]. *)
 
@@ -95,7 +94,7 @@ end
 module type LMap_spec = sig
   type ('a,'b) t
 
-  val make : ('a location * 'b) Enum.t -> ('a,'b) t
+  val make : ('a location * 'b) Stream.t -> ('a,'b) t
 
 
   val fold : ('a -> range -> 'b -> 'c -> 'c) -> ('a,'b) t -> 'c -> 'c
@@ -110,7 +109,7 @@ in increasing order *)
 
   val intersects : 'a location -> ('a,'b) t -> bool
 
-  val enum : ('a,'b) t -> ('a location * 'b) Enum.t
+  val to_stream : ('a,'b) t -> ('a location * 'b) Stream.t
 
   val union : ('a,'b) t -> ('a,'b) t -> ('a,'b) t
   val add : 'a location -> 'b -> ('a,'b) t -> ('a,'b) t

@@ -25,6 +25,11 @@ Biocaml_wig
 Biocaml_zip
 }
 
+Tags classify file types.
+{!modules:
+Biocaml_tags
+}
+
 {8 Internet}
 {!modules:
 Biocaml_entrez
@@ -35,6 +40,7 @@ Biocaml_entrez
 Biocaml_accu
 Biocaml_genomeMap
 Biocaml_histogram
+Biocaml_interval_tree
 Biocaml_range
 Biocaml_rSet
 Biocaml_stream
@@ -48,23 +54,26 @@ Biocaml_pwm
 Biocaml_roc
 }
 
+{8 Strings}
+{!modules:
+Biocaml_chrName
+Biocaml_line
+Biocaml_strandName
+}
+
 {8 Utilities}
 {!modules:
 Biocaml_about
-Biocaml_chrName
 Biocaml_msg
 Biocaml_pos
 Biocaml_phred_score
 Biocaml_romanNum
 Biocaml_solexa_score
-Biocaml_strandName
-Biocaml_tags
 Biocaml_transform
 }
 
 {8 Incubator}
 {!modules:
-Biocaml_interval_tree
 Biocaml_sbml
 Biocaml_seq
 }

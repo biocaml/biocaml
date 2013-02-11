@@ -114,21 +114,18 @@ module Transform = struct
         end)
 end
 
-let in_channel_to_item_stream ?filename inp =
-  Biocaml_transform.(
-    Transform.string_to_item ?filename ()
-    |! Pull_based.of_in_channel inp
-    |! Pull_based.to_stream_result
-  )
+let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
+  Transform.string_to_item ?filename ()
+  |! Biocaml_transform.in_channel_strings_to_stream ~buffer_size inp
 
 module Exceptionful = struct
   exception Error of Error.t
 
   let error_to_exn err = Error err
 
-  let in_channel_to_item_stream ?filename inp =
+  let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
     Stream.result_to_exn ~error_to_exn (
-      in_channel_to_item_stream ?filename inp
+      in_channel_to_item_stream ~buffer_size ?filename inp
     )
 
 end

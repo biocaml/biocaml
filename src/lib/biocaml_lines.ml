@@ -1,12 +1,9 @@
 open Biocaml_internal_pervasives
 open Result
+module Line = Biocaml_line
 module Pos = Biocaml_pos
 
-type item = string
-
-let lstrip = String.lstrip
-let rstrip = String.rstrip
-let strip = String.strip
+type item = Line.t
 
 module Error = struct
 
@@ -15,17 +12,6 @@ module Error = struct
   ]
 
 end
-
-let string_to_items s =
-  match String.split ~on:'\n' s with
-  | [] -> assert false
-  | [""] -> [], false
-  | lines ->
-    let n = List.length lines in
-    match List.nth lines (n - 1) with
-    | None -> assert false
-    | Some "" -> List.take lines (n - 1), true
-    | Some _ -> lines, false
 
 module Buffer = struct
 
@@ -53,7 +39,7 @@ module Buffer = struct
       | [ s ] -> (* there is a partial line at the end *)
         p.unfinished_line <- Some s;
       | h :: t ->
-        Queue.enqueue p.lines h;
+        Queue.enqueue p.lines (Line.of_string_unsafe h);
         faux t
     in
     match p.unfinished_line, lines with
@@ -104,7 +90,7 @@ module Transform = struct
             | None -> (match Buffer.contents buf with
                 | [], None -> `end_of_stream
                 | [], Some unfinished_line ->
-                    (Buffer.empty buf; `output unfinished_line)
+                    (Buffer.empty buf; `output (Line.of_string_unsafe unfinished_line))
                 | _ -> assert false
               )
           )
@@ -181,17 +167,17 @@ let of_char_stream cstr =
         with Core.Std.Caml.Stream.Failure -> ()
       in 
       loop();
-      Some (Buffer.contents ans)
+      Some (Buffer.contents ans |! Line.of_string_unsafe)
   in
   Stream.from f
 
 let of_channel cin =
   let f _ =
-    try Some (input_line cin)
+    try Some (input_line cin |! Line.of_string_unsafe)
     with End_of_file -> None
   in Stream.from f
 
 let to_channel xs oc =
   Stream.iter xs ~f:(fun l ->
-    output_string oc l ; output_char oc '\n'
+    output_string oc (l : item :> string); output_char oc '\n'
   )
