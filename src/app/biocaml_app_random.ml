@@ -290,7 +290,7 @@ let random_sam_item_transform ~args () =
 
 
 let do_output output_meta_channel transform nb_items =
-  IO.with_out_channel output_meta_channel (fun out ->
+  IO.with_out_channel output_meta_channel ~f:(fun out ->
     let rec loop = function
       | 0 ->
         Transform.stop transform;
@@ -322,7 +322,7 @@ let do_random ~output_file ~gzip ~nb_items spec =
   let output_meta_channel =
     match output_file with
     | None -> `stdout
-    | Some f -> `file f in
+    | Some f -> `overwrite_file f in
   parse_spec (String.concat ~sep:" " spec)
   >>= fun spec ->
   let tags, args =
@@ -368,6 +368,8 @@ let stringify m =
     error (<:sexp_of< [
     | `io_exn of exn
     | `not_implemented
+    | `file_exists of string
+    | `wrong_path of string
     | `parse_specification of
         [ `expecting_spec_but_got of Genlex.token list
         | `expecting_column_type_or_and_but_got of Genlex.token list
