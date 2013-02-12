@@ -34,6 +34,7 @@ module Solexa_score   = Biocaml_solexa_score
 module StrandName     = Biocaml_strandName
 module Stream         = Biocaml_stream
 module Streamable     = Biocaml_streamable
+module Table          = Biocaml_table
 module Track          = Biocaml_track
 module Tags           = Biocaml_tags
 module Transform      = Biocaml_transform
