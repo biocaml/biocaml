@@ -17,9 +17,11 @@ module Http_method = struct
 
   let shell_command_to_string s =
     dbg "Running %S" s >>= fun () ->
-    System.get_system_command_output s
-    >>= fun (stdo, stde) ->
-    return stdo
+    System.Shell.execute s
+    >>= begin function
+    | (stdo, stde, `exited 0) -> return stdo
+    | e -> error (`failure (sprintf "command %S failed" s))
+    end
 
   let discover () =
     detect_exe "curl"
@@ -47,11 +49,7 @@ open Lwt
 exception Fetch_error of [
 | `failure of string
 | `lwt_exn of exn
-| `system_command_error of
-    string * [ `exited of int
-             | `exn of exn
-             | `signaled of int
-             | `stopped of int ]
+| `shell of string * [ `exn of exn ]
 ]
 let unresult m =
   m >>= begin function
