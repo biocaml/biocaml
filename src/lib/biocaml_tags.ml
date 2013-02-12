@@ -8,6 +8,7 @@ type t = [
 | `raw_zip of t
 | `gff of Gff.tag list
 | `wig of Wig.tag list
+| `table of char
 | `bam
 | `sam
 | `bed
@@ -16,17 +17,19 @@ type t = [
 ] with sexp
 
 let rec default_extension = function
-| `gzip t -> sprintf "%s.gz" (default_extension t)
-| `raw_zip t -> sprintf "%s.rawzip" (default_extension t)
-| `gff _ -> "gff"
-| `wig _ -> "wig"
-| `bam     -> "bam"  
-| `sam     -> "sam"
-| `bed     -> "bed"
-| `fastq   -> "fastq"
-| `fasta _ -> "fasta" 
+  | `gzip t -> sprintf "%s.gz" (default_extension t)
+  | `raw_zip t -> sprintf "%s.rawzip" (default_extension t)
+  | `gff _ -> "gff"
+  | `wig _ -> "wig"
+  | `bam     -> "bam"
+  | `sam     -> "sam"
+  | `bed     -> "bed"
+  | `fastq   -> "fastq"
+  | `fasta _ -> "fasta"
+  | `table '\t' -> "tsv"
+  | `table c -> "table"
 
-  
+
 let rec guess_from_filename filename =
   match Filename.split_extension filename with
   | (f, Some "gz") ->
@@ -42,11 +45,12 @@ let rec guess_from_filename filename =
     | "bed" -> return `bed
     | "fastq" -> return `fastq
     | "fasta" -> return (`fasta `unknown)
+    | "tsv" -> return (`table '\t')
     | u -> fail (`extension_unknown u)
     end
   | (_, None) -> fail (`extension_absent)
 
-    
+
 let of_string s =
   let open Sexplib in
   try return (t_of_sexp (Sexp.of_string s))
