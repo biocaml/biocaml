@@ -11,7 +11,7 @@ BuildTools:  ocamlbuild
 Flag lwt
   Description: Build Lwt dependencies
   Default: false
-  
+
 Flag apps
   Description: Build apps
   Default: false
@@ -24,7 +24,7 @@ Library biocaml
   Path: src/lib
   FindlibName: biocaml
   BuildDepends: core, sexplib.syntax, threads,
-                zip, sqlite3, unix, batteries, 
+                zip, sqlite3, unix, batteries,
                 xmlm, pcre
   XMETARequires: core, threads, zip, sqlite3, unix, batteries, xmlm, pcre
   Install: true
@@ -72,6 +72,7 @@ Library biocaml
            , Biocaml_tags
            , Biocaml_wig
            , Biocaml_mzData
+           , Biocaml_table
   CSources: biocaml_pwm_stub.c, biocaml_mzData_stubs.c
   CCOpt: -O3
 
@@ -144,6 +145,6 @@ Executable lwt_tests
   CompiledObject: 	native
   Build$:		flag(lwt) && flag(apps)
   BuildDepends: biocaml, lwt.unix, core_extended
-  
+
 Test main
   Command: $tests_main
