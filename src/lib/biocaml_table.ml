@@ -42,4 +42,11 @@ module Row = struct
     end in
     (With_exns.of_line ~format l : (t, _) Result.t)
 
+  let to_line ~sep t =
+    let item_to_string = function
+      | `int i -> Int.to_string i
+      | `float f -> sprintf "%g" f
+      | `string s -> s in
+    Biocaml_line.of_string_unsafe
+      (String.concat_array ~sep (Array.map t ~f:item_to_string))
 end

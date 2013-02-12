@@ -13,5 +13,8 @@ module Row : sig
              [> `column_number
              | `float_of_string of string
              | `int_of_string of string ] * t_type * string ]) Core.Result.t
+
+  val to_line: sep:string -> t -> Biocaml_line.t
+
 end
 
