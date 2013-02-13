@@ -423,21 +423,6 @@ let init n ~f =
 
 let singleton x = init 1 (const x)
 
-let loop init ~f =
-  let prev = ref init in
-  let aux i =
-    if i = 0 then Some !prev
-    else 
-      match f i !prev with
-      | Some next as e -> prev := next ; e
-      | e -> e
-  in
-  from aux
-
-let range ?until n =
-  let stop = Option.value_map until ~default:(fun _ -> true) ~f:( <= ) in
-  loop n (fun _ i -> if stop i then None else Some (i + 1))
-
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
 
@@ -450,12 +435,18 @@ let result_to_exn s ~error_to_exn =
       | Result.Error x -> raise (error_to_exn x)
   )
 
-let unfold init f =
+let unfoldi init ~f =
   let a = ref init in
-  from (fun _ -> match f !a with
+  from (fun i -> match f i !a with
     | Some (b, a_next) -> (a := a_next; Some b)
     | None -> None
   )
+
+let unfold init ~f = unfoldi init ~f:(const f)
+
+let range ?until n =
+  let stop = Option.value_map until ~default:(fun _ -> false) ~f:( < ) in
+  unfold n (fun i -> if stop i then None else Some (i, i + 1))
 
 let of_lazy s =
   let next i = next (Lazy.force s) in
@@ -486,7 +477,7 @@ module Infix = struct
 
   let ( --- ) x y = 
     if x <= y then x -- y
-    else loop x ~f:(fun _ prev -> if prev <= y then Some (prev - 1) else None)
+    else unfold x ~f:(fun prev -> if prev >= y then Some (prev, prev - 1) else None)
       
   let ( /@ ) x f = map x ~f
   let ( // ) x f = filter x ~f
