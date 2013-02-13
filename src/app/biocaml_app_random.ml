@@ -102,6 +102,15 @@ let parse_spec_aux s =
     in
     parse_list parse_bed_aux [] l
   in
+  let rec parse_table accumulator current_list =
+    typed_columns current_list
+    >>= fun (cols, next, advanced) ->
+    if advanced then
+      parse_list parse_table (cols :: accumulator) next
+    else
+      error (`expecting_spec_but_got current_list)
+  in
+
   begin match tokens with
   | Ident f :: t when String.lowercase f = "fastq" ->
     parse_list parse_fastq [] t
@@ -119,6 +128,10 @@ let parse_spec_aux s =
     parse_list parse_bam_or_sam [] t
     >>= fun args ->
     return (`bam args)
+  | Ident f :: t when String.lowercase f = "table" ->
+    parse_list parse_table [] t
+    >>= fun args ->
+    return (`table args)
   | tokens ->
     error (`uknown_specification tokens)
   end
@@ -207,6 +220,29 @@ let random_bed_transform ~args () =
         decr todo;
         incr seq_num;
         `output (make_item !seq_num))
+    ~feed:(fun () -> incr todo)
+
+let random_table_transform ~args () =
+  let columns =
+    List.find_map args (function `columns m -> Some m | _ -> None)
+    |! Option.value ~default:[] in
+  let todo = ref 0 in
+  let make_item () =
+    let cols =
+      List.map columns (function
+      | `int -> `int (Random.int 42)
+      | `float -> `float (Random.float 1000.)) in
+    Array.of_list cols
+  in
+  Transform.make ()
+    ~next:(fun stopped ->
+      match !todo, stopped with
+      | 0, true -> `end_of_stream
+      | 0, false -> `not_ready
+      | n, _  when n < 0 -> assert false
+      | n, _ ->
+        decr todo;
+        `output (make_item ()))
     ~feed:(fun () -> incr todo)
 
 let random_sam_item_transform ~args () =
@@ -331,6 +367,7 @@ let do_random ~output_file ~gzip ~nb_items spec =
     | `bed args -> if gzip then (`gzip `bed, args) else (`bed, args)
     | `sam args -> if gzip then (`gzip `sam, args) else (`sam, args)
     | `bam args -> if gzip then (`gzip `bam, args) else (`bam, args)
+    | `table args ->  if gzip then (`gzip (`table '\t'), args) else (`table '\t', args)
   in
   output_transform_of_tags ~zlib_buffer_size tags
   >>= begin function
@@ -349,6 +386,19 @@ let do_random ~output_file ~gzip ~nb_items spec =
           | Error e ->
             failwith "ERROR in SAM/BAM OUTPUT")
       ) in
+    do_output output_meta_channel transform nb_items
+  | `to_table tr ->
+    let transform = Transform.compose (random_table_transform ~args ()) tr in
+    (*
+    let transform =
+      Transform.(
+        compose (random_table_transform ~args ()) tr
+        |! on_output ~f:(function
+          | Ok o -> o
+          | Error e ->
+            failwith "ERROR in SAM/BAM OUTPUT")
+      ) in
+ *)
     do_output output_meta_channel transform nb_items
 
   | _ -> error (`not_implemented)

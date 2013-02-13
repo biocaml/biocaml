@@ -222,17 +222,19 @@ type output_transform = [
 | `to_fastq of (Fastq.item, string) Transform.t
 | `to_char_fasta of (Fasta.char_seq Fasta.Transform.raw_item, string) Transform.t
 | `to_int_fasta of (Fasta.int_seq Fasta.Transform.raw_item, string) Transform.t
+| `to_table of (Table.Row.t, string) Biocaml.Transform.t
 ]
 let output_transform_name = function
-| `to_sam_item _ -> "to_sam_item"
-| `to_gff _ -> "to_gff"
-| `to_wig _ -> "to_wig"
-| `to_bed _ -> "to_bed"
-| `to_fastq _ -> "to_fastq"
-| `to_char_fasta _ -> "to_char_fasta"
-| `to_int_fasta _ -> "to_int_fasta"
+  | `to_sam_item _ -> "to_sam_item"
+  | `to_gff _ -> "to_gff"
+  | `to_wig _ -> "to_wig"
+  | `to_bed _ -> "to_bed"
+  | `to_fastq _ -> "to_fastq"
+  | `to_char_fasta _ -> "to_char_fasta"
+  | `to_int_fasta _ -> "to_int_fasta"
+  | `to_table _ -> "to_table"
 
-let output_transform_of_tags ~zlib_buffer_size output_tags =
+let output_transform_of_tags ~zlib_buffer_size (output_tags: Tags.t) =
   let rec output_transform ?with_zip  ~zlib_buffer_size output_tags =
     let with_zip_result t =
       match with_zip with
@@ -288,6 +290,15 @@ let output_transform_of_tags ~zlib_buffer_size output_tags =
     | `fasta `int ->
       let t = Fasta.Transform.int_seq_raw_item_to_string () in
       return (`to_int_fasta (with_zip_no_error t) : output_transform)
+    | `table sep ->
+      let t =
+        Transform.on_input
+          ~f:(fun row ->
+            sprintf "%s\n"
+              (Table.Row.to_line ~sep:(Char.to_string sep) row : Line.t :> string))
+          (Transform.identity ())
+      in
+      return (`to_table (with_zip_no_error t) : output_transform)
   in
   output_transform ~zlib_buffer_size output_tags
 

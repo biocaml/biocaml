@@ -5,39 +5,48 @@ open Biocaml_app_common
 open Biocaml
 
 
-type input_error =
-[ `bam of Biocaml_bam.Transform.raw_bam_error
-| `bam_to_item of [ Biocaml_bam.Transform.raw_to_item_error ]
-| `sam of [ Biocaml_sam.Error.string_to_raw ]
-| `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
-| `unzip of Biocaml_zip.Transform.unzip_error
-| `gff of Gff.parse_error
-| `wig of Wig.parse_error
-| `bed of Bed.parse_error
-| `fastq of Fastq.Error.t
-| `fasta of Fasta.Error.t
-]
+type input_error = [
+  | `bam of Biocaml_bam.Transform.raw_bam_error
+  | `bam_to_item of [ Biocaml_bam.Transform.raw_to_item_error ]
+  | `sam of [ Biocaml_sam.Error.string_to_raw ]
+  | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
+  | `unzip of Biocaml_zip.Transform.unzip_error
+  | `gff of Gff.parse_error
+  | `wig of Wig.parse_error
+  | `bed of Bed.parse_error
+  | `fastq of Fastq.Error.t
+  | `fasta of Fasta.Error.t
+  | `table of [ `wrong_format of
+                [ `column_number
+                | `float_of_string of string
+                | `int_of_string of string ] *
+                  Biocaml.Table.Row.t_type * string ]
+
+  ]
 with sexp_of
 
 type input_transform = [
-| `from_sam_item of (string, (Sam.item, input_error) Result.t) Transform.t
-| `from_gff of(string, (Gff.stream_item, input_error) Result.t) Transform.t
-| `from_wig of (string, (Wig.t, input_error) Result.t) Transform.t
-| `from_bed of (string, (Bed.t, input_error) Result.t) Transform.t
-| `from_fastq of (string, (Fastq.item, input_error) Result.t) Transform.t
-| `from_char_fasta of
+  | `from_sam_item of (string, (Sam.item, input_error) Result.t) Transform.t
+  | `from_gff of(string, (Gff.stream_item, input_error) Result.t) Transform.t
+  | `from_wig of (string, (Wig.t, input_error) Result.t) Transform.t
+  | `from_bed of (string, (Bed.t, input_error) Result.t) Transform.t
+  | `from_fastq of (string, (Fastq.item, input_error) Result.t) Transform.t
+  | `from_char_fasta of
     (string, (Fasta.char_seq Fasta.Transform.raw_item, input_error) Result.t) Transform.t
-| `from_int_fasta of
+  | `from_int_fasta of
     (string, (Fasta.int_seq Fasta.Transform.raw_item, input_error) Result.t) Transform.t
+  | `from_table of
+    (string, (Biocaml.Table.Row.t, input_error) Result.t) Transform.t
 ]
 let input_transform_name = function
-| `from_sam_item _ -> "from_sam_item"
-| `from_gff _ -> "from_gff"
-| `from_wig _ -> "from_wig"
-| `from_bed _ -> "from_bed"
-| `from_fastq _ -> "from_fastq"
-| `from_char_fasta _ -> "from_char_fasta"
-| `from_int_fasta _ -> "from_int_fasta"
+  | `from_sam_item _ -> "from_sam_item"
+  | `from_gff _ -> "from_gff"
+  | `from_wig _ -> "from_wig"
+  | `from_bed _ -> "from_bed"
+  | `from_fastq _ -> "from_fastq"
+  | `from_char_fasta _ -> "from_char_fasta"
+  | `from_int_fasta _ -> "from_int_fasta"
+  | `from_table _ -> "from_table"
 
 
 let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
@@ -115,7 +124,19 @@ let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
         (function Ok o -> Ok o | Error e -> Error (`fasta e))
     in
     return (`from_int_fasta (with_unzip t) : input_transform)
-
+  | `table sep ->
+    let t =
+      Transform.on_output
+        ~f:begin fun s ->
+          Table.Row.of_line ~separators:[sep] (s : Lines.item :> Line.t)
+          |! begin function
+          | Ok o -> Ok o
+          | Error e -> Error (`table e)
+          end
+        end
+        (Lines.Transform.string_to_item ())
+    in
+    return (`from_table (with_unzip t) : input_transform)
 
 let filename_chop_all_extensions filename =
   let rec f filename =
