@@ -96,7 +96,14 @@ let test_take () =
   assert_equal 
     ~printer:int_list_printer
     ~msg:"Check take"
-    [1;2;3] (to_list (take (of_list [1;2;3;4;5]) 3))
+    [1;2;3] (to_list (take (of_list [1;2;3;4;5]) 3)) ;
+  let s = of_list [1;2;3;4;5] in
+  ignore (next s) ;
+  assert_equal 
+    ~printer:int_list_printer
+    ~msg:"Check take after changing the stream count"
+    [2;3;4] (to_list (take s 3))
+
 
 let test_range () =
   assert_equal
