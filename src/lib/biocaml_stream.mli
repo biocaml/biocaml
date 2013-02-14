@@ -96,19 +96,6 @@ val init : int -> f:(int -> 'a) -> 'a t
 (** [singleton x] returns a stream containing the single value [x]. *)
 val singleton : 'a -> 'a t
 
-(** [loop a0 ~f] returns the stream [b0; b1; ...; bn], where
-
-    - [b0 = a0]
-    - [Some b1 = f 1 b0]
-    - [Some b2 = f 2 b1]
-    - ...
-    - [Some bn = f n b(n-1)]
-    - [None = f (n+1) bn]
-
-    The stream is infinite if [f] never returns None.
-*)
-val loop : 'a -> f:(int -> 'a -> 'a option) -> 'a t
-
 (** [unfold a0 f] returns the stream [b0; b1; ...; bn], where
 
     - [Some (b0, a1) = f a0],
@@ -118,7 +105,10 @@ val loop : 'a -> f:(int -> 'a -> 'a option) -> 'a t
     - [None = f a(n+1)]
 
     The stream is infinite if [f] never returns None. *)
-val unfold : 'a -> ('a -> ('b * 'a) option) -> 'b t
+val unfold : 'a -> f:('a -> ('b * 'a) option) -> 'b t
+
+(** Indexed variant of [unfold] *)
+val unfoldi : 'a -> f:(int -> 'a -> ('b * 'a) option) -> 'b t
 
 val of_lazy : 'a t lazy_t -> 'a t
 
