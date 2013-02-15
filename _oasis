@@ -23,10 +23,8 @@ Flag tests
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: core, sexplib.syntax, threads,
-                zip, sqlite3, unix,
-                xmlm, pcre
-  XMETARequires: core, threads, zip, sqlite3, unix,xmlm, pcre
+  BuildDepends: core, sexplib.syntax, threads, zip, unix, xmlm, pcre
+  XMETARequires: core, threads, zip, unix, xmlm, pcre
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
