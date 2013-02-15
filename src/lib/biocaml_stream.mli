@@ -173,8 +173,10 @@ val scanl : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b t
     - y2 = f y1 x2
     - ...
 
-    For instance, [scan (1 -- 10) ~f:( * )] will produce an enumeration
-    containing the successive values of the factorial function.*)
+    For instance, [scan (1 -- 10) ~f:( * )] will produce an
+    enumeration containing the successive values of the factorial
+    function. Returns an empty stream if the input stream is empty as
+    well. *)
 val scan : 'a t -> f:('a -> 'a -> 'a) -> 'a t
 
 

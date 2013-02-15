@@ -132,7 +132,7 @@ let scanl xs ~init ~f =
 let scan xs ~f =
   match next xs with
   | Some init -> scanl xs ~init ~f
-  | None -> invalid_arg "Stream.scan: input stream should contain at least one value"
+  | None -> empty ()
 
 let take_whilei xs ~f =
   let aux i =
