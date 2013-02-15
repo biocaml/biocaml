@@ -63,21 +63,21 @@ let options_to_params (t:options) : params =
     in_file = in_file;
     column = column
   }
-    
+
 let parse_cmdline () : params =
   let t = {option_column=None; option_in_file=None; option_help=false} in
- 
+
   let opts = [
     'c', "", None, Some (fun x -> t.option_column <- Some x);
     Getopt.noshort, "help", Some (fun () -> t.option_help <- true), None;
   ]
   in
-  
+
   let anon_handler x = match t.option_in_file with
     | None -> t.option_in_file <- Some x
     | Some _ -> failwith "multiple input files not allowed"
   in
-  
+
   Getopt.parse_cmdline opts anon_handler;
   options_to_params t
 
@@ -92,8 +92,8 @@ try
     | "FEATURE" -> row.Gff.feature
     | _ -> assert false (* if here, options_to_params *)
   in
-  
-  let module StringMap = Biocaml_std.StringMap in 
+
+  let module StringMap = Biocaml_std.StringMap in
   let f counts r : int StringMap.t =
     let increment prev = match prev with None -> 1 | Some k -> k+1 in
     StringMap.add_with (get r) increment counts
