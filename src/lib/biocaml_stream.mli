@@ -243,18 +243,18 @@ val find_map : 'a t -> f:('a -> 'b option) -> 'b option
     stream, or convert a stream into another data structure.
 *)
 
-(** [take xs n] builds a fresh stream from [xs] containing the [d]
+(** [take xs ~n] builds a fresh stream from [xs] containing the [d]
     first elements of [xs] where [d = min n l] and [l] is the length
     of [xs]. As it is fresh, the count of the resulting stream starts
     from [0] whatever the count of [xs] is. *)
-val take : 'a t -> int -> 'a t
+val take : 'a t -> n:int -> 'a t
 
 (** Same as [take] but takes elements from the input enum as long as
     [f] evaluates to [true]. *)
 val take_while : 'a t -> f:('a -> bool) -> 'a t
 
-(** [drop xs n] is equivalent to calling [n] times [junk] on [xs]. *)
-val drop : 'a t -> int -> unit
+(** [drop xs ~n] is equivalent to calling [n] times [junk] on [xs]. *)
+val drop : 'a t -> n:int -> unit
 
 (** Similar to [drop]: [drop_while xs ~f] removes elements from [xs]
     and stops when [f] evals to false on the head element. *)
@@ -265,7 +265,7 @@ val drop_while : 'a t -> f:('a -> bool) -> unit
     of the returned stream starts from 0. Beware though, that the
     input and output streams are consuminmg the same resource, so
     consuming one modify the other. *)
-val skip : 'a t -> int -> 'a t
+val skip : 'a t -> n:int -> 'a t
 
 (** Similar to [skip]: [skip_while xs ~f] removes elements from [xs]
     and stops when [f] evals to false on the head element. *)
