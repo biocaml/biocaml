@@ -1,6 +1,5 @@
-open Batteries
-open Printf
 open Biocaml
+open Core.Std
 
 let prog_name = Sys.argv.(0)
 
@@ -41,19 +40,19 @@ let options_to_params (t:options) : params =
   ;
 
   let exists x =
-    if not (Sys.file_exists x) then
+    if  (Sys.file_exists x) = `Yes then
       failwith (sprintf "%s: no such file or directory" x)
   in
-  
+
   let in_file = match t.option_in_file with
     | None -> failwith "must specify input file"
     | Some x -> (exists x; x)
   in
-  
+
   let column = match t.option_column with
     | None -> failwith "must specify column"
     | Some x ->
-        let x' = String.map Char.uppercase x in
+        let x' = String.map ~f:Char.uppercase x in
         (
           match x' with
             | "CHR" | "SOURCE" | "FEATURE" -> x'
