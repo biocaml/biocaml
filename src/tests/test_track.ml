@@ -11,9 +11,9 @@ let test_parser () =
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
-  
 
-  test_output "browser  position   chro:42-51" 
+
+  test_output "browser  position   chro:42-51"
     (`browser (`position ("chro", 42, 51)));
   test_output "browser \t hide all" (`browser (`hide `all));
   test_output "browser some other command"
@@ -24,7 +24,7 @@ let test_parser () =
   test_line "browser  position   chro:f42-51"  (function
   | `output (Error (`wrong_browser_position _)) -> true
   | _ -> false);
-  
+
   test_output "track a=b c=d" (`track ["a", "b"; "c", "d"]);
   test_output "track   \t a=b \t   c=d \t" (`track ["a", "b"; "c", "d"]);
   test_output "track a=\"b b\" \"c\tc c\"=d"
@@ -53,15 +53,15 @@ let test_wig_parser () =
 
   test_output "# some comment" (`comment " some comment");
 
-  test_output "browser  position   chro:42-51" 
+  test_output "browser  position   chro:42-51"
     (`browser (`position ("chro", 42, 51)));
-  
+
   test_output "variableStep chrom=chr19 span=150"
     (`variable_step_state_change ("chr19", Some 150));
   test_output "49304701 10.0" (`variable_step_value (49304701, 10.));
   test_output "49304901 12.5" (`variable_step_value (49304901, 12.5));
   ()
-    
+
 let test_gff_parser () =
   let transfo = Track.Transform.string_to_gff () in
   let test_line l f =
@@ -139,7 +139,7 @@ let test_gff_printer () =
   test_line (`browser (`hide `all)) "browser hide all";
   test_line (`track ["a", "bb"; "some long", "one even longer"])
     "track a=bb \"some long\"=\"one even longer\"";
-  test_line 
+  test_line
     (`record
         {Gff.seqname = "big spaced name"; source = None; feature = None;
          pos = (42, 43); score = Some (2.); strand = `not_applicable;
@@ -157,11 +157,11 @@ let test_bed_printer () =
   test_line (`track ["a", "bb"; "some long", "one even longer"])
     "track a=bb \"some long\"=\"one even longer\"";
   test_line (`content ("n", 0, 1, [`Float 3.14; `Int 42]))
-    "n 0 1 3.14 42";
+    "n\t0\t1\t3.14\t42";
   ()
 
 
-  
+
 let tests = "Track" >::: [
   "Parse Track" >:: test_parser;
   "Parse WIG Track" >:: test_wig_parser;

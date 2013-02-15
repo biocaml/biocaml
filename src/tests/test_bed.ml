@@ -47,7 +47,7 @@ let test_parser () =
     | Some (Error (`wrong_number_of_columns (_, l))) -> true
     | _ -> false);
   assert_bool "04 EOF" (Stream.next s = None);
-  
+
   ()
 
 let make_printer_stream ?more_columns file =
@@ -65,14 +65,14 @@ let test_printer () =
   let camlstream =
     Stream.result_to_exn
       ~error_to_exn:(fun e -> failwith "Unexpected error in camlstream") s in
-  
+
   let l = Stream.npeek camlstream Int.max_value in
   assert_equal
     ~printer:(fun l -> List.map ~f:(sprintf "Output: %S") l |! String.concat ~sep:", ")
-    l ["chrA 42 45 some_string 42 3.14\n";
-       "chrB 100 130 some_string 42 3.14\n";
-       "chrC 200 245 some_string 42 3.14\n"; ];
-  
+    l ["chrA\t42\t45\tsome_string\t42\t3.14\n";
+       "chrB\t100\t130\tsome_string\t42\t3.14\n";
+       "chrC\t200\t245\tsome_string\t42\t3.14\n"; ];
+
   ()
 
 let tests = "BED" >::: [
