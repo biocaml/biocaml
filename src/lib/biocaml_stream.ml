@@ -132,7 +132,7 @@ let scanl xs ~init ~f =
 let scan xs ~f =
   match next xs with
   | Some init -> scanl xs ~init ~f
-  | None -> invalid_arg "Stream.scan: input stream should contain at least one value"
+  | None -> empty ()
 
 let take_whilei xs ~f =
   let aux i =
@@ -144,8 +144,8 @@ let take_whilei xs ~f =
 
 let take_while xs ~f = take_whilei xs ~f:(const f)
 
-let take xs k =
-  take_whilei xs ~f:(fun j _ -> j < k)
+let take xs ~n =
+  take_whilei xs ~f:(fun j _ -> j < n)
 
 let rec drop_whilei xs ~f =
   match peek xs with
@@ -154,7 +154,7 @@ let rec drop_whilei xs ~f =
 
 let drop_while xs ~f = drop_whilei xs ~f:(const f)
 
-let drop xs n =
+let drop xs ~n =
   drop_whilei xs ~f:(fun j _ -> j < n)
 
 let skip_whilei xs ~f =
@@ -163,8 +163,8 @@ let skip_whilei xs ~f =
 
 let skip_while xs ~f = skip_whilei xs ~f:(const f)
 
-let skip xs n =
-  drop xs n ;
+let skip xs ~n =
+  drop xs ~n ;
   from (fun _ -> next xs)
 
 let span xs ~f =

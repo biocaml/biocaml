@@ -121,7 +121,7 @@ let test_range () =
   assert_equal
     ~printer:string_of_int
     ~msg:"Unbounded range stream should have more than 10 elements"
-    10 (range 1 |! (Fn.flip take) 10 |! to_list |! List.length)
+    10 (range 1 |! take ~n:10 |! to_list |! List.length)
 
 
 let test_scan () =
@@ -164,7 +164,7 @@ let test_skip () =
     ~printer:int_list_printer
     ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
     [ 6;-1;-2;7;8 ]
-    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! Fn.flip skip 3 |! to_list) ;
+    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! skip ~n:3 |! to_list) ;
   assert_equal
     ~printer:int_list_printer
     ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
