@@ -28,15 +28,9 @@ let collection_of_string = function
     
     
 let attrs_of_string =
-  let ans = ref None in
+  let lazy_rex = lazy (Pcre.regexp "; +(?<K>[^\"]+) \"(?<V>[^\"]*)\"") in
   fun s ->
-    let rex = match !ans with
-      | None ->
-          let r = Pcre.regexp "; +(?<K>[^\"]+) \"(?<V>[^\"]*)\"" in
-          ans := Some r;
-          r
-      | Some r -> r
-    in
+    let rex = Lazy.force lazy_rex in
     let r : Pcre.substrings array = Pcre.exec_all ~rex s in
     Stream.(Infix.(combine
       (Array.to_stream r /@ (Pcre.get_named_substring rex "K"),
