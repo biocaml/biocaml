@@ -5,6 +5,8 @@
 (* Copyright 2003 Yamagata Yoriyuki. distributed with LGPL *)
 (* Modified by Edgar Friendly <thelema314@gmail.com> *)
 
+module Int = Core.Core_int
+
 module BatAvlTree = struct
 type 'a tree =
   | Empty
@@ -37,7 +39,7 @@ let height = function
 
 
 let create l v r =
-  let h' = 1 + BatInt.max (height l) (height r) in
+  let h' = 1 + Int.max (height l) (height r) in
   assert (abs (height l - height r ) < 2);
   Node (l, v, r, h')
 
@@ -129,7 +131,7 @@ let rec fold f t init =
     fold f r x
 
 (* FIXME: this is nlog n because of the left nesting of appends *)
-let rec to_stream = 
+let rec to_stream =
   let module S = Biocaml_stream in
   function
   | Empty -> S.empty ()
@@ -326,9 +328,9 @@ let rec compare_aux x1 x2 =
       let r = right_branch s in
       compare_aux x1 (`Set l :: `Range v :: `Set r :: rest)
   | `Range ((v1, v2)) :: rest1, `Range ((v3, v4)) :: rest2 ->
-      let sgn = BatInt.compare v1 v3 in
+      let sgn = Int.compare v1 v3 in
       if sgn <> 0 then sgn else
-      let sgn = BatInt.compare v2 v4 in
+      let sgn = Int.compare v2 v4 in
       if sgn <> 0 then sgn else
       compare_aux rest1 rest2
   | [], _ -> ~-1
