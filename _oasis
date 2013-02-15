@@ -24,9 +24,9 @@ Library biocaml
   Path: src/lib
   FindlibName: biocaml
   BuildDepends: core, sexplib.syntax, threads,
-                zip, sqlite3, unix, batteries,
+                zip, sqlite3, unix,
                 xmlm, pcre
-  XMETARequires: core, threads, zip, sqlite3, unix, batteries, xmlm, pcre
+  XMETARequires: core, threads, zip, sqlite3, unix,xmlm, pcre
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
@@ -115,7 +115,7 @@ Executable biocaml
   Path:   src/app
   MainIs: biocaml_main.ml
   Build$: flag(apps) && flag(lwt)
-  BuildDepends: flow, biocaml, core_extended
+  BuildDepends: flow, biocaml
   CompiledObject: best
 
 Flag installdoc
@@ -136,7 +136,7 @@ Executable tests_main
   Install:      	false
   CompiledObject: 	native
   Build$:		flag(tests)
-  BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
+  BuildDepends: 	threads, unix, oUnit (>= 1.1.0),  biocaml
 
 Executable lwt_tests
   Path: src/lwt_tests
@@ -144,7 +144,7 @@ Executable lwt_tests
   Install:      	false
   CompiledObject: 	native
   Build$:		flag(lwt) && flag(apps)
-  BuildDepends: biocaml, lwt.unix, core_extended
+  BuildDepends: biocaml, lwt.unix
 
 Test main
   Command: $tests_main
