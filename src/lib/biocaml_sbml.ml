@@ -239,26 +239,26 @@ let extract_string i depth errmsg =
     if depth > 0 then begin ignore (Xmlm.input i); skip_tags i (depth - 1) end else ()
    in
    skip_tags i depth;
-   let result = match Xmlm.input i with 
+   let result = match Xmlm.input i with
     | `Data dat -> dat
     | _ -> raise_bad errmsg
    in
-   skip_tags i depth; 
+   skip_tags i depth;
    result
 
 let unpack_string s =
- match s with 
-  | MIdentifier(str) -> str 
+ match s with
+  | MIdentifier(str) -> str
   | _ -> raise_bad "not a packed string"
 
 let unpack_symbol_type attrs =
  let (_,sbmlUrl) = List.find (fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
-  let splitUrl = Str.split (Str.regexp_string "/") sbmlUrl in
+  let splitUrl = Core.Core_string.split ~on:'/' sbmlUrl in
    List.nth splitUrl (List.length splitUrl - 1)
 
 let parse_bvarlist i =
-  let rec bvarlist_iter i bvarlist = 
-    match Xmlm.peek i with 
+  let rec bvarlist_iter i bvarlist =
+    match Xmlm.peek i with
     | `El_start ((_, "bvar"), _) -> bvarlist_iter i ((extract_string i 2 "malformed lambda expr in bvar") :: bvarlist)
     | `El_start ((_, _), _) -> bvarlist
     | _ -> raise_bad "malformed lambda expr in bvar list"
