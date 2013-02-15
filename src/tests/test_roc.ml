@@ -2,17 +2,17 @@ open OUnit
 open Biocaml_internal_pervasives
 open Biocaml
 
-let auc pos neg = 
+let auc pos neg =
   Roc.make ~pos:(List.to_stream pos) ~neg:(List.to_stream neg)
   |! Stream.map ~f:(fun (_,cm) -> Roc.sensitivity cm, Roc.specificity cm)
   |! Roc.auc
 
-(* 
+(*
  * This is a test against the R library ROCR. The reference result
  * (0.8341875) is obtained as follows:
- * 
+ *
  * performance(prediction( ROCR.simple$predictions, ROCR.simple$labels), "auc")
- * 
+ *
  *)
 
 let rocr_pos = [
@@ -55,9 +55,8 @@ let rocr_neg = [
   0.030235062 ; 0.983494405 ; 0.522384507 ; 0.383807972 ; 0.138387070
 ]
 
-let test_against_rocr () = 
-  let open BatPervasives in
-  assert_bool 
+let test_against_rocr () =
+  assert_bool
     "Test against ROCR failed"
     (Float.abs (auc rocr_pos rocr_neg -. 0.8341875) < 0.00001)
 
