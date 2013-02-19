@@ -1,4 +1,4 @@
-.PHONY: build doc doctest test all install uninstall reinstall clean distclean
+.PHONY: build doc install-doc test all install uninstall reinstall clean distclean
 
 SETUP = ocaml setup.ml
 
@@ -11,13 +11,22 @@ all: build
 _build/doclib/index.html: setup.data build
 	mkdir -p _build/doclib
 	ocamlfind ocamldoc \
-	  -syntax camlp4o -package batteries,xmlm,zip,pcre,core,sexplib.syntax \
+	  -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
 	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
 	  -keep-code -colorize-code _build/src/lib/*.mli _build/src/lib/*.ml \
 	  -sort -I _build/src/lib/. \
 	  -intro src/doc/intro.txt
 
 doc: _build/doclib/index.html
+
+install-doc:
+	@if [ "$(DOCDIR)" != "" ]; \
+	then echo "Installing in $(DOCDIR)/biocaml"; \
+	else echo "You should set DOCDIR" ; exit 1 ; \
+	fi
+	rm -fr $(DOCDIR)/biocaml
+	mkdir -p $(DOCDIR)
+	cp -r _build/doclib $(DOCDIR)/biocaml
 
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
@@ -47,7 +56,6 @@ distclean:
 	$(RM) configure
 	$(RM) src/lib/META
 	$(RM) src/lib/libbiocaml_stubs.clib
-	$(RM) doclib
 	$(RM) src/lib/biocaml.mllib
 	$(RM) TAGS
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
