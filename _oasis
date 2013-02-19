@@ -12,12 +12,16 @@ Flag lwt
   Description: Build Lwt dependencies
   Default: false
 
-Flag apps
-  Description: Build apps
+Flag oldapps
+  Description: Build secondary apps
   Default: false
 
 Flag tests
   Description: Build tests
+  Default: false
+
+Flag app
+  Description: Build the biocaml CLI application (requires Flow)
   Default: false
 
 Library biocaml
@@ -77,42 +81,42 @@ Library biocaml
 Executable gff_counts
   Path:   src/app
   MainIs: gff_counts.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_bed
   Path:   src/app
   MainIs: gff_to_bed.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_table
   Path:   src/app
   MainIs: gff_to_table.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable sgr_to_wig
   Path:   src/app
   MainIs: sgr_to_wig.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable wig_correlate
   Path:   src/app
   MainIs: wig_correlate.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable biocaml
   Path:   src/app
   MainIs: biocaml_main.ml
-  Build$: flag(apps) && flag(lwt)
+  Build$: flag(app)
   BuildDepends: flow, biocaml
   CompiledObject: best
 
@@ -141,7 +145,7 @@ Executable lwt_tests
   MainIs: main.ml
   Install:      	false
   CompiledObject: 	native
-  Build$:		flag(lwt) && flag(apps)
+  Build$:		flag(lwt) && flag(tests)
   BuildDepends: biocaml, lwt.unix
 
 Test main
