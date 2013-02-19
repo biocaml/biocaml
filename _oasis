@@ -120,18 +120,6 @@ Executable biocaml
   BuildDepends: flow, biocaml
   CompiledObject: best
 
-Flag installdoc
-  Description: Install documentation
-  Default: false
-
-Document doclib
-  Title:                API reference for Biocaml
-  Type:                 ocamlbuild (0.2)
-  Install$:             flag(installdoc)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      src/lib
-  XOCamlbuildLibraries: biocaml
-
 Executable tests_main
   Path:			src/tests
   MainIs:       	main.ml
