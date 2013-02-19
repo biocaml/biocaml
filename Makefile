@@ -7,19 +7,17 @@ build: setup.data
 
 all: build
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
 
-doclib/index.html: setup.data build
-	mkdir -p doclib
+_build/doclib/index.html: setup.data build
+	mkdir -p _build/doclib
 	ocamlfind ocamldoc \
 	  -syntax camlp4o -package batteries,xmlm,zip,pcre,core,sexplib.syntax \
-	  -charset UTF-8 -d doclib/ -t "The Biocaml Library" -html \
+	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
 	  -keep-code -colorize-code _build/src/lib/*.mli _build/src/lib/*.ml \
 	  -sort -I _build/src/lib/. \
 	  -intro src/doc/intro.txt
 
-doctest: doclib/index.html
+doc: _build/doclib/index.html
 
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
@@ -49,7 +47,7 @@ distclean:
 	$(RM) configure
 	$(RM) src/lib/META
 	$(RM) src/lib/libbiocaml_stubs.clib
-	$(RM) src/lib/doclib.odocl
+	$(RM) doclib
 	$(RM) src/lib/biocaml.mllib
 	$(RM) TAGS
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
