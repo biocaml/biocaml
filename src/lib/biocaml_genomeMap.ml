@@ -17,6 +17,13 @@ module Selection = struct
       | None -> accu
     )
 
+  let union u v =
+    Map.fold u ~init:Map.Poly.empty ~f:(fun ~key:k ~data:set_u accu ->
+      match Map.find v k with
+      | Some set_v -> Map.Poly.add accu ~key:k ~data:(Biocaml_iset.union set_u set_v)
+      | None -> accu
+    )
+
   let diff u v =
     Map.fold u ~init:Map.Poly.empty ~f:(fun ~key:k ~data:set_u accu ->
       let set_u' =
