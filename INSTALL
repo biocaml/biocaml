@@ -4,11 +4,9 @@ Dependencies
 ============
 
 The main Biocaml library depends on
-* ocaml (>= 3.12)
-* sqlite3
+* ocaml (>= 4.00)
 * pcre
 * core
-* batteries
 * unix
 * threads
 * xmlm
@@ -17,7 +15,10 @@ The main Biocaml library depends on
 At compile/install-time, you will also need
 * findlib
 
-Executables additionally depend on
+The biocaml command line application depends on
+* flow
+
+Optional Executables additionally depend on
 * getopt
 
 Tests additionally depend on
@@ -41,22 +42,6 @@ Compile documentation with
 The root of the API documentation will be
 [here](doclib.docdir/index.html).
 
-A few command line executables are provided. To build them, be sure to
-pass the --enable-apps option to -configure above. In this case, the
-apps will also be built when you run -build.
-
-To run tests, be sure to pass the --enable-tests option to -configure
-above. Then run
-
-    ocaml setup.ml -test
-
-
-GNU Style Build
----------------
-A configure script and Makefile are provided if you prefer a
-traditional GNU style build system. You can use them instead of the
-above commands, but the options for configuring may not be as
-complete.
 
 Tags
 ----
