@@ -13,7 +13,7 @@ type input_error = [
   | `unzip of Biocaml_zip.Transform.unzip_error
   | `gff of Gff.parse_error
   | `wig of Wig.parse_error
-  | `bed of Bed.parse_error
+  | `bed of Bed.Error.parsing
   | `fastq of Fastq.Error.t
   | `fasta of Fasta.Error.t
   | `table of [ `wrong_format of
@@ -29,7 +29,7 @@ type input_transform = [
   | `from_sam_item of (string, (Sam.item, input_error) Result.t) Transform.t
   | `from_gff of(string, (Gff.stream_item, input_error) Result.t) Transform.t
   | `from_wig of (string, (Wig.t, input_error) Result.t) Transform.t
-  | `from_bed of (string, (Bed.t, input_error) Result.t) Transform.t
+  | `from_bed of (string, (Bed.item, input_error) Result.t) Transform.t
   | `from_fastq of (string, (Fastq.item, input_error) Result.t) Transform.t
   | `from_char_fasta of
     (string, (Fasta.char_seq Fasta.Transform.raw_item, input_error) Result.t) Transform.t
@@ -97,7 +97,7 @@ let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
   | `bed ->
     let t =
       Transform.on_output
-        (Bed.Transform.string_to_t ())
+        (Bed.Transform.string_to_item ())
         (function Ok o -> Ok o | Error e -> Error (`bed e))
     in
     return (`from_bed (with_unzip t) : input_transform)

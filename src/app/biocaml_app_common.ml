@@ -134,7 +134,7 @@ let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
           if stopped then count_all stopped else return ()
         | `output (Error (`bed s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_bed.sexp_of_parse_error s |! Sexp.to_string_hum)
+            (Biocaml_bed.Error.sexp_of_parsing s |! Sexp.to_string_hum)
         | `output (Error (`bam s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
             (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
@@ -218,7 +218,7 @@ type output_transform = [
 | `to_sam_item of (Sam.item, (string, output_error) Result.t) Transform.t
 | `to_gff of(Gff.stream_item, string) Transform.t
 | `to_wig of (Wig.t, string) Transform.t
-| `to_bed of (Bed.t, string) Transform.t
+| `to_bed of (Bed.item, string) Transform.t
 | `to_fastq of (Fastq.item, string) Transform.t
 | `to_char_fasta of (Fasta.char_seq Fasta.Transform.raw_item, string) Transform.t
 | `to_int_fasta of (Fasta.int_seq Fasta.Transform.raw_item, string) Transform.t
@@ -277,7 +277,7 @@ let output_transform_of_tags ~zlib_buffer_size (output_tags: Tags.t) =
       let t = Wig.Transform.t_to_string  ~tags:tag_list () in
       return (`to_wig (with_zip_no_error t) : output_transform)
     | `bed ->
-      let t = Bed.Transform.t_to_string  () in
+      let t = Bed.Transform.item_to_string  () in
       return (`to_bed (with_zip_no_error t) : output_transform)
     | `fastq ->
       let t = Fastq.Transform.item_to_string () in

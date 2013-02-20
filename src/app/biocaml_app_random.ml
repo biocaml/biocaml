@@ -206,9 +206,9 @@ let random_bed_transform ~args () =
     let start = Random.int 3 *  seqnum in
     let rest =
       List.map columns (function
-      | `int -> `Int (Random.int 42)
-      | `float -> `Float (Random.float 1000.)) in
-    (sprintf "chr%d" seqnum, start, start + span, rest)
+      | `int -> `int (Random.int 42)
+      | `float -> `float (Random.float 1000.)) in
+    (sprintf "chr%d" seqnum, start, start + span, Array.of_list rest)
   in
   Transform.make ()
     ~next:(fun stopped ->

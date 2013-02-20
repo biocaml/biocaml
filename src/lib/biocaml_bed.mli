@@ -28,37 +28,46 @@
     [any_overlap] to verify this property when needed.
 *)
 
-
-type t = string * int * int * [`Float of float| `Int of int | `String of string] list
+type item = string * int * int * Biocaml_table.Row.t
 with sexp
 (** The type of BED data stream items. *)
-  
-type parse_error =
-[ `not_a_float of Biocaml_pos.t * string
-| `not_an_int of Biocaml_pos.t * string
-| `wrong_number_of_columns of Biocaml_pos.t * string list
-| `incomplete_input of Biocaml_pos.t * string list * string option
-]
-with sexp
-(** The possible parsing errors. *)
 
 type parsing_spec = [
-| `enforce of [ `float | `int | `string ] list
+| `enforce of Biocaml_table.Row.t_type
 | `strings
-| `best_effort
 ]
 with sexp
 (** The specification of how to parse the remaining columns. *)
 
+module Error: sig
+
+  type parsing_base = [
+    | `wrong_format of
+         [ `column_number
+         | `float_of_string of string
+         | `int_of_string of string ] *
+           Biocaml_table.Row.t_type * string
+    | `wrong_number_of_columns of Biocaml_table.Row.t ]
+  with sexp
+
+  type parsing = [ `bed of parsing_base ]
+  with sexp
+
+end
+
+
 module Transform: sig
-  val string_to_t:
-    ?filename:string ->
+
+  val string_to_item :
     ?more_columns:parsing_spec ->
     unit ->
-    (string, (t, parse_error) Core.Result.t) Biocaml_transform.t
-(** Create a [Biocaml_transform.t] parser, while providing the format of the
-    additional columns (default [`best_effort]). *)
+    (string,
+     (string * int * int * Biocaml_table.Row.item array,
+      [> Error.parsing]) Core.Result.t)
+      Biocaml_transform.t
+  (** Create a [Biocaml_transform.t] parser, while providing the format of the
+      additional columns (default [`best_effort]). *)
 
-  val t_to_string: unit ->
-    (t, string) Biocaml_transform.t
-end 
+  val item_to_string: unit ->
+    (item, string) Biocaml_transform.t
+end

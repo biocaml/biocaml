@@ -14,14 +14,14 @@ let load ~on_output ~input_buffer_size ?(max_read_bytes=Int.max_value) filename 
     match tags with
     | `bed ->
       Biocaml_transform.on_output
-        (Biocaml_bed.Transform.string_to_t ())
+        (Biocaml_bed.Transform.string_to_item ())
         ~f:(function Ok o -> Ok o | Error e -> Error (`bed e))
     | `gzip `bed ->
       Biocaml_transform.compose_results
         ~on_error:(function `left l -> `unzip l | `right r -> `bed r)
         (Biocaml_zip.Transform.unzip
            ~zlib_buffer_size:(10 * input_buffer_size) ~format:`gzip ())
-        (Biocaml_bed.Transform.string_to_t ())
+        (Biocaml_bed.Transform.string_to_item ())
     | _ ->
       (failwith "cannot handle file-format")
   in

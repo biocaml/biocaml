@@ -129,7 +129,7 @@ module Transform = struct
       | Ok (`content s) -> `Yes (s ^ "\n")
       | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
       | Error _ as n -> `No n)
-      
+
   type wig_parser_error = [ parse_error | Wig.parse_error ]
   type wig_t = [ track | Wig.t]
   let string_to_wig ?filename () =
@@ -162,10 +162,11 @@ module Transform = struct
       | `Done (Ok o) -> Ok (o :> gff_t)
       | `Done (Error e) -> Error (e :> gff_parse_error))
 
-  type bed_parse_error = [parse_error| Bed.parse_error]
-  type bed_t = [track |  Bed.t content ]
+  type bed_parse_error = [parse_error| Bed.Error.parsing]
+  type bed_t = [track |  Bed.item content ]
+
   let string_to_bed ?filename  ?more_columns  () =
-    let bed = Bed.Transform.string_to_t ?filename ?more_columns () in
+    let bed = Bed.Transform.string_to_item ?more_columns () in
     embed_parser  ?filename bed
       ~reconstruct:(function
       | `Filtered (Ok f) -> Ok (f :> bed_t)
@@ -198,7 +199,7 @@ module Transform = struct
       | #Gff.stream_item as y -> `right y)
 
   let bed_to_string () =
-    let bed = Bed.Transform.t_to_string () in
+    let bed = Bed.Transform.item_to_string () in
     make_printer bed ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x

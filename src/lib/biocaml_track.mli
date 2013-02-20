@@ -106,12 +106,12 @@ module Transform: sig
   val string_to_bed: ?filename:string ->
     ?more_columns:Biocaml_bed.parsing_spec -> unit ->
     (string,
-     ([t | Biocaml_bed.t content], [parse_error | Biocaml_bed.parse_error])
+     ([t | Biocaml_bed.item content], [parse_error | Biocaml_bed.Error.parsing ])
        Core.Result.t) Biocaml_transform.t
 (** Create a composite parser for UCSC Bed(Graph) files.  *)
 
   val bed_to_string: unit ->
-    ([ t | Biocaml_bed.t content ], string) Biocaml_transform.t
+    ([ t | Biocaml_bed.item content ], string) Biocaml_transform.t
 (** Create a printer for track files containing Bed(Graph) lines. *)
 end
 
