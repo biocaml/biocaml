@@ -33,8 +33,8 @@ with sexp
 (** The type of BED data stream items. *)
 
 type parsing_spec = [
-| `enforce of Biocaml_table.Row.t_type
-| `strings
+  | `enforce of Biocaml_table.Row.t_type
+  | `strings
 ]
 with sexp
 (** The specification of how to parse the remaining columns. *)
@@ -43,10 +43,10 @@ module Error: sig
 
   type parsing_base = [
     | `wrong_format of
-         [ `column_number
-         | `float_of_string of string
-         | `int_of_string of string ] *
-           Biocaml_table.Row.t_type * string
+        [ `column_number
+        | `float_of_string of string
+        | `int_of_string of string ] *
+          Biocaml_table.Row.t_type * string
     | `wrong_number_of_columns of Biocaml_table.Row.t ]
   with sexp
 

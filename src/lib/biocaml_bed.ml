@@ -14,10 +14,10 @@ module Error = struct
 
   type parsing_base = [
     | `wrong_format of
-         [ `column_number
-         | `float_of_string of string
-         | `int_of_string of string ] *
-           Biocaml_table.Row.t_type * string
+        [ `column_number
+        | `float_of_string of string
+        | `int_of_string of string ] *
+          Biocaml_table.Row.t_type * string
     | `wrong_number_of_columns of Biocaml_table.Row.t ]
   with sexp
 
@@ -34,15 +34,15 @@ let item_of_line how line =
     | `enforce tt -> (Array.append base tt, true) in
   Biocaml_table.Row.of_line ~separators ~format ~strict line
   |! begin function
-    | Ok row when Array.length row >= 3 ->
-      let n = match row.(0) with `string s -> s | _ -> assert false in
-      let h = match row.(1) with `int i -> i | _ -> assert false in
-      let l = match row.(2) with `int i -> i | _ -> assert false in
-      let q = Array.slice row 3 (Array.length row) in
-      return (n, h, l, q)
-    | Ok row ->
-      fail (`bed (`wrong_number_of_columns row))
-    | Error e -> fail (`bed e)
+  | Ok row when Array.length row >= 3 ->
+    let n = match row.(0) with `string s -> s | _ -> assert false in
+    let h = match row.(1) with `int i -> i | _ -> assert false in
+    let l = match row.(2) with `int i -> i | _ -> assert false in
+    let q = Array.slice row 3 (Array.length row) in
+    return (n, h, l, q)
+  | Ok row ->
+    fail (`bed (`wrong_number_of_columns row))
+  | Error e -> fail (`bed e)
   end
 
 let line_of_item (n, l, h, r) =
