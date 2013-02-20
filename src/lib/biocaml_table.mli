@@ -7,7 +7,8 @@ module Row : sig
   type item_type = [`type_int | `type_float | `type_string ] with sexp
   type t_type = item_type array with sexp
 
-  val of_line: ?separators:char list -> ?format:t_type -> Biocaml_line.t ->
+  val of_line: ?separators:char list -> ?strict:bool -> ?format:t_type ->
+    Biocaml_line.t ->
     (t, [> `wrong_format of
              [> `column_number
              | `float_of_string of string

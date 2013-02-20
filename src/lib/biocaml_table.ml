@@ -10,7 +10,7 @@ module Row = struct
   type item = [`int of int | `float of float | `string of string ] with sexp
   type t = item array with sexp
 
-  let of_line ?(separators=[' '; '\t']) ?format line =
+  let of_line ?(separators=[' '; '\t']) ?(strict=false) ?format line =
     let l = (line : Biocaml_line.t :> string) in
     let module With_exns = struct
       exception Int_of_string of string
@@ -28,15 +28,22 @@ module Row = struct
           Ok (Array.map tokens ~f:(fun s -> `string s))
         | Some format ->
           begin try
-            let row =
-              Array.map2_exn format tokens ~f:(fun typ tok ->
-                match typ with
+            if strict && Array.length format > Array.length tokens
+            then Error (`wrong_format (`column_number, format, l))
+            else begin
+              let row =
+                Array.mapi tokens ~f:(fun i tok ->
+                  let typ =
+                    if strict then format.(i)
+                    else (try format.(i) with _ -> `type_string) in
+                  match typ with
                 | `type_int -> `int (int tok)
                 | `type_float -> `float (float tok)
                 | `type_string -> `string tok) in
-            Ok row
+              Ok row
+            end
           with
-          | Invalid_argument _ (* should be map2 *) ->
+          | Invalid_argument _ (* should be the array access *) ->
             Error (`wrong_format (`column_number, format, l))
           | Int_of_string s ->
             Error (`wrong_format (`int_of_string s, format, l))
