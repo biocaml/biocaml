@@ -1,6 +1,6 @@
 (** Ranges of contiguous integers (integer intervals). A range is a contiguous sequence of integers from a lower bound to an upper bound. For example, [\[2, 10\]] is the set of integers from 2 through 10, inclusive of 2 and 10. *)
 
-type t = private {lo:int; hi:int}
+type t = private {lo:int; hi:int} with sexp
     (** Type of a range. *)
     
 exception Bad of string
