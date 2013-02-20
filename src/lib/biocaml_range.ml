@@ -1,6 +1,6 @@
 open Biocaml_internal_pervasives
 
-type t = {lo:int; hi:int}
+type t = {lo:int; hi:int} with sexp
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
