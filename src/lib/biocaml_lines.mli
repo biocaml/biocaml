@@ -1,6 +1,6 @@
 (** Lines of a file. *)
 
-type item = private Biocaml_line.t
+type item = Biocaml_line.t
 
 (** Errors.
 
@@ -80,6 +80,9 @@ module Transform : sig
     unit ->
     (item,
     (item * item, [> `premature_end_of_input ]) Core.Std.Result.t) Biocaml_transform.t
+
+  val item_to_string: ?buffer:[ `clear of int | `reset of int ] ->
+    unit -> (item, string) Biocaml_transform.t
 
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->

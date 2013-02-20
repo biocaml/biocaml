@@ -82,7 +82,7 @@ module Transform = struct
 
   let string_to_item () =
     let buf = Buffer.make () in
-    Biocaml_transform.make ~name:"lines"
+    Biocaml_transform.make ~name:"string_to_lines"
       ~feed:(Buffer.feed_string buf)
       ~next:(function
         | true -> (match Buffer.next_line buf with
@@ -100,6 +100,23 @@ module Transform = struct
           )
       )
       ()
+
+  let item_to_string ?(buffer:[`clear of int | `reset of int]= `reset 1024) () =
+    let module Buffer = Core.Caml.Buffer in
+    let buffer, clear_buffer =
+      match buffer with
+      | `clear s -> (Buffer.create s, Buffer.clear)
+      | `reset s -> (Buffer.create s, Buffer.reset) in
+    Biocaml_transform.make ~name:"lines_to_string" ()
+      ~feed:(fun l ->
+        Buffer.add_string buffer (l : Biocaml_line.t :> string);
+        Buffer.add_char buffer '\n')
+      ~next:(fun stopped ->
+        match Buffer.contents buffer with
+        | "" -> if stopped then `end_of_stream else `not_ready
+        | s ->
+          clear_buffer buffer;
+          `output s)
 
   let group2 () =
     let queue : (item * item) Queue.t= Queue.create () in
@@ -165,7 +182,7 @@ let of_char_stream cstr =
           let c = Stream.next_exn cstr in
           if c <> '\n' then (Buffer.add_char ans c; loop())
         with Core.Std.Caml.Stream.Failure -> ()
-      in 
+      in
       loop();
       Some (Buffer.contents ans |! Line.of_string_unsafe)
   in
