@@ -79,8 +79,7 @@ module Transform : sig
   val group2 :
     unit ->
     (item,
-    (item * item, [ `premature_end_of_input ]) Core.Std.Result.t) Biocaml_transform.t
-
+    (item * item, [> `premature_end_of_input ]) Core.Std.Result.t) Biocaml_transform.t
 
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->
