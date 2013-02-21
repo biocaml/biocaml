@@ -75,6 +75,7 @@ Library biocaml
            , Biocaml_wig
            , Biocaml_mzData
            , Biocaml_table
+           , Biocaml_transcripts
   CSources: biocaml_pwm_stub.c, biocaml_mzData_stubs.c
   CCOpt: -O3
 
