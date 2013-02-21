@@ -25,7 +25,7 @@ module Error = struct
   with sexp
 end
 
-let item_of_line how line =
+let item_of_line ~how line =
   let separators = ['\t'; ' '] in
   let format, strict =
     let base = [| `type_string; `type_int; `type_int |] in
@@ -45,7 +45,7 @@ let item_of_line how line =
   | Error e -> fail (`bed e)
   end
 
-let line_of_item (n, l, h, r) =
+let item_to_line (n, l, h, r) =
   Biocaml_table.Row.to_line ~sep:"\t"
     (Array.append [| `string n; `int l; `int h |] r)
 
@@ -60,6 +60,6 @@ module Transform = struct
   let item_to_string () =
     Biocaml_transform.on_input
       (Biocaml_lines.Transform.item_to_string ())
-      ~f:(fun line -> line_of_item line)
+      ~f:(fun item -> item_to_line item)
 
 end

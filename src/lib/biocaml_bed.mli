@@ -39,6 +39,7 @@ type parsing_spec = [
 with sexp
 (** The specification of how to parse the remaining columns. *)
 
+(** Definitions of error types ([with sexp]) *)
 module Error: sig
 
   type parsing_base = [
@@ -55,6 +56,12 @@ module Error: sig
 
 end
 
+val item_of_line: how:parsing_spec -> Biocaml_lines.item ->
+  (item, [> Error.parsing]) Core.Result.t
+(** Basic parsing of a single line. *)
+
+val item_to_line: item -> Biocaml_lines.item
+(** Basic “printing” of one single [item]. *)
 
 module Transform: sig
 
@@ -63,11 +70,13 @@ module Transform: sig
     unit ->
     (string,
      (string * int * int * Biocaml_table.Row.item array,
-      [> Error.parsing]) Core.Result.t)
-      Biocaml_transform.t
-  (** Create a [Biocaml_transform.t] parser, while providing the format of the
-      additional columns (default [`best_effort]). *)
+      [> Error.parsing]) Core.Result.t) Biocaml_transform.t
+  (** Create a [Biocaml_transform.t]-based parser, while providing the
+     format of the additional columns (default [`strings]). *)
 
   val item_to_string: unit ->
     (item, string) Biocaml_transform.t
+  (** Create a [Biocaml_transform.t] which “prints” BED data
+     (reminder: includes ends-of-line). *)
+
 end
