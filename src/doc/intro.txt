@@ -45,6 +45,7 @@ Biocaml_range
 Biocaml_rSet
 Biocaml_stream
 Biocaml_streamable
+Biocaml_table
 }
 
 {8 Analysis}
