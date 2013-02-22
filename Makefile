@@ -10,7 +10,7 @@ src/lib/biocaml_about.ml:
 	echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
 	echo 'let version = "$(VERSION)"' >> $@
 
-build: setup.data src/lib/biocaml_about.ml _build/src/lib/biocaml.cma
+build: setup.data src/lib/biocaml_about.ml
 	$(SETUP) -build $(BUILDFLAGS)
 
 
@@ -58,14 +58,14 @@ configure: setup.data
 clean:
 	$(RM) -fr _build
 
-distclean:
+distclean: clean
 	$(RM) setup.data setup.log
 	$(RM) configure
 	$(RM) src/lib/META
 	$(RM) src/lib/libbiocaml_stubs.clib
+	$(RM) src/lib/biocaml_about.ml
 	$(RM) src/lib/biocaml.mllib
 	$(RM) TAGS
-	$(SETUP) -distclean $(DISTCLEANFLAGS)
 	$(RM) setup.ml
 
 TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
@@ -80,7 +80,7 @@ VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
 PKG_VERSION=$(PKG)-$(VERSION)
 DIST_FILES=Changes INSTALL LICENSE Makefile README.md _oasis _tags myocamlbuild.ml setup.ml src
 .PHONY: dist
-dist:
+dist: distclean
 	oasis setup
 	perl -pi -e 's#$(HOME)##g' myocamlbuild.ml setup.ml
 	cd .. ; mv $(CURR_DIR) $(PKG_VERSION); tar czf $(PKG_VERSION).tgz $(patsubst %,$(PKG_VERSION)/%,$(DIST_FILES)); mv $(PKG_VERSION) $(CURR_DIR)
