@@ -1,4 +1,4 @@
-open Printf
+open Biocaml_internal_pervasives
 
 module Roman = struct
     (* Roman module courtesy of Nathan Mishra Linger, as posted on Caml List. *)
@@ -93,7 +93,7 @@ module Roman = struct
   let () = if debug then begin
     let rec upto i j = if i > j then [] else i :: upto (i+1) j in
     let test n = arabic (roman n) = n in
-    let _ = List.for_all test (upto 0 5000) in
+    let _ = List.for_all ~f:test (upto 0 5000) in
       ()
   end
 

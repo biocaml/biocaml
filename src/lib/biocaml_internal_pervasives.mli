@@ -1,14 +1,103 @@
-(** Internal "standard" library. *)
-
-(**
-   See
-   {{:https://bitbucket.org/yminsky/ocaml-core/src/8808e3a2571f/base/core/lib/std.ml}std.ml}.
-
-   Semantics: (1) functions that return a stream return a "fresh"
-   stream, meaning that their count is set to 0. (2) indexed variants
-   of HOF use the internal count of the stream
+(** Internal "standard" library. This module is not part of the
+    Biocaml API and subject to change at any time. Biocaml uses Core, and
+    for the most part, this module simply includes Core modules, sometimes
+    with a few functions added. A few modules are completely new.
 *)
-include module type of Core.Std
+
+module Stream : module type of Biocaml_stream
+module Streamable : module type of Biocaml_streamable
+
+include module type of Core.Common
+val ( |? ) : 'a option -> 'a -> 'a
+module List : sig
+  include module type of Core.Std.List
+  include Streamable.S with type 'a t := 'a t
+end
+module Arg : module type of Core.Std.Arg
+module Array : sig
+  include module type of Core.Std.Array
+  include Streamable.S with type 'a t := 'a t
+
+  (** [range xs] is the stream of all valid indices in [xs] *)
+  val range : 'a t -> int Stream.t
+end
+include module type of Array.Infix
+module Backtrace : module type of Core.Std.Backtrace
+module Bag : module type of Core.Std.Bag
+module Big_int : module type of Core.Std.Big_int
+module Bigbuffer : module type of Core.Std.Bigbuffer
+module Bigstring : module type of Core.Std.Bigstring
+module Bigsubstring : module type of Core.Std.Bigsubstring
+module Bin_prot : module type of Core.Std.Bin_prot
+module Binary_packing : module type of Core.Std.Binary_packing
+module Bool : module type of Core.Std.Bool
+module Buffer : module type of Core.Std.Caml.Buffer
+module Caml : module type of Core.Std.Caml
+module Char : module type of Core.Std.Char
+module Command : module type of Core.Std.Command
+module Dequeue : module type of Core.Std.Dequeue
+module Exn : module type of Core.Std.Exn
+module Filename : module type of Core.Std.Filename
+module Float : module type of Core.Std.Float
+module Fn : module type of Core.Std.Fn
+module Hashtbl : sig
+  include module type of Core.Std.Hashtbl
+  include Streamable.S2 with type ('a,'b) t := ('a,'b) t
+end
+module Int : module type of Core.Std.Int
+include module type of Int.Infix
+module In_channel : module type of Core.Std.In_channel
+module Int32 : module type of Core.Std.Int32
+module Int63 : module type of Core.Std.Int63
+module Int64 : module type of Core.Std.Int64
+module Interfaces : module type of Core.Std.Interfaces
+include module type of Interfaces
+module Interval : module type of Core.Std.Interval
+module Lazy : module type of Core.Std.Lazy
+include module type of List.Infix
+module Map : sig
+  include module type of Core.Std.Map
+  val to_stream : ('a, 'b, 'c) t -> ('a * 'b) Stream.t
+  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) Poly.t
+end
+module Monad : module type of Core.Std.Monad
+module Nat : module type of Core.Std.Nat
+module Nativeint : module type of Core.Std.Nativeint
+module Num : module type of Core.Std.Num
+module Option : module type of Core.Std.Option
+module Out_channel : module type of Core.Std.Out_channel
+module Printexc : module type of Core.Std.Printexc
+module Printf : module type of Core.Std.Printf
+include module type of Printf
+module Queue : module type of Core.Std.Queue
+module Random : module type of Core.Std.Random
+module Ratio : module type of Core.Std.Ratio
+module Result : sig
+
+  include module type of Core.Std.Result
+
+  (** Map the function [f] on the list until the first error is
+      met. *)
+  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) t) ->
+    ('b list, 'e) t
+
+  val output_result : 'a -> [> `output of 'a ]
+  val output_ok : 'a -> [> `output of ('a, 'b) t ]
+  val output_error : 'a -> [> `output of ('b, 'a) t ]
+
+end
+include module type of Result.Export
+module Set : sig
+  include module type of Core.Std.Set
+  val to_stream : ('a, 'b) t -> 'a Stream.t
+  val of_stream : 'a Stream.t -> 'a Poly.t
+end
+include module type of Sexplib.Conv
+module Stack : module type of Core.Std.Stack
+module String : module type of Core.Std.String
+include module type of String.Infix
+module Sys : module type of Core.Std.Sys
+module Time : module type of Core.Std.Time
 
 val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
   (** [try_finally_exn fend f a] will run [x = f a], then run [fend
@@ -19,24 +108,6 @@ val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
 
 val open_out_safe : string -> out_channel
   (** Like [open_out] but will not overwrite existing file. *)
-
-val flip : ('a -> 'b -> 'c) -> ('b -> 'a -> 'c)
-  (** [flip f] returns a function [g] that takes its arguments in the
-      opposite order of [f], i.e. [f x y = g y x]. *)
-
-module Stream : module type of Biocaml_stream
-
-module Lines : sig
-  exception Error of (Biocaml_pos.t * string)
-  val fold_stream' : ?file:string -> ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
-  val fold_stream : ?strict:bool -> ('a -> string -> 'a) -> 'a -> char Stream.t -> 'a
-  val fold_channel' : ?file:string -> ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
-  val fold_channel : ?strict:bool -> ('a -> string -> 'a) -> 'a -> in_channel -> 'a
-  val fold_file : ?strict:bool -> ('a -> string -> 'a) -> 'a -> string -> 'a
-  val iter_file : ?strict:bool -> (string -> unit) -> string -> unit
-  val of_stream : ?strict:bool -> (string -> 'a) -> char Stream.t -> 'a List.t
-  val of_channel : ?strict:bool -> (string -> 'a) -> in_channel -> 'a List.t
-end
 
 (** Operations on URL-style encodings. *)
 module Url : sig
@@ -76,21 +147,6 @@ module Parse : sig
       escapable_string ~stop_before:\['='; '@'\]  "sdf\tsd\000 sdf \@fdsaf";;
       = ("sdf\tsd\000 sdf ", Some '\@', "fdsa")
       ]} *)
-
-end
-
-(** More operations for the [Result.t] monad. *)
-module With_result: sig
-
-  include module type of Result
-
-  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) Result.t) ->
-    ('b list, 'e) Result.t
-  (** Map the function [f] on the list until the first error is met. *)
-
-  val output_result : 'a -> [> `output of 'a ]
-  val output_ok : 'a -> [> `output of ('a, 'b) t ]
-  val output_error : 'a -> [> `output of ('b, 'a) t ]
 
 end
 

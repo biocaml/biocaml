@@ -1,9 +1,7 @@
 open OUnit
-open Core.Std
-open Printf
-
-open Biocaml_stream
-open Biocaml_stream.Infix
+open Biocaml_internal_pervasives
+open Biocaml.Stream
+open Biocaml.Stream.Infix
 
 let int_list_printer il = String.concat ~sep:"; " (List.map il (sprintf "%d"))
 let int_list_tuple_printer (al, bl) =
@@ -94,11 +92,37 @@ let test_iter () =
     ~msg:"Check list built with iter"
     l (List.rev !c)
 
+let test_take () =
+  assert_equal 
+    ~printer:int_list_printer
+    ~msg:"Check take"
+    [1;2;3] (to_list (take (of_list [1;2;3;4;5]) 3)) ;
+  let s = of_list [1;2;3;4;5] in
+  ignore (next s) ;
+  assert_equal 
+    ~printer:int_list_printer
+    ~msg:"Check take after changing the stream count"
+    [2;3;4] (to_list (take s 3))
+
+
 let test_range () =
   assert_equal
     ~printer:int_list_printer
     ~msg:"Check the construction of range enumerations"
-    [1;2;3;4;5] (to_list (1 -- 5))
+    [1;2;3;4;5] (to_list (1 -- 5)) ;
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check the construction of reverse range enumerations"
+    [1;2;3;4;5] (to_list (1 --- 5)) ;
+  assert_equal
+    ~printer:int_list_printer
+    ~msg:"Check the construction of reverse range enumerations"
+    [5;4;3;2;1] (to_list (5 --- 1)) ;
+  assert_equal
+    ~printer:string_of_int
+    ~msg:"Unbounded range stream should have more than 10 elements"
+    10 (range 1 |! take ~n:10 |! to_list |! List.length)
+
 
 let test_scan () =
   let factorials =
@@ -140,7 +164,7 @@ let test_skip () =
     ~printer:int_list_printer
     ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
     [ 6;-1;-2;7;8 ]
-    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! skip 3 |! to_list) ;
+    ([ -5 ; -5 ; -6 ;6;-1;-2;7;8 ] |! of_list |! skip ~n:3 |! to_list) ;
   assert_equal
     ~printer:int_list_printer
     ~msg:"Check [skip]'ed lists (by hand and by [uniq]"
@@ -151,6 +175,7 @@ let test_skip () =
 let tests = "Stream" >::: [
   "Exists" >:: test_exists;
   "Range" >:: test_range;
+  "Take" >:: test_take ;
   "Iter" >:: test_iter;
   "Scan" >:: test_scan;
   "Skip" >:: test_skip ;

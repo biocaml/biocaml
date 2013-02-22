@@ -1,6 +1,7 @@
 open OUnit
 
 let all_tests = [
+  Test_table.tests;
   Test_stream.tests;
   Test_fasta.tests;
   Test_interval_tree.tests;
@@ -13,6 +14,7 @@ let all_tests = [
   Test_track.tests;
   Test_sam.tests;
   Test_zip.tests;
+  Test_rset.tests;
 ]
 
 let () =

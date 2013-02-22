@@ -17,7 +17,6 @@
     reason for this minimum based on the general definition of Solexa
     scores.
 *)
-open Batteries
 
 exception Error of string
 

@@ -4,7 +4,7 @@
  * functions
  *)
 
-open Printf
+open Biocaml_internal_pervasives
 
 type 'a t = Empty | Node of 'a node 
 and 'a node = {
@@ -32,11 +32,11 @@ let height = function
   | Node n -> n.height
 
 let left_end = function
-  | Empty -> max_int 
+  | Empty -> Int.max_value
   | Node n -> n.left_end
 
 let right_end = function
-  | Empty -> min_int 
+  | Empty -> Int.min_value
   | Node n -> n.right_end
 
 let rec cardinal = function
@@ -64,7 +64,7 @@ let interval_distance lo hi lo' hi' =
   else min (abs (lo' - hi)) (abs (lo - hi'))
   
 let tree_distance lo hi = function
-  | Empty -> max_int
+  | Empty -> Int.max_value
   | Node n -> interval_distance lo hi n.left_end n.right_end
 
 
@@ -161,33 +161,21 @@ let rec rev_cons_iter s t = match s with
     Empty -> t
   | Node n -> rev_cons_iter n.right (C (n, n.left, t))
 
-let rec enum_next l () = match !l with
-    E -> raise BatEnum.No_more_elements
-  | C (n, s, t) -> l := cons_iter s t; node_contents n
+let rec stream_next l _ = match !l with
+    E -> None
+  | C (n, s, t) -> l := cons_iter s t; Some (node_contents n)
 
-let rec enum_backwards_next l () = match !l with
-    E -> raise BatEnum.No_more_elements
-  | C (n, s, t) -> l := rev_cons_iter s t; node_contents n
+let rec stream_backwards_next l _ = match !l with
+    E -> None
+  | C (n, s, t) -> l := rev_cons_iter s t; Some (node_contents n)
 
-let rec enum_count l () =
-  let rec aux n = function
-    | E -> n
-    | C (_, s, t) -> aux (n + 1 + cardinal s) t
-  in aux 0 !l
+let to_stream t =
+  let l = ref (cons_iter t E) in
+  Stream.from (stream_next l)
 
-let enum t =
-  let rec make l =
-    let l = ref l in
-    let clone() = make !l in
-    BatEnum.make ~next:(enum_next l) ~count:(enum_count l) ~clone
-  in make (cons_iter t E)
-
-let backwards t =
-  let rec make l =
-    let l = ref l in
-    let clone() = make !l in
-    BatEnum.make ~next:(enum_backwards_next l) ~count:(enum_count l) ~clone
-  in make (rev_cons_iter t E)
+let to_backwards_stream t =
+  let l = ref (rev_cons_iter t E) in
+  Stream.from (stream_backwards_next l)
 
 
 
@@ -287,7 +275,7 @@ let find_intersecting_elem lo hi t =
         )
         else loop t
   in 
-  BatEnum.unfold [t] loop 
+  Stream.unfold [t] loop 
 
 
 

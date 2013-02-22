@@ -168,7 +168,7 @@ let cmd_convert =
         +> anon ("INPUT-FILE" %: string)
         +> anon ("OUT-DIR" %: string)
       )
-      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir ->
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes input_file outdir () ->
         let transform input_buffer_size =
           let tags =
             match Biocaml_tags.guess_from_filename input_file with
@@ -210,10 +210,9 @@ let cmd_convert =
               In_channel.with_file input_file ~f:(fun inch ->
                 Out_channel.with_file outfile ~f:(fun ouch ->
                   let stream =
-                    Biocaml_transform.Pull_based.(
-                      of_in_channel ~buffer_size:input_buffer_size inch transform
-                      |! to_stream_exn ~error_to_exn:(function `string s -> Failure s)
-                    ) in
+                    Biocaml_transform.in_channel_strings_to_stream ~buffer_size:input_buffer_size inch transform
+                    |! Biocaml_stream.result_to_exn ~error_to_exn:(function `string s -> Failure s)
+                  in
                   Stream.iter (fun s -> Out_channel.output_string ouch s) stream
                 )
               )
@@ -239,7 +238,7 @@ let cmd_just_parse_bam =
         bench_flags ()
         +> anon ("BAM-FILE" %: string)
       )
-      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam ->
+      (fun ~repetitions ~input_buffer_sizes ~output_buffer_sizes bam () ->
         let results = ref [] in
         List.iter input_buffer_sizes (fun input_buffer_size ->
           let start = Time.now () in

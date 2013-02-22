@@ -1,6 +1,5 @@
-open Batteries
-open Printf
 open Biocaml
+open Core.Std
 
 let prog_name = Sys.argv.(0)
 
@@ -41,19 +40,19 @@ let options_to_params (t:options) : params =
   ;
 
   let exists x =
-    if not (Sys.file_exists x) then
+    if  (Sys.file_exists x) = `Yes then
       failwith (sprintf "%s: no such file or directory" x)
   in
-  
+
   let in_file = match t.option_in_file with
     | None -> failwith "must specify input file"
     | Some x -> (exists x; x)
   in
-  
+
   let column = match t.option_column with
     | None -> failwith "must specify column"
     | Some x ->
-        let x' = String.map Char.uppercase x in
+        let x' = String.map ~f:Char.uppercase x in
         (
           match x' with
             | "CHR" | "SOURCE" | "FEATURE" -> x'
@@ -64,21 +63,21 @@ let options_to_params (t:options) : params =
     in_file = in_file;
     column = column
   }
-    
+
 let parse_cmdline () : params =
   let t = {option_column=None; option_in_file=None; option_help=false} in
- 
+
   let opts = [
     'c', "", None, Some (fun x -> t.option_column <- Some x);
     Getopt.noshort, "help", Some (fun () -> t.option_help <- true), None;
   ]
   in
-  
+
   let anon_handler x = match t.option_in_file with
     | None -> t.option_in_file <- Some x
     | Some _ -> failwith "multiple input files not allowed"
   in
-  
+
   Getopt.parse_cmdline opts anon_handler;
   options_to_params t
 
@@ -93,8 +92,8 @@ try
     | "FEATURE" -> row.Gff.feature
     | _ -> assert false (* if here, options_to_params *)
   in
-  
-  let module StringMap = Biocaml_std.StringMap in 
+
+  let module StringMap = Biocaml_std.StringMap in
   let f counts r : int StringMap.t =
     let increment prev = match prev with None -> 1 | Some k -> k+1 in
     StringMap.add_with (get r) increment counts

@@ -1,73 +1,95 @@
-
-include Core.Std
-let try_finally_exn ~fend f x =
-  match try `V (f x) with e -> `E e with
-    | `V f_x -> fend x; f_x
-    | `E e -> (try fend x with _ -> ()); raise e
-
-let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
-
-let flip f x y = f y x
-
 module Stream = Biocaml_stream
+module Streamable = Biocaml_streamable
 
-module Lines = struct
-  module Pos = Biocaml_pos
+include Core.Common
+let ( |? ) x default = Core.Option.value ~default x
+module List = struct
+  include Core.Std.List
 
-  exception Error of (Pos.t * string)
-  let raise_error p m = raise (Error(p,m))
+  let to_stream = Stream.of_list
 
-  let fold_stream' ?(file="") ?(strict=true) f init cstr =
-    let lines = Stream.lines_of_chars cstr in
-    let f accum s =
-      try f accum s
-      with Failure msg ->
-        let n = Stream.count lines in
-        let pos = if file = "" then Pos.l n else Pos.fl file n in
-        if strict then raise_error pos msg else accum
-    in
-    Stream.fold ~f ~init lines
-
-  let fold_stream ?(strict=true) f init cstr =
-    fold_stream' ~strict f init cstr
-
-  let fold_channel' ?(file="") ?(strict=true) f init cin =
-    fold_stream' ~file ~strict f init (Stream.of_channel cin)
-
-  let fold_channel ?(strict=true) f init cin =
-    fold_stream ~strict f init (Stream.of_channel cin)
-
-  let fold_file ?(strict=true) f init file =
-    try
-      try_finally_exn (fold_channel' ~file ~strict f init)
-        ~fend:In_channel.close (open_in file)
-    with Error (p,m) -> raise_error (Pos.set_file p file) m
-
-  let iter_file ?(strict=true) f file =
-    fold_file ~strict (fun _ x -> f x) () file
-
-  let of_stream ?(strict=true) f (cstr : char Stream.t) =
-    let lines = Stream.lines_of_chars cstr in
-    let g ans s =
-      try (f s)::ans
-      with Failure m ->
-        if strict
-        then raise_error (Pos.l (Stream.count lines)) m
-        else ans
-    in List.rev (Stream.fold ~f:g ~init:[] lines)
-
-  let of_channel ?(strict=true) f cin =
-    of_stream ~strict f (Stream.of_channel cin)
-
+  let of_stream strm =
+    strm
+    |! Stream.fold ~init:[] ~f:(fun l a -> a::l)
+    |! List.rev
 end
+module Arg = Core.Std.Arg
+module Array = struct
+  include Core.Std.Array
 
-module With_result = struct
+  let to_stream a =
+    Stream.from (fun i ->
+      try Some a.(i)
+      with Invalid_argument _ -> None
+    )
 
-  include Result
-    
-  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) Result.t)) =
+  let of_stream strm = List.of_stream strm |! Array.of_list
+
+  let range xs = Stream.Infix.(0 --^ (length xs))
+end
+include Array.Infix
+module Backtrace = Core.Std.Backtrace
+module Bag = Core.Std.Bag
+module Big_int = Core.Std.Big_int
+module Bigbuffer = Core.Std.Bigbuffer
+module Bigstring = Core.Std.Bigstring
+module Bigsubstring = Core.Std.Bigsubstring
+module Bin_prot = Core.Std.Bin_prot
+module Binary_packing = Core.Std.Binary_packing
+module Bool = Core.Std.Bool
+module Buffer = Core.Std.Caml.Buffer
+module Caml = Core.Std.Caml
+module Char = Core.Std.Char
+module Command = Core.Std.Command
+module Dequeue = Core.Std.Dequeue
+module Exn = Core.Std.Exn
+module Filename = Core.Std.Filename
+module Float = Core.Std.Float
+module Fn = Core.Std.Fn
+module Hashtbl = struct
+  include Core.Std.Hashtbl
+  let to_stream t = Stream.of_list (to_alist t)
+  let of_stream xs =
+    let t = Poly.create () in
+    Stream.iter xs ~f:(fun (key,data) -> Poly.replace t ~key ~data) ;
+    t
+end
+module Int = Core.Std.Int
+include Int.Infix
+module In_channel = Core.Std.In_channel
+module Int32 = Core.Std.Int32
+module Int63 = Core.Std.Int63
+module Int64 = Core.Std.Int64
+module Interfaces = Core.Std.Interfaces
+include Interfaces
+module Interval = Core.Std.Interval
+module Lazy = Core.Std.Lazy
+include List.Infix
+module Map = struct
+  include Core.Std.Map
+  let to_stream t = Stream.of_list (to_alist t)
+  let of_stream xs =
+    Stream.fold xs ~init:Poly.empty ~f:(fun accu (key,data) -> Poly.add accu ~key ~data) ;
+end
+module Monad = Core.Std.Monad
+module Nat = Core.Std.Nat
+module Nativeint = Core.Std.Nativeint
+module Num = Core.Std.Num
+module Option = Core.Std.Option
+module Out_channel = Core.Std.Out_channel
+module Printexc = Core.Std.Printexc
+module Printf = Core.Std.Printf
+include Printf
+module Queue = Core.Std.Queue
+module Random = Core.Std.Random
+module Ratio = Core.Std.Ratio
+module Result = struct
+
+  include Core.Std.Result
+
+  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) t)) =
     let module M = struct
-      exception E of error 
+      exception E of error
       let the_fun () =
         let run () =
           List.mapi l (fun i x ->
@@ -80,13 +102,33 @@ module With_result = struct
         | E e -> Error e
     end in
     M.the_fun ()
-      
+
   let output_result r = `output r
   let output_ok o = `output (Ok o)
   let output_error e = `output (Error e)
 
 end
-  
+include Result.Export
+module Set = struct
+  include Core.Std.Set
+  let to_stream t = Stream.of_list (to_list t)
+  let of_stream xs =
+    Stream.fold xs ~init:Poly.empty ~f:(fun accu e -> Poly.add accu e) ;
+end
+include Sexplib.Conv
+module Stack = Core.Std.Stack
+module String = Core.Std.String
+include String.Infix
+module Sys = Core.Std.Sys
+module Time = Core.Std.Time
+
+let try_finally_exn ~fend f x =
+  match try `V (f x) with e -> `E e with
+    | `V f_x -> fend x; f_x
+    | `E e -> (try fend x with _ -> ()); raise e
+
+let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
+
 module Url = struct
 
   let escape s =

@@ -130,44 +130,49 @@ module Error : sig
 
 end
 
+exception Error of Error.t
+
 val in_channel_to_char_seq_item_stream :
+  ?buffer_size:int ->
   ?filename:string ->
   ?pedantic:bool ->
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   in_channel ->
-  (char_seq item, Error.t) Core.Result.t Stream.t
+  char_seq item Stream.t
+    (** Returns a stream of [char_seq item]s. Initial comments are
+        discarded. @raise Error in case of any errors. *)
 
 val in_channel_to_int_seq_item_stream :
+  ?buffer_size:int ->
   ?filename:string ->
   ?pedantic:bool ->
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   in_channel ->
-  (int_seq item, Error.t) Core.Result.t Stream.t
+  int_seq item Stream.t
+    (** Returns a stream of [int_seq item]s. Initial comments are
+        discarded. @raise Error in case of any errors. *)
 
-module Exceptionful : sig
-  exception Error of Error.t
+module Result : sig
 
   val in_channel_to_char_seq_item_stream :
+    ?buffer_size:int ->
     ?filename:string ->
     ?pedantic:bool ->
     ?sharp_comments:bool ->
     ?semicolon_comments:bool ->
     in_channel ->
-    char_seq item Stream.t
-      (** Returns a stream of [char_seq item]s. Initial comments are
-          discarded. @raise Error in case of any errors. *)
+    (char_seq item, Error.t) Core.Result.t Stream.t
 
   val in_channel_to_int_seq_item_stream :
+    ?buffer_size:int ->
     ?filename:string ->
     ?pedantic:bool ->
     ?sharp_comments:bool ->
     ?semicolon_comments:bool ->
     in_channel ->
-    int_seq item Stream.t
-      (** Returns a stream of [int_seq item]s. Initial comments are
-          discarded. @raise Error in case of any errors. *)
+    (int_seq item, Error.t) Core.Result.t Stream.t
 
 end
 

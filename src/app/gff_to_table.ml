@@ -1,9 +1,7 @@
-open Batteries
-open Printf
 open Biocaml
-open Biocaml_std
+open Core.Std
 
-module StringMap = Biocaml_std.StringMap
+module StringMap = String.Map
 
 let prog_name = Sys.argv.(0)
 
@@ -49,7 +47,7 @@ let options_to_params (t:options) : params =
   ;
   
   let exists x =
-    if not (Sys.file_exists x) then
+    if (Sys.file_exists x) = `No then
       failwith (sprintf "%s: no such file or directory" x)
   in
   

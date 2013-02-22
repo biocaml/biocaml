@@ -1,5 +1,6 @@
 open Biocaml_internal_pervasives
-open With_result
+open Result
+module Pos = Biocaml_pos
 
 type comment = [
 | `comment of string
@@ -26,49 +27,49 @@ type tag = [ `sharp_comments | `pedantic ] with sexp
 let default_tags = [ `sharp_comments; `pedantic ]
 
 type parse_error = [
-| `cannot_parse_key_values of Biocaml_pos.t * string
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of Biocaml_pos.t * string list * string option
-| `missing_chrom_value of Biocaml_pos.t * string
-| `missing_start_value of Biocaml_pos.t * string
-| `missing_step_value of Biocaml_pos.t * string
-| `wrong_start_value of Biocaml_pos.t * string
-| `wrong_step_value of Biocaml_pos.t * string
-| `unrecognizable_line of Biocaml_pos.t * string list
-| `wrong_bed_graph_value of Biocaml_pos.t * string
-| `wrong_fixed_step_value of Biocaml_pos.t * string
-| `wrong_span_value of Biocaml_pos.t * string
-| `wrong_variable_step_value of Biocaml_pos.t * string
+| `cannot_parse_key_values of Pos.t * string
+| `empty_line of Pos.t
+| `incomplete_input of Pos.t * string list * string option
+| `missing_chrom_value of Pos.t * string
+| `missing_start_value of Pos.t * string
+| `missing_step_value of Pos.t * string
+| `wrong_start_value of Pos.t * string
+| `wrong_step_value of Pos.t * string
+| `unrecognizable_line of Pos.t * string list
+| `wrong_bed_graph_value of Pos.t * string
+| `wrong_fixed_step_value of Pos.t * string
+| `wrong_span_value of Pos.t * string
+| `wrong_variable_step_value of Pos.t * string
 ]
 with sexp
 let parse_error_to_string =
-  let pos () a = Biocaml_pos.to_string a in
+  let pos () a = Pos.to_string a in
   function
   | `cannot_parse_key_values (p, s) ->
     sprintf "cannot_parse_key_values (%a, %S)" pos p s
   | `empty_line p -> sprintf "empty_line (%a)" pos p
-  | `incomplete_input (p, vs, vo) -> (* Biocaml_pos.t * string list *string option *)
+  | `incomplete_input (p, vs, vo) -> (* Pos.t * string list *string option *)
     sprintf "incomplete_input (%a, %s, %S)" pos p
       (String.concat ~sep:"; " vs) (Option.value ~default:"" vo)
-  | `missing_chrom_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `missing_chrom_value (p, v) -> (* Pos.t * string *)
     sprintf "missing_chrom_value (%a, %s)" pos p v
-  | `missing_start_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `missing_start_value (p, v) -> (* Pos.t * string *)
     sprintf "missing_start_value (%a, %s)" pos p v
-  | `missing_step_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `missing_step_value (p, v) -> (* Pos.t * string *)
     sprintf "missing_step_value (%a, %s)" pos p v
-  | `wrong_start_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `wrong_start_value (p, v) -> (* Pos.t * string *)
     sprintf "wrong_start_value (%a, %s)" pos p v
-  | `wrong_step_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `wrong_step_value (p, v) -> (* Pos.t * string *)
     sprintf "wrong_step_value (%a, %s)" pos p v
-  | `unrecognizable_line (p, v) -> (* Biocaml_pos.t * string list *)
+  | `unrecognizable_line (p, v) -> (* Pos.t * string list *)
     sprintf "unrecognizable_line (%a, %s)" pos p (String.concat ~sep:" " v)
-  | `wrong_bed_graph_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `wrong_bed_graph_value (p, v) -> (* Pos.t * string *)
     sprintf "wrong_bed_graph_value (%a, %s)" pos p v
-  | `wrong_fixed_step_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `wrong_fixed_step_value (p, v) -> (* Pos.t * string *)
     sprintf "wrong_fixed_step_value (%a, %s)" pos p v
-  | `wrong_span_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `wrong_span_value (p, v) -> (* Pos.t * string *)
     sprintf "wrong_span_value (%a, %s)" pos p v
-  | `wrong_variable_step_value (p, v) -> (* Biocaml_pos.t * string *)
+  | `wrong_variable_step_value (p, v) -> (* Pos.t * string *)
     sprintf "wrong_variable_step_value (%a, %s)" pos p v
 
 module Transform = struct      

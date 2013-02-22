@@ -52,7 +52,7 @@ let of_ascii_exn ?(offset=`offset33) x =
              (int_of_offset offset)) |! raise
 
 let of_probability ?(f = round_float_to_int) x =
-  if 0.0 <= x && x <= 1.0 then
+  if 0.0 < x && x <= 1.0 then
     Some (f (-10. *. log10 x))
   else
     None

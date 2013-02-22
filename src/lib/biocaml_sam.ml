@@ -1,5 +1,6 @@
 open Biocaml_internal_pervasives
-open With_result
+open Result
+module Phred_score = Biocaml_phred_score
 
 let dbg fmt = Debug.make "SAM" fmt
 
@@ -112,7 +113,7 @@ type alignment = {
   template_length: int option;
 
   sequence: [ `string of string | `reference | `none];
-  quality: Biocaml_phred_score.t array;
+  quality: Phred_score.t array;
 
   optional_content: optional_content;
 }
@@ -401,9 +402,9 @@ module Low_level_parsing = struct
     (if qual = "*" then return [| |] else begin
       try
         let quality =
-          Array.create (String.length qual) Biocaml_phred_score.(of_int_exn 0) in
+          Array.create (String.length qual) Phred_score.(of_int_exn 0) in
         for i = 0 to String.length qual - 1 do
-          quality.(i) <- Biocaml_phred_score.of_ascii_exn qual.[i];
+          quality.(i) <- Phred_score.of_ascii_exn qual.[i];
         done;
         Ok quality
       with
@@ -591,7 +592,7 @@ module Transform = struct
     begin
       try
         Array.map al.quality ~f:(fun q ->
-          Biocaml_phred_score.to_ascii q
+          Phred_score.to_ascii q
           |! Option.value_exn ?here:None ?error:None ?message:None
           |! Char.to_string)
         |! String.concat_array ~sep:""
@@ -703,11 +704,10 @@ module Transform = struct
 end
       
 
-let in_channel_to_item_stream ?filename inp =
+let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   let x = Transform.string_to_raw ?filename () in
   let y = Transform.raw_to_item () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! Pull_based.of_in_channel inp
-    |! Pull_based.to_stream_result
+    |! in_channel_strings_to_stream ~buffer_size inp
   )

@@ -1,67 +1,41 @@
-(*
-(** Tabular data as defined by principal tag 'table'. Design
-    emphasizes support for large tables. Additional tags supported
-    are: header, header_, comment-char, separator. By default, parsers
-    assume input format is:
+(** Generic “tables” (like CSV, TSV, Bed …). *)
 
-    {v    "table,comment-char=#,header,header_,separator=\t". v}
 
-    If header=false, then column names are assigned the values: "0",
-    "1", "2", etc.
-*)
+(** Definition of rows *)
+module Row : sig
 
-open Batteries
+  type item = [`int of int | `float of float | `string of string ] with sexp
+  (** Type row elements (or “cells”). *)
 
-exception Invalid of string
+  type t = item array with sexp
+  (** A single row. *)
 
-exception No_column of string
-  
-type row
-    (** Data row. *)
-    
-type getter = row -> string -> string
-  (** A function [get] of type [getter] can be used as [get r c] to
-      get the value of the column named [c] in row [r]. Raise
-      [No_column c] if given row does not have a value for column [c]. *)
+  type item_type = [`type_int | `type_float | `type_string ] with sexp
+  (** Definition of the type of a cell. *)
 
-type columns = string list
-    (** All column names occurring in a file, in order that they occur. *)
+  type t_type = item_type array with sexp
+  (** Definition of the type of a row. *)
 
-type t = Biocaml_comments.t option * columns * getter * row Enum.t
-    (** A table consists of:
-        - comments (optional)
-        - column names
-        - a getter function
-        - an enumeration of the rows in the table
-    *)
 
-val of_input : ?itags:string -> IO.input -> t
-  (** Default itags is:
-
-      {v "table,comment-char=#,header,header_,separator=\t" v}
-
-      Raises [Invalid] if [input] does not conform to [itags]
-      requirements. Raises [Tags.Invalid] if [itags] are ill-formed or
-      invalid for this function. *)
-
-val of_string_list : ?itags:string -> ?comments:string -> ?columns:(string list) -> string list list -> t
-  (** Default [itags] are:
-
-      {v "table,comment-char=#,header" v}
-
-      The only modification of this allowed is to change the
-      comment-char or omit it. If omitted, [comments] must not be
-      given.
-
+  val of_line: ?separators:char list -> ?strict:bool -> ?format:t_type ->
+    Biocaml_line.t ->
+    (t, [> `wrong_format of
+             [> `column_number
+             | `float_of_string of string
+             | `int_of_string of string ] * t_type * string ]) Core.Result.t
+  (** Parse a [Line.t] into a row while specifying a [format].
+     - If [format] is [None] (the default), then all the elements are
+       put in [`string _] rows.
+     - The default cell separators are [[' '; '\t']].
+     - If [strict] is [true] and [format] provided, the {b only} the
+       format will be accepted. If [strict] is [false], rows matching
+       only a prefix of the [format] will be accepted, and rows longer
+       that the [format] will be also accepted (using [`string _] for
+       the cells).
   *)
 
-val to_sqlite : ?otags:string -> t -> Sqlite3.db
-  (** [to_sqlite t] writes contents of [t] into a SQLite database, and
-      returns the handle to it. Comments in [t] are ignored. Default
-      output tags are:
+  val to_line: sep:string -> t -> Biocaml_line.t
+  (** Write the row to a [Line.t]. *)
 
-      {v "sqlite,db=:memory:,db_table=table" v}
+end
 
-      Raises [Tags.Invalid] if [otags] are ill-formed or invalid for
-      this function. *)
-  *)

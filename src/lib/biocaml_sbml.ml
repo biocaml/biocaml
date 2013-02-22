@@ -1,10 +1,10 @@
-  
+
 (*A module for parsing SBML level 2 version 4*)
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
-type sb_math_operator = 
+type sb_math_operator =
  (* arithmetics *)
  | MPlus         (* a + b   *)
  | MMinus        (* a - b   *)
@@ -32,18 +32,18 @@ type sb_math_operator =
  | MXor          (* a ^^ b *)
  | MNot          (* !a     *)
  (*trigonometry*)
- | MSin 
- | MCos 
- | MTan 
- | MArcsin 
- | MArccos 
- | MArctan 
+ | MSin
+ | MCos
+ | MTan
+ | MArcsin
+ | MArccos
+ | MArctan
  (*delay a,b - see SBML spec *)
- | MDelay       
+ | MDelay
  (*user-defined functions*)
  | MFundef of string
 
-type sb_math = 
+type sb_math =
  (* composite *)
  | MApply of sb_math_operator * (sb_math list)
  | MLambda of (string list) * sb_math
@@ -59,7 +59,7 @@ type sb_math =
  | MPi
  | MExponent
  | MInfinity
- | MNoMath                
+ | MNoMath
 
 type sb_unit = {
  unit_kind: string;
@@ -154,7 +154,7 @@ type sb_math_container = {
 }
 
 type sb_delay = Delay of sb_math_container
-type sb_trigger = Trigger of sb_math_container  
+type sb_trigger = Trigger of sb_math_container
 
 type sb_event_assignment = {
  ea_variable: string;
@@ -171,13 +171,13 @@ type sb_event = {
 }
 
 (*a wrapper type to deal with heterogenous lists*)
-type sb_L = LFunctionDefinition of sb_function_definition | LUnitDefinition of sb_unit_definition | 
-                   LCompartment of sb_compartment | LSpecies of sb_species | LReaction of sb_reaction | 
-                   LParameter of sb_parameter | LInitialAssignment of sb_initial_assignment | LRule of sb_rule | 
+type sb_L = LFunctionDefinition of sb_function_definition | LUnitDefinition of sb_unit_definition |
+                   LCompartment of sb_compartment | LSpecies of sb_species | LReaction of sb_reaction |
+                   LParameter of sb_parameter | LInitialAssignment of sb_initial_assignment | LRule of sb_rule |
                    LEvent of sb_event | LEventAssignment of sb_event_assignment | LSpecieRef of sb_species_ref |
-                   LUnit of sb_unit 
+                   LUnit of sb_unit
 
-type sb_model = { 
+type sb_model = {
  sbm_id: string;
  sbm_name: string;
  sbm_functionDefinitions : sb_function_definition list;
@@ -195,34 +195,34 @@ type sb_model = {
  (*constraints : sb_constraint list;
  compartmentTypes : sb_compartment_type list;
  speciesTypes : sb_species_type list;*)
-}     
+}
 
 module MathML = struct
 (* MathML prettyprinting *)
 let rec math_to_string math =
- let operator_to_string oper = 
-  match oper with 
-   | MPlus -> "+" 
-   | MMinus -> "-" 
-   | MTimes -> "*" 
-   | MPower -> "^" 
-   | MAbs -> "ABS" 
-   | MExp -> "EXP"  
-   | MFactorial -> "FACTORIAL"  
-   | MCeiling -> "CEILING"  
-   | MLt -> "<" 
-   | MGt -> ">" 
-   | MLeq -> "<=" 
-   | MGeq -> ">=" 
-   | MDelay -> "DELAY" 
+ let operator_to_string oper =
+  match oper with
+   | MPlus -> "+"
+   | MMinus -> "-"
+   | MTimes -> "*"
+   | MPower -> "^"
+   | MAbs -> "ABS"
+   | MExp -> "EXP"
+   | MFactorial -> "FACTORIAL"
+   | MCeiling -> "CEILING"
+   | MLt -> "<"
+   | MGt -> ">"
+   | MLeq -> "<="
+   | MGeq -> ">="
+   | MDelay -> "DELAY"
    | MFundef oper -> oper
    | _ -> raise_bad "can't convert unknown operator"
    in
- match math with 
+ match math with
  | MApply (oper, exprlist) -> "(" ^ (operator_to_string oper) ^ " " ^ (String.concat " " (List.map math_to_string exprlist)) ^ ")"
  | MLambda (bvarlist, lambda_expr) -> "(LAMBDA (" ^ (String.concat " " bvarlist) ^ ") " ^ (math_to_string lambda_expr) ^ ")"
- | MPiecewise (piecelist, otherwise) -> "(PIECEWISE " ^ (String.concat " " (List.map 
-                                                 (fun next -> let (var, varexpr) = next in "(" ^ (math_to_string varexpr) ^ " " ^ var ^ ")") piecelist)) 
+ | MPiecewise (piecelist, otherwise) -> "(PIECEWISE " ^ (String.concat " " (List.map
+                                                 (fun next -> let (var, varexpr) = next in "(" ^ (math_to_string varexpr) ^ " " ^ var ^ ")") piecelist))
                                           ^ " " ^ otherwise ^ ")"
  | MFloatNumber f -> (string_of_float f)
  | MIntNumber i -> (string_of_int i)
@@ -239,26 +239,26 @@ let extract_string i depth errmsg =
     if depth > 0 then begin ignore (Xmlm.input i); skip_tags i (depth - 1) end else ()
    in
    skip_tags i depth;
-   let result = match Xmlm.input i with 
+   let result = match Xmlm.input i with
     | `Data dat -> dat
     | _ -> raise_bad errmsg
    in
-   skip_tags i depth; 
+   skip_tags i depth;
    result
 
 let unpack_string s =
- match s with 
-  | MIdentifier(str) -> str 
+ match s with
+  | MIdentifier(str) -> str
   | _ -> raise_bad "not a packed string"
 
 let unpack_symbol_type attrs =
  let (_,sbmlUrl) = List.find (fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
-  let splitUrl = Str.split (Str.regexp_string "/") sbmlUrl in
+  let splitUrl = Core.Core_string.split ~on:'/' sbmlUrl in
    List.nth splitUrl (List.length splitUrl - 1)
 
 let parse_bvarlist i =
-  let rec bvarlist_iter i bvarlist = 
-    match Xmlm.peek i with 
+  let rec bvarlist_iter i bvarlist =
+    match Xmlm.peek i with
     | `El_start ((_, "bvar"), _) -> bvarlist_iter i ((extract_string i 2 "malformed lambda expr in bvar") :: bvarlist)
     | `El_start ((_, _), _) -> bvarlist
     | _ -> raise_bad "malformed lambda expr in bvar list"
@@ -266,40 +266,40 @@ let parse_bvarlist i =
   List.rev (bvarlist_iter i [])
 
 let rec parse_mathexpr i =
-  let rec mathexpr_iter i formula = 
-    match Xmlm.input i with 
-    | `El_start ((_, "apply"), _) -> let operator = parse_operator i in 
+  let rec mathexpr_iter i formula =
+    match Xmlm.input i with
+    | `El_start ((_, "apply"), _) -> let operator = parse_operator i in
                                       let exprlist = parse_exprlist i in mathexpr_iter i (MApply (operator, exprlist))
-    | `El_start ((_, "lambda"), _) -> let bvars = parse_bvarlist i in 
+    | `El_start ((_, "lambda"), _) -> let bvars = parse_bvarlist i in
                                        let lambda_expr = parse_mathexpr i in mathexpr_iter i (MLambda (bvars, lambda_expr))
-    | `El_start ((_, "piecewise"), _) -> let pieces = parse_piecelist i in 
+    | `El_start ((_, "piecewise"), _) -> let pieces = parse_piecelist i in
                                           let otherwise = extract_string i 2 "malformed otherwise expr" in mathexpr_iter i (MPiecewise (pieces, otherwise))
     | `El_start ((_, "ci"), _) -> mathexpr_iter i (MIdentifier (unpack_string (parse_mathexpr i)))
-    | `El_start ((_, "cn"), attrs) -> if (List.length attrs) = 1 
+    | `El_start ((_, "cn"), attrs) -> if (List.length attrs) = 1
                                        then match List.hd attrs with
                                             | ((_, "type"), "integer") -> mathexpr_iter i (MIntNumber (int_of_string (unpack_string (parse_mathexpr i))))
-                                            | ((_, "type"), "e-notation") -> 
+                                            | ((_, "type"), "e-notation") ->
                                                 mathexpr_iter i (MFloatNumber (float_of_string (unpack_string (parse_mathexpr i))))
                                             | ((_, _), _) -> raise_bad "malformed cn tag"
                                        else mathexpr_iter i (MFloatNumber (float_of_string (unpack_string (parse_mathexpr i))))
     | `El_start ((_, "sep"), _) -> mathexpr_iter i (MIdentifier ((unpack_string (formula)) ^ "e" ^ (unpack_string (parse_mathexpr i))))
-    | `El_start ((_, "csymbol"), attrs) -> 
-        if (unpack_symbol_type attrs) = "time" then 
-         begin ignore (Xmlm.input i); mathexpr_iter i (MTime) end 
+    | `El_start ((_, "csymbol"), attrs) ->
+        if (unpack_symbol_type attrs) = "time" then
+         begin ignore (Xmlm.input i); mathexpr_iter i (MTime) end
          else raise_bad "malformed csymbol expr"
     | `El_start ((_, "exponentiale"), _) -> mathexpr_iter i (MExponent)
 
    (* add more tokens *)
 
     | `El_start ((_, tag), _) -> print_endline tag; raise_bad "unknown math tag"
-    | `Data dat -> MIdentifier (dat) 
+    | `Data dat -> MIdentifier (dat)
     | `El_end -> formula
     | `Dtd _ -> assert false
   in
   mathexpr_iter i MNoMath
- and 
+ and
  parse_operator i =
- let oper = match Xmlm.input i with 
+ let oper = match Xmlm.input i with
    | `El_start ((_, "plus"), _) -> MPlus
    | `El_start ((_, "minus"), _) -> MMinus
    | `El_start ((_, "times"), _) -> MTimes
@@ -315,31 +315,31 @@ let rec parse_mathexpr i =
 
    (* add more operators *)
 
-   | `El_start ((_, "csymbol"), attrs) -> 
-       if (unpack_symbol_type attrs) = "delay" then 
+   | `El_start ((_, "csymbol"), attrs) ->
+       if (unpack_symbol_type attrs) = "delay" then
         begin ignore (Xmlm.input i); MDelay end
         else raise_bad "malformed csymbol expr"
    (* assume a user-defined function in functionDefinition*)
    | `El_start ((_, "ci"), _) -> MFundef (unpack_string (parse_mathexpr i))
    | _ -> raise_bad "malformed apply expr"
  in ignore (Xmlm.input i); oper
- and 
+ and
  parse_exprlist i =
-  let rec exprlist_iter i exprlist = 
-    match Xmlm.peek i with 
+  let rec exprlist_iter i exprlist =
+    match Xmlm.peek i with
     | `El_start ((_, _), _) -> exprlist_iter i ((parse_mathexpr i) :: exprlist)
     | `El_end -> exprlist
     | _ -> raise_bad "malformed mathml in apply"
   in
   List.rev (exprlist_iter i [])
- and 
+ and
  parse_piecelist i =
-  let rec piecelist_iter i piecelist = 
-    match Xmlm.peek i with 
-    | `El_start ((_, "piece"), _) -> ignore (Xmlm.input i); 
-                                      let piece_var = extract_string i 1 "malformed piece expr" in 
-                                       let piece_expr = parse_mathexpr i in 
-                                        ignore (Xmlm.input i); 
+  let rec piecelist_iter i piecelist =
+    match Xmlm.peek i with
+    | `El_start ((_, "piece"), _) -> ignore (Xmlm.input i);
+                                      let piece_var = extract_string i 1 "malformed piece expr" in
+                                       let piece_expr = parse_mathexpr i in
+                                        ignore (Xmlm.input i);
                                         piecelist_iter i ((piece_var, piece_expr) :: piecelist)
     | `El_start ((_, "otherwise"), _) -> piecelist
     | _ -> raise_bad "malformed piecewise expr"
@@ -347,8 +347,8 @@ let rec parse_mathexpr i =
   List.rev (piecelist_iter i [])
 
 let parse_math attrs i =
-  let sbm = parse_mathexpr i in 
-  ignore (Xmlm.input i); (*math tag end*) 
+  let sbm = parse_mathexpr i in
+  ignore (Xmlm.input i); (*math tag end*)
   sbm
 end
 
@@ -358,50 +358,50 @@ let math_to_string = MathML.math_to_string
 module SBMLParser = struct
 
 (*abstract stuff for lists and attributes*)
-let store_attrs attrs = 
+let store_attrs attrs =
  let parse_hash = Hashtbl.create 10 in
-  let store_attr attr = 
+  let store_attr attr =
     match attr with
     | ((_, nam), value) -> Hashtbl.add parse_hash nam value
   in List.iter store_attr attrs; parse_hash
 
-let parse_list i assoclist = 
- let rec iter_list i templist = 
-    match Xmlm.input i with 
+let parse_list i assoclist =
+ let rec iter_list i templist =
+    match Xmlm.input i with
     | `El_start ((_, tagname), attrs) -> iter_list i ((try ((List.assoc tagname assoclist) attrs i) with Not_found -> raise_bad tagname) :: templist)
     | `El_end -> templist
     | `Data dat -> iter_list i templist
     | `Dtd _ -> assert false
- in 
+ in
  iter_list i []
 
 let parse_record i list_dict record_dict =
  let list_hash = Hashtbl.create 10 in
- let record_hash = Hashtbl.create 10 in 
- let rec iter_record i = 
-    match Xmlm.input i with 
-    | `El_start ((_, tagname), attrs) -> (if (String.compare (String.sub tagname 0 4) "list")=0 
+ let record_hash = Hashtbl.create 10 in
+ let rec iter_record i =
+    match Xmlm.input i with
+    | `El_start ((_, tagname), attrs) -> (if (String.compare (String.sub tagname 0 4) "list")=0
                            then (try (Hashtbl.add list_hash tagname (parse_list i (List.assoc tagname list_dict))) with Not_found -> raise_bad tagname)
-                           else (try (Hashtbl.add record_hash tagname ((List.assoc tagname record_dict) attrs i)) with Not_found -> raise_bad tagname)); 
-                                         iter_record i 
+                           else (try (Hashtbl.add record_hash tagname ((List.assoc tagname record_dict) attrs i)) with Not_found -> raise_bad tagname));
+                                         iter_record i
     | `El_end -> ()
-    | `Data dat -> iter_record i 
+    | `Data dat -> iter_record i
     | `Dtd _ -> assert false
  in iter_record i; (list_hash, record_hash)
 
 (*leaf record parsing, 'ignore (Xmlm.input i)' is for skipping tag's end *)
 
 let parse_unit attrs i =
- ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in 
+ ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
  LUnit ({
-  unit_kind = (Hashtbl.find parse_hash "kind"); 
+  unit_kind = (Hashtbl.find parse_hash "kind");
   unit_exponent = (try (int_of_string (Hashtbl.find parse_hash "exponent")) with Not_found -> 1);
   unit_scale = (try int_of_string (Hashtbl.find parse_hash "scale") with Not_found -> 0);
   unit_multiplier = (try (float_of_string (Hashtbl.find parse_hash "multiplier")) with Not_found -> 1.0)
  })
 
-let parse_compartment attrs i = 
- ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in 
+let parse_compartment attrs i =
+ ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
  LCompartment ({
   compart_id = (Hashtbl.find parse_hash "id");
   compart_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -412,8 +412,8 @@ let parse_compartment attrs i =
   compart_constant = (try (bool_of_string (Hashtbl.find parse_hash "constant")) with Not_found -> true);
  })
 
-let parse_species attrs i = 
- ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in 
+let parse_species attrs i =
+ ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
  LSpecies ({
   species_id = (Hashtbl.find parse_hash "id");
   species_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -427,8 +427,8 @@ let parse_species attrs i =
   species_constant = (try (bool_of_string (Hashtbl.find parse_hash "constant")) with Not_found -> false);
  })
 
-let parse_spreference attrs i = 
- ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in 
+let parse_spreference attrs i =
+ ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
  LSpecieRef ({
   specref_species = (Hashtbl.find parse_hash "species");
   specref_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
@@ -436,8 +436,8 @@ let parse_spreference attrs i =
   specref_stoichiometry = (try (int_of_string (Hashtbl.find parse_hash "stoichiometry")) with Not_found -> 1)
  })
 
-let parse_parameter attrs i = 
- ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in 
+let parse_parameter attrs i =
+ ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
  LParameter ({
   param_id = (try (Hashtbl.find parse_hash "id") with Not_found -> raise_bad "no id for parameter") ;
   param_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -448,46 +448,46 @@ let parse_parameter attrs i =
 
 (*container record parsing*)
 
-let parse_fundef attrs i = 
+let parse_fundef attrs i =
  let parse_hash = (store_attrs attrs) in
-  let (list_hash,record_hash) = (parse_record i [] 
+  let (list_hash,record_hash) = (parse_record i []
                                                 [("math",parse_math)]) in
  LFunctionDefinition ({
-  fundef_id = (Hashtbl.find parse_hash "id"); 
+  fundef_id = (Hashtbl.find parse_hash "id");
   fundef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
   fundef_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  })
 
-let parse_unitdef attrs i = 
+let parse_unitdef attrs i =
  let parse_hash = (store_attrs attrs) in
-  let (list_hash,record_hash) = (parse_record i [("listOfUnits",[("unit",parse_unit)])] 
+  let (list_hash,record_hash) = (parse_record i [("listOfUnits",[("unit",parse_unit)])]
                                                 []) in
  LUnitDefinition ({
   unitdef_id = (Hashtbl.find parse_hash "id");
-  unitdef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> ""); 
-  unitdef_unitlist = (try (List.rev_map (function LUnit(t) -> t | _ -> raise_bad "unit") 
+  unitdef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
+  unitdef_unitlist = (try (List.rev_map (function LUnit(t) -> t | _ -> raise_bad "unit")
              (Hashtbl.find record_hash "listOfUnits")) with Not_found -> []);
  })
 
-let parse_iassignment attrs i = 
+let parse_iassignment attrs i =
 let parse_hash = (store_attrs attrs) in
-  let (list_hash,record_hash) = (parse_record i [] 
+  let (list_hash,record_hash) = (parse_record i []
                                                 [("math",parse_math)]) in
  LInitialAssignment ({
-  ia_symbol = (Hashtbl.find parse_hash "symbol"); 
+  ia_symbol = (Hashtbl.find parse_hash "symbol");
   ia_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  })
 
-let parse_generic_rule attrs i = 
+let parse_generic_rule attrs i =
 let parse_hash = (store_attrs attrs) in
-  let (list_hash,record_hash) = (parse_record i [] 
+  let (list_hash,record_hash) = (parse_record i []
                                                 [("math",parse_math)]) in
  {
   gr_variable = (Hashtbl.find parse_hash "variable");
   gr_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }
-let parse_algebraic_rule attrs i = 
- let (list_hash,record_hash) = (parse_record i [] 
+let parse_algebraic_rule attrs i =
+ let (list_hash,record_hash) = (parse_record i []
                                                 [("math",parse_math)]) in
  LRule (AlgebraicRule ({
   ar_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
@@ -495,52 +495,52 @@ let parse_algebraic_rule attrs i =
 let parse_assignment_rule attrs i = LRule (AssignmentRule (parse_generic_rule attrs i))
 let parse_rate_rule attrs i = LRule (RateRule (parse_generic_rule attrs i))
 
-let parse_kineticlaw attrs i = 
- let (list_hash,record_hash) = (parse_record i [("listOfParameters",[("parameter",parse_parameter)])] 
+let parse_kineticlaw attrs i =
+ let (list_hash,record_hash) = (parse_record i [("listOfParameters",[("parameter",parse_parameter)])]
                                                 [("math",parse_math)]) in
  {
-  klaw_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> raise_bad "parameter") 
+  klaw_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> raise_bad "parameter")
                     (Hashtbl.find list_hash "listOfParameters")) with Not_found -> []);
   klaw_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }
 
-let parse_reaction attrs i = 
+let parse_reaction attrs i =
  let parse_hash = (store_attrs attrs) in
   let (list_hash,record_hash) = (parse_record i [("listOfReactants",[("speciesReference",parse_spreference)]);
-                                                 ("listOfProducts",[("speciesReference",parse_spreference)])] 
+                                                 ("listOfProducts",[("speciesReference",parse_spreference)])]
                                                 [("kineticLaw",parse_kineticlaw)]) in
  LReaction ({
   react_id = (Hashtbl.find parse_hash "id");
   react_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
   react_boundaryCondition = (try (bool_of_string (Hashtbl.find parse_hash "reversible")) with Not_found -> true);
   react_fast = (try (bool_of_string (Hashtbl.find parse_hash "fast")) with Not_found -> false);
-  react_reactants = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference") 
+  react_reactants = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference")
               (Hashtbl.find list_hash "listOfReactants")) with Not_found -> []);
   react_products = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference")
              (Hashtbl.find list_hash "listOfProducts")) with Not_found -> []);
-  react_kineticLaw = (try (Hashtbl.find record_hash "kineticLaw") 
+  react_kineticLaw = (try (Hashtbl.find record_hash "kineticLaw")
         with Not_found -> {klaw_parameters = []; klaw_math = MNoMath});
  })
 
-let parse_eassignment attrs i = 
+let parse_eassignment attrs i =
 let parse_hash = (store_attrs attrs) in
-  let (list_hash,record_hash) = (parse_record i [] 
+  let (list_hash,record_hash) = (parse_record i []
                                                 [("math",parse_math)]) in
  LEventAssignment ({
   ea_variable = (Hashtbl.find parse_hash "variable");
   ea_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  })
 
-let parse_math_container attrs i = 
- let (list_hash,record_hash) = (parse_record i [] 
+let parse_math_container attrs i =
+ let (list_hash,record_hash) = (parse_record i []
                                                 [("math",parse_math)]) in
  {
   math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
  }
 
-let parse_event attrs i = 
+let parse_event attrs i =
  let parse_hash = (store_attrs attrs) in
-  let (list_hash,record_hash) = (parse_record i [("listOfEventAssignments",[("eventAssignment",parse_eassignment)])] 
+  let (list_hash,record_hash) = (parse_record i [("listOfEventAssignments",[("eventAssignment",parse_eassignment)])]
                                                 [("trigger",parse_math_container);
                                                  ("delay",parse_math_container)]) in
  LEvent ({
@@ -549,11 +549,11 @@ let parse_event attrs i =
   event_useValuesFromTriggerTime = (try (bool_of_string (Hashtbl.find parse_hash "useValuesFromTriggerTime")) with Not_found -> true);
   event_trigger = (try Trigger (Hashtbl.find record_hash "trigger") with Not_found -> raise_bad "trigger not found in event");
   event_delay = (try Delay (Hashtbl.find record_hash "delay") with Not_found -> Delay ({math = MNoMath}));
-  event_assignments = (try (List.rev_map (function LEventAssignment(t) -> t | _ -> raise_bad "malformed eventAssignment") 
+  event_assignments = (try (List.rev_map (function LEventAssignment(t) -> t | _ -> raise_bad "malformed eventAssignment")
                           (Hashtbl.find list_hash "listOfEventAssignments")) with Not_found -> []);
  })
 
-let parse_model attrs i = 
+let parse_model attrs i =
  let parse_hash = (store_attrs attrs) in
   let (list_hash,record_hash) = (parse_record i [("listOfFunctionDefinitions",[("functionDefinition",parse_fundef)]);
                                                  ("listOfUnitDefinitions",[("unitDefinition",parse_unitdef)]);
@@ -565,28 +565,28 @@ let parse_model attrs i =
                                                  ("listOfRules",[("assignmentRule",parse_assignment_rule);
                                                                       ("rateRule",parse_rate_rule);
                                                                       ("algebraicRule",parse_algebraic_rule)]);
-                                                 ("listOfEvents",[("event",parse_event)])] 
+                                                 ("listOfEvents",[("event",parse_event)])]
                                                 []) in
-{ 
+{
   sbm_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
   sbm_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-  sbm_functionDefinitions = (try (List.rev_map (function LFunctionDefinition(t) -> t | _ -> raise_bad "malformed functionDefinition") 
+  sbm_functionDefinitions = (try (List.rev_map (function LFunctionDefinition(t) -> t | _ -> raise_bad "malformed functionDefinition")
                         (Hashtbl.find list_hash "listOfFunctionDefinitions")) with Not_found -> []);
-  sbm_unitDefinitions = (try (List.rev_map (function LUnitDefinition(t) -> t | _ -> raise_bad "malformed unitDefinition") 
+  sbm_unitDefinitions = (try (List.rev_map (function LUnitDefinition(t) -> t | _ -> raise_bad "malformed unitDefinition")
                     (Hashtbl.find list_hash "listOfUnitDefinitions")) with Not_found -> []);
-  sbm_compartments = (try (List.rev_map (function LCompartment(t) -> t | _ -> raise_bad "malformed compartment") 
+  sbm_compartments = (try (List.rev_map (function LCompartment(t) -> t | _ -> raise_bad "malformed compartment")
                  (Hashtbl.find list_hash "listOfCompartments")) with Not_found -> []);
-  sbm_species = (try (List.rev_map (function LSpecies(t) -> t | _ -> raise_bad "malformed species") 
+  sbm_species = (try (List.rev_map (function LSpecies(t) -> t | _ -> raise_bad "malformed species")
                  (Hashtbl.find list_hash "listOfSpecies")) with Not_found -> []);
-  sbm_reactions = (try (List.rev_map (function LReaction(t) -> t | _ -> raise_bad "malformed reaction") 
+  sbm_reactions = (try (List.rev_map (function LReaction(t) -> t | _ -> raise_bad "malformed reaction")
                    (Hashtbl.find list_hash "listOfReactions")) with Not_found -> []);
-  sbm_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> raise_bad "malformed parameter") 
+  sbm_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> raise_bad "malformed parameter")
                     (Hashtbl.find list_hash "listOfParameters")) with Not_found -> []);
-  sbm_initialAssignments = (try (List.rev_map (function LInitialAssignment(t) -> t | _ -> raise_bad "malformed initialAssignment") 
+  sbm_initialAssignments = (try (List.rev_map (function LInitialAssignment(t) -> t | _ -> raise_bad "malformed initialAssignment")
                        (Hashtbl.find list_hash "listOfInitialAssignments")) with Not_found -> []);
-  sbm_rules = (try (List.rev_map (function LRule(t) -> t | _ -> raise_bad "malformed rule")               
+  sbm_rules = (try (List.rev_map (function LRule(t) -> t | _ -> raise_bad "malformed rule")
           (Hashtbl.find list_hash "listOfRules")) with Not_found -> []);
-  sbm_events = (try (List.rev_map (function LEvent(t) -> t | _ -> raise_bad "malformed event") 
+  sbm_events = (try (List.rev_map (function LEvent(t) -> t | _ -> raise_bad "malformed event")
            (Hashtbl.find list_hash "listOfEvents")) with Not_found -> []);
  }
 
@@ -596,7 +596,7 @@ let in_sbml ichan =
   ignore (Xmlm.input i); (* `Dtd *)
   ignore (Xmlm.input i); (* smbl tag start *)
   let model =
-   match Xmlm.input i with 
+   match Xmlm.input i with
    | `El_start ((_, "model"), attrs) -> parse_model attrs i
    | _ -> raise_bad "malformed sbml" in
   ignore (Xmlm.input i); (* smbl tag end *)

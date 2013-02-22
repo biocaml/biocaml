@@ -1,14 +1,39 @@
-.PHONY: build doc test all install uninstall reinstall clean distclean
-
-SETUP = ocaml setup.ml
-
-build: setup.data
-	$(SETUP) -build $(BUILDFLAGS)
+.PHONY: build doc install-doc test install uninstall reinstall clean distclean
 
 all: build
 
-doc: setup.data build
-	$(SETUP) -doc $(DOCFLAGS)
+SETUP = ocaml setup.ml
+
+VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
+
+src/lib/biocaml_about.ml:
+	echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
+	echo 'let version = "$(VERSION)"' >> $@
+
+build: setup.data src/lib/biocaml_about.ml _build/src/lib/biocaml.cma
+	$(SETUP) -build $(BUILDFLAGS)
+
+
+
+_build/doclib/index.html: setup.data build
+	mkdir -p _build/doclib
+	ocamlfind ocamldoc \
+	  -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
+	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
+	  -keep-code -colorize-code _build/src/lib/*.mli _build/src/lib/*.ml \
+	  -sort -I _build/src/lib/. \
+	  -intro src/doc/intro.txt
+
+doc: _build/doclib/index.html
+
+install-doc:
+	@if [ "$(DOCDIR)" != "" ]; \
+	then echo "Installing in $(DOCDIR)/biocaml"; \
+	else echo "You should set DOCDIR" ; exit 1 ; \
+	fi
+	rm -fr $(DOCDIR)/biocaml
+	mkdir -p $(DOCDIR)
+	cp -r _build/doclib $(DOCDIR)/biocaml
 
 test: setup.data build
 	$(SETUP) -test $(TESTFLAGS)
@@ -38,27 +63,26 @@ distclean:
 	$(RM) configure
 	$(RM) src/lib/META
 	$(RM) src/lib/libbiocaml_stubs.clib
-	$(RM) src/lib/doclib.odocl
 	$(RM) src/lib/biocaml.mllib
 	$(RM) TAGS
 	$(SETUP) -distclean $(DISTCLEANFLAGS)
+	$(RM) setup.ml
+
+TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
+TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
 
 TAGS:
-	otags -o TAGS `find src -regex ".*\.ml"`
+	otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS `find src -regex ".*\.ml"`
 
 CURR_DIR=$(shell basename $(CURDIR))
 PKG=biocaml
 VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
 PKG_VERSION=$(PKG)-$(VERSION)
-DIST_FILES=Changes INSTALL LICENSE Makefile README.md TAGS _oasis _tags configure myocamlbuild.ml setup.ml doc src
+DIST_FILES=Changes INSTALL LICENSE Makefile README.md _oasis _tags myocamlbuild.ml setup.ml src
 .PHONY: dist
 dist:
 	oasis setup
 	perl -pi -e 's#$(HOME)##g' myocamlbuild.ml setup.ml
-	make doc
-	mkdir doc
-	mv _build/src/lib/doclib.docdir doc/html
-	make TAGS
 	cd .. ; mv $(CURR_DIR) $(PKG_VERSION); tar czf $(PKG_VERSION).tgz $(patsubst %,$(PKG_VERSION)/%,$(DIST_FILES)); mv $(PKG_VERSION) $(CURR_DIR)
 	cd .. ; md5sum $(PKG_VERSION).tgz > $(PKG_VERSION).tgz.md5
 	rm -rf doc

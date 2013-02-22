@@ -1,4 +1,4 @@
-open Batteries
+open Biocaml_internal_pervasives
 
 type confusion_matrix = {
   tp : int ;
@@ -8,29 +8,29 @@ type confusion_matrix = {
 }
 
 let make ~pos ~neg = 
-  let pos = Array.of_enum pos
-  and neg = Array.of_enum neg in
-  Array.sort (flip compare) pos ;
-  Array.sort (flip compare) neg ;
+  let pos = Array.of_stream pos
+  and neg = Array.of_stream neg in
+  Array.sort (Fn.flip compare) pos ;
+  Array.sort (Fn.flip compare) neg ;
   let sorted_elements = 
-    Enum.merge
-      ( > )
-      (Array.enum pos /@ (fun x -> x, `pos))
-      (Array.enum neg /@ (fun x -> x, `neg))
+    Stream.merge
+      ~cmp:(Fn.flip compare)
+      (Array.to_stream pos |! Stream.map ~f:(fun x -> x, `pos))
+      (Array.to_stream neg |! Stream.map ~f:(fun x -> x, `neg))
   and initial = {
     tp = 0 ;
     tn = Array.length neg ;
     fp = 0 ;
     fn = Array.length pos
   } 
-  in Enum.(
-    append
-      (singleton (infinity, initial))
-      (unfold
+  in
+    Stream.append
+      (Stream.singleton (Float.infinity, initial))
+      (Stream.unfold
 	 initial
 	 (fun accu -> 
-	   if is_empty sorted_elements then None
-	   else match get sorted_elements with
+	   if Stream.is_empty sorted_elements then None
+	   else match Stream.next sorted_elements with
 	     | Some (x, `pos) -> 
 	       let next = { accu with tp = accu.tp + 1 ; fn = accu.fn - 1 } in
 	       Some ((x, next), next)
@@ -38,7 +38,6 @@ let make ~pos ~neg =
 	       let next = { accu with fp = accu.fp + 1 ; tn = accu.tn - 1 } in
 	       Some ((x, next), next)
 	     | None -> None))
-  )
 
 let positive cm = cm.tp + cm.fn
 let negative cm = cm.tn + cm.fp
@@ -71,13 +70,12 @@ let f1_score cm =
 
 let trapez_area x1 x2 y1 y2 = 0.5 *. (y1 +. y2) *. (x2 -. x1)
 
-let auc points = match Enum.get points with
+let auc points = match Stream.next points with
     None -> 0.
   | Some p ->
-    Enum.fold
-      (fun ((x1,y1), sum) ((x2,y2) as p) -> 
-	(p, sum +. trapez_area x1 x2 y1 y2))
-      (p, 0.)
+    Stream.fold
       points
-    |> snd
-
+      ~f:(fun ((x1,y1), sum) ((x2,y2) as p) -> 
+	(p, sum +. trapez_area x1 x2 y1 y2))
+      ~init:(p, 0.)
+    |! snd

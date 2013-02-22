@@ -1,6 +1,4 @@
 open Biocaml_internal_pervasives
-open Batteries
-open Printf
 
 (* ********************************* *)
 (* Preliminary stuff for xml parsing *)
@@ -17,46 +15,46 @@ let tree_of_string str =
 
 let rec string_of_tree = function
 | E (tag,attrs,children) ->
-    sprintf "<%s>%s<%s/>" tag (String.concat "" (List.map string_of_tree children)) tag
+    sprintf "<%s>%s<%s/>" tag (String.concat ~sep:"" (List.map ~f:string_of_tree children)) tag
 | D s -> s
 
 let attr k = function
 | E (_,attrs,_) -> 
-    Core.Core_list.find_map attrs ~f:(fun ((_,k'),value) -> if k = k' then Some value else None)
+    List.find_map attrs ~f:(fun ((_,k'),value) -> if k = k' then Some value else None)
 | _ -> None
 
-let battr k x = Core.Option.map (attr k x) ~f:bool_of_string
+let battr k x = Option.map (attr k x) ~f:bool_of_string
 
 let leaf_exn f k x = 
   try
     match x with
     | E (_,_,children) ->
-        List.find_map 
-	  (function 
+        (match List.find_map children ~f:(function 
   	  | E (tag,_, [D d]) when tag = k -> Some (f d)
 	  | _  -> None)
-	  children
+          with
+            | Some x -> x
+            | None -> raise Not_found
+        )
     | D _ -> raise Not_found
   with Not_found -> 
-    invalid_arg (sprintf "Biocaml_entrez.leaf: no %s child" k)
+    invalid_arg (sprintf "Entrez.leaf: no %s child" k)
 
 let ileaf_exn = leaf_exn int_of_string
-let sleaf_exn = leaf_exn identity
+let sleaf_exn = leaf_exn Fn.id
 
 let ileaf k x = try Some (ileaf_exn k x) with Invalid_argument _ -> None
 let sleaf k x = try Some (sleaf_exn k x) with Invalid_argument _ -> None
 
 let leaves f k t = match t with
     E (_,_,children) ->
-      List.filter_map 
-	(function 
+      List.filter_map children ~f:(function 
 	  | E (tag,_, [D d]) when tag = k -> Some (f d)
 	  | _  -> None)
-	children
   | _ -> []
 
 let ileaves = leaves int_of_string
-let sleaves = leaves identity
+let sleaves = leaves Fn.id
 
 let tag_of_tree = function
 | E (tag,_,_) -> Some tag
@@ -66,14 +64,16 @@ let echild_exn k = function
 | E (_,_,children) ->
     begin
       try
-        List.find_map 
-	  (function 
+        (match List.find_map children ~f:(function
 	  | E (tag,_, _) as r when tag = k -> Some r
 	  | _  -> None)
-	  children
+          with
+            | Some x -> x
+            | None -> raise Not_found
+        )
       with Not_found -> (
-        let tags = List.filter_map tag_of_tree children in
-        let msg = sprintf "child: looked for %s but only got %s children" k (String.concat "," tags) in
+        let tags = List.filter_map ~f:tag_of_tree children in
+        let msg = sprintf "child: looked for %s but only got %s children" k (String.concat ~sep:"," tags) in
         raise (Invalid_argument msg)
       )
     end
@@ -85,17 +85,14 @@ let echild_exn k = function
 let echild k x = try Some (echild_exn k x) with _ -> None
 
 let fold_echildren ?tag f = 
-  let pred = Core.Option.value_map tag ~default:(fun _ -> true) ~f:( = ) in
+  let pred = Option.value_map tag ~default:(fun _ -> true) ~f:( = ) in
   fun x init -> 
     match x with
     | E (_,_,children) ->
-        List.fold_right
-          (fun x accu -> 
+        List.fold_right children ~init ~f:(fun x accu -> 
             match x with 
             | E (tag,_,_) as x when pred tag -> f x accu
             | _ -> accu)
-          children
-          init
     | D _ -> init
 
 let map_echildren ?tag f x = fold_echildren ?tag (fun x accu -> (f x) :: accu) x []
@@ -131,10 +128,10 @@ let id_of_database = function
 
 let search_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 
-let parameters l = 
-  List.filter_map identity l
-  |> List.map (fun (k,v) -> sprintf "%s=%s" k v)
-  |> String.concat "&"
+let parameters l =
+  List.filter_map ~f:Fn.id l
+  |! List.map ~f:(fun (k,v) -> sprintf "%s=%s" k v)
+  |! String.concat ~sep:"&"
   
 let string_of_datetype = function
   | `pdat -> "pdat"
@@ -146,13 +143,13 @@ let esearch_url ?retstart ?retmax ?rettype ?field ?datetype ?reldate ?mindate ?m
   search_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database database) ;
     Some ("term", Url.escape query) ;
-    map (fun i -> "retstart", string_of_int i) retstart ;
-    map (fun i -> "retmax", string_of_int i) retmax ;
-    map (function `uilist -> ("rettype", "uilist") | `count -> ("rettype", "count")) rettype ;
-    map (fun s -> "field",s) field ;
-    map (fun dt -> "datetype", string_of_datetype dt) datetype ;
-    map (fun d -> "mindate", d) mindate ;
-    map (fun d -> "maxdate", d) maxdate ;
+    map ~f:(fun i -> "retstart", string_of_int i) retstart ;
+    map ~f:(fun i -> "retmax", string_of_int i) retmax ;
+    map ~f:(function `uilist -> ("rettype", "uilist") | `count -> ("rettype", "count")) rettype ;
+    map ~f:(fun s -> "field",s) field ;
+    map ~f:(fun dt -> "datetype", string_of_datetype dt) datetype ;
+    map ~f:(fun d -> "mindate", d) mindate ;
+    map ~f:(fun d -> "maxdate", d) maxdate ;
   ])
   
   
@@ -169,27 +166,27 @@ let esearch_answer_of_tree = function
       count = ileaf_exn "Count" t ;
       retmax = ileaf_exn "RetMax" t ;
       retstart = ileaf_exn "RetStart" t ;
-      ids = echild_exn "IdList" t |> sleaves "Id"
+      ids = echild_exn "IdList" t |! sleaves "Id"
     }
   | _ -> assert false
 
 let esearch_answer_of_string str = 
   tree_of_string str
-  |> snd
-  |> esearch_answer_of_tree
+  |! snd
+  |! esearch_answer_of_tree
 
 
 let summary_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
 
 let esummary_url ?retstart ?retmax db ids =
   if List.length ids > 200 
-  then raise (Invalid_argument "Biocaml_entrez.esummary_url: cannot fetch more than 200 summaries") ;
+  then raise (Invalid_argument "Entrez.esummary_url: cannot fetch more than 200 summaries") ;
   summary_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database db) ;
-    Some ("id", String.concat "," ids) ;
+    Some ("id", String.concat ~sep:"," ids) ;
     Some ("version", "2.0") ;
-    map (fun i -> "retstart", string_of_int i) retstart ;
-    map (fun i -> "retmax", string_of_int i) retmax ;
+    map ~f:(fun i -> "retstart", string_of_int i) retstart ;
+    map ~f:(fun i -> "retmax", string_of_int i) retmax ;
   ])
 
 
@@ -202,16 +199,16 @@ let string_of_retmode = function
 
 let efetch_url ?rettype ?retmode ?retstart ?retmax ?strand ?seq_start ?seq_stop db ids =
   if List.length ids > 200 
-  then raise (Invalid_argument "Biocaml_entrez.efetch_url: cannot fetch more than 200 records") ;
+  then raise (Invalid_argument "Entrez.efetch_url: cannot fetch more than 200 records") ;
   fetch_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database db) ;
-    Some ("id", String.concat "," ids) ;
-    map (fun r -> "retmode", string_of_retmode r) retmode ;
-    map (fun i -> "retstart", string_of_int i) retstart ;
-    map (fun i -> "retmax", string_of_int i) retmax ;
-    map (fun s -> "strand", match s with `plus -> "1" | `minus -> "2") strand ;
-    map (fun i -> "seq_start", string_of_int i) seq_start ;
-    map (fun i -> "seq_stop", string_of_int i) seq_stop ;
+    Some ("id", String.concat ~sep:"," ids) ;
+    map ~f:(fun r -> "retmode", string_of_retmode r) retmode ;
+    map ~f:(fun i -> "retstart", string_of_int i) retstart ;
+    map ~f:(fun i -> "retmax", string_of_int i) retmax ;
+    map ~f:(fun s -> "strand", match s with `plus -> "1" | `minus -> "2") strand ;
+    map ~f:(fun i -> "seq_start", string_of_int i) seq_start ;
+    map ~f:(fun i -> "seq_stop", string_of_int i) seq_stop ;
   ])
 
 
@@ -232,13 +229,13 @@ module Make(F : Fetch) = struct
     let query_url = esearch_url database query in
     fetch query_url esearch_answer_of_string >>= fun answer ->
     let object_url = efetch_url ~retmode:`xml database answer.ids in
-    fetch object_url (tree_of_string |- snd |- of_xml)
+    fetch object_url (fun x -> x |! tree_of_string |! snd |! of_xml)
 
   let search_and_summary database of_xml query =
     let query_url = esearch_url database query in
     fetch query_url esearch_answer_of_string >>= fun answer ->
     let object_url = esummary_url database answer.ids in
-    fetch object_url (tree_of_string |- snd |- of_xml)
+    fetch object_url (fun x -> x |! tree_of_string |! snd |! of_xml)
 
   module Object_id = struct
     type t = [`int of int | `string of string ]
@@ -252,7 +249,7 @@ module Make(F : Fetch) = struct
       with _ -> (
         try `string (sleaf_exn "Object-id_str" x)
         with _ -> 
-          invalid_arg (sprintf "Biocaml_entrez.Make.Object_id.of_xml: %s" (string_of_tree x))
+          invalid_arg (sprintf "Entrez.Make.Object_id.of_xml: %s" (string_of_tree x))
       )
   end
 
@@ -265,7 +262,7 @@ module Make(F : Fetch) = struct
 
     let of_xml x = {
       db = sleaf_exn "Dbtag_db" x ;
-      tag = Object_id.of_xml (x |> echild_exn "Dbtag_tag" |> echild_exn "Object-id")
+      tag = Object_id.of_xml (x |! echild_exn "Dbtag_tag" |! echild_exn "Object-id")
     }
       
   end
@@ -288,9 +285,9 @@ module Make(F : Fetch) = struct
         allele = sleaf "Gene-ref_allele" t ;
         desc = sleaf "Gene-ref_desc" t ;
         maploc = sleaf "Gene-ref_maploc" t ;
-        pseudo = Core.Option.bind (echild "Gene-ref_pseudo" t) (battr "value") ;
+        pseudo = Option.bind (echild "Gene-ref_pseudo" t) (battr "value") ;
         db = 
-          Core.Option.value_map
+          Option.value_map
             (echild "Gene-ref_db" t)
             ~default:[]
             ~f:(map_echildren ~tag:"Dbtag" Dbtag.of_xml) ;
@@ -316,8 +313,8 @@ module Make(F : Fetch) = struct
 
     let parse_document_summary x = 
       let article_ids = parse_article_ids (echild_exn "ArticleIds" x) in
-      { pmid = int_of_string (List.assoc "pubmed" article_ids) ;
-        doi = (try Some (List.assoc "doi" article_ids) with Not_found -> None) ;
+      { pmid = int_of_string (List.Assoc.find_exn article_ids "pubmed") ;
+        doi = List.Assoc.find article_ids "doi" ;
         pubdate = sleaf "PubDate" x ;
         source = sleaf "Source" x ;
         title = sleaf_exn "Title" x }
@@ -342,13 +339,13 @@ module Make(F : Fetch) = struct
     let parse_book_document bd =
       { pmid = ileaf_exn "PMID" bd ; 
         title = sleaf_exn "ArticleTitle" bd ;
-        abstract = echild_exn "Abstract" bd |> sleaf_exn "AbstractText" }
+        abstract = echild_exn "Abstract" bd |! sleaf_exn "AbstractText" }
 
     let parse_medline_citation mc = 
       let article = echild_exn "Article" mc in
       { pmid = ileaf_exn "PMID" mc ;
         title = sleaf_exn "ArticleTitle" article ;
-        abstract = echild_exn "Abstract" article |> sleaf_exn "AbstractText" }
+        abstract = echild_exn "Abstract" article |! sleaf_exn "AbstractText" }
 
     let parse_pubmed_article_set_element x = match tag_of_tree x with
     | Some "PubmedArticle" -> 
@@ -361,7 +358,7 @@ module Make(F : Fetch) = struct
 
     let parse_pubmed_article_set = function
     | E ("PubmedArticleSet",_,children) ->
-        List.filter_map parse_pubmed_article_set_element children
+        List.filter_map ~f:parse_pubmed_article_set_element children
     | _ -> assert false
         
     let search = search_and_fetch `pubmed parse_pubmed_article_set
@@ -391,7 +388,7 @@ module Make(F : Fetch) = struct
     | 9 -> `miscRNA
     | 10 -> `ncRNA
     | 11 -> `ncRNA
-    | n -> invalid_arg (sprintf "Biocaml_entrez.Make.Gene.type_of_int: %d" n)
+    | n -> invalid_arg (sprintf "Entrez.Make.Gene.type_of_int: %d" n)
 
     let parse_entrez_gene = function
     | E ("Entrezgene",_,_) as x -> Some {
@@ -403,7 +400,7 @@ module Make(F : Fetch) = struct
 
     let parse_entrez_gene_set = function
     | E ("Entrezgene-Set",_,children) ->
-        List.filter_map parse_entrez_gene children
+        List.filter_map ~f:parse_entrez_gene children
     | _ -> assert false
 
     let search query = 
@@ -414,7 +411,7 @@ module Make(F : Fetch) = struct
       fetch query_url esearch_answer_of_string >>= fun answer ->
       let object_url = efetch_url ~retmode:`xml database answer.ids in
       (* print_endline object_url ; *)
-      fetch object_url (tree_of_string |- snd |- of_xml)
+      fetch object_url (fun x -> x |! tree_of_string |! snd |! of_xml)
   end
 end
 

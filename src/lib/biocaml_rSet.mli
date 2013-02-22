@@ -38,15 +38,5 @@ val subset : t -> t -> bool
   (** [subset s t] returns true if [s] is a subset of [t]. *)
   
 
-  (*
-(** Debugging *)  
-module Test : sig
-  val test : (int * int) list -> (int * int) list -> unit
-    (** [test ul vl] compares performance and correctness of set intersection and union. Sets of type {!IntSet.t} and {!t} are constructed from the given [ul] and [vl], and the corresponding intersection and union operations are used on the two versions. Messages are printed reporting times required to construct the sets, and take their intersection and union. Also, it is verified that the operations produce identical results. *)
-
-  val default_test : unit -> unit
-    (** This function generates random lists and uses them as arguments for [test]. The state of the [Random] module
-	is not modified. *)
-end
-  *)
+  
   

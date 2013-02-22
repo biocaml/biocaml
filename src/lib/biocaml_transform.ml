@@ -1,4 +1,5 @@
 open Biocaml_internal_pervasives
+module Pos = Biocaml_pos
 
 type ('input, 'output) t = {
   name: string option;
@@ -9,7 +10,7 @@ type ('input, 'output) t = {
 
 let make_general ?name ~next ~feed ~stop () = {name; next; feed; stop }
 
-exception Feeding_stopped_transformation of string
+exception Feeding_stopped_transform of string
 
 let feed t i = t.feed i
 let next t = t.next ()
@@ -23,7 +24,7 @@ let make ?name ~feed ~next () =
       if not !stopped then
         feed x
       else
-        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+        raise (Feeding_stopped_transform Option.(value ~default:"" name)))
     ~next:(fun () -> next !stopped)
     ~stop:(fun () -> stopped := true)
 
@@ -35,7 +36,7 @@ let make_result ?name ~feed ~next () =
       if not !stopped then
         feed x
       else
-        raise (Feeding_stopped_transformation Option.(value ~default:"" name)))
+        raise (Feeding_stopped_transform Option.(value ~default:"" name)))
     ~next:(fun () ->
       if !one_error_has_occured
       then `end_of_stream
@@ -54,7 +55,7 @@ let identity ?name () =
       | Some o -> `output o
       | None -> if stopped then `end_of_stream else `not_ready)
 
-let stream_transformation tr en =
+let to_stream_fun tr en =
   let rec loop_until_ready tr en =
     match next tr with
     | `output o -> Some o
@@ -68,6 +69,9 @@ let stream_transformation tr en =
       end
   in
   Stream.from (fun _ -> loop_until_ready tr en)
+
+let in_channel_strings_to_stream ?(buffer_size=65536) ic tr =
+  to_stream_fun tr (Stream.strings_of_channel ~buffer_size ic)
 
 let on_input t ~f =
   { t with feed = fun x -> t.feed (f x) }
@@ -175,6 +179,16 @@ let split_and_merge ta tb ~split ~merge =
         | `end_of_stream -> `end_of_stream
         end)
 
+let on_ok tr ~f =
+  on_output tr ~f:(function
+  | Ok o -> Ok (f o)
+  | Error e -> Error e)
+
+let on_error tr ~f =
+  on_output tr ~f:(function
+  | Ok o -> Ok o
+  | Error e -> Error (f e))
+
 let compose_results ~on_error ta tb =
   let name =
     sprintf "(compose_results <%s> <%s>)"
@@ -224,6 +238,22 @@ let compose_result_left ta tb =
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
 
+class type ['input, 'output] object_t = object
+  method next: [ `output of 'output | `end_of_stream | `not_ready ]
+  method feed:  'input -> unit
+  method stop: unit
+end
+let to_object tr =
+object
+  method next = next tr
+  method feed s = feed tr s
+  method stop = stop tr
+end
+let of_object o =
+  make_general ~name:(sprintf "of_object_%d" (Oo.id o))
+    ~next:(fun () -> o#next) 
+    ~feed:(fun s -> o#feed s)
+    ~stop:(fun () -> o#stop) ()
 
 module Line_oriented = struct
 
@@ -255,7 +285,8 @@ module Line_oriented = struct
         faux t
     in
     match p.unfinished_line, lines with
-      | _, [] -> ()
+      | _, [] -> assert false
+      | _, [""] -> ()
       | None, l -> faux l
       | Some s, h :: t ->
         p.unfinished_line <- None;
@@ -278,7 +309,7 @@ module Line_oriented = struct
     | None -> raise No_next_line
 
   let current_position p =
-    Biocaml_pos.make ?file:p.filename ~line:p.parsed_lines ()
+    Pos.make ?file:p.filename ~line:p.parsed_lines ()
 
   let is_empty p =
     Queue.is_empty p.lines && p.unfinished_line = None
@@ -372,56 +403,4 @@ module Printer_queue = struct
     ret
 
   let is_empty p = Queue.is_empty p.records
-end
-
-module Pull_based = struct
-
-  type 'a stream = unit -> 'a
-
-  let of_feeder feeder tr =
-    let rec feed_and_take () =
-      match next tr with
-      | `output o -> `output o
-      | `not_ready ->
-        begin match feeder () with
-        | Some s -> feed tr s; feed_and_take ()
-        | None -> stop tr; feed_and_take ()
-        end
-      | `end_of_stream -> `end_of_stream
-    in
-    feed_and_take
-
-  let of_in_channel  ?(buffer_size=4096) ic tr =
-    let buf = String.create buffer_size in
-    let read_string () =
-      match In_channel.input ~buf ic ~pos:0 ~len:buffer_size with
-      | 0 -> None
-      | len -> Some (String.sub buf ~pos:0 ~len)
-    in
-    of_feeder read_string tr
-
-  let of_file ?buffer_size file tr =
-    let ic = In_channel.create file in
-    let next = of_in_channel ?buffer_size ic tr in
-    (fun () ->
-      let n = next () in
-      if n = `end_of_stream then In_channel.close ic;
-      n
-    )
-
-  let next t = t ()
-
-  let to_stream_exn ~error_to_exn t =
-    Stream.from (fun _ ->
-      match t () with
-      | `output (Ok o) -> Some o
-      | `output (Error e) -> raise (error_to_exn e)
-      | `end_of_stream -> None)
-
-  let to_stream_result t =
-    Stream.from (fun _ ->
-      match t () with
-      | `output o -> Some o
-      | `end_of_stream -> None)
-
 end

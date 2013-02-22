@@ -1,9 +1,9 @@
 (** Transcripts are integer intervals containing a list of
     exons. Exons are themselves defined as a list of integer intervals. *)
-
-type 'a transcript = { 
-  exons : (int * int) list; 
-  lo : int; 
+(*
+type 'a transcript = {
+  exons : (int * int) list;
+  lo : int;
   hi : int;
   chr : string;
   info : 'a
@@ -27,7 +27,7 @@ val of_bed_file :
     with just a single exon in it, which are the coordinates of the
     transcript itself. Info of type string * int in answer are as in
     [of_composite_file] but the name is always the empty string. *)
-  
+
 val of_gff : (Gff.row -> string option) -> Gff.t -> string t
 (** [of_gff f gff] converts [gff] to a list of [transcript]s. Function
     [f] will be applied to each row in [gff]. If the row is an exon it
@@ -37,7 +37,7 @@ val of_gff : (Gff.row -> string option) -> Gff.t -> string t
     [info] in the answer is the name of the transcript. Raise [Failure] if
     [f] does anything erroneous such as map exons on different chromosomes
     to the same transcript. *)
-  
+
 val all_probes_in : 'a t -> (string * int * int * 'b) list -> ('a * 'b array) t
 (** [all_probes_in transcripts probes] bins [probes] into
     [transcripts]. Each probe in [probes] has a genomic location and value
@@ -48,3 +48,4 @@ val all_probes_in : 'a t -> (string * int * int * 'b) list -> ('a * 'b array) t
 val all_points_in : 'a t -> (string * int * 'b) list -> ('a * 'b array) t
 (** Like [all_probes_in] but the given "probes" are defined on single
     base pairs. *)
+*)

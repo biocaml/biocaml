@@ -11,22 +11,24 @@ BuildTools:  ocamlbuild
 Flag lwt
   Description: Build Lwt dependencies
   Default: false
-  
-Flag apps
-  Description: Build apps
+
+Flag oldapps
+  Description: Build secondary apps
   Default: false
 
 Flag tests
   Description: Build tests
   Default: false
 
+Flag app
+  Description: Build the biocaml CLI application (requires Flow)
+  Default: false
+
 Library biocaml
   Path: src/lib
   FindlibName: biocaml
-  BuildDepends: core, sexplib.syntax, threads,
-                zip, sqlite3, unix, batteries, 
-                xmlm, pcre
-  XMETARequires: core, threads, zip, sqlite3, unix, batteries, xmlm, pcre
+  BuildDepends: core, sexplib.syntax, threads, zip, unix, xmlm, pcre
+  XMETARequires: core, threads, zip, unix, xmlm, pcre
   Install: true
   Modules: Biocaml
            , Biocaml_internal_pervasives
@@ -35,7 +37,6 @@ Library biocaml
            , Biocaml_zip
            , Biocaml_bam
            , Biocaml_pos
-           , Biocaml_std
            , Biocaml_about
            , Biocaml_accu
            , Biocaml_bar
@@ -43,7 +44,6 @@ Library biocaml
            , Biocaml_bpmap
            , Biocaml_cel
            , Biocaml_chrName
-           , Biocaml_comments
            , Biocaml_entrez
            , Biocaml_fasta
            , Biocaml_fastq
@@ -51,7 +51,10 @@ Library biocaml
            , Biocaml_gff
            , Biocaml_histogram
            , Biocaml_interval_tree
+           , Biocaml_iset
            , Biocaml_jaspar
+           , Biocaml_line
+           , Biocaml_lines
            , Biocaml_math
            , Biocaml_phred_score
            , Biocaml_pwm
@@ -66,67 +69,57 @@ Library biocaml
            , Biocaml_sgr
            , Biocaml_strandName
            , Biocaml_stream
-           , Biocaml_table
+           , Biocaml_streamable
            , Biocaml_track
            , Biocaml_tags
            , Biocaml_wig
            , Biocaml_mzData
+           , Biocaml_table
+           , Biocaml_transcripts
   CSources: biocaml_pwm_stub.c, biocaml_mzData_stubs.c
   CCOpt: -O3
 
 Executable gff_counts
   Path:   src/app
   MainIs: gff_counts.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_bed
   Path:   src/app
   MainIs: gff_to_bed.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable gff_to_table
   Path:   src/app
   MainIs: gff_to_table.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable sgr_to_wig
   Path:   src/app
   MainIs: sgr_to_wig.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable wig_correlate
   Path:   src/app
   MainIs: wig_correlate.ml
-  Build$: flag(apps)
+  Build$: flag(oldapps)
   BuildDepends: getopt, biocaml
   CompiledObject: best
 
 Executable biocaml
   Path:   src/app
   MainIs: biocaml_main.ml
-  Build$: flag(apps) && flag(lwt)
-  BuildDepends: lwt, lwt.unix, biocaml, core_extended
+  Build$: flag(app)
+  BuildDepends: flow, biocaml
   CompiledObject: best
-
-Flag installdoc
-  Description: Install documentation
-  Default: false
-
-Document doclib
-  Title:                API reference for Biocaml
-  Type:                 ocamlbuild (0.2)
-  Install$:             flag(installdoc)
-  BuildTools+:          ocamldoc
-  XOCamlbuildPath:      src/lib
-  XOCamlbuildLibraries: biocaml
 
 Executable tests_main
   Path:			src/tests
@@ -134,15 +127,15 @@ Executable tests_main
   Install:      	false
   CompiledObject: 	native
   Build$:		flag(tests)
-  BuildDepends: 	threads, unix, oUnit (>= 1.1.0), batteries, biocaml
+  BuildDepends: 	threads, unix, oUnit (>= 1.1.0),  biocaml
 
 Executable lwt_tests
   Path: src/lwt_tests
   MainIs: main.ml
   Install:      	false
   CompiledObject: 	native
-  Build$:		flag(lwt) && flag(apps)
-  BuildDepends: biocaml, lwt.unix, core_extended
-  
+  Build$:		flag(lwt) && flag(tests)
+  BuildDepends: biocaml, lwt.unix
+
 Test main
   Command: $tests_main

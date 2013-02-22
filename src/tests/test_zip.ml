@@ -1,31 +1,36 @@
-
 open OUnit
-open Core.Std
+open Biocaml_internal_pervasives
+open Biocaml
 
+type error =
+[ `left of Zip.Transform.unzip_error
+| `right of Bed.Error.parsing
+]
 
-let make_stream () =
+let some_ok x = Some (Ok x)
+
+let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
   let file = "src/tests/data/bed_03_more_cols.bed" in
   let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
   Unix.system (sprintf "gzip -c %s > %s" file tmp) |! ignore;
 
   let unzip_and_parse =
-    Biocaml_transform.compose_results_merge_error
-      (Biocaml_zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
-      (Biocaml_bed.Transform.string_to_t
-         ~more_columns:(`enforce [`string; `int; `float]) ()) in
-  let stream =
-    Biocaml_transform.Pull_based.(of_file tmp unzip_and_parse
-                                  |! to_stream_result) in
+    Transform.compose_results_merge_error
+      (Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
+      (Bed.Transform.string_to_item
+         ~more_columns:(`enforce [|`type_string; `type_int; `type_float|]) ()) in
+  let ic = open_in tmp in
+  let stream = Transform.in_channel_strings_to_stream ic unzip_and_parse in
   (stream, fun () -> Sys.remove tmp)
 
 let test_unzip () =
   let s, clean_up = make_stream () in
-    
-  let the_expected_list = [`String "some_string"; `Int 42; `Float 3.14] in
-  assert_bool "03 chrA" (Stream.next s = Ok ("chrA",  42,  45, the_expected_list));
-  assert_bool "03 chrB" (Stream.next s = Ok ("chrB", 100, 130, the_expected_list));
-  assert_bool "03 chrC" (Stream.next s = Ok ("chrC", 200, 245, the_expected_list));
-  assert_raises Stream.Failure (fun () -> Stream.next s);
+
+  let the_expected_list = [|`string "some_string"; `int 42; `float 3.14|] in
+  assert_bool "03 chrA" (Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
+  assert_bool "03 chrB" (Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
+  assert_bool "03 chrC" (Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
+  assert_bool "03 EOF" (Stream.next s = None);
   clean_up ()
 
 let cmd fmt = ksprintf (fun s ->
@@ -44,12 +49,10 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   cmd "gzip %s" tmp1;
   cmd "gzip %s" tmp2;
   cmd "cat %s.gz %s.gz > %s.gz" tmp1 tmp2 tmp3;
-  let t = Biocaml_zip.Transform.unzip ~format:`gzip ~zlib_buffer_size () in
-  let s =
-    Biocaml_transform.Pull_based.(of_file ~buffer_size
-                                    (sprintf "%s.gz" tmp3) t |! to_stream_result)
-  in
-  let l = Stream.npeek 300 s in
+  let t = Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size () in
+  let ic = open_in (sprintf "%s.gz" tmp3) in
+  let s = Transform.in_channel_strings_to_stream ~buffer_size ic t in
+  let l = Stream.npeek s 300 in
   let expected = sprintf "%s\n%s\n" first second in
   let obtained =
     String.concat ~sep:"" (List.map l (function
@@ -65,7 +68,7 @@ let gunzip_multiple_tests =
     (fun (zlib_buffer_size, buffer_size) ->
       sprintf "Gunzip|cat(%d,%d)" zlib_buffer_size buffer_size
       >:: test_gunzip_multiple ~zlib_buffer_size ~buffer_size)
-    
+
 let tests = "ZIP" >::: [
   "Gunzip" >:: test_unzip;
 ] @ gunzip_multiple_tests

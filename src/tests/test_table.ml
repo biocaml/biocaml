@@ -1,0 +1,77 @@
+
+open OUnit
+open Biocaml
+open Core.Std
+
+open Result
+let (>><) = (|!)
+
+let test_row () =
+  let tdash ?to_line s r =
+    let row_result =
+      Table.Row.of_line ~separators:['-']
+        ~format:[| `type_int; `type_float; `type_string|]
+        (Line.of_string_unsafe s) in
+    assert_bool (sprintf "%s: of_line" s) ((=) r row_result);
+    Result.iter row_result
+      begin fun row ->
+          match to_line with
+          | Some str ->
+            assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:ident
+              (Table.Row.to_line ~sep:"-" row : Line.t :> string) str
+          | None ->
+            assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:ident
+              (Table.Row.to_line ~sep:"-" row : Line.t :> string) s
+              (* row = Line.of_string_unsafe s) *)
+      end;
+
+  in
+  tdash "42-42-42" (Ok [| `int 42; `float 42.; `string "42" |]);
+  tdash "42-42.-42" (Ok [| `int 42; `float 42.; `string "42" |])
+    ~to_line:"42-42-42";
+
+  tdash "42-42.-42-any-string-42" (Ok [| `int 42; `float 42.; `string "42";
+                                         `string "any"; `string "string";
+                                         `string "42" |])
+    ~to_line:"42-42-42-any-string-42";
+
+  let fail_test fmt = ksprintf (fun s -> assert_bool s false) fmt in
+  let test_tol =
+    Table.Row.of_line ~separators:[' '] ~format:[| `type_int; `type_float |]
+  in
+  let line = Line.of_string_unsafe in
+  test_tol (line "42 42")
+  >>< begin function
+  | Ok [| `int 42; `float 42. |] -> ()
+  | e -> fail_test "wrong parsing of 42 42"
+  end;
+
+  test_tol (line "42")
+  >>< begin function
+  | Ok [| `int 42; |] -> ()
+  | e -> fail_test "wrong parsing of 42"
+  end;
+
+  test_tol (line "42 42 some more")
+  >>< begin function
+  | Ok [| `int 42; `float 42.; `string "some" ; `string "more"|] -> ()
+  | e -> fail_test "wrong parsing of '42 42 some more'"
+  end;
+
+  test_tol ~strict:true (line "42")
+  >>< begin function
+  | Error (`wrong_format (`column_number, _, _)) -> ()
+  | e -> fail_test "wrong strict parsing of 42"
+  end;
+
+  test_tol ~strict:true (line "42 42 some more")
+  >>< begin function
+  | Error (`wrong_format (`column_number, _, _)) -> ()
+  | e -> fail_test "wrong string parsing of '42 42 some more'"
+  end;
+
+  ()
+
+let tests = "Table" >::: [
+  "Rows" >:: test_row;
+]

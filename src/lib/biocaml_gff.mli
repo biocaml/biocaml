@@ -34,6 +34,7 @@ type parse_error =
 | `wrong_attributes of Biocaml_pos.t * string
 | `wrong_row of Biocaml_pos.t * string
 | `wrong_url_escaping of Biocaml_pos.t * string ]
+with sexp
 (** The possible parsing errors. *)
   
 type tag = [ `version of [`two | `three] | `pedantic ] with sexp

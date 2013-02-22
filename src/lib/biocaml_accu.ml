@@ -1,4 +1,5 @@
-open Batteries
+open Biocaml_internal_pervasives
+open Stream.Infix
 
 type ('a,'b,'c,'d) t = {
   table : ('b,'d) Hashtbl.t ;
@@ -8,18 +9,16 @@ type ('a,'b,'c,'d) t = {
 }
 
 let create ?(n = 251) zero proj add = {
-  table = Hashtbl.create 251 ;
+  table = Hashtbl.Poly.create ~size:n () ;
   zero ; proj ; add
 }
 
 let add (t : ('a,'b,'c,'d) t) x y =
   let bin = t.proj x in
-  let accu =
-    try Hashtbl.find t.table bin
-    with Not_found -> t.zero in
+  let accu = Hashtbl.find t.table bin |? t.zero in
   Hashtbl.replace t.table bin (t.add y accu)
 
-let enum t = Hashtbl.enum t.table
+let stream t = Hashtbl.to_stream t.table
 
 let get t = Hashtbl.find t.table
 
@@ -27,18 +26,18 @@ type 'instance counter = ('instance, 'instance, int, int) t
 
 module Counter = struct
   type 'a t = 'a counter
-  let create ?n () = create ?n 0 identity ( + )
+  let create ?n () = create ?n 0 ident ( + )
   let add = add
   let tick accu x = add accu x 1
-  let enum = enum
-  let of_enum e = 
+  let stream = stream
+  let of_stream e = 
     let c = create () in
-    Enum.iter (tick c) e ;
+    Stream.iter ~f:(tick c) e ;
     c
 end
 
 let counts f e = 
-  enum (Counter.of_enum (e /@ f))
+  stream (Counter.of_stream (e /@ f))
 
 let product ?filter f l1 l2 = Counter.(
   let c = create () in
@@ -46,8 +45,8 @@ let product ?filter f l1 l2 = Counter.(
   | Some p -> fun e1 e2 -> if p e1 e2 then tick c (f e1 e2)
   | None   -> fun e1 e2 -> tick c (f e1 e2)
   in
-  List.iter (fun e1 -> List.iter (tick e1) l2) l1 ;
-  enum c
+  List.iter ~f:(fun e1 -> List.iter ~f:(tick e1) l2) l1 ;
+  stream c
 )
 
 type ('a, 'b) relation = ('a,'a,'b,'b list) t
@@ -55,18 +54,18 @@ type ('a, 'b) relation = ('a,'a,'b,'b list) t
 module Relation = struct
   type ('a, 'b) t = ('a,'b) relation
   let create ?n () = 
-    create [] identity (fun x xs -> x :: xs)
+    create [] ident (fun x xs -> x :: xs)
   let add = add
-  let enum = enum
-  let of_enum xs = 
+  let stream = stream
+  let of_stream xs = 
     let r = create () in
-    Enum.iter
-      (fun (x,y) -> add r x y)
+    Stream.iter
+      ~f:(fun (x,y) -> add r x y)
       xs ;
     r
 end
 
-let relation xs = enum (Relation.of_enum xs)
+let relation xs = stream (Relation.of_stream xs)
 
 
 

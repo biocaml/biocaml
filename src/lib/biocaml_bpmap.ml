@@ -1,6 +1,11 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
+module Msg = Biocaml_msg
+module Pos = Biocaml_pos
+module Stream = Biocaml_stream
+module Seq = Biocaml_seq
+module Lines = Biocaml_lines
 
-type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Biocaml_seq.t}
+type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}
 
 type t = row list
@@ -39,27 +44,27 @@ module Parser = struct
             version = ver;
             chr_name = chr;
             start_pos = int_of_string pos;
-            sequence = try Biocaml_seq.of_string seq
-                       with Biocaml_seq.Bad m -> raise_bad m
+            sequence = try Seq.of_string seq
+                       with Seq.Bad m -> raise_bad m
           }
       }
     | _ -> raise_bad "expecting 7 columns"
 
   let bpmap ~chr_map file =
     let parse file cin =
-      let lines = Stream.map String.strip_final_cr (Stream.lines_of_channel cin) in
+      let lines = Lines.of_channel cin in
       let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
         try
-          ignore (header (Stream.next lines));
-          Stream.to_list (Stream.map (row ~chr_map) lines)
+          ignore (header ((Stream.next_exn lines) : Lines.item :> string));
+          Stream.to_list (Stream.map ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string)) lines)
         with 
             Failure msg | Bad msg -> raise_bad (err msg)
     in
-    try_finally_exn (parse file) ~fend:close_in (open_in file)
+    try_finally_exn (parse file) ~fend:In_channel.close (open_in file)
 
 end
   
-let of_file ?(chr_map=identity) file = Parser.bpmap ~chr_map file
+let of_file ?(chr_map=ident) file = Parser.bpmap ~chr_map file
 
 let row_to_string r =
   let (pmx,pmy) = r.pmcoord in
@@ -71,12 +76,12 @@ let row_to_string r =
        string_of_int mmy;
        r.probe.org_name ^ ":" ^ r.probe.version ^ ";" ^ r.probe.chr_name;
        string_of_int (r.probe.start_pos);
-       Biocaml_seq.to_string (r.probe.sequence)
+       Seq.to_string (r.probe.sequence)
       ]
       
 let to_file file t =
   let print cout =
-    output_endline cout (String.concat ~sep:"\t" col_names);
-    List.iter ((output_endline cout) <-- row_to_string) t
+    fprintf cout "%s\n" (String.concat ~sep:"\t" col_names);
+    List.iter ~f:(fun x -> fprintf cout "%s\n" (row_to_string x)) t
   in
-  try_finally_exn print ~fend:close_out (open_out_safe file)
+  Out_channel.with_file file ~f:print

@@ -38,9 +38,10 @@ type parse_error =
 | `wrong_attributes of Biocaml_pos.t * string
 | `wrong_row of Biocaml_pos.t * string
 | `wrong_url_escaping of Biocaml_pos.t * string ]
+with sexp
 
 module Transform = struct
-  open With_result
+  open Result
 
     
   let parse_string msg pos i =
@@ -133,7 +134,7 @@ module Transform = struct
     in
     let inch = Scanf.Scanning.from_string whole_thing in
     let tokens =
-      Stream.(from (fun _ -> parse_string inch) |! npeek Int.max_value) in
+      Stream.(from (fun _ -> parse_string inch) |! Fn.flip npeek Int.max_value) in
     let rec go_3_by_3 acc = function
       | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
       | [] | [";"] -> return (List.rev acc)

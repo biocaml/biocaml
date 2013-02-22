@@ -3,25 +3,27 @@ open Core.Std
 include Stream
 let next_exn = next
 let next s = try Some (next_exn s) with Stream.Failure -> None
+let npeek s n = npeek n s
 
 let is_empty s =
-  match peek s with 
-  | None -> true 
+  match peek s with
+  | None -> true
   | Some _ -> false
 
 let empty () = from (const None)
 
-module type Streamable = sig
-  type 'a streamable
-  val stream : 'a streamable -> 'a t
-  val of_stream : 'a t -> 'a streamable
-end
-
-type 'a streamable = 'a t
-let stream x = x
+let to_stream x = x
 let of_stream x = x
 
 exception Expected_streams_of_equal_length
+
+let of_list l =
+  let lr = ref l in
+  let f _ = match !lr with
+    | h :: t -> lr := t ; Some h
+    | [] -> None
+  in
+  from f
 
 let rec iteri xs ~f =
   match peek xs with
@@ -43,18 +45,18 @@ let rec iter2i_exn xs ys ~f =
 
 let iter2_exn xs ys ~f = iter2i_exn xs ys ~f:(const (const f))
 
-let iter2i a b ~f = 
+let iter2i a b ~f =
   try iter2i_exn a b ~f
   with Expected_streams_of_equal_length -> ()
 
-let iter2 a b ~f = 
+let iter2 a b ~f =
   try iter2_exn a b ~f
   with Expected_streams_of_equal_length -> ()
 
 let rec find_map xs ~f =
   match next xs with
   | Some x -> (
-    match f x with 
+    match f x with
     | Some x as y -> y
     | None -> find_map xs ~f
   )
@@ -66,7 +68,7 @@ let find_exn xs ~f = match find xs ~f with
 | Some x -> x
 | None -> raise Not_found
 
-let exists xs ~f = match find xs ~f with 
+let exists xs ~f = match find xs ~f with
 | Some _ -> true
 | None -> false
 
@@ -88,14 +90,14 @@ let fold xs ~init ~f = foldi xs ~init ~f:(const f)
 let reduce xs ~f =
   match next xs with
   | Some init -> fold xs ~init ~f
-  | None -> invalid_arg "Biocaml_stream.reduce: stream should contain at least one element"
+  | None -> invalid_arg "Stream.reduce: stream should contain at least one element"
 
 let sum = reduce ~f:( + )
 let fsum = reduce ~f:( +. )
 
-let rec fold2i_exn xs ys ~init ~f = 
+let rec fold2i_exn xs ys ~init ~f =
   match next xs, next ys with
-  | Some x, Some y -> 
+  | Some x, Some y ->
       let init = f (count xs - 1) (count ys - 1) init x y in
         (* decrease by one because of the calls to [next] *)
       fold2i_exn xs ys ~init ~f
@@ -104,7 +106,7 @@ let rec fold2i_exn xs ys ~init ~f =
 
 let fold2_exn xs ys ~init ~f = fold2i_exn xs ys ~init ~f:(const (const f))
 
-let rec fold2i xs ys ~init ~f = 
+let rec fold2i xs ys ~init ~f =
   match next xs, next ys with
   | Some x, Some y ->
       let init = f (count xs - 1) (count ys - 1) init x y in
@@ -119,7 +121,7 @@ let scanl xs ~init ~f =
     if i = 0 then Some init
     else (
       match next xs with
-      | Some x -> 
+      | Some x ->
           current := f !current x ;
           Some !current
       | None -> None
@@ -128,24 +130,23 @@ let scanl xs ~init ~f =
   from f
 
 let scan xs ~f =
-  match next xs with 
+  match next xs with
   | Some init -> scanl xs ~init ~f
-  | None -> invalid_arg "Biocaml_stream.scan: input stream should contain at least one value"
+  | None -> empty ()
 
 let take_whilei xs ~f =
   let aux i =
     match peek xs with
     | Some x when f i x -> junk xs ; Some x
     | _ -> None
-  in 
+  in
   from aux
-    
+
 let take_while xs ~f = take_whilei xs ~f:(const f)
 
-let take k xs = 
-  let end_index = count xs + k in
-  take_whilei xs ~f:(fun j _ -> j < end_index)
-    
+let take xs ~n =
+  take_whilei xs ~f:(fun j _ -> j < n)
+
 let rec drop_whilei xs ~f =
   match peek xs with
   | Some x when f (count xs) x -> junk xs ; drop_whilei xs ~f
@@ -153,33 +154,32 @@ let rec drop_whilei xs ~f =
 
 let drop_while xs ~f = drop_whilei xs ~f:(const f)
 
-let drop n xs =
-  let end_index = count xs + n in
-  drop_whilei xs ~f:(fun j _ -> j < end_index)
+let drop xs ~n =
+  drop_whilei xs ~f:(fun j _ -> j < n)
 
-let skip_whilei xs ~f = 
-  drop_whilei xs ~f ; 
+let skip_whilei xs ~f =
+  drop_whilei xs ~f ;
   from (fun _ -> next xs)
 
 let skip_while xs ~f = skip_whilei xs ~f:(const f)
-  
-let skip n xs =
-  drop n xs ;
+
+let skip xs ~n =
+  drop xs ~n ;
   from (fun _ -> next xs)
 
 let span xs ~f =
     (*Two possibilities: either the tail has been read
-      already -- in which case all head data has been 
+      already -- in which case all head data has been
       copied onto the queue -- or the tail hasn't been
       read -- in which case, stuff should be read from
       [xs] *)
-  let queue           = Queue.create () 
+  let queue           = Queue.create ()
   and read_from_queue = ref false in
 
   let head _ =
     if !read_from_queue then (* Everything from the head has been copied *)
       Queue.dequeue queue    (* to the queue already                     *)
-    else 
+    else
       match peek xs with
       | Some x as e when f x -> junk xs ; e
       | _ -> None
@@ -188,14 +188,14 @@ let span xs ~f =
     if not !read_from_queue then (*Copy everything to the queue         *)
       begin
         read_from_queue := true;
-        let rec aux () = 
+        let rec aux () =
           match peek xs with
           | Some x when f x -> Queue.enqueue queue x ; aux ()
           | e -> e
         in aux ()
       end
     else next xs
-  in 
+  in
   (from head, from tail)
 
 let group_aux xs map eq =
@@ -205,11 +205,11 @@ let group_aux xs map eq =
     match next xs with
     | None -> None
     | Some x ->
-        let queue = Queue.create () 
-        and forced = ref false 
+        let queue = Queue.create ()
+        and forced = ref false
         and mapped_x = map x in
 
-        let aux i = 
+        let aux i =
           if i = 0 then Some x
           else (
             if !forced then
@@ -225,9 +225,9 @@ let group_aux xs map eq =
           forced := true ;
           let rec loop () =
             match peek xs with
-            | Some y when eq (map y) mapped_x -> 
-                junk xs ; 
-                Queue.enqueue queue y ; 
+            | Some y when eq (map y) mapped_x ->
+                junk xs ;
+                Queue.enqueue queue y ;
                 loop ()
             | _ -> ()
           in
@@ -244,14 +244,14 @@ let group xs ~f = group_aux xs f ( = )
 let group_by xs ~eq = group_aux xs ident eq
 
 let mapi xs ~f =
-  let aux i = Option.map (next xs) ~f:(f i) in 
+  let aux i = Option.map (next xs) ~f:(f i) in
   from aux
 
 let map xs ~f =
-  let aux _ = Option.map (next xs) ~f in 
+  let aux _ = Option.map (next xs) ~f in
   from aux
 
-let filter xs ~f = 
+let filter xs ~f =
   let rec aux i =
     match next xs with
     | Some x when not (f x) -> aux i
@@ -259,7 +259,7 @@ let filter xs ~f =
   in
   from aux
 
-let filter_map xs ~f = 
+let filter_map xs ~f =
   let rec aux i =
     match next xs with
     | Some x -> (
@@ -276,13 +276,13 @@ let append xs ys =
     match next xs with
     | None -> next ys
     | e -> e
-  in 
+  in
   from aux
 
 let concat xs =
   let rec find_next_non_empty_stream xs =
     match peek xs with
-    | Some stream when is_empty stream -> 
+    | Some stream when is_empty stream ->
         junk xs ;
         find_next_non_empty_stream xs
     | x -> x
@@ -305,7 +305,7 @@ let concat xs =
 let combine (xs, ys) =
   let aux _ =
     match peek xs, peek ys with
-    | Some x, Some y -> 
+    | Some x, Some y ->
         junk xs ;
         junk ys ;
         Some (x,y)
@@ -317,7 +317,7 @@ let uncombine xs =
   let whosfirst = ref `left
   and lq = Queue.create ()
   and rq = Queue.create () in
-  
+
   let rec left i =
     match !whosfirst with
     | `left -> (
@@ -329,7 +329,7 @@ let uncombine xs =
     )
     | `right -> (
       match Queue.dequeue lq with
-      | None -> 
+      | None ->
           whosfirst := `left ;
           left i
       | x -> x
@@ -345,7 +345,7 @@ let uncombine xs =
     )
     | `left -> (
       match Queue.dequeue rq with
-      | None -> 
+      | None ->
           whosfirst := `right ;
           right i
       | x -> x
@@ -367,7 +367,7 @@ let merge xs ys ~cmp =
 let partition xs ~f =
   let pos_queue = Queue.create ()
   and neg_queue = Queue.create () in
-  
+
   let rec pos i =
     match Queue.dequeue pos_queue with
     | None -> (
@@ -406,13 +406,13 @@ let uniq xs =
                 Some x
               )
         )
-      in 
+      in
       from aux
 
 let init n ~f =
   if n < 0 then empty ()
   else (
-    let aux i = 
+    let aux i =
       if i < n then Some (f i)
       else None
     in
@@ -421,51 +421,8 @@ let init n ~f =
 
 let singleton x = init 1 (const x)
 
-let loop init ~f =
-  let prev = ref init in
-  let aux i =
-    if i = 0 then Some !prev
-    else 
-      match f i !prev with
-      | Some next as e -> prev := next ; e
-      | e -> e
-  in
-  from aux
-
-let range ?until n =
-  let stop = Option.value_map until ~default:(fun _ -> true) ~f:( <= ) in
-  loop n (fun _ i -> if stop i then None else Some (i + 1))
-
-let lines_of_chars cstr =
-  let f _ =
-    match peek cstr with
-    | None -> None
-    | Some _ ->
-        let ans = Buffer.create 100 in
-        let rec loop () =
-          try
-            let c = next_exn cstr in
-            if c <> '\n' then (Buffer.add_char ans c; loop())
-          with Failure -> ()
-        in 
-        loop();
-        Some (Buffer.contents ans)
-  in
-  from f
-
 let to_list t =
   List.rev (fold ~init:[] ~f:(fun l b -> b::l) t)
-
-let lines_of_channel cin =
-  let f _ =
-    try Some (input_line cin)
-    with End_of_file -> None
-  in Stream.from f
-
-let lines_to_channel xs oc =
-  iter
-    xs
-    ~f:(fun l -> output_string oc l ; output_char oc '\n')
 
 let result_to_exn s ~error_to_exn =
   from (fun _ ->
@@ -474,6 +431,34 @@ let result_to_exn s ~error_to_exn =
     | Some result -> match result with
       | Ok x -> Some x
       | Result.Error x -> raise (error_to_exn x)
+  )
+
+let unfoldi init ~f =
+  let a = ref init in
+  from (fun i -> match f i !a with
+    | Some (b, a_next) -> (a := a_next; Some b)
+    | None -> None
+  )
+
+let unfold init ~f = unfoldi init ~f:(const f)
+
+let range ?until n =
+  let stop = Option.value_map until ~default:(fun _ -> false) ~f:( < ) in
+  unfold n (fun i -> if stop i then None else Some (i, i + 1))
+
+let of_lazy s =
+  let next i = next (Lazy.force s) in
+  from next
+
+(* Default buffer_size set to UNIX_BUFFER_SIZE in OCaml's
+   otherlibs/unix/unixsupport.h, but unsure if this is a good
+   choice. *)
+let strings_of_channel ?(buffer_size=65536) inp =
+  let buf = String.create buffer_size in
+  from (fun _ ->
+    match In_channel.input inp ~buf ~pos:0 ~len:buffer_size with
+    | 0 -> None
+    | len -> Some (String.sub buf ~pos:0 ~len)
   )
 
 module Infix = struct
@@ -488,12 +473,11 @@ module Infix = struct
 
   let ( --^ ) x y = range x ~until:(y-1)
 
-  let ( --- ) x y = 
+  let ( --- ) x y =
     if x <= y then x -- y
-    else loop x ~f:(fun _ prev -> if prev <= y then Some (prev - 1) else None)
-      
+    else unfold x ~f:(fun prev -> if prev >= y then Some (prev, prev - 1) else None)
+
   let ( /@ ) x f = map x ~f
   let ( // ) x f = filter x ~f
   let ( //@ ) x f = filter_map x ~f
 end
-

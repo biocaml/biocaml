@@ -5,7 +5,6 @@
     are mapped to bins, and each bin has a corresponding value
     which may be its size or its contents depending on the need.
 *)
-open Batteries
 
 (** {7 Generic API} *)
 
@@ -24,9 +23,9 @@ val add : ('a,'b,'c,'d) t -> 'a -> 'c -> unit
 (** [add accu x y] updates the value in [accu] for
     the bin of [x] by an increment [y] *)
 
-val enum : ('a,'b,'c,'d) t -> ('b * 'd) Enum.t
+val stream : ('a,'b,'c,'d) t -> ('b * 'd) Stream.t
 
-val get : ('a,'b,'c,'d) t -> 'b -> 'd
+val get : ('a,'b,'c,'d) t -> 'b -> 'd option
 (** [get accu x] returns the value associated to [b] in [accu]. *)
 
 
@@ -40,16 +39,16 @@ module Counter : sig
   val create : ?n:int -> unit -> 'a t
   val add : 'a counter -> 'a -> int -> unit
   val tick : 'a counter -> 'a -> unit
-  val enum : 'a counter -> ('a * int) Enum.t
-  val of_enum : 'a Enum.t -> 'a counter
+  val stream : 'a counter -> ('a * int) Stream.t
+  val of_stream : 'a Stream.t -> 'a counter
 end
 
-val counts  : ('a -> 'b)       -> 'a Enum.t ->              ('b * int) Enum.t
+val counts  : ('a -> 'b) -> 'a Stream.t -> ('b * int) Stream.t
 val product : 
   ?filter:('a -> 'b -> bool) -> 
   ('a -> 'b -> 'c) -> 
   'a list -> 'b list -> 
-  ('c * int) Enum.t 
+  ('c * int) Stream.t 
 (** [product filter f l1 l2] computes an histogram of values returned by f
     when it is applied for all combinations of elements in [l1] and
     [l2] such that the predicate [filter] is true *)
@@ -62,28 +61,8 @@ module Relation : sig
   type ('a, 'b) t = ('a,'b) relation
   val create : ?n:int -> unit -> ('a,'b) t
   val add : ('a,'b) t -> 'a -> 'b -> unit
-  val enum : ('a,'b) relation -> ('a * 'b list) Enum.t
-  val of_enum : ('a * 'b) Enum.t -> ('a, 'b) relation
+  val stream : ('a,'b) relation -> ('a * 'b list) Stream.t
+  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) relation
 end
 
-val relation : ('a * 'b) Enum.t -> ('a * 'b list) Enum.t
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+val relation : ('a * 'b) Stream.t -> ('a * 'b list) Stream.t

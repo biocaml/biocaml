@@ -39,9 +39,9 @@ val add : 'a t -> low:int -> high:int -> data:'a -> 'a t
 
 val elements : 'a t -> (int * int * 'a) list
 
-val enum : 'a t -> (int * int * 'a) BatEnum.t
+val to_stream : 'a t -> (int * int * 'a) Stream.t
 
-val backwards : 'a t -> (int * int * 'a) BatEnum.t
+val to_backwards_stream : 'a t -> (int * int * 'a) Stream.t
 
 
 (** {6 Searching and filtering} *)
@@ -56,9 +56,9 @@ val find_closest : int -> int -> 'a t -> int * int * 'a * int
 
     Raises [Empty_tree] if [t] is empty *)
 
-val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) BatEnum.t
-(** [find_intersecting_elem a b t] is equivalent to [Enum.filter (fun
-    (x,y,_) -> intersects x y t) (enum t)] but is more efficient. *)
+val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) Stream.t
+(** [find_intersecting_elem a b t] is equivalent to [Stream.filter ~f:(fun
+    (x,y,_) -> intersects x y t) (stream t)] but is more efficient. *)
 
 
 val filter_overlapping: 'a t -> low:int -> high:int -> 'a t

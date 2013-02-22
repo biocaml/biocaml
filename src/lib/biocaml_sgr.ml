@@ -1,4 +1,4 @@
-open Biocaml_std
+open Biocaml_internal_pervasives
 
 type t = (string * int * float) list
     (* Stored in ascending order by (string,int) pairs. *)
@@ -12,21 +12,38 @@ let of_list l = List.sort ~cmp:cmpsi l
 let to_list t = t
 
 let of_chr_lists l =
-  let ans = List.map (fun (a,l) -> List.map (fun (b,c) -> a,b,c) l) l in
+  let ans = List.map ~f:(fun (a,l) -> List.map ~f:(fun (b,c) -> a,b,c) l) l in
   let ans = List.concat ans in
-    List.sort ~cmp:cmpsi ans
+  List.sort ~cmp:cmpsi ans
 
+let npartition_exn ~eq l =
+  let open List in
+  let insertl ll a =
+    let rec loop prefix ll =
+      match ll with
+        | [] -> rev ([a]::prefix)
+        | l::ll ->
+          if eq a (hd_exn l)
+          then (rev ((a::l)::prefix)) @ ll 
+          else loop (l::prefix) ll
+    in loop [] ll
+  in 
+  map ~f:rev (fold_left ~f:insertl ~init:[] l)
+    
 let to_chr_lists t =
   let eq (s1,_,_) (s2,_,_) = s1 = s2 in
-  let ll = List.npartition_exn ~eq t in
-  let ll = List.map (fun l -> Tuple.Tr.first (List.hd_exn l), List.map (fun (_,b,c) -> b,c) l) ll in
+  let ll = npartition_exn ~eq t in
+  let ll =
+    List.map ~f:(fun l ->
+      let x, _, _  = List.hd_exn l in
+      x, List.map ~f:(fun (_,b,c) -> b,c) l) ll in
   ll
 
-let of_channel ?(chr_map=identity) ?(increment_bp=0) cin =
+let of_channel ?(chr_map=ident) ?(increment_bp=0) cin =
   let parse_line' delim line =
     match String.split line delim with
     | [c; i; f] ->
-       chr_map c, int_of_string i + increment_bp, float_of_string f
+       chr_map c, int_of_string i + increment_bp, Float.of_string f
     | _ -> raise_bad "ill-formed line"
   in
   let parse_line line =
@@ -35,15 +52,18 @@ let of_channel ?(chr_map=identity) ?(increment_bp=0) cin =
       try parse_line' ' ' line
       with Bad msg -> failwith msg
   in
-  Lines.of_channel parse_line cin
+  In_channel.input_lines cin
+  |! List.map ~f:parse_line
     
-let of_file ?(chr_map=identity) ?(increment_bp=0) file = 
-  try_finally_exn (of_channel ~chr_map ~increment_bp) ~fend:close_in (open_in file)
+let of_file ?(chr_map=ident) ?(increment_bp=0) file = 
+  try_finally_exn (of_channel ~chr_map ~increment_bp)
+    ~fend:In_channel.close (open_in file)
 
-let to_channel ?(chr_map=identity) ?(increment_bp=0) t cout = 
+let to_channel ?(chr_map=ident) ?(increment_bp=0) t cout = 
   let f (s,i,v) = fprintf cout "%s\t%d\t%f\n" (chr_map s) (i+increment_bp) v in
-  List.iter f t
+  List.iter ~f t
     
-let to_file ?(chr_map=identity) ?(increment_bp=0) t file =
-  try_finally_exn (to_channel ~chr_map ~increment_bp t) ~fend:close_out (open_out_safe file) 
+let to_file ?(chr_map=ident) ?(increment_bp=0) t file =
+  try_finally_exn (to_channel ~chr_map ~increment_bp t)
+    ~fend:Out_channel.close (open_out_safe file)
  
