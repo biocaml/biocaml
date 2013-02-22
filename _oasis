@@ -1,6 +1,6 @@
 OASISFormat: 0.2
 Name:        biocaml
-Version:     0.2
+Version:     0.3-dev
 Synopsis:    The OCaml Bioinformatics Library
 Homepage:    http://biocaml.org
 Authors:     Biocaml Team
