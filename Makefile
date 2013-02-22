@@ -10,7 +10,7 @@ src/lib/biocaml_about.ml:
 	echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
 	echo 'let version = "$(VERSION)"' >> $@
 
-build: setup.data src/lib/biocaml_about.ml _build/src/lib/biocaml.cma
+build: setup.data src/lib/biocaml_about.ml
 	$(SETUP) -build $(BUILDFLAGS)
 
 
