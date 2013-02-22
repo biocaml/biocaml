@@ -1,11 +1,18 @@
-.PHONY: build doc install-doc test all install uninstall reinstall clean distclean
+.PHONY: build doc install-doc test install uninstall reinstall clean distclean
+
+all: build
 
 SETUP = ocaml setup.ml
 
-build: setup.data
+VERSION=$(shell grep Version _oasis | cut -d' ' -f6)
+
+src/lib/biocaml_about.ml:
+	echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
+	echo 'let version = "$(VERSION)"' >> $@
+
+build: setup.data src/lib/biocaml_about.ml _build/src/lib/biocaml.cma
 	$(SETUP) -build $(BUILDFLAGS)
 
-all: build
 
 
 _build/doclib/index.html: setup.data build
