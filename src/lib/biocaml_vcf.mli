@@ -25,38 +25,53 @@ type vcf_alt_type =
 
 type vcf_alt_subtype = string
 
-type vcf_meta =
-  | Version of string
-  | Info of vcf_id * vcf_number * vcf_info_type * vcf_description
-  | Filter of vcf_id * vcf_description
-  | Format of vcf_id * vcf_number * vcf_format_type * vcf_description
-  | Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
-  | Arbitrary of string * string
+type vcf_info_entry =
+  Info of vcf_id * vcf_number * vcf_info_type * vcf_description
+type vcf_filter_entry =
+  Filter of vcf_id * vcf_description
+type vcf_format_entry =
+  Format of vcf_id * vcf_number * vcf_format_type * vcf_description
+type vcf_alt_entry =
+  Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
 
-type vcf_row = {
-  chrom : int;
-  pos   : int;
-  id    : string list;
-  ref   : string list;
-  alt   : string list;
-  qual  : float option;
-  filter : vcf_id list;
-  info  : (string, string) Hashtbl.t  (* FIXME: proper typing *)
+type vcf_meta = {
+  vcfm_version : string;
+  vcfm_info    : vcf_info_entry list;
+  vcfm_filter  : vcf_filter_entry list;
+  vcfm_format  : vcf_format_entry list;
+  vcfm_alt     : vcf_alt_entry list;
+  vcfm_arbitrary : (string, string) Hashtbl.t;
+  vcfm_header  : string list
 }
 
-type t = [`meta of vcf_meta | `row of vcf_row]
+type vcf_row = {
+  vcfr_chrom : string;
+  vcfr_pos   : int;
+  vcfr_id    : string list;
+  vcfr_ref   : string list;
+  vcfr_alt   : string list;
+  vcfr_qual  : float option;
+  vcfr_filter : vcf_id list;
+  vcfr_info  : (string, string) Hashtbl.t  (* FIXME: proper typing *)
+}
+
+type item = vcf_row
 
 module Pos : module type of Biocaml_pos
 
 type vcf_parse_error =
-  [ `empty_line of Pos.t
-  | `malformed_meta of Pos.t * string
-  | `incomplete_input of Pos.t * string list * string option
+  [ `malformed_meta of Pos.t * string
+  | `malformed_row of Pos.t * string
+  | `missing_header of Pos.t
+  | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
+  | `not_ready
   ]
 
+val parse_error_to_string : vcf_parse_error -> string
+
 module Transform : sig
-  val string_to_t :
+  val string_to_item :
     ?filename:string ->
     unit ->
-    (string, (t, vcf_parse_error) Core.Result.t) Biocaml_transform.t
+    (string, (item, vcf_parse_error) Core.Result.t) Biocaml_transform.t
 end

@@ -37,7 +37,14 @@ module Char : module type of Core.Std.Char
 module Command : module type of Core.Std.Command
 module Dequeue : module type of Core.Std.Dequeue
 module Exn : module type of Core.Std.Exn
-module Filename : module type of Core.Std.Filename
+module Filename : sig
+  include module type of Core.Std.Filename
+
+  module Infix : sig
+    (** [p1 </> p2] equivalent to [concat p1 p2]. *)
+    val (</>) : string -> string -> string
+  end
+end
 module Float : module type of Core.Std.Float
 module Fn : module type of Core.Std.Fn
 module Hashtbl : sig
@@ -115,7 +122,7 @@ module Url : sig
   val escape: string -> string
   (** Convert non-alphanumeric characters to their ["%HX"]
       URL-escaping format. *)
-    
+
   val unescape: string -> error:(string -> 'error) -> (string, 'error) Result.t
   (** Convert a string containing ["%HX"] escaped characters to a normal
       string. In case of error, the string is passed to the [~error] parameter

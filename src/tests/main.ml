@@ -14,13 +14,9 @@ let all_tests = [
   Test_track.tests;
   Test_sam.tests;
   Test_zip.tests;
+  Test_vcf.tests;
   Test_rset.tests;
 ]
 
 let () =
   ignore(OUnit.run_test_tt_main ("All" >::: all_tests));
-
-
-
-
-

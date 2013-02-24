@@ -251,7 +251,7 @@ object
 end
 let of_object o =
   make_general ~name:(sprintf "of_object_%d" (Oo.id o))
-    ~next:(fun () -> o#next) 
+    ~next:(fun () -> o#next)
     ~feed:(fun s -> o#feed s)
     ~stop:(fun () -> o#stop) ()
 

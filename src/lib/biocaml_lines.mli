@@ -46,6 +46,9 @@ module Buffer : sig
       with a complete line. *)
   val is_empty: t -> bool
 
+  (** Peek at the next line, without removing it from the buffer. *)
+  val peek_line: t -> item option
+
   (** Get the next line. *)
   val next_line: t -> item option
 
