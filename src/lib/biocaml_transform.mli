@@ -111,36 +111,45 @@ val on_input: ('b, 'c) t -> f:('a -> 'b) -> ('a, 'c) t
     the outputs are first converted by [f]. *)
 val on_output: ('a, 'b) t -> f:('b -> 'c) -> ('a, 'c) t
 
-(** [compose t u] composes [t] and [u]. *)
 val compose: ('a, 'b) t -> ('b, 'c) t -> ('a, 'c) t
+(** [compose t u] composes [t] and [u].
+    {figure src/doc/figures/transform_compose.svg 50%
+    “Compose” two transforms} *)
 
+val mix : ('a1, 'b1) t -> ('a2, 'b2) t -> f:('b1 -> 'b2 -> 'c) -> ('a1 * 'a2, 'c) t
 (** [mix t u f] returns a transform that takes as input a pair of the
     inputs expected by [t] and [u], and outputs a single value that is the
-    result of applying [f] to the outputs of [t] and [u]. *)
-val mix : ('a1, 'b1) t -> ('a2, 'b2) t -> f:('b1 -> 'b2 -> 'c) -> ('a1 * 'a2, 'c) t
+    result of applying [f] to the outputs of [t] and [u].
+    {figure src/doc/figures/transform_mix.svg 50%
+    “Mix” the inputs of two transforms} *)
 
-(** [filter_compose t u ~destruct ~reconstruct] produces a
-    transform that feeds a filtered subset of [t]s outputs to
-    [u]. Only those outputs [ol] of [t] for which [destruct ol]
-    returns [`Yes] are passsed on to [u]. The filterd out values are
-    combined with [u]'s output using [reconstruct]. *)
 val filter_compose:
   ('il, 'ol) t -> ('ir, 'our) t ->
   destruct:('ol -> [`Yes of 'ir | `No of 'filtered]) ->
   reconstruct:([`Filtered of 'filtered | `Done of 'our] -> 'result) ->
   ('il, 'result) t
+(** [filter_compose t u ~destruct ~reconstruct] produces a
+    transform that feeds a filtered subset of [t]s outputs to
+    [u]. Only those outputs [ol] of [t] for which [destruct ol]
+    returns [`Yes] are passsed on to [u]. The filterd out values are
+    combined with [u]'s output using [reconstruct].
+    {figure src/doc/figures/transform_filter_compose.svg 50%
+    “Compose” two transforms with a filtering function }
+*)
 
-(** [split_and_merge t u ~split ~merge] returns a transform whose
-    input is split using [split], passing the result either to [t] or [u],
-    and then the outputs of [t] and [u] are combined using [merge]. There
-    is no guarantee about the order in which the inputs are fed to [t] and
-    [u] (it depends on the buffering done by the individual input
-    transforms). *)
 val split_and_merge:
   ('il, 'ol) t -> ('ir, 'our) t ->
   split:('input -> [`left of 'il | `right of 'ir]) ->
   merge:([`left of 'ol | `right of 'our] -> 'output) ->
   ('input, 'output) t
+(** [split_and_merge t u ~split ~merge] returns a transform whose
+    input is split using [split], passing the result either to [t] or [u],
+    and then the outputs of [t] and [u] are combined using [merge]. There
+    is no guarantee about the order in which the inputs are fed to [t] and
+    [u] (it depends on the buffering done by the individual input
+    transforms).
+    {figure src/doc/figures/transform_split_merge.svg 50%
+    “Split” the inputs of two transforms and “merge” the outputs }     *)
 
 
 (** {6 Result.t Outputs} Operations analogous to those above, but for
@@ -165,30 +174,36 @@ val on_error: ('input, ('ok, 'error) Core.Result.t) t ->
   f:('error -> 'another_errror) ->
   ('input, ('ok, 'another_errror) Core.Result.t) t
 
-    
-(** [compose_results t u] is like {!compose} but for transforms returning
-    [Result.t]s. The [on_error] function specifies how errors in [t]
-    or [u] should be converted into those in the resultant
-    transform. *)
+
 val compose_results:
   on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
   ( 'input_left, ('middle, 'error_left) Core.Result.t) t ->
   ( 'middle, ('output_right, 'error_right) Core.Result.t) t ->
   ( 'input_left, ('output_right, 'error) Core.Result.t) t
+(** [compose_results t u] is like {!compose} but for transforms returning
+    [Result.t]s. The [on_error] function specifies how errors in [t]
+    or [u] should be converted into those in the resultant
+    transform.
+    {figure src/doc/figures/transform_compose_results.svg 50%
+    “Compose” two transforms which may fail}
+*)
 
-(** Like {!compose_results} but with a pre-specified [on_error]
-    function. *)
 val compose_results_merge_error:
   ('a, ('b, 'el) Core.Result.t) t ->
   ('b, ('d, 'er) Core.Result.t) t ->
   ('a, ('d, [ `left of 'el | `right of 'er ]) Core.Result.t) t
+(** Like {!compose_results} but with a pre-specified [on_error]
+    function. *)
 
-(** Like {!compose_results} but only the first transform returns
-    [Result.t]s. *)
 val compose_result_left:
   ( 'input_left, ('middle, 'error) Core.Result.t) t ->
   ( 'middle, 'output_right) t ->
   ( 'input_left, ('output_right, 'error) Core.Result.t) t
+(** Like {!compose_results} but only the first transform returns
+    [Result.t]s.
+    {figure src/doc/figures/transform_compose_result_left.svg 50%
+    “Compose” two transforms when only the first one may fail }
+*)
 
 (** {3 Communication with other libraries} *)
 
