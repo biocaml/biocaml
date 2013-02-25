@@ -52,11 +52,11 @@ struct
       in
       bprintf b "
         <div class=\"figure\" style=\"max-width : %s\" title=%S>
-        <img src=\"%s\" width=\"99%%\"/>
+        <a href=\"%s\"><img src=\"%s\" width=\"99%%\"/></a>
         <div class=\"caption\">%s</div>
         </div>"
         (match width with `percent s -> sprintf "%d%%" s) file
-        (Filename.basename file)
+        (Filename.basename file) (Filename.basename file)
         caption
 
     method html_of_custom_text b s t =
