@@ -132,31 +132,16 @@ struct
       end
 
     method html_of_module b ?(info=true) ?(complete=true) ?(with_link=true) m =
-      eprintf "html_of_module info: %b complete: %b with_link: %b\n%!"
-        info complete with_link;
       let open Module in
-
       bprintf b "<p>";
       self#html_of_info ~indent:false b m.m_info;
       let father = Name.father m.m_name in
       bprintf b "<pre>";
       bprintf b "%s" ((self#keyword "module")^" ");
-      if with_link
-      then begin
-        let (html_file, _) = Odoc_html.Naming.html_files m.m_name in
-        bprintf b "<a href=\"%s\">%s</a>" html_file (Name.simple m.m_name)
-      end
-      else begin
-        bprintf b "%s" (Name.simple m.m_name)
-      end;
-      begin match m.m_kind with
-      | Module_functor _ when !Odoc_html.html_short_functors -> ()
-      | _ -> bprintf b ": "
-      end;
-      (* bprintf b "<strong>MODULE KIND!!</strong>"; *)
+      bprintf b "%s" (Name.simple m.m_name);
+      bprintf b ": ";
       self#html_of_module_kind b father ~modu: m m.m_kind;
       bprintf b "</pre>";
-    (* super#html_of_module b ~info ~complete ~with_link m *)
       ()
 
     method generate_for_module_type pre post mt =
@@ -193,9 +178,9 @@ struct
         Buffer.output_buffer chanout b;
         close_out chanout;
         (* generate html files for submodules *)
-        self#generate_elements self#generate_for_module (Module.module_type_modules mt);
+        (* self#generate_elements self#generate_for_module (Module.module_type_modules mt); *)
         (* generate html files for module types *)
-        self#generate_elements self#generate_for_module_type (Module.module_type_module_types mt);
+        (* self#generate_elements self#generate_for_module_type (Module.module_type_module_types mt); *)
         (* generate html files for classes *)
         self#generate_elements self#generate_for_class (Module.module_type_classes mt);
         (* generate html files for class types *)
@@ -266,9 +251,9 @@ struct
         Buffer.output_buffer chanout b;
         close_out chanout;
         (* generate html files for submodules *)
-        self#generate_elements self#generate_for_module (Module.module_modules modu);
+        (* self#generate_elements self#generate_for_module (Module.module_modules modu); *)
         (* generate html files for module types *)
-        self#generate_elements self#generate_for_module_type (Module.module_module_types modu);
+        (* self#generate_elements self#generate_for_module_type (Module.module_module_types modu); *)
         (* generate html files for classes *)
         self#generate_elements self#generate_for_class (Module.module_classes modu);
         (* generate html files for class types *)
@@ -290,7 +275,6 @@ struct
           raise (Failure s)
 
     method html_of_custom_text b s t =
-      eprintf "html_of_custom_text Called s: %S \n%!" s;
       match s with
       | "figure" -> self#html_of_figure b t
       | _ -> ()
