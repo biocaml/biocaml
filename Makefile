@@ -14,15 +14,19 @@ build: setup.data src/lib/biocaml_about.ml
 	$(SETUP) -build $(BUILDFLAGS)
 
 
+_build/doclib/biocaml.css: src/doc/biocaml.css
+	cp src/doc/biocaml.css $@
 
-_build/doclib/index.html: setup.data build
+_build/doclib/index.html: setup.data build _build/doclib/biocaml.css
 	mkdir -p _build/doclib
 	ocamlfind ocamldoc \
+          -css-style biocaml.css \
 	  -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
 	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
 	  -keep-code -colorize-code _build/src/lib/*.mli _build/src/lib/*.ml \
 	  -sort -I _build/src/lib/. \
 	  -intro src/doc/intro.txt
+
 
 doc: _build/doclib/index.html
 
