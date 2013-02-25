@@ -15,6 +15,7 @@ build: setup.data src/lib/biocaml_about.ml
 
 
 _build/doclib/biocaml.css: src/doc/biocaml.css
+	mkdir -p _build/doclib
 	cp src/doc/biocaml.css $@
 
 _build/doclib/index.html: setup.data build _build/doclib/biocaml.css
@@ -29,14 +30,25 @@ _build/doclib/index.html: setup.data build _build/doclib/biocaml.css
 
 # This a "fast-compiling" sample of the documentation for testing purposes.
 DOC_SAMPLES=_build/src/lib/biocaml_about.ml \
-            _build/src/lib/biocaml_math.mli _build/src/lib/biocaml_math.ml
+            _build/src/lib/biocaml_math.mli _build/src/lib/biocaml_math.ml \
+            _build/src/lib/biocaml_transform.mli _build/src/lib/biocaml_transform.ml
 
-doctest: setup.data _build/doclib/biocaml.css
+_build/biohtml.cmo: src/odoc/biohtml.ml
+	ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc
+
+
+#ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc  -I +ocamldoc/custom
+
+
+
+doctest: setup.data _build/doclib/biocaml.css _build/biohtml.cmo
 	mkdir -p _build/doclib
+	cp src/doc/figures/* _build/doclib/
 	ocamlfind ocamldoc \
+          -g _build/biohtml.cmo \
           -css-style biocaml.css \
 	  -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
-	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
+	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" \
 	  -keep-code -colorize-code $(DOC_SAMPLES) \
 	  -sort -I _build/src/lib/. \
 	  -intro src/doc/intro.txt
