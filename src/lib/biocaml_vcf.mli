@@ -25,32 +25,30 @@ type vcf_alt_type =
 
 type vcf_alt_subtype = string
 
-type vcf_info_meta =
-  Info of vcf_number * vcf_info_type * vcf_description
-type vcf_filter_meta =
-  Filter of vcf_id * vcf_description
+type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
+type vcf_filter_meta = Filter of vcf_description
 type vcf_format_meta =
-  Format of vcf_id * vcf_number * vcf_format_type * vcf_description
+  Format of vcf_number * vcf_format_type * vcf_description
 type vcf_alt_meta =
   Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
 
 type vcf_meta = {
   vcfm_version : string;
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
-  vcfm_filter  : vcf_filter_meta list;
-  vcfm_format  : vcf_format_meta list;
+  vcfm_filter  : (vcf_id * vcf_filter_meta) list;
+  vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
   vcfm_alt     : vcf_alt_meta list;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
 }
 
 
-type vcf_filter = [`integer of int
+type vcf_format = [ `integer of int
                   | `float of float
                   | `character of char
                   | `string of string
                   ]
-type vcf_info = [ vcf_filter | `flag of string ]
+type vcf_info = [ vcf_format | `flag of string ]
 
 type vcf_row = {
   vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)

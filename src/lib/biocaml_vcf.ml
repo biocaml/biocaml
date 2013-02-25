@@ -60,20 +60,18 @@ type vcf_alt_type =
 
 type vcf_alt_subtype = string
 
-type vcf_info_meta =
-  Info of vcf_number * vcf_info_type * vcf_description
-type vcf_filter_meta =
-  Filter of vcf_id * vcf_description
+type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
+type vcf_filter_meta = Filter of vcf_description
 type vcf_format_meta =
-  Format of vcf_id * vcf_number * vcf_format_type * vcf_description
+  Format of vcf_number * vcf_format_type * vcf_description
 type vcf_alt_meta =
   Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
 
 type vcf_meta = {
   vcfm_version : string;
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
-  vcfm_filter  : vcf_filter_meta list;
-  vcfm_format  : vcf_format_meta list;
+  vcfm_filter  : (vcf_id * vcf_filter_meta) list;
+  vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
   vcfm_alt     : vcf_alt_meta list;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
@@ -83,17 +81,18 @@ let default_meta = {
   vcfm_version = "unknown";
   vcfm_info = Hashtbl.Poly.create ();
   vcfm_filter = [];
-  vcfm_format = []; vcfm_alt = [];
+  vcfm_format = Hashtbl.Poly.create ();
+  vcfm_alt = [];
   vcfm_arbitrary = Hashtbl.Poly.create ();
   vcfm_header = []
 }
 
-type vcf_filter = [ `integer of int
+type vcf_format = [ `integer of int
                   | `float of float
                   | `character of char
                   | `string of string
                   ]
-type vcf_info = [ vcf_filter | `flag of string ]
+type vcf_info = [ vcf_format | `flag of string ]
 
 type vcf_row = {
   vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)
@@ -104,17 +103,6 @@ type vcf_row = {
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
   vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
-}
-
-let default_row = {
-  vcfr_chrom = "";
-  vcfr_pos   = -1;
-  vcfr_id    = [];
-  vcfr_ref   = "N";
-  vcfr_alt   = [];
-  vcfr_qual  = None;
-  vcfr_filter = [];
-  vcfr_info  = Hashtbl.Poly.create ()
 }
 
 let string_to_vcfr_ref s =
@@ -162,6 +150,14 @@ let string_to_vcfr_info { vcfm_info } s =
     values
   in Option.try_with (fun () -> go (Hashtbl.Poly.create ()))
 
+let string_to_vcfr_filter { vcfm_filter } s =
+  match String.split ~on:';' s with
+  | ["PASS"] -> Some ["PASS"]
+  | chunks ->
+    if List.for_all chunks ~f:(List.Assoc.mem vcfm_filter)
+    then Some chunks
+    else None
+
 let list_to_vcf_row meta chunks =
   match chunks with
   | [vcfr_chrom; raw_pos; raw_id; raw_ref; raw_alt; raw_qual; raw_filter; raw_info]
@@ -169,6 +165,7 @@ let list_to_vcf_row meta chunks =
     let open Option.Monad_infix in
     string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
     string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
+    string_to_vcfr_filter meta raw_filter >>= fun vcfr_filter ->
     let row = {
       vcfr_chrom;
       vcfr_pos  = Int.of_string raw_pos;
@@ -176,11 +173,10 @@ let list_to_vcf_row meta chunks =
       vcfr_ref;
       vcfr_alt  = String.split ~on:',' raw_alt; (** ACGT, <ID>. *)
       vcfr_qual = Some (Float.of_string raw_qual);
-      vcfr_filter = String.split ~on:';' raw_filter;  (** Proper typing. *)
+      vcfr_filter;
       vcfr_info
     } in Some row
   | c ->
-
     (** Note(superbobry): arbitary-width rows aren't supported yet. *)
     None
 
@@ -208,7 +204,7 @@ module Transform = struct
     let open Biocaml_line in
     let open Biocaml_lines.Buffer in
     let rec go meta =
-      let {vcfm_version; vcfm_info; vcfm_filter; vcfm_format; vcfm_alt; _} = meta
+      let { vcfm_version; vcfm_info; vcfm_filter; vcfm_format; vcfm_alt; _ } = meta
       in match Option.map ~f:line_to_string (peek_line p) with
       | Some l when String.is_prefix l ~prefix:"##" ->
         let _l = next_line p in
@@ -226,16 +222,15 @@ module Transform = struct
           | Some ("FILTER", v) ->
             Scanf.sscanf v "<ID=%s@,Description=%S>"
               (fun id description ->
-                let filter_meta = Filter (id, description) in
-                go { meta with vcfm_filter = filter_meta :: vcfm_filter })
+                let filter_meta = Filter description in
+                go { meta with vcfm_filter = (id, filter_meta) :: vcfm_filter })
           | Some ("FORMAT", v) ->
             Scanf.sscanf v "<ID=%s@,Number=%s@,Type=%s@,Description=%S>"
               (fun id n t description ->
-                let format_meta = Format (id,
-                    string_to_vcf_number n,
+                let format_meta = Format (string_to_vcf_number n,
                     string_to_vcf_format_type t,
                     description)
-                in go { meta with vcfm_format = format_meta :: vcfm_format })
+                in Hashtbl.set vcfm_format id format_meta; go meta)
           | Some ("ALT", v) -> failwith "not implemented"
           | Some (k, v) -> begin
               Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
