@@ -18,6 +18,21 @@ let test_parse_vcf_header () =
     | None -> true  (** No rows to return. **)
   end
 
+let test_parse_vcf_simple () =
+  let s = make_stream "vcf_02_simple.vcf" in
+  match Stream.next s with
+  | Some (Ok row) ->
+    let open Vcf in
+    assert_equal row.vcfr_chrom "20" ~msg:"chromosome";
+    assert_equal row.vcfr_pos 14370 ~msg:"position";
+    assert_equal row.vcfr_id ["rs6054257"] ~msg:"id";
+    assert_equal row.vcfr_ref "G" ~msg:"ref";
+    assert_equal row.vcfr_alt ["A"] ~msg:"alt";
+    assert_equal row.vcfr_qual (Some 29.0) ~msg:"quality";
+    assert_equal row.vcfr_filter ["PASS"] ~msg:"filter"
+  | _ -> assert_bool "test_parse_vcf_simple:row *not* parsed" false
+
 let tests = "VCF" >::: [
   "Parse VCF header" >:: test_parse_vcf_header;
+  "Parse simple VCF (1 row)" >:: test_parse_vcf_simple;
 ]

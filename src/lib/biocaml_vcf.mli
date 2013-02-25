@@ -25,21 +25,21 @@ type vcf_alt_type =
 
 type vcf_alt_subtype = string
 
-type vcf_info_entry =
+type vcf_info_meta =
   Info of vcf_id * vcf_number * vcf_info_type * vcf_description
-type vcf_filter_entry =
+type vcf_filter_meta =
   Filter of vcf_id * vcf_description
-type vcf_format_entry =
+type vcf_format_meta =
   Format of vcf_id * vcf_number * vcf_format_type * vcf_description
-type vcf_alt_entry =
+type vcf_alt_meta =
   Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
 
 type vcf_meta = {
   vcfm_version : string;
-  vcfm_info    : vcf_info_entry list;
-  vcfm_filter  : vcf_filter_entry list;
-  vcfm_format  : vcf_format_entry list;
-  vcfm_alt     : vcf_alt_entry list;
+  vcfm_info    : vcf_info_meta list;
+  vcfm_filter  : vcf_filter_meta list;
+  vcfm_format  : vcf_format_meta list;
+  vcfm_alt     : vcf_alt_meta list;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
 }
@@ -48,7 +48,7 @@ type vcf_row = {
   vcfr_chrom : string;
   vcfr_pos   : int;
   vcfr_id    : string list;
-  vcfr_ref   : string list;
+  vcfr_ref   : string;
   vcfr_alt   : string list;
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
