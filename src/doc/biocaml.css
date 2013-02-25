@@ -59,3 +59,8 @@ ul.indexlist li { list-style-type: none ; margin-left: 0; padding-left: 0; }
 
 .figure { border: 1px black solid ; margin: auto; text-align: center; }
 .caption { font-size: 90%; font-style: italic; color: #074724 ; padding: 1em;}
+
+.included-module { border: 1px black solid; background-color: #DDD;
+                   width: 95%; margin : auto; }
+.included-module-type { border: 1px black solid; background-color: #DDD;
+                   width: 95%; margin : auto; }

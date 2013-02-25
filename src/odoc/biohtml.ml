@@ -59,6 +59,47 @@ struct
         (Filename.basename file) (Filename.basename file)
         caption
 
+    val mutable hide_show_id = 0
+    method html_of_included_module b im =   (* overridden! *)
+      let with_button f =
+        bprintf b "<script>function hide_show (vid) {
+                     var v = document.getElementById(vid);
+                     if (v.style.display == 'none') {
+                       v.style.display = 'block'
+                     } else {
+                       v.style.display = 'none'
+                     }
+                   }</script>";
+        bprintf b "<div>";
+        bprintf b "<button type=\"button\" style=\"float: left; padding: 1px\"
+                  onclick=\"hide_show('hs%d')\">+</button>"
+          hide_show_id;
+        super#html_of_included_module b im;
+        bprintf b "</div>";
+	bprintf b "<div class=\"included-module\" id=\"hs%d\"
+                    style=\"display: none\" >\n" hide_show_id;
+        hide_show_id <- hide_show_id + 1;
+        f ();
+	bprintf b "</div>\n"
+      in
+      let open Module in
+      begin match im.im_module with
+      | None -> (* case module is unknown *)
+        super#html_of_included_module b im;
+      | Some (Mod m) ->
+        with_button (fun () ->
+	  List.iter
+            (self#html_of_module_element b (Name.father m.m_name))
+            (Module.module_elements m);
+        )
+      | Some (Modtype mt) ->
+        with_button (fun () ->
+	  List.iter
+            (self#html_of_module_element b (Name.father mt.mt_name))
+            (Module.module_type_elements mt);
+        )
+      end
+
     method html_of_custom_text b s t =
       eprintf "html_of_custom_text Called s: %S \n%!" s;
       match s with
@@ -69,8 +110,3 @@ end
 
 let _ = Odoc_args.extend_html_generator (module Generator : Odoc_gen.Html_functor)
 
-  (*
-let biohtml = new biohtml
-let _ =
-  Odoc_args.set_doc_generator (Some biohtml :> Odoc_args.doc_generator option)
-  *)

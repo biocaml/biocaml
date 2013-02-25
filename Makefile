@@ -30,7 +30,8 @@ _build/doclib/index.html: setup.data build _build/doclib/biocaml.css
 
 # This a "fast-compiling" sample of the documentation for testing purposes.
 DOC_SAMPLES=_build/src/lib/biocaml_about.ml \
-            _build/src/lib/biocaml_math.mli _build/src/lib/biocaml_math.ml \
+            _build/src/lib/biocaml_streamable.ml \
+            _build/src/lib/biocaml_stream.mli _build/src/lib/biocaml_stream.ml \
             _build/src/lib/biocaml_transform.mli _build/src/lib/biocaml_transform.ml
 
 _build/biohtml.cmo: src/odoc/biohtml.ml
