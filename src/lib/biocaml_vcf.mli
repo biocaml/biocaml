@@ -8,13 +8,13 @@ type vcf_number =
   | OnePerGenotype
   | Unknown
 
-type vcf_format_type = [ `integer
-                       | `float
-                       | `character
-                       | `string
+type vcf_format_type = [ `integer_value
+                       | `float_value
+                       | `character_value
+                       | `string_value
                        ]
 
-type vcf_info_type = [ vcf_format_type | `flag ]
+type vcf_info_type = [ vcf_format_type | `flag_value ]
 
 type vcf_alt_type =
   | Deletion
@@ -26,7 +26,7 @@ type vcf_alt_type =
 type vcf_alt_subtype = string
 
 type vcf_info_meta =
-  Info of vcf_id * vcf_number * vcf_info_type * vcf_description
+  Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta =
   Filter of vcf_id * vcf_description
 type vcf_format_meta =
@@ -36,7 +36,7 @@ type vcf_alt_meta =
 
 type vcf_meta = {
   vcfm_version : string;
-  vcfm_info    : vcf_info_meta list;
+  vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filter  : vcf_filter_meta list;
   vcfm_format  : vcf_format_meta list;
   vcfm_alt     : vcf_alt_meta list;
@@ -44,15 +44,23 @@ type vcf_meta = {
   vcfm_header  : string list
 }
 
+
+type vcf_filter = [`integer of int
+                  | `float of float
+                  | `character of char
+                  | `string of string
+                  ]
+type vcf_info = [ vcf_filter | `flag of string ]
+
 type vcf_row = {
-  vcfr_chrom : string;
+  vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)
   vcfr_pos   : int;
   vcfr_id    : string list;
   vcfr_ref   : string;
   vcfr_alt   : string list;
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
-  vcfr_info  : (string, string) Hashtbl.t  (* FIXME: proper typing *)
+  vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
 }
 
 type item = vcf_row

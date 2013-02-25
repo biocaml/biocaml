@@ -15,27 +15,41 @@ let string_to_vcf_number = function
   | "A" -> OnePerAllele
   | "G" -> OnePerGenotype
   | "." -> Unknown
-  | n   -> Number (int_of_string n)
+  | arity -> Number (int_of_string arity)
 
-type vcf_format_type = [ `integer
-                       | `float
-                       | `character
-                       | `string
+type vcf_format_type = [ `integer_value
+                       | `float_value
+                       | `character_value
+                       | `string_value
                        ]
 
 let string_to_vcf_format_type s =
   match String.lowercase s with
-  | "integer"   -> `integer
-  | "float"     -> `float
-  | "character" -> `character
-  | "string"    -> `string
+  | "integer"   -> `integer_value
+  | "float"     -> `float_value
+  | "character" -> `character_value
+  | "string"    -> `string_value
   | v           -> failwith ("string_to_vcf_format_type: invalid format: " ^ v)
 
-type vcf_info_type = [ vcf_format_type | `flag ]
+let coerce_to_vcf_format_type t s =
+  match t with
+  | `integer_value   -> Some (`integer (Int.of_string s))
+  | `float_value     -> Some (`float (Float.of_string s))
+  | `character_value when String.length s = 1 -> Some (`character s.[0])
+  | `string_value    -> Some (`string s)
+  | _ -> None
 
-let string_to_vcf_info_type = function
-  | "Flag" -> `flag
-  | t      -> string_to_vcf_format_type t
+type vcf_info_type = [ vcf_format_type | `flag_value ]
+
+let string_to_vcf_info_type s =
+  match String.lowercase s with
+  | "flag" -> `flag_value
+  | s      -> string_to_vcf_format_type s
+
+let coerce_to_vcf_info_type t s =
+  match t with
+  | `flag_value -> Some (`flag s)
+  | t           -> coerce_to_vcf_format_type t s
 
 type vcf_alt_type =
   | Deletion
@@ -47,7 +61,7 @@ type vcf_alt_type =
 type vcf_alt_subtype = string
 
 type vcf_info_meta =
-  Info of vcf_id * vcf_number * vcf_info_type * vcf_description
+  Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta =
   Filter of vcf_id * vcf_description
 type vcf_format_meta =
@@ -57,7 +71,7 @@ type vcf_alt_meta =
 
 type vcf_meta = {
   vcfm_version : string;
-  vcfm_info    : vcf_info_meta list;
+  vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filter  : vcf_filter_meta list;
   vcfm_format  : vcf_format_meta list;
   vcfm_alt     : vcf_alt_meta list;
@@ -67,11 +81,19 @@ type vcf_meta = {
 
 let default_meta = {
   vcfm_version = "unknown";
-  vcfm_info = []; vcfm_filter = [];
+  vcfm_info = Hashtbl.Poly.create ();
+  vcfm_filter = [];
   vcfm_format = []; vcfm_alt = [];
   vcfm_arbitrary = Hashtbl.Poly.create ();
   vcfm_header = []
 }
+
+type vcf_filter = [ `integer of int
+                  | `float of float
+                  | `character of char
+                  | `string of string
+                  ]
+type vcf_info = [ vcf_filter | `flag of string ]
 
 type vcf_row = {
   vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)
@@ -81,7 +103,7 @@ type vcf_row = {
   vcfr_alt   : string list;
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
-  vcfr_info  : (string, string) Hashtbl.t  (* FIXME(superbobry): proper typing *)
+  vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
 }
 
 let default_row = {
@@ -95,15 +117,59 @@ let default_row = {
   vcfr_info  = Hashtbl.Poly.create ()
 }
 
-let rec list_to_vcf_row meta chunks =
+let string_to_vcfr_ref s =
+  let s = String.uppercase s in
+  if String.fold s
+      ~f:(fun acc ch -> acc && String.contains "ACGTN" ch)
+      ~init:true
+  then Some s
+  else None
+
+let string_to_vcfr_info { vcfm_info } s =
+  let rec string_to_t raw_value t =
+    List.map (String.split ~on:',' raw_value)
+      ~f:(fun chunk ->
+        match coerce_to_vcf_info_type t chunk with
+        | Some value -> value
+        | None -> failwith "<error>")
+  and go values =
+    List.iter (String.split ~on:';' s) ~f:(fun chunk ->
+      let (key, raw_value) =
+        Option.value ~default:(chunk, "") (String.lsplit2 ~on:'=' chunk)
+      in
+
+      let chunk_values = match Hashtbl.find vcfm_info key with
+      | Some (Info (Number 0, `flag_value, _description))
+        when raw_value = "" -> [`flag key]
+      | Some (Info (Number n, t, _description)) ->
+        let values = string_to_t raw_value t in
+        assert (List.length values = n);
+        values
+      | Some (Info (OnePerAllele, t, _description)) ->
+        (** TODO(superbobry): how do we know the nr. of alleles? *)
+        string_to_t raw_value t
+      | Some (Info (OnePerGenotype, t, _description)) ->
+        (** TODO(superbobry): how to make sure that we have exactly _one_
+            value per genotype? *)
+        string_to_t raw_value t
+      | Some (Info (Unknown, _t, _description)) -> assert false  (* impossible. *)
+      | None ->
+        (** Note(superbobry): too bad Ocaml doesn't support local
+           exceptions. *)
+        failwith "<error>"
+      in Hashtbl.set values key chunk_values);
+
+    values
+  in Option.try_with (fun () -> go (Hashtbl.Poly.create ()))
+
+let list_to_vcf_row meta chunks =
   match chunks with
   | [vcfr_chrom; raw_pos; raw_id; raw_ref; raw_alt; raw_qual; raw_filter; raw_info]
     when List.length chunks = List.length meta.vcfm_header ->
     let open Option.Monad_infix in
     string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
-    (** TODO(superbobry): parse INFO properly. *)
+    string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
     let row = {
-      default_row with
       vcfr_chrom;
       vcfr_pos  = Int.of_string raw_pos;
       vcfr_id   = String.split ~on:';' raw_id;  (** Ensure uniqueness. *)
@@ -111,19 +177,13 @@ let rec list_to_vcf_row meta chunks =
       vcfr_alt  = String.split ~on:',' raw_alt; (** ACGT, <ID>. *)
       vcfr_qual = Some (Float.of_string raw_qual);
       vcfr_filter = String.split ~on:';' raw_filter;  (** Proper typing. *)
+      vcfr_info
     } in Some row
   | c ->
 
     (** Note(superbobry): arbitary-width rows aren't supported yet. *)
     None
 
-and string_to_vcfr_ref s =
-  let s = String.uppercase s in
-  if String.fold s
-      ~f:(fun acc ch -> acc && String.contains "ACGTN" ch)
-      ~init:true
-  then Some s
-  else None
 
 type item = vcf_row
 
@@ -159,11 +219,10 @@ module Transform = struct
           | Some ("INFO", v) ->
             Scanf.sscanf v "<ID=%s@,Number=%s@,Type=%s@,Description=%S>"
               (fun id n t description ->
-                let info_meta = Info (id,
-                    string_to_vcf_number n,
+                let info_meta = Info (string_to_vcf_number n,
                     string_to_vcf_info_type t,
                     description)
-                in go { meta with vcfm_info = info_meta :: vcfm_info })
+                in Hashtbl.set vcfm_info id info_meta; go meta)
           | Some ("FILTER", v) ->
             Scanf.sscanf v "<ID=%s@,Description=%S>"
               (fun id description ->
