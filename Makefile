@@ -27,6 +27,19 @@ _build/doclib/index.html: setup.data build _build/doclib/biocaml.css
 	  -sort -I _build/src/lib/. \
 	  -intro src/doc/intro.txt
 
+# This a "fast-compiling" sample of the documentation for testing purposes.
+DOC_SAMPLES=_build/src/lib/biocaml_about.ml \
+            _build/src/lib/biocaml_math.mli _build/src/lib/biocaml_math.ml
+
+doctest: setup.data _build/doclib/biocaml.css
+	mkdir -p _build/doclib
+	ocamlfind ocamldoc \
+          -css-style biocaml.css \
+	  -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
+	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
+	  -keep-code -colorize-code $(DOC_SAMPLES) \
+	  -sort -I _build/src/lib/. \
+	  -intro src/doc/intro.txt
 
 doc: _build/doclib/index.html
 
