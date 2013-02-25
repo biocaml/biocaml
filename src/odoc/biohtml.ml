@@ -14,29 +14,13 @@ let split_args t =
   | _ ->
     failwith "Argument too complicated (you should not use markup in captions)"
 
-(*
-let read_all f =
-  let i = open_in f in
-  let b = Buffer.create 1024 in
-  let rec loop () =
-    try
-      Buffer.add_char b (input_char i);
-      loop ()
-    with e -> ()
-  in
-  loop ();
-  close_in i;
-  Buffer.contents b
-*)
+
 
 module Generator (G : Odoc_html.Html_generator) =
 struct
   class html =
   object(self)
     inherit G.html as super
-
-    (* method generate module_list = *)
-      (* eprintf "generate Called !\n%!" *)
 
     method private html_of_figure b t =
       let (file, width, caption) =
@@ -110,9 +94,7 @@ struct
         List.iter (self#html_of_module_element b father) eles;
         bprintf b "</div>";
         self#html_of_text b [Code "end"];
-        (* super#html_of_module_type_kind b father ?modu ?mt kind *)
       | _ ->
-        eprintf "other\n%!";
         super#html_of_module_type_kind b father ?modu ?mt kind
       end
 
@@ -127,7 +109,6 @@ struct
         bprintf b "</div>";
         self#html_of_text b [Code "end"]
       | _ ->
-        eprintf "html_of_module_kind\n%!";
         super#html_of_module_kind b father ?modu kind
       end
 
@@ -173,7 +154,6 @@ struct
         self#html_of_module_parameter_list b
           (Name.father mt.mt_name)
           (Module.module_type_parameters mt);
-        (* a horizontal line *)
         bs b "</body></html>";
         Buffer.output_buffer chanout b;
         close_out chanout;
@@ -240,14 +220,6 @@ struct
         self#html_of_module_parameter_list b
           (Name.father modu.m_name)
           (Module.module_parameters modu);
-        (* a horizontal line *)
-        if not modu.m_text_only then bs b "<hr width=\"100%\">\n";
-        (* module elements *)
-        (*
-          List.iter
-          (self#html_of_module_element b (Name.father modu.m_name))
-          (Module.module_elements modu);
-        *)
         Buffer.output_buffer chanout b;
         close_out chanout;
         (* generate html files for submodules *)
@@ -312,7 +284,7 @@ struct
         bs b "</body></html>";
         Buffer.output_buffer chanout b;
         close_out chanout;
-(* generate the file with the complete class type *)
+        (* generate the file with the complete class type *)
         self#output_class_type
           cl.cl_name
           (Filename.concat !Global.target_dir type_file)
@@ -372,7 +344,6 @@ struct
       bs b "<pre>";
       (* we add a html id, the same as for a type so we can
          go directly here when the class type name is used as a type name *)
-      (*
       bp b "<span id=\"%s\">"
         (Naming.type_target
            { ty_name = ct.clt_name ;
@@ -381,7 +352,7 @@ struct
              ty_loc = Odoc_info.dummy_loc ;
              ty_code = None ;
            }
-        ); *)
+        );
       bs b ((self#keyword "class type")^" ");
       if ct.clt_virtual then bs b ((self#keyword "virtual")^" ");
       (

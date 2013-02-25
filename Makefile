@@ -18,12 +18,13 @@ _build/doclib/biocaml.css: src/doc/biocaml.css
 	mkdir -p _build/doclib
 	cp src/doc/biocaml.css $@
 
-_build/doclib/index.html: setup.data build _build/doclib/biocaml.css
-	mkdir -p _build/doclib
+_build/doclib/index.html: setup.data build _build/doclib/biocaml.css _build/biohtml.cmo
+	cp src/doc/figures/* _build/doclib/
 	ocamlfind ocamldoc \
+          -g _build/biohtml.cmo \
           -css-style biocaml.css \
 	  -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
-	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" -html \
+	  -charset UTF-8 -d _build/doclib/ -t "The Biocaml Library" \
 	  -keep-code -colorize-code _build/src/lib/*.mli _build/src/lib/*.ml \
 	  -sort -I _build/src/lib/. \
 	  -intro src/doc/intro.txt
@@ -35,7 +36,7 @@ DOC_SAMPLES=_build/src/lib/biocaml_about.ml \
             _build/src/lib/biocaml_transform.mli _build/src/lib/biocaml_transform.ml
 
 _build/biohtml.cmo: src/odoc/biohtml.ml
-	ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc
+	ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
 
 
 #ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc  -I +ocamldoc/custom
