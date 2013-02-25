@@ -1,15 +1,15 @@
-.keyword { font-weight : bold ; color : Red }
+.keyword { font-weight : bold ; color : #080; }
 .keywordsign { color : #C04600 }
 .superscript { font-size : 4 }
 .subscript { font-size : 4 }
 .comment { color : Green }
-.constructor { color : Blue }
+.constructor { color : #824623 }
 .type { color : #5C6585 }
-.string { color : Maroon }
+.string { color : #9B1410 }
 .warning { color : Red ; font-weight : bold }
 .info { margin-left : 3em; margin-right: 3em }
 .param_info { margin-top: 4px; margin-left : 3em; margin-right : 3em }
-.code { color : #465F91 ; }
+.code { color : #111A50 ; }
 .typetable { border-style : hidden }
 .paramstable { border-style : hidden ; padding: 5pt 5pt}
 tr { background-color : White }
@@ -21,12 +21,25 @@ body {
     max-width: 50em;
     color: black; text-align: left; padding-left: 4%; margin: 0;
 }
-h1 { font-size : 20pt ; text-align: center; }
-h2 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #90BDFF ;padding: 2px; }
-h3 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #90DDFF ;padding: 2px; }
-h4 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #90EDFF ;padding: 2px; }
-h5 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #90FDFF ;padding: 2px; }
-h6 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #90BDFF ; padding: 2px; }
+h1 { font-size : 195% ; text-align: center;
+     border: 3px solid #000;}
+h2 { font-size : 180% ;
+     border: 1px solid #000000;
+     margin-top: 2em; margin-bottom: 1em;
+     text-align: center;
+     padding: 2px; }
+h3 { font-size : 150% ; border: 1px solid #000000; margin-top: 5px;
+     margin-bottom: 2px;text-align: center;
+     ;padding: 2px; }
+h4 { font-size : 130% ; border: 1px solid #000000; margin-top: 5px;
+     margin-bottom: 2px;text-align: center;
+     ;padding: 2px; }
+h5 { font-size : 100% ; border: 1px solid #000000; margin-top: 5px;
+     margin-bottom: 2px;text-align: center;
+     ;padding: 2px; }
+h6 { font-size : 100% ; border: 1px solid #000000; margin-top: 5px;
+     margin-bottom: 2px;text-align: center;
+     padding: 2px; }
 div.h7 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #E0FFFF ; padding: 2px; }
 div.h8 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #F0FFFF ; padding: 2px; }
 div.h9 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #FFFFFF ; padding: 2px; }
@@ -43,3 +56,6 @@ pre.verbatim, pre.codepre { }
 .indextable tr td div.info { margin-left: 2px; margin-right: 2px }
 ul.indexlist { margin-left: 0; padding-left: 0;}
 ul.indexlist li { list-style-type: none ; margin-left: 0; padding-left: 0; }
+
+.figure { border: 1px black solid ; margin: auto; text-align: center; }
+.caption { font-size: 90%; font-style: italic; color: #074724 ; padding: 1em;}
