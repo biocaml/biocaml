@@ -100,6 +100,22 @@ struct
         )
       end
 
+    method html_of_module_type_kind b father ?modu ?mt kind =
+      let open Module in
+      begin match kind with
+      | Module_type_struct eles ->
+        bprintf b "</pre>";
+        self#html_of_text b [Code "sig"];
+        bprintf b "<div class=\"sig_block\">";
+        List.iter (self#html_of_module_element b father) eles;
+        bprintf b "</div>";
+        self#html_of_text b [Code "end"];
+        (* super#html_of_module_type_kind b father ?modu ?mt kind *)
+      | _ ->
+        eprintf "other\n%!";
+        super#html_of_module_type_kind b father ?modu ?mt kind
+      end;
+
     method html_of_custom_text b s t =
       eprintf "html_of_custom_text Called s: %S \n%!" s;
       match s with
