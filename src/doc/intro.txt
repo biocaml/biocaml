@@ -5,7 +5,7 @@ with other libraries. For convenience, every module Biocaml_foo is
 renamed as Foo under the main {!module: Biocaml} module. Thus, do
 [open Biocaml] in your code to use the shorter names.
 
-{8 Files}
+{3 Files}
 {!modules:
 Biocaml_bam
 Biocaml_bar
@@ -30,12 +30,12 @@ Tags classify file types.
 Biocaml_tags
 }
 
-{8 Internet}
+{3 Internet}
 {!modules:
 Biocaml_entrez
 }
 
-{8 Data Structures}
+{3 Data Structures}
 {!modules:
 Biocaml_accu
 Biocaml_genomeMap
@@ -48,21 +48,21 @@ Biocaml_streamable
 Biocaml_table
 }
 
-{8 Analysis}
+{3 Analysis}
 {!modules:
 Biocaml_math
 Biocaml_pwm
 Biocaml_roc
 }
 
-{8 Strings}
+{3 Strings}
 {!modules:
 Biocaml_chrName
 Biocaml_line
 Biocaml_strandName
 }
 
-{8 Utilities}
+{3 Utilities}
 {!modules:
 Biocaml_about
 Biocaml_msg
@@ -73,13 +73,13 @@ Biocaml_solexa_score
 Biocaml_transform
 }
 
-{8 Incubator}
+{3 Incubator}
 {!modules:
 Biocaml_sbml
 Biocaml_seq
 }
 
-{8 Internal}
+{3 Internal}
 {!modules:
 Biocaml_internal_pervasives
 }
