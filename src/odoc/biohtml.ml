@@ -178,9 +178,9 @@ struct
         Buffer.output_buffer chanout b;
         close_out chanout;
         (* generate html files for submodules *)
-        (* self#generate_elements self#generate_for_module (Module.module_type_modules mt); *)
+        self#generate_elements self#generate_for_module (Module.module_type_modules mt);
         (* generate html files for module types *)
-        (* self#generate_elements self#generate_for_module_type (Module.module_type_module_types mt); *)
+        self#generate_elements self#generate_for_module_type (Module.module_type_module_types mt);
         (* generate html files for classes *)
         self#generate_elements self#generate_for_class (Module.module_type_classes mt);
         (* generate html files for class types *)
@@ -251,9 +251,9 @@ struct
         Buffer.output_buffer chanout b;
         close_out chanout;
         (* generate html files for submodules *)
-        (* self#generate_elements self#generate_for_module (Module.module_modules modu); *)
+        self#generate_elements self#generate_for_module (Module.module_modules modu);
         (* generate html files for module types *)
-        (* self#generate_elements self#generate_for_module_type (Module.module_module_types modu); *)
+        self#generate_elements self#generate_for_module_type (Module.module_module_types modu);
         (* generate html files for classes *)
         self#generate_elements self#generate_for_class (Module.module_classes modu);
         (* generate html files for class types *)
@@ -273,6 +273,158 @@ struct
       with
         Sys_error s ->
           raise (Failure s)
+
+    method generate_for_class pre post cl =
+      let open Class in
+      let open Odoc_html in
+      Odoc_info.reset_type_names ();
+      let (html_file, _) = Naming.html_files cl.cl_name in
+      let type_file = Naming.file_type_class_complete_target cl.cl_name in
+      try
+        let chanout = open_out (Filename.concat !Global.target_dir html_file) in
+        let b = new_buf () in
+        let pre_name = opt (fun c -> c.cl_name) pre in
+        let post_name = opt (fun c -> c.cl_name) post in
+        bs b doctype ;
+        bs b "<html>\n";
+        self#print_header b
+          ~nav: (Some (pre_name, post_name, cl.cl_name))
+          ~comments: (Class.class_comments cl)
+          (self#inner_title cl.cl_name);
+        bs b "<body>\n";
+        self#print_navbar b pre_name post_name cl.cl_name;
+        bs b "<h1>";
+        bs b (Odoc_messages.clas^" ");
+        if cl.cl_virtual then bs b "virtual " ;
+        bp b "<a href=\"%s\">%s</a>" type_file cl.cl_name;
+        bs b "</h1>\n";
+        self#html_of_class b ~with_link: false cl;
+        (* parameters *)
+        self#html_of_described_parameter_list b
+          (Name.father cl.cl_name) cl.cl_parameters;
+        (* class inheritance *)
+        self#generate_class_inheritance_info b cl;
+        (* a horizontal line *)
+        bs b "<hr width=\"100%\">\n";
+        (* the various elements *)
+        List.iter (self#html_of_class_element b)
+          (Class.class_elements ~trans:false cl);
+        bs b "</body></html>";
+        Buffer.output_buffer chanout b;
+        close_out chanout;
+(* generate the file with the complete class type *)
+        self#output_class_type
+          cl.cl_name
+          (Filename.concat !Global.target_dir type_file)
+          cl.cl_type
+      with
+        Sys_error s ->
+          raise (Failure s)
+
+    method generate_for_class_type pre post clt =
+      let open Class in
+      let open Odoc_html in
+      Odoc_info.reset_type_names ();
+      let (html_file, _) = Naming.html_files clt.clt_name in
+      let type_file = Naming.file_type_class_complete_target clt.clt_name in
+      try
+        let chanout = open_out (Filename.concat !Global.target_dir html_file) in
+        let b = new_buf () in
+        let pre_name = opt (fun ct -> ct.clt_name) pre in
+        let post_name = opt (fun ct -> ct.clt_name) post in
+        bs b doctype ;
+        bs b "<html>\n";
+        self#print_header b
+          ~nav: (Some (pre_name, post_name, clt.clt_name))
+          ~comments: (Class.class_type_comments clt)
+          (self#inner_title clt.clt_name);
+        bs b "<body>\n";
+        self#print_navbar b pre_name post_name clt.clt_name;
+        bs b "<h1>";
+        bs b (Odoc_messages.class_type^" ");
+        if clt.clt_virtual then bs b "virtual ";
+        bp b "<a href=\"%s\">%s</a>" type_file clt.clt_name;
+        bs b "</h1>\n";
+        self#html_of_class_type b ~with_link: false clt;
+        (* class inheritance *)
+        self#generate_class_type_inheritance_info b clt;
+        (* a horizontal line *)
+        bs b "</body></html>";
+        Buffer.output_buffer chanout b;
+        close_out chanout;
+        (* generate the file with the complete class type *)
+        self#output_class_type
+          clt.clt_name
+          (Filename.concat !Global.target_dir type_file)
+          clt.clt_type
+      with
+        Sys_error s ->
+          raise (Failure s)
+
+    method html_of_class_type b ?(complete=true) ?(with_link=true) ct =
+      let open Class in
+      let open Type in
+      let open Odoc_html in
+      Odoc_info.reset_type_names ();
+      let father = Name.father ct.clt_name in
+      let (html_file, _) = Naming.html_files ct.clt_name in
+      self#html_of_info ~indent:false b ct.clt_info;
+      bs b "<pre>";
+      (* we add a html id, the same as for a type so we can
+         go directly here when the class type name is used as a type name *)
+      (*
+      bp b "<span id=\"%s\">"
+        (Naming.type_target
+           { ty_name = ct.clt_name ;
+             ty_info = None ; ty_parameters = [] ;
+             ty_kind = Type_abstract ; ty_private = Asttypes.Public; ty_manifest = None ;
+             ty_loc = Odoc_info.dummy_loc ;
+             ty_code = None ;
+           }
+        ); *)
+      bs b ((self#keyword "class type")^" ");
+      if ct.clt_virtual then bs b ((self#keyword "virtual")^" ");
+      (
+        match ct.clt_type_parameters with
+          [] -> ()
+        | l ->
+          self#html_of_class_type_param_expr_list b father l;
+          bs b " "
+      );
+      if with_link then
+        bp b "<a href=\"%s\">%s</a>" html_file (Name.simple ct.clt_name)
+      else
+        bs b (Name.simple ct.clt_name);
+      bs b "</span>";
+      bs b " = ";
+      self#html_of_class_type_kind b father ~ct ct.clt_kind;
+      bs b "</pre>";
+
+    method html_of_class_type_kind b father ?ct kind =
+      let open Class in
+      let open Type in
+      let open Odoc_html in
+      match kind with
+      | Class_type cta ->
+        (match cta.cta_type_parameters with
+        | [] -> ()
+        | l ->
+          self#html_of_class_type_param_expr_list b father l;
+          bs b " "
+        );
+        bs b "<code class=\"type\">";
+        bs b (self#create_fully_qualified_idents_links father cta.cta_name);
+        bs b "</code>"
+      | Class_signature (inh, eles) ->
+        self#html_of_text b [Code "object"];
+        bs b "\n";
+        (match inh with
+        | [] -> ()
+        | _ -> self#generate_inheritance_info b inh);
+        bprintf b "<div class=\"class_definition\">";
+        List.iter (self#html_of_class_element b) eles;
+        bprintf b "</div>";
+        self#html_of_text b [Code "end"]
 
     method html_of_custom_text b s t =
       match s with

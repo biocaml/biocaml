@@ -15,6 +15,7 @@
 tr { background-color : White }
 td.typefieldcomment { background-color : #FFFFFF ; font-size: smaller ;}
 div.sig_block {margin-left: 2em}
+div.class_definition { margin-left: 2em; }
 *:target { background: yellow; }
 body {
     /* font: 13px sans-serif; */
