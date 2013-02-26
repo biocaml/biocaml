@@ -105,7 +105,11 @@ struct
         bprintf b "</pre>";
         self#html_of_text b [Code "sig"];
         bprintf b "<div class=\"sig_block\">";
-        List.iter (self#html_of_module_element b father) eles;
+        List.iter (fun el ->
+          bprintf b "<div class=\"module_element\">";
+          self#html_of_module_element b father el;
+          bprintf b "</div>";
+        ) eles;
         bprintf b "</div>";
         self#html_of_text b [Code "end"]
       | _ ->

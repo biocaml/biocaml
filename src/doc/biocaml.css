@@ -14,8 +14,6 @@
 .paramstable { border-style : hidden ; padding: 5pt 5pt}
 tr { background-color : White }
 td.typefieldcomment { background-color : #FFFFFF ; font-size: smaller ;}
-div.sig_block {margin-left: 2em}
-div.class_definition { margin-left: 2em; }
 *:target { background: yellow; }
 body {
     /* font: 13px sans-serif; */
@@ -68,3 +66,9 @@ ul.indexlist li { list-style-type: none ; margin-left: 0; padding-left: 0; }
 .included-module-type { border: 1px black solid; background-color: #DDD;
                    width: 95%; margin : auto; }
 .navbar { font-size: 85%; font-family: sans-serif; background-color: #DDD; }
+
+.module_element { padding: 5px; margin: 1px; }
+.module_element:hover { padding: 3px; margin: 1px; border: 2px #ccc solid; }
+
+div.sig_block {margin-left: 2em; padding: 2px;          }
+div.class_definition { margin-left: 2em;  padding: 2px; }
