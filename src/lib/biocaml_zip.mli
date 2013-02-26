@@ -18,14 +18,13 @@ module Transform: sig
   | `zlib of string
   | `wrong_gzip_header of
       [ `compression_method | `flags | `magic_number ] * int ]
-  with sexp
   (** The possible unzipping errors. *)
-    
-  val unzip: 
+
+  val unzip:
     ?format:[ `gzip | `raw ] ->
     ?zlib_buffer_size:int ->
     unit ->
-    (string, (string, unzip_error) Core.Result.t) Biocaml_transform.t
+    (string, (string, [> unzip_error]) Core.Result.t) Biocaml_transform.t
   (** Create a transform that uncompresses a stream.
       The default [format] is [`raw] (i.e. only apply the "deflate"
       algorithm to the stream); [`gzip] means that the transform must first
@@ -37,4 +36,11 @@ module Transform: sig
     ?zlib_buffer_size:int ->
     unit ->
     (string, string) Biocaml_transform.t
+  (** Create a transform that writes compressed data. *)
+
+  val unzip_error_of_sexp : Sexplib.Sexp.t -> unzip_error
+  val unzip_error_of_sexp__ : Sexplib.Sexp.t -> unzip_error
+  val sexp_of_unzip_error : unzip_error -> Sexplib.Sexp.t
+
+
 end
