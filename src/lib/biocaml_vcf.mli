@@ -34,6 +34,7 @@ type vcf_alt_meta =
 
 type vcf_meta = {
   vcfm_version : string;
+  vcfm_id_cache: vcf_id Set.Poly.t;
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filter  : (vcf_id * vcf_filter_meta) list;
   vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
@@ -53,7 +54,7 @@ type vcf_info = [ vcf_format | `flag of string ]
 type vcf_row = {
   vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)
   vcfr_pos   : int;
-  vcfr_id    : string list;
+  vcfr_ids   : string list;
   vcfr_ref   : string;
   vcfr_alt   : string list;
   vcfr_qual  : float option;

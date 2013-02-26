@@ -2,7 +2,6 @@ open Biocaml_internal_pervasives
 open Result
 
 module Pos = Biocaml_pos
-
 type vcf_id = string
 type vcf_description = string
 type vcf_number =
@@ -69,6 +68,7 @@ type vcf_alt_meta =
 
 type vcf_meta = {
   vcfm_version : string;
+  vcfm_id_cache: vcf_id Set.Poly.t;
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filter  : (vcf_id * vcf_filter_meta) list;
   vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
@@ -78,7 +78,8 @@ type vcf_meta = {
 }
 
 let default_meta = {
-  vcfm_version = "unknown";
+  vcfm_version = "<unknown>";
+  vcfm_id_cache = Set.Poly.empty;
   vcfm_info = Hashtbl.Poly.create ();
   vcfm_filter = [];
   vcfm_format = Hashtbl.Poly.create ();
@@ -97,7 +98,7 @@ type vcf_info = [ vcf_format | `flag of string ]
 type vcf_row = {
   vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)
   vcfr_pos   : int;
-  vcfr_id    : string list;
+  vcfr_ids    : string list;
   vcfr_ref   : string;
   vcfr_alt   : string list;
   vcfr_qual  : float option;
@@ -158,6 +159,12 @@ let string_to_vcfr_filter { vcfm_filter } s =
     then Some chunks
     else None
 
+let string_to_vcfr_ids { vcfm_id_cache } s =
+  let chunks = String.split ~on:';' s in
+  if List.exists chunks ~f:(Set.mem vcfm_id_cache)
+  then None
+  else Some chunks
+
 let list_to_vcf_row meta chunks =
   match chunks with
   | [vcfr_chrom; raw_pos; raw_id; raw_ref; raw_alt; raw_qual; raw_filter; raw_info]
@@ -166,10 +173,11 @@ let list_to_vcf_row meta chunks =
     string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
     string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
     string_to_vcfr_filter meta raw_filter >>= fun vcfr_filter ->
+    string_to_vcfr_ids meta raw_id >>= fun vcfr_ids ->
     let row = {
       vcfr_chrom;
       vcfr_pos  = Int.of_string raw_pos;
-      vcfr_id   = String.split ~on:';' raw_id;  (** Ensure uniqueness. *)
+      vcfr_ids;
       vcfr_ref;
       vcfr_alt  = String.split ~on:',' raw_alt; (** ACGT, <ID>. *)
       vcfr_qual = Some (Float.of_string raw_qual);
