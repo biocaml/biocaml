@@ -27,7 +27,7 @@ let test_parse_vcf_simple () =
     assert_equal row.vcfr_pos 14370 ~msg:"position";
     assert_equal row.vcfr_ids ["rs6054257"] ~msg:"id";
     assert_equal row.vcfr_ref "G" ~msg:"ref";
-    assert_equal row.vcfr_alt ["A"] ~msg:"alt";
+    assert_equal row.vcfr_alts ["A"] ~msg:"alt";
     assert_equal row.vcfr_qual (Some 29.0) ~msg:"quality";
     assert_equal row.vcfr_filter ["PASS"] ~msg:"filter"
   | _ -> assert_bool "test_parse_vcf_simple:row *not* parsed" false

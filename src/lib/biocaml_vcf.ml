@@ -2,6 +2,15 @@ open Biocaml_internal_pervasives
 open Result
 
 module Pos = Biocaml_pos
+
+module Safe = struct
+  let int_of_string s = Option.try_with (fun () -> Int.of_string s)
+
+  let float_of_string s = Option.try_with (fun () -> Float.of_string s)
+end
+
+let is_valid_dna = String.for_all ~f:(String.contains "ACGTN")
+
 type vcf_id = string
 type vcf_description = string
 type vcf_number =
@@ -32,8 +41,10 @@ let string_to_vcf_format_type s =
 
 let coerce_to_vcf_format_type t s =
   match t with
-  | `integer_value   -> Some (`integer (Int.of_string s))
-  | `float_value     -> Some (`float (Float.of_string s))
+  | `integer_value   ->
+    Option.map (Safe.int_of_string s) ~f:(fun x -> `integer x)
+  | `float_value     ->
+    Option.map (Safe.float_of_string s) ~f:(fun x -> `float x)
   | `character_value when String.length s = 1 -> Some (`character s.[0])
   | `string_value    -> Some (`string s)
   | _ -> None
@@ -100,7 +111,7 @@ type vcf_row = {
   vcfr_pos   : int;
   vcfr_ids    : string list;
   vcfr_ref   : string;
-  vcfr_alt   : string list;
+  vcfr_alts  : string list;
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
   vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
@@ -108,9 +119,7 @@ type vcf_row = {
 
 let string_to_vcfr_ref s =
   let s = String.uppercase s in
-  if String.fold s
-      ~f:(fun acc ch -> acc && String.contains "ACGTN" ch)
-      ~init:true
+  if is_valid_dna s
   then Some s
   else None
 
@@ -165,24 +174,29 @@ let string_to_vcfr_ids { vcfm_id_cache } s =
   then None
   else Some chunks
 
+let string_to_vcfr_alts s =
+  match String.split ~on:',' s with
+  | ["."]  -> Some []
+  | chunks ->
+    if List.for_all chunks ~f:is_valid_dna
+    then Some chunks
+    else None
+
 let list_to_vcf_row meta chunks =
   match chunks with
   | [vcfr_chrom; raw_pos; raw_id; raw_ref; raw_alt; raw_qual; raw_filter; raw_info]
     when List.length chunks = List.length meta.vcfm_header ->
     let open Option.Monad_infix in
+    Safe.int_of_string raw_pos >>= fun vcfr_pos ->
+    string_to_vcfr_ids meta raw_id >>= fun vcfr_ids ->
     string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
+    string_to_vcfr_alts raw_alt >>= fun vcfr_alts ->
     string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
     string_to_vcfr_filter meta raw_filter >>= fun vcfr_filter ->
-    string_to_vcfr_ids meta raw_id >>= fun vcfr_ids ->
     let row = {
-      vcfr_chrom;
-      vcfr_pos  = Int.of_string raw_pos;
-      vcfr_ids;
-      vcfr_ref;
-      vcfr_alt  = String.split ~on:',' raw_alt; (** ACGT, <ID>. *)
-      vcfr_qual = Some (Float.of_string raw_qual);
-      vcfr_filter;
-      vcfr_info
+      vcfr_chrom; vcfr_pos; vcfr_ids; vcfr_ref; vcfr_alts;
+      vcfr_qual = Safe.float_of_string raw_qual;
+      vcfr_filter; vcfr_info
     } in Some row
   | c ->
     (** Note(superbobry): arbitary-width rows aren't supported yet. *)

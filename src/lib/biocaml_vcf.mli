@@ -56,7 +56,7 @@ type vcf_row = {
   vcfr_pos   : int;
   vcfr_ids   : string list;
   vcfr_ref   : string;
-  vcfr_alt   : string list;
+  vcfr_alts  : string list;
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
   vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
