@@ -28,32 +28,34 @@
     around the '='.
 *)
 
-(** {3 Basic Types} *)
+(** {2 Basic Types} *)
 
 
 type comment = [
 | `comment of string
 ]
-with sexp
+
 type variable_step = [
 | `variable_step_state_change of string * int option (** name x span *)
 | `variable_step_value of int * float
 ]
-with sexp
+
 type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (** name, start, step, span *)
 | `fixed_step_value of float
 ]
-with sexp
-type bed_graph_value = string * int * int * float
-with sexp
 
-(** {3 Parsing and Printing} *)
+type bed_graph_value = string * int * int * float
+
+(** {2 Parsing and Printing} *)
 
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
-with sexp
-(** The most general type that the default parser outputs. *)
+(** The most general type that the default parser outputs.
+    {[
+    type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
+    ]}
+*)
 
 type parse_error = [
 | `cannot_parse_key_values of Biocaml_pos.t * string
@@ -70,16 +72,19 @@ type parse_error = [
 | `wrong_span_value of Biocaml_pos.t * string
 | `wrong_variable_step_value of Biocaml_pos.t * string
 ]
-with sexp
 (** The parsing errors. *)
 
 val parse_error_to_string: parse_error -> string
 (** Convert a [parse_error] to a string. *)
 
-type tag = [ `sharp_comments | `pedantic ] with sexp
+type tag = [ `sharp_comments | `pedantic ]
+(** Additional tags (c.f. {!Biocaml_tags}). *)
+
 val default_tags: tag list
+(** Default tags ([[ `sharp_comments; `pedantic ]]). *)
 
 module Transform: sig
+  (** Low-level {!Biocaml_transform.t}. *)
 
   val string_to_t :
     ?filename:string ->
@@ -92,7 +97,7 @@ module Transform: sig
       even if no ["variableStep"] was line present before). *)
 
   val t_to_string: ?tags: tag list -> unit -> (t, string) Biocaml_transform.t
-(** Create the transform that prints [t] values to strings. *)
+  (** Create the transform that prints [t] values to strings. *)
 
   val t_to_bed_graph: unit ->
     (t,
@@ -104,4 +109,26 @@ module Transform: sig
       current state. The [`bed_graph_value _] and [`comment _] values stay
       untouched. *)
 end
+
+(** {2 S-Expressions} *)
+
+val comment_of_sexp : Sexplib.Sexp.t -> comment
+val comment_of_sexp__ : Sexplib.Sexp.t -> comment
+val sexp_of_comment : comment -> Sexplib.Sexp.t
+val variable_step_of_sexp : Sexplib.Sexp.t -> variable_step
+val variable_step_of_sexp__ : Sexplib.Sexp.t -> variable_step
+val sexp_of_variable_step : variable_step -> Sexplib.Sexp.t
+val fixed_step_of_sexp : Sexplib.Sexp.t -> fixed_step
+val fixed_step_of_sexp__ : Sexplib.Sexp.t -> fixed_step
+val sexp_of_fixed_step : fixed_step -> Sexplib.Sexp.t
+val bed_graph_value_of_sexp : Sexplib.Sexp.t -> bed_graph_value
+val sexp_of_bed_graph_value : bed_graph_value -> Sexplib.Sexp.t
+val t_of_sexp : Sexplib.Sexp.t -> t
+val t_of_sexp__ : Sexplib.Sexp.t -> t
+val sexp_of_t : t -> Sexplib.Sexp.t val parse_error_of_sexp : Sexplib.Sexp.t -> parse_error
+val parse_error_of_sexp__ : Sexplib.Sexp.t -> parse_error
+val sexp_of_parse_error : parse_error -> Sexplib.Sexp.t
+val tag_of_sexp : Sexplib.Sexp.t -> tag
+val tag_of_sexp__ : Sexplib.Sexp.t -> tag
+val sexp_of_tag : tag -> Sexplib.Sexp.t
 
