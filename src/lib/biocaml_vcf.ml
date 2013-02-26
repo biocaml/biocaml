@@ -162,7 +162,7 @@ let string_to_vcfr_info { vcfm_info } s =
 
 let string_to_vcfr_filter { vcfm_filter } s =
   match String.split ~on:';' s with
-  | ["PASS"] -> Some ["PASS"]
+  | ["PASS"] -> Some []
   | chunks ->
     if List.for_all chunks ~f:(List.Assoc.mem vcfm_filter)
     then Some chunks
