@@ -1,5 +1,5 @@
 (** WIG data.
-    
+
     Internal representation of coordinates always assumes the first
     position on a chromosome is numbered 1. Also, integer ranges are
     always closed; the range [\[1, 10\]] is the set of integers from 1
@@ -17,10 +17,10 @@
       intervals. Thus no change is required. The header line
       ["fixedStep chrom=chrI start=1 step=100 span=30"] is parsed to
       [("chrI", 1, 100, 30)].
-    
+
     The inverse is done for printing routines. You are freed from
     these details if you always use this module to parse and print.
-    
+
     All parsers allow columns (fields) on a line to be separated by
     any combination of space, tab, or carriage return
     characters. Printers always separate columns with a single
@@ -44,11 +44,11 @@ type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (** name, start, step, span *)
 | `fixed_step_value of float
-]  
+]
 with sexp
 type bed_graph_value = string * int * int * float
 with sexp
-  
+
 (** {3 Parsing and Printing} *)
 
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
@@ -75,33 +75,33 @@ with sexp
 
 val parse_error_to_string: parse_error -> string
 (** Convert a [parse_error] to a string. *)
-  
+
 type tag = [ `sharp_comments | `pedantic ] with sexp
 val default_tags: tag list
-  
+
 module Transform: sig
 
   val string_to_t :
     ?filename:string ->
     ?tags: tag list ->
     unit ->
-    (string, (t, parse_error) Core.Result.t) Biocaml_transform.t
+    (string, (t, [> parse_error]) Core.Result.t) Biocaml_transform.t
   (** Create the parsing [Biocaml_transform.t]. The parser is
       "best-effort" and stateless (i.e. a line containing ["1000 42."]
       will parsed succesfully as a [`variable_step_value (1000, 42.)]
       even if no ["variableStep"] was line present before). *)
-      
+
   val t_to_string: ?tags: tag list -> unit -> (t, string) Biocaml_transform.t
 (** Create the transform that prints [t] values to strings. *)
 
   val t_to_bed_graph: unit ->
     (t,
      (bed_graph_value,
-      [`not_in_variable_step_state | `not_in_fixed_step_state]) Core.Result.t)
+      [> `not_in_variable_step_state | `not_in_fixed_step_state]) Core.Result.t)
       Biocaml_transform.t
   (** Create a transform which converts [`variable_step_value _] and
       [`fixed_step_value _] values to [`bed_graph_value _] values, using the
       current state. The [`bed_graph_value _] and [`comment _] values stay
       untouched. *)
 end
-  
+
