@@ -67,14 +67,16 @@ type parse_error =
 | `wrong_key_value_format of (string * string) list * string * string ]
 (** The possible parsing errors. *)
 
-(** Low-level transforms. *)
+(** {2 Low-level transforms.} *)
+
 module Transform: sig
+  (** Low-level transforms. *)
 
   val string_to_string_content: ?filename:string -> unit ->
-    (string, ([ t | string content ], parse_error) Core.Result.t)
+    (string, ([ t | string content ], [> parse_error]) Core.Result.t)
       Biocaml_transform.t
-(** Create a parser that gets the "track", comment, and "browser"
-    lines and puts the  other lines in [`content _]. *)
+  (** Create a parser that gets the "track", comment, and "browser"
+      lines and puts the  other lines in [`content _]. *)
 
   val string_content_to_string:
     ?add_content_new_line:bool ->
@@ -84,18 +86,18 @@ module Transform: sig
 
   val string_to_wig: ?filename:string -> unit ->
     (string,
-     ([ t | Biocaml_wig.t ], [ parse_error | Biocaml_wig.parse_error ])
+     ([ t | Biocaml_wig.t ], [> parse_error | Biocaml_wig.parse_error ])
        Core.Result.t)
       Biocaml_transform.t
-(** Create a composite parser for UCSC WIG files.  *)
+  (** Create a composite parser for UCSC WIG files.  *)
 
   val wig_to_string: unit ->
     ([ t | Biocaml_wig.t ], string) Biocaml_transform.t
-(** Create a printer for track files containing WIG lines. *)
+  (** Create a printer for track files containing WIG lines. *)
 
   val string_to_gff: ?filename:string -> ?tags: Biocaml_gff.tag list -> unit ->
     (string,
-     ([t | Biocaml_gff.stream_item], [parse_error | Biocaml_gff.parse_error])
+     ([t | Biocaml_gff.stream_item], [> parse_error | Biocaml_gff.parse_error])
        Core.Result.t) Biocaml_transform.t
   (** Create a composite parser for UCSC GFF files.  *)
 
@@ -106,12 +108,13 @@ module Transform: sig
   val string_to_bed: ?filename:string ->
     ?more_columns:Biocaml_bed.parsing_spec -> unit ->
     (string,
-     ([t | Biocaml_bed.item content], [parse_error | Biocaml_bed.Error.parsing ])
+     ([t | Biocaml_bed.item content], [> parse_error | Biocaml_bed.Error.parsing ])
        Core.Result.t) Biocaml_transform.t
-(** Create a composite parser for UCSC Bed(Graph) files.  *)
+  (** Create a composite parser for UCSC Bed(Graph) files.  *)
 
   val bed_to_string: unit ->
     ([ t | Biocaml_bed.item content ], string) Biocaml_transform.t
-(** Create a printer for track files containing Bed(Graph) lines. *)
+  (** Create a printer for track files containing Bed(Graph) lines. *)
+
 end
 
