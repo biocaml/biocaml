@@ -1,4 +1,8 @@
-type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
+(** Jaspar data. *)
+
+(** The possible kinds of motifs. *)
+type collection =
+  Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
 
 type motif = private {
   id : string ;
@@ -11,8 +15,11 @@ type motif = private {
   medline : string ;
   matrix : int array array ;
 }
+(** The main “Jaspar element”. *)
 
 val load : string -> motif list
+(** Load a [motif list] from a given [path] (reading file [path ^
+    "/matrix_list.txt"]). *)
 
 
 
