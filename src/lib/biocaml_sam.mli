@@ -14,7 +14,6 @@ type raw_alignment = {
   qual : string;
   optional : (string * char * string) list
 }
-with sexp
 (** The contents of an alignment line. *)
 
 type raw_item = [
@@ -22,7 +21,6 @@ type raw_item = [
 | `header of string * (string * string) list
 | `alignment of raw_alignment
 ]
-with sexp
 (** The "items" of a parsed SAM file stream. *)
 
 type reference_sequence = {
@@ -34,7 +32,7 @@ type reference_sequence = {
   ref_uri: string option;
   ref_unknown: (string * string) list;
 }
-with sexp
+(** Definition of a reference sequence. *)
 
 val reference_sequence :
   ?assembly_identifier:string ->
@@ -43,12 +41,16 @@ val reference_sequence :
   ?uri:string ->
   ?unknown_data:(string * string) list ->
   string -> int -> reference_sequence
+(** Create a reference sequence. *)
 
 module Flags : sig
-  type t = private int with sexp
+  (** Manipulate the alignment flags. *)
+
+  type t = private int
+  (** Flags are represented as “bit map”. *)
 
   val of_int: int -> t
-    
+
   val has_multiple_segments            : t -> bool
   val each_segment_properly_aligned    : t -> bool
   val segment_unmapped                 : t -> bool
@@ -60,6 +62,9 @@ module Flags : sig
   val secondary_alignment              : t -> bool
   val not_passing_quality_controls     : t -> bool
   val pcr_or_optical_duplicate         : t -> bool
+
+  include Core.Sexpable.S with type t := t
+
 end
 
 type cigar_op = [
@@ -72,7 +77,7 @@ type cigar_op = [
 | `P of int
 | `S of int
 | `X of int ]
-with sexp
+(** CIGAR operations. *)
 
 type optional_content_value = [
 | `array of char * optional_content_value array
@@ -80,10 +85,10 @@ type optional_content_value = [
 | `float of float
 | `int of int
 | `string of string ]
-with sexp
+(** Meta-value used to store “optional content”. *)
 
-type optional_content = (string * char * optional_content_value) list   
-with sexp
+type optional_content = (string * char * optional_content_value) list
+(** Alignment optional content. *)
 
 type alignment = {
   query_template_name: string;
@@ -105,7 +110,7 @@ type alignment = {
   quality: Biocaml_phred_score.t array;
   optional_content: optional_content;
 }
-with sexp
+(** High-level representation of a parsed alignment. *)
 
 type item = [
 | `comment of string
@@ -116,9 +121,11 @@ type item = [
 | `header of string * (string * string) list
 | `alignment of alignment
 ]
-with sexp
+(** High-level representation of a parsed entity. *)
+
 
 module Error : sig
+  (** The possible errors. *)
 
   type optional_content_parsing = [
   | `wrong_optional of (string * char * string) list *
@@ -136,7 +143,7 @@ module Error : sig
       | `wrong_type of string
       ]
   ]
-  with sexp
+  (** Errors which can happen while parsing optional content. *)
 
   type string_to_raw = [
   | `incomplete_input of Biocaml_pos.t * string list * string option
@@ -146,7 +153,6 @@ module Error : sig
   | `wrong_alignment of Biocaml_pos.t * string
   | `wrong_optional_field of Biocaml_pos.t * string
   ]
-  with sexp
   (** The possible errors one can get while parsing SAM files. *)
 
   type raw_to_item = [
@@ -169,33 +175,69 @@ module Error : sig
   | `wrong_tlen of raw_alignment
   | optional_content_parsing
   ]
-  with sexp
+  (** The possible errors one can get while lifting SAM raw_items to
+      higher-level representations. (Note: [raw_to_item]
+      explicitly contains [optional_content_parsing] but OCamldoc
+      pastes it inline) *)
 
   type item_to_raw = [
     `wrong_phred_scores of alignment
   ]
-  with sexp
+  (** The error that may happen while downgrading the
+      higher-level represtation of an alignment. *)
 
   type parse = [
   | string_to_raw
   | raw_to_item
   ]
-  with sexp
+  (** All possible parsing errors. It is defined as: {[
+      type parse = [
+      | string_to_raw
+      | raw_to_item
+      ]
+      ]}*)
+
+  (** {3 S-Expressions conversions for Errors} *)
+
+  val optional_content_parsing_of_sexp : Sexplib.Sexp.t -> optional_content_parsing
+  val optional_content_parsing_of_sexp__ : Sexplib.Sexp.t -> optional_content_parsing
+  val sexp_of_optional_content_parsing : optional_content_parsing -> Sexplib.Sexp.t
+  val string_to_raw_of_sexp : Sexplib.Sexp.t -> string_to_raw
+  val string_to_raw_of_sexp__ : Sexplib.Sexp.t -> string_to_raw
+  val sexp_of_string_to_raw : string_to_raw -> Sexplib.Sexp.t
+  val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
+  val raw_to_item_of_sexp__ : Sexplib.Sexp.t -> raw_to_item
+  val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
+  val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
+  val item_to_raw_of_sexp__ : Sexplib.Sexp.t -> item_to_raw
+  val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
+  val parse_of_sexp : Sexplib.Sexp.t -> parse
+  val parse_of_sexp__ : Sexplib.Sexp.t -> parse
+  val sexp_of_parse : parse -> Sexplib.Sexp.t
 
 end
 
+(** {2 Stream functions } *)
+
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (item, Error.parse) Core.Result.t Stream.t
+  (item, [> Error.parse]) Core.Result.t Stream.t
+
+(** {2 Low-level partial parsing} *)
 
 module Low_level_parsing: sig
+
+  (** This submodule exposes functions used both in {!Biocaml_sam.Transform} and
+      {!Biocaml_bam.Transform} for parsing.
+      It can be ignored by most users.
+  *)
+
   val parse_cigar_text: string ->
     (cigar_op array, [> `wrong_cigar_text of string ]) Core.Result.t
 
   val parse_optional_content: (string * char * string) list ->
-    (optional_content, Error.optional_content_parsing) Core.Result.t
-      
+    (optional_content, [> Error.optional_content_parsing]) Core.Result.t
 
-  val parse_header_line: 
+  val parse_header_line:
     'a -> string ->
     ([> `comment of string
      | `header of string * (string * string) list ],
@@ -203,29 +245,50 @@ module Low_level_parsing: sig
      | `invalid_tag_value_list of 'a * string list ]) Core.Result.t
 
   val expand_header_line:
-  (string * string) list ->
-  ([> `header_line of
-      string * [ `coordinate | `queryname | `unknown | `unsorted ] *
-                 (string * string) list ],
-   [> `header_line_without_version of (string * string) list
-   | `header_line_wrong_sorting of string ]) Core.Result.t
+    (string * string) list ->
+    ([> `header_line of
+        string * [ `coordinate | `queryname | `unknown | `unsorted ] *
+          (string * string) list ],
+     [> `header_line_without_version of (string * string) list
+     | `header_line_wrong_sorting of string ]) Core.Result.t
 end
 
+(** {2 Low-level Transforms} *)
+
 module Transform: sig
+
+  (** Low-level, threading-model agnostic transforms. *)
+
   val string_to_raw: ?filename:string -> unit ->
     (string, (raw_item, [> Error.string_to_raw]) Core.Result.t) Biocaml_transform.t
-  (** Create a parsing "stoppable" transform. *)   
+  (** Create a parsing "stoppable" transform. *)
 
-      
   val raw_to_string: unit ->
     (raw_item, string) Biocaml_transform.t
-  (** Create a printing "stoppable" transform. *)   
-
+  (** Create a printing "stoppable" transform. *)
 
   val raw_to_item: unit ->
     (raw_item, (item,  [> Error.raw_to_item]) Core.Result.t) Biocaml_transform.t
+  (** Create a transform that lifts [raw_item]s to [item]s *)
 
   val item_to_raw: unit ->
-    (item, (raw_item, Error.item_to_raw) Core.Result.t) Biocaml_transform.t
+    (item, (raw_item, [> Error.item_to_raw]) Core.Result.t) Biocaml_transform.t
+  (** Create a transform that downgrades [item]s to [raw_item]s *)
 
 end
+
+(** {2 S-Expressions } *)
+
+val cigar_op_of_sexp : Sexplib.Sexp.t -> cigar_op
+val cigar_op_of_sexp__ : Sexplib.Sexp.t -> cigar_op
+val sexp_of_cigar_op : cigar_op -> Sexplib.Sexp.t
+val optional_content_value_of_sexp : Sexplib.Sexp.t -> optional_content_value
+val optional_content_value_of_sexp__ : Sexplib.Sexp.t -> optional_content_value
+val sexp_of_optional_content_value : optional_content_value -> Sexplib.Sexp.t
+val optional_content_of_sexp : Sexplib.Sexp.t -> optional_content
+val sexp_of_optional_content : optional_content -> Sexplib.Sexp.t
+val alignment_of_sexp : Sexplib.Sexp.t -> alignment
+val sexp_of_alignment : alignment -> Sexplib.Sexp.t
+val item_of_sexp : Sexplib.Sexp.t -> item
+val item_of_sexp__ : Sexplib.Sexp.t -> item
+val sexp_of_item : item -> Sexplib.Sexp.t
