@@ -1,16 +1,16 @@
-(** Lines of a file. *)
+(** Manipulate the lines of a file. *)
+
 
 type item = Biocaml_line.t
+(** [Lines.item] is a [Line.t] *)
 
-(** Errors.
-
-    - [`premature_end_of_input] - expected more lines than available.
-*)
 module Error : sig
-
   type t = [
   | `premature_end_of_input
   ]
+  (** Errors:
+    - [`premature_end_of_input] - expected more lines than available.
+  *)
 
 end
 
@@ -18,51 +18,52 @@ val of_char_stream : char Stream.t -> item Stream.t
 val of_channel : in_channel -> item Stream.t
 val to_channel : item Stream.t -> out_channel -> unit
 
-(** Buffer of lines. *)
 module Buffer : sig
+  (** Buffer used to parse strings into lines. *)
 
   type t
+  (** The buffer handle. *)
 
-  (** The exception thrown by [next_line_exn]. *)
   exception No_next_line
+  (** The exception thrown by [next_line_exn]. *)
 
+  val make: ?filename:string -> unit -> t
   (** Make a new empty buffer. The optional [filename] is used only
       for error reporting; it should be set to the name of the file,
       if any, from which you will feed the buffer. *)
-  val make: ?filename:string -> unit -> t
 
-  (** Feed the parser with a line. *)
   val feed_line: t -> item -> unit
+  (** Feed the parser with a line. *)
 
-  (** Feed the parser with an arbitrary string buffer. *)
   val feed_string: t -> string -> unit
+  (** Feed the parser with an arbitrary string buffer. *)
 
-  (** Get the number of lines ready-to-use in the buffer/queue. *)
   val queued_lines: t -> int
+  (** Get the number of lines ready-to-use in the buffer/queue. *)
 
+  val is_empty: t -> bool
   (** Tell if the parser's buffers are empty or not. For instance,
       when there is no more content to feed and [next_line] returns
       [None], [is_empty p = true] means that the content did not end
       with a complete line. *)
-  val is_empty: t -> bool
 
-  (** Get the next line. *)
   val next_line: t -> item option
+  (** Get the next line. *)
 
+  val next_line_exn: t -> item
   (** Get the next line, but throw [No_next_line] if there is no line
       to return. *)
-  val next_line_exn: t -> item
 
-  (** Get the current position in the stream. *)
   val current_position: t -> Biocaml_pos.t
+  (** Get the current position in the stream. *)
 
+  val contents : t -> item list * string option
   (** Return any remaining lines and the unfinished string, without
       removing them from the buffer. *)
-  val contents : t -> item list * string option
 
+  val empty : t -> unit
   (** Empty the buffer. Subsequent call to [contents] will return
       [(\[\], None)]. *)
-  val empty : t -> unit
 
 end
 
