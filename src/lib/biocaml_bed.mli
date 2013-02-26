@@ -1,4 +1,6 @@
-(** BED data. A BED file is in the format shown below, where columns
+(** BED data files.
+
+    A BED file is in the format shown below, where columns
     must be separted by a tab character.
 
     {v
@@ -29,18 +31,23 @@
 *)
 
 type item = string * int * int * Biocaml_table.Row.t
-with sexp
 (** The type of BED data stream items. *)
+
+val item_of_sexp : Sexplib.Sexp.t -> item
+val sexp_of_item : item -> Sexplib.Sexp.t
 
 type parsing_spec = [
   | `enforce of Biocaml_table.Row.t_type
   | `strings
 ]
-with sexp
 (** The specification of how to parse the remaining columns. *)
 
-(** Definitions of error types ([with sexp]) *)
+val parsing_spec_of_sexp : Sexplib.Sexp.t -> parsing_spec
+val sexp_of_parsing_spec : parsing_spec -> Sexplib.Sexp.t
+
+
 module Error: sig
+  (** Definitions of error types ([with sexp]) *)
 
   type parsing_base = [
     | `wrong_format of
@@ -49,10 +56,13 @@ module Error: sig
         | `int_of_string of string ] *
           Biocaml_table.Row.t_type * string
     | `wrong_number_of_columns of Biocaml_table.Row.t ]
-  with sexp
 
   type parsing = [ `bed of parsing_base ]
-  with sexp
+
+  val parsing_base_of_sexp : Sexplib.Sexp.t -> parsing_base
+  val sexp_of_parsing_base : parsing_base -> Sexplib.Sexp.t
+  val parsing_of_sexp : Sexplib.Sexp.t -> parsing
+  val sexp_of_parsing : parsing -> Sexplib.Sexp.t
 
 end
 
@@ -64,6 +74,7 @@ val item_to_line: item -> Biocaml_lines.item
 (** Basic “printing” of one single [item]. *)
 
 module Transform: sig
+  (** Lower-level transforms of BED data-streams. *)
 
   val string_to_item :
     ?more_columns:parsing_spec ->

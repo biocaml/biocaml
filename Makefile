@@ -32,18 +32,14 @@ _build/doclib/index.html: setup.data build _build/doclib/biocaml.css _build/bioh
 # This a "fast-compiling" sample of the documentation for testing purposes.
 DOC_SAMPLES=_build/src/lib/biocaml_about.ml \
             _build/src/lib/biocaml_streamable.ml \
-            _build/src/lib/biocaml_stream.mli _build/src/lib/biocaml_stream.ml \
+            _build/src/lib/biocaml_bed.mli _build/src/lib/biocaml_bed.ml \
             _build/src/lib/biocaml_transform.mli _build/src/lib/biocaml_transform.ml
 
 _build/biohtml.cmo: src/odoc/biohtml.ml
 	ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
 
 
-#ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc  -I +ocamldoc/custom
-
-
-
-doctest: setup.data _build/doclib/biocaml.css _build/biohtml.cmo
+doctest: setup.data _build/doclib/biocaml.css _build/biohtml.cmo build
 	mkdir -p _build/doclib
 	cp src/doc/figures/* _build/doclib/
 	ocamlfind ocamldoc \
