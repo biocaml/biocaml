@@ -33,7 +33,7 @@ module Transform = struct
   | `partial_sequence of 'a
   ]
   with sexp
-    
+
   (** The {i next} function used to construct the transform in
       [generic_parser]. *)
   let rec next ~parse_sequence
@@ -43,7 +43,7 @@ module Transform = struct
     | Some "" ->
       if pedantic
       then output_error (`empty_line (current_position p))
-      else 
+      else
         next ~parse_sequence ~pedantic ~sharp_comments ~semicolon_comments p
     | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
@@ -53,9 +53,9 @@ module Transform = struct
       output_ok (`header String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l ->
       parse_sequence ~pedantic l
-    | None -> 
+    | None ->
       `not_ready
-            
+
   (** Return a transform converting strings to [raw_item]s, given a
       function [parse_sequence] for parsing either [char_seq]s or
       [int_seq]s. *)
@@ -68,26 +68,28 @@ module Transform = struct
     Biocaml_transform.Line_oriented.make ~name ?filename ~next ()
       ~on_error:(function `next e -> e
       | `incomplete_input e -> `incomplete_input e)
-      
-  let string_to_char_seq_raw_item =
+
+  let string_to_char_seq_raw_item
+      ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
     generic_parser ~parse_sequence:(fun ~pedantic l ->
       if pedantic && String.exists l
         ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
       then output_error (`malformed_partial_sequence l)
       else output_ok (`partial_sequence l)
-    )
+    ) ?filename ?pedantic ?sharp_comments ?semicolon_comments ()
 
-  let string_to_int_seq_raw_item =
+  let string_to_int_seq_raw_item
+      ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
     generic_parser ~parse_sequence:(fun ~pedantic l ->
         let exploded = String.split ~on:' ' l in
         try
-          output_ok (`partial_sequence 
+          output_ok (`partial_sequence
                         (List.filter_map exploded (function
                           | "" -> None
                           | s -> Some (Int.of_string s))))
         with _ -> output_error (`malformed_partial_sequence l)
-    )
-      
+    ) ?filename ?pedantic ?sharp_comments ?semicolon_comments ()
+
   (** Return a transform for converting [raw_item]s to strings, given
       a function [to_string] for converting either [char_seq]s or
       [int_seq]s. *)
@@ -105,7 +107,7 @@ module Transform = struct
         match (PQ.flush printer) with
         | "" -> if stopped then `end_of_stream else `not_ready
         | s -> `output s)
-      
+
   let char_seq_raw_item_to_string = generic_printer ~to_string:ident
 
   let int_seq_raw_item_to_string = generic_printer ~to_string:(fun l ->
@@ -127,7 +129,7 @@ module Transform = struct
         match Queue.dequeue result with
         | None ->
           if stopped
-          then 
+          then
             begin match !current_name with
             | None -> `end_of_stream
             | Some name ->
@@ -143,7 +145,7 @@ module Transform = struct
 
   let char_seq_raw_item_to_item () =
     let current_sequence = Buffer.create 42 in
-    generic_aggregator 
+    generic_aggregator
       ~flush:(fun () ->
         let s = Buffer.contents current_sequence in
         Buffer.clear current_sequence;
@@ -163,7 +165,7 @@ module Transform = struct
       ~add:(fun l -> Queue.enqueue scores l)
       ~is_empty:((=) [])
       ~unnamed_sequence:(fun x -> `unnamed_int_seq x)
-      ()  
+      ()
 
   let char_seq_item_to_raw_item ?(items_per_line=80) () =
     let queue = Queue.create () in
@@ -184,7 +186,7 @@ module Transform = struct
         match Queue.dequeue queue with
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
-      
+
   let int_seq_item_to_raw_item ?(items_per_line=27) () =
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
@@ -192,7 +194,7 @@ module Transform = struct
         Queue.enqueue queue (`header hdr);
         let rec loop l =
         match List.split_n l items_per_line with
-          | finish, [] -> 
+          | finish, [] ->
             Queue.enqueue queue (`partial_sequence finish);
           | some, rest ->
             Queue.enqueue queue (`partial_sequence some);
@@ -203,7 +205,7 @@ module Transform = struct
         match Queue.dequeue queue with
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
-end      
+end
 
 module Result = struct
 
