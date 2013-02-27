@@ -47,6 +47,9 @@ module Buffer : sig
       [None], [is_empty p = true] means that the content did not end
       with a complete line. *)
 
+  val peek_line: t -> item option
+  (** Peek at the next line, without removing it from the buffer. *)
+
   val next_line: t -> item option
   (** Get the next line. *)
 

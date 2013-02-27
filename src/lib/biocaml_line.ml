@@ -15,7 +15,8 @@ let string_to_lines s =
 
 let of_string_unsafe = Fn.id
 
+let line_to_string = Fn.id
+
 let lstrip = String.lstrip
 let rstrip = String.rstrip
 let strip = String.strip
-

@@ -72,6 +72,7 @@ Library biocaml
            , Biocaml_streamable
            , Biocaml_track
            , Biocaml_tags
+           , Biocaml_vcf
            , Biocaml_wig
            , Biocaml_mzData
            , Biocaml_table

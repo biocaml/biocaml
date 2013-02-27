@@ -43,7 +43,13 @@ module Char = Core.Std.Char
 module Command = Core.Std.Command
 module Dequeue = Core.Std.Dequeue
 module Exn = Core.Std.Exn
-module Filename = Core.Std.Filename
+module Filename = struct
+  include Core.Std.Filename
+
+  module Infix = struct
+    let (</>) = concat
+  end
+end
 module Float = Core.Std.Float
 module Fn = Core.Std.Fn
 module Hashtbl = struct
@@ -75,7 +81,14 @@ module Monad = Core.Std.Monad
 module Nat = Core.Std.Nat
 module Nativeint = Core.Std.Nativeint
 module Num = Core.Std.Num
-module Option = Core.Std.Option
+module Option = struct
+  include Core.Std.Option
+
+  let map opt ~f =
+    match opt with
+    | Some x -> Some (f x)
+    | None   -> None
+end
 module Out_channel = Core.Std.Out_channel
 module Printexc = Core.Std.Printexc
 module Printf = Core.Std.Printf
@@ -117,7 +130,12 @@ module Set = struct
 end
 include Sexplib.Conv
 module Stack = Core.Std.Stack
-module String = Core.Std.String
+module String = struct
+  include Core.Std.String
+
+  let exists s ~f  = fold s ~f:(fun acc ch -> acc || f ch) ~init:false
+  let for_all s ~f = fold s ~f:(fun acc ch -> acc && f ch) ~init:true
+end
 include String.Infix
 module Sys = Core.Std.Sys
 module Time = Core.Std.Time
@@ -141,7 +159,7 @@ module Url = struct
   let unescape s ~error =
     (* ?(error= fun s -> `wrong_url_string s) s =; *)
     let buf = Buffer.create (String.length s) in
-    let rec loop pos = 
+    let rec loop pos =
       match String.lfindi s ~pos ~f:(fun _ c -> (=) '%' c) with
       | None ->
         Buffer.add_substring buf s pos String.(length s - pos)
@@ -157,7 +175,7 @@ module Url = struct
   in
     try loop 0; Ok (Buffer.contents buf) with
     | e -> Error (error s)
-      
+
 end
 
 module Parse = struct
@@ -201,10 +219,10 @@ module Order = struct
       match c2 with
       | Some c2 -> c2
       | None -> invalid_arg "neither partial order given relates given values"
-        
+
   let reverse cmp a b = -(cmp a b)
   let reversep cmp a b = Option.map ~f:(~-) (cmp a b)
-    
+
   let totalify cmp =
     fun a b ->
       match cmp a b with
@@ -212,7 +230,7 @@ module Order = struct
       | None -> failwith "order relation not defined for given elements"
 end
 
-  
+
 module Debug = struct
 
   let debugged = ref []
@@ -224,7 +242,7 @@ module Debug = struct
 
   let is_enabled s =
     List.mem !debugged s
-      
+
   let make prefix fmt =
     ksprintf (fun s ->
       if is_enabled prefix then (

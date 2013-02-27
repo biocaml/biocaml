@@ -52,6 +52,8 @@ module Buffer = struct
 
   let queued_lines p = Queue.length p.lines
 
+  let peek_line p = Queue.peek p.lines
+
   let next_line p =
     let l = Queue.dequeue p.lines in
     if l <> None then (
