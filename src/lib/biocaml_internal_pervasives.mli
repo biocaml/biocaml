@@ -71,11 +71,7 @@ module Monad : module type of Core.Std.Monad
 module Nat : module type of Core.Std.Nat
 module Nativeint : module type of Core.Std.Nativeint
 module Num : module type of Core.Std.Num
-module Option : sig
-  include module type of Core.Std.Option
-
-  val map : 'a t -> f:('a -> 'b) -> 'b t
-end
+module Option : module type of Core.Std.Option
 module Out_channel : module type of Core.Std.Out_channel
 module Printexc : module type of Core.Std.Printexc
 module Printf : module type of Core.Std.Printf
@@ -105,12 +101,7 @@ module Set : sig
 end
 include module type of Sexplib.Conv
 module Stack : module type of Core.Std.Stack
-module String : sig
-  include module type of Core.Std.String
-
-  val exists : t -> f:(char -> bool) -> bool
-  val for_all : t -> f:(char -> bool) -> bool
-end
+module String : module type of Core.Std.String
 include module type of String.Infix
 module Sys : module type of Core.Std.Sys
 module Time : module type of Core.Std.Time

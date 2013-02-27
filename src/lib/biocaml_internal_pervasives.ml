@@ -81,14 +81,7 @@ module Monad = Core.Std.Monad
 module Nat = Core.Std.Nat
 module Nativeint = Core.Std.Nativeint
 module Num = Core.Std.Num
-module Option = struct
-  include Core.Std.Option
-
-  let map opt ~f =
-    match opt with
-    | Some x -> Some (f x)
-    | None   -> None
-end
+module Option = Core.Std.Option
 module Out_channel = Core.Std.Out_channel
 module Printexc = Core.Std.Printexc
 module Printf = Core.Std.Printf
@@ -130,12 +123,7 @@ module Set = struct
 end
 include Sexplib.Conv
 module Stack = Core.Std.Stack
-module String = struct
-  include Core.Std.String
-
-  let exists s ~f  = fold s ~f:(fun acc ch -> acc || f ch) ~init:false
-  let for_all s ~f = fold s ~f:(fun acc ch -> acc && f ch) ~init:true
-end
+module String = Core.Std.String
 include String.Infix
 module Sys = Core.Std.Sys
 module Time = Core.Std.Time
