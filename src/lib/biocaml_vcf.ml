@@ -136,13 +136,15 @@ type vcf_parse_row_error =
   | `unknown_filter of vcf_id
   | `duplicate_ids of vcf_id list
   | `invalid_arguments_length of vcf_id * int * int
-  | `arbitrary_width_rows_unsupported
+  | `arbitrary_width_rows_not_supported
   ]
 
 type vcf_parse_error =
   [ `malformed_meta of Pos.t * string
   | `malformed_row of Pos.t * vcf_parse_row_error * string
-  | `missing_header of Pos.t
+  | `malformed_header of Pos.t * string
+  | `alt_parsing_not_implemented of Pos.t
+  | `arbitrary_width_rows_not_supported of Pos.t
   | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
   | `not_ready
   ]
@@ -233,7 +235,7 @@ let list_to_vcf_row meta chunks =
       vcfr_qual = Result.ok (Safe.float_of_string raw_qual);
       vcfr_filter; vcfr_info
     } in return row
-  | c -> fail `arbitrary_width_rows_unsupported
+  | c -> fail `arbitrary_width_rows_not_supported
 
 let parse_row_error_to_string : vcf_parse_row_error -> string = function
 | `invalid_int s -> sprintf "invalid_integer (%s)" s
@@ -253,15 +255,19 @@ let parse_row_error_to_string : vcf_parse_row_error -> string = function
   sprintf "duplicate_ids (%s)" (String.concat ~sep:", " ids)
 | `invalid_arguments_length (key, got, expected) ->
   sprintf "invalid_arguments_length (%s, %i, %i)" key got expected
-| `arbitrary_width_rows_unsupported -> "arbitrary_width_rows_unsupported"
+| `arbitrary_width_rows_not_supported -> "arbitrary_width_rows_not_supported"
 
 let parse_error_to_string : vcf_parse_error -> string =
   let pos () a = Pos.to_string a in function
   | `malformed_meta (p, s) -> sprintf "malformed_meta (%a, %S)" pos p s
   | `malformed_row (p, err, s) ->
     sprintf "malformed_row (%s, %a, %S)" (parse_row_error_to_string err) pos p s
-  | `missing_header p -> sprintf "missing_header (%a)" pos p
-  | _ -> sprintf "unknown error"
+  | `malformed_header (p, s) -> sprintf "malformed_header (%a, %s)" pos p s
+  | `alt_parsing_not_implemented p ->
+    sprintf "alt_parsing_not_implemented (%a)" pos p
+  | `arbitrary_width_rows_not_supported p ->
+    sprintf "arbitrary_width_rows_not_supported (%a)" pos p
+  | _ -> sprintf "unknown_error"
 
 module Transform = struct
   let next_vcf_meta meta p =
@@ -272,9 +278,11 @@ module Transform = struct
     | Some l when String.is_prefix l ~prefix:"##" ->
       let _l = next_line p in
       let s  = String.suffix l (String.length l - 2) in
+      let open Result.Monad_infix in
       begin
         match String.lsplit2 s ~on:'=' with
-        | Some ("fileformat", v) -> Ok (`partial { meta with vcfm_version = v })
+        | Some ("fileformat", v) ->
+          return (`partial { meta with vcfm_version = v })
         | Some ("INFO", v) ->
           Scanf.sscanf v "<ID=%s@,Number=%s@,Type=%s@,Description=%S>"
             (fun id n t description ->
@@ -282,13 +290,14 @@ module Transform = struct
                   string_to_vcf_info_type t,
                   description)
               in Hashtbl.set vcfm_info id info_meta);
-          Ok (`partial meta)
+          return (`partial meta)
         | Some ("FILTER", v) ->
           Scanf.sscanf v "<ID=%s@,Description=%S>"
             (fun id description ->
               let filter_meta = Filter description in
-              Ok (`partial { meta with
-                             vcfm_filters = (id, filter_meta) :: vcfm_filters }))
+              let meta = { meta with
+                           vcfm_filters = (id, filter_meta) :: vcfm_filters }
+              in return (`partial meta))
         | Some ("FORMAT", v) ->
           Scanf.sscanf v "<ID=%s@,Number=%s@,Type=%s@,Description=%S>"
             (fun id n t description ->
@@ -296,13 +305,14 @@ module Transform = struct
                   string_to_vcf_format_type t,
                   description)
               in Hashtbl.set vcfm_format id format_meta);
-          Ok (`partial meta)
-        | Some ("ALT", v) -> failwith "not implemented"
+          return (`partial meta)
+        | Some ("ALT", v) ->
+          fail (`alt_parsing_not_implemented (current_position p))
         | Some (k, v) -> begin
             Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
-            Ok (`partial meta)
+            return (`partial meta)
           end
-        | None -> Error (`malformed_meta (current_position p, s))
+        | None -> fail (`malformed_meta (current_position p, s))
       end
     | Some l ->
       let _l = next_line p in
@@ -312,12 +322,16 @@ module Transform = struct
         List.filter ~f:(fun s -> s <> "") (String.split ~on:' ' l)
       in begin match chunks with
       | "#CHROM" :: "POS" :: "ID" :: "REF" :: "ALT" :: "QUAL" ::
-          "FILTER" :: "INFO" :: "FORMAT" :: _
-      | ["#CHROM"; "POS"; "ID"; "REF"; "ALT"; "QUAL"; "FILTER"; "INFO"] ->
-        Ok (`complete { meta with vcfm_header = chunks })
-      | _ -> Error (`missing_header (current_position p))
+          "FILTER" :: "INFO" :: rest ->
+        begin match rest with
+        | "FORMAT" :: _ ->
+          fail (`arbitrary_width_rows_not_supported (current_position p))
+        | _ :: _ -> fail (`malformed_header (current_position p, l))
+        | [] -> return (`complete { meta with vcfm_header = chunks })
+        end
+      | _ -> fail (`malformed_header (current_position p, l))
       end
-    | None -> Error `not_ready
+    | None -> fail `not_ready
 
   let next_vcf_row meta p =
     let open Biocaml_line in

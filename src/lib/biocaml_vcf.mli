@@ -75,13 +75,15 @@ type vcf_parse_row_error =
   | `unknown_filter of vcf_id
   | `duplicate_ids of vcf_id list
   | `invalid_arguments_length of vcf_id * int * int
-  | `arbitrary_width_rows_unsupported
+  | `arbitrary_width_rows_not_supported
   ]
 
 type vcf_parse_error =
   [ `malformed_meta of Pos.t * string
   | `malformed_row of Pos.t * vcf_parse_row_error * string
-  | `missing_header of Pos.t
+  | `malformed_header of Pos.t * string
+  | `alt_parsing_not_implemented of Pos.t
+  | `arbitrary_width_rows_not_supported of Pos.t
   | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
   | `not_ready
   ]

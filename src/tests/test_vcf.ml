@@ -37,12 +37,12 @@ let make_row ~chrom ~pos ~ids ~ref ~alts ~qual ~filter ~info =
 
 let test_parse_vcf_header () =
   let s = make_stream "vcf_01_header_only.vcf" in
-  assert_bool "test_parse_vcf_header" begin
-    match Stream.next s with
-    | Some (Ok _) -> true
-    | Some (Error err) -> false
-    | None -> true  (** No rows to return. **)
-  end
+  match Stream.next s with
+  | None -> ()  (** No rows to return. *)
+  | Some (Ok _) -> assert false  (* Impossible. *)
+  | Some (Error err) ->
+    let msg = Vcf.parse_error_to_string err in
+    assert_bool (Printf.sprintf "test_parse_vcf_header, reason: %s" msg) false
 
 let test_parse_vcf_simple () =
   let s = make_stream "vcf_02_simple.vcf" in
