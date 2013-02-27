@@ -22,7 +22,6 @@
 exception Error of string
 
 type t
-with sexp
 
 val of_ascii : ?offset:[`offset33 | `offset64] -> char -> t option
 (** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
@@ -91,3 +90,5 @@ val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexa_score.t
       integer. As in {!of_probability}, the optional [f] parameter is
       provided to dictate this.
   *)
+
+include Core.Sexpable.S with type t := t
