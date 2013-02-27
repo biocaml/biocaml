@@ -36,7 +36,7 @@ type vcf_meta = {
   vcfm_version : string;
   vcfm_id_cache: vcf_id Set.Poly.t;
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
-  vcfm_filter  : (vcf_id * vcf_filter_meta) list;
+  vcfm_filters : (vcf_id * vcf_filter_meta) list;
   vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
   vcfm_alt     : vcf_alt_meta list;
   vcfm_arbitrary : (string, string) Hashtbl.t;
@@ -66,9 +66,21 @@ type item = vcf_row
 
 module Pos : module type of Biocaml_pos
 
+type vcf_parse_row_error =
+  [ `invalid_int of string
+  | `invalid_float of string
+  | `info_type_coersion_failure of vcf_info_type * string
+  | `invalid_dna of string
+  | `unknown_info of vcf_id
+  | `unknown_filter of vcf_id
+  | `duplicate_ids of vcf_id list
+  | `invalid_arguments_length of vcf_id * int * int
+  | `arbitrary_width_rows_unsupported
+  ]
+
 type vcf_parse_error =
   [ `malformed_meta of Pos.t * string
-  | `malformed_row of Pos.t * string
+  | `malformed_row of Pos.t * vcf_parse_row_error * string
   | `missing_header of Pos.t
   | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
   | `not_ready
