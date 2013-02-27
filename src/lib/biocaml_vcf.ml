@@ -274,7 +274,7 @@ module Transform = struct
     let open Biocaml_line in
     let open Biocaml_lines.Buffer in
     let { vcfm_version; vcfm_info; vcfm_filters; vcfm_format; vcfm_alt; _ } = meta
-    in match Option.map ~f:line_to_string (peek_line p) with
+    in match (peek_line p :> string option) with
     | Some l when String.is_prefix l ~prefix:"##" ->
       let _l = next_line p in
       let s  = String.suffix l (String.length l - 2) in
@@ -336,7 +336,7 @@ module Transform = struct
   let next_vcf_row meta p =
     let open Biocaml_line in
     let open Biocaml_lines.Buffer in
-    match Option.map ~f:line_to_string (next_line p) with
+    match (next_line p :> string option) with
     | Some l when not (String.is_empty l) ->
       let chunks =
         List.filter ~f:(fun s -> s <> "") (String.split ~on:' ' l)

@@ -15,9 +15,6 @@ val string_to_lines : string -> (t list * bool)
     line. *)
 val of_string_unsafe : string -> t
 
-(** Coerce a line to a plain string. *)
-val line_to_string : t -> string
-
 (** {6 Standard String Operations} *)
 
 val lstrip : ?drop:(char -> bool) -> t -> t
