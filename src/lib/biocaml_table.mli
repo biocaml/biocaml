@@ -1,19 +1,19 @@
 (** Generic “tables” (like CSV, TSV, Bed …). *)
 
 
-(** Definition of rows *)
 module Row : sig
+  (** Definition of rows *)
 
-  type item = [`int of int | `float of float | `string of string ] with sexp
+  type item = [`int of int | `float of float | `string of string ]
   (** Type row elements (or “cells”). *)
 
-  type t = item array with sexp
+  type t = item array
   (** A single row. *)
 
-  type item_type = [`type_int | `type_float | `type_string ] with sexp
+  type item_type = [`type_int | `type_float | `type_string ]
   (** Definition of the type of a cell. *)
 
-  type t_type = item_type array with sexp
+  type t_type = item_type array
   (** Definition of the type of a row. *)
 
 
@@ -36,6 +36,19 @@ module Row : sig
 
   val to_line: sep:string -> t -> Biocaml_line.t
   (** Write the row to a [Line.t]. *)
+
+
+  val item_of_sexp : Sexplib.Sexp.t -> item
+  val item_of_sexp__ : Sexplib.Sexp.t -> item
+  val sexp_of_item : item -> Sexplib.Sexp.t
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
+  val item_type_of_sexp : Sexplib.Sexp.t -> item_type
+  val item_type_of_sexp__ : Sexplib.Sexp.t -> item_type
+  val sexp_of_item_type : item_type -> Sexplib.Sexp.t
+  val t_type_of_sexp : Sexplib.Sexp.t -> t_type
+  val sexp_of_t_type : t_type -> Sexplib.Sexp.t
+
 
 end
 
