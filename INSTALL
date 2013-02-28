@@ -1,30 +1,5 @@
 Biocaml Installation Instructions
 
-Dependencies
-============
-
-The main Biocaml library depends on
-* ocaml (>= 4.00)
-* pcre
-* core
-* unix
-* threads
-* xmlm
-* ocamlzip
-
-At compile/install-time, you will also need
-* findlib
-
-The biocaml command line application depends on
-* flow
-
-Optional Executables additionally depend on
-* getopt
-
-Tests additionally depend on
-* oUnit
-
-
 Installing
 ==========
 Uncompress the source archive, go to the root of the package, then run
