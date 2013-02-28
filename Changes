@@ -1,5 +1,52 @@
 Biocaml Release Notes
 
+biocaml-0.2.0 2013-02-28
+------------------------
+* Switch to Core from Batteries.
+
+* New Transform module supporting buffered mappings from values of
+  type 'a to 'b. Numerous changes to other modules to use Transform,
+  but many modules that should use it still do not.
+
+* Replace previous internal library Biocaml_std with new
+  Biocaml_internal_pervasives.
+
+* Begin new biocaml command line app. Meant to replace previous
+  individual apps and designed to be extensible for many more
+  features.
+
+* New Bam modules for parsing BAM files.
+
+* New Zip module for working with zipped files.
+
+* New Entrez module for interacting with Entrez API. Currently limited
+  in its feature set.
+
+* New Line and Lines modules for working with line-oriented data
+  formats.
+
+* New Jaspar module.
+
+* New ISet module, taken from Batteries. Meant to replace RSet.
+
+* New Stream module, an extension of the StdLib's Stream in Core
+  style. Also define Streamable interface and implement for all types
+  possible.
+
+* Remove modules Comments, Common, InvokeCmdline, Util.
+
+* Remove Table module and create new one with entirely different API.
+
+* Improve documentation system. Custom front page and ocamldoc plugin
+  to allow inclusion of images.
+
+* Add sexp serialization support to many types.
+
+* Add unit tests.
+
+* Remove sqlite3 dependency.
+
+
 biocaml-0.1.0 2012-08-10
 ----------------------
 * First formal release.
