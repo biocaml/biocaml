@@ -83,8 +83,7 @@ type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta = Filter of vcf_description
 type vcf_format_meta =
   Format of vcf_number * vcf_format_type * vcf_description
-type vcf_alt_meta =
-  Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
+type vcf_alt_meta = Alt of vcf_description
 
 type vcf_meta = {
   vcfm_version : string;
@@ -92,7 +91,7 @@ type vcf_meta = {
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filters : (vcf_id * vcf_filter_meta) list;
   vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
-  vcfm_alt     : vcf_alt_meta list;
+  vcfm_alt     : (string, vcf_alt_meta) Hashtbl.t;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
 }
@@ -103,7 +102,7 @@ let default_meta = {
   vcfm_info = Hashtbl.Poly.create ();
   vcfm_filters = [];
   vcfm_format = Hashtbl.Poly.create ();
-  vcfm_alt = [];
+  vcfm_alt = Hashtbl.Poly.create ();
   vcfm_arbitrary = Hashtbl.Poly.create ();
   vcfm_header = []
 }
@@ -182,7 +181,7 @@ type vcf_row = {
   vcfr_pos   : int;
   vcfr_ids    : string list;
   vcfr_ref   : string;
-  vcfr_alts  : string list;
+  vcfr_alts  : string list;  (* FIXME(superbobry): proper typing! *)
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
   vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
@@ -196,6 +195,7 @@ type vcf_parse_row_error =
   | `invalid_dna of string
   | `unknown_info of vcf_id
   | `unknown_filter of vcf_id
+  | `unknown_alt of string
   | `duplicate_ids of vcf_id list
   | `invalid_arguments_length of vcf_id * int * int
   | `arbitrary_width_rows_not_supported
@@ -205,7 +205,6 @@ type vcf_parse_error =
   [ `malformed_meta of Pos.t * string
   | `malformed_row of Pos.t * vcf_parse_row_error * string
   | `malformed_header of Pos.t * string
-  | `alt_parsing_not_implemented of Pos.t
   | `arbitrary_width_rows_not_supported of Pos.t
   | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
   | `not_ready
@@ -272,14 +271,21 @@ let string_to_vcfr_ids { vcfm_id_cache } s =
     then return chunks
     else fail (`duplicate_ids duplicate_ids)
 
-let string_to_vcfr_alts s =
+let string_to_vcfr_alts { vcfm_alt } s =
   let open Result.Monad_infix in
   match String.split ~on:',' s with
   | ["."]  -> return []
   | chunks ->
-    match List.find chunks ~f:(fun chunk -> not (is_valid_dna chunk)) with
-    | Some invalid -> fail (`invalid_dna invalid)
-    | None -> return chunks
+    let res = List.map chunks ~f:(fun chunk ->
+        let n = String.length chunk in
+        match (chunk.[0] = '<' && chunk.[n - 1] = '>', is_valid_dna chunk) with
+        | (true, _)  ->
+          if Hashtbl.mem vcfm_alt chunk
+          then return chunk
+          else fail (`unknown_alt chunk)
+        | (false, true)  -> return chunk
+        | (false, false) -> fail (`invalid_dna chunk))  (* Impossible. *)
+    in Result.all res
 
 let list_to_vcf_row meta chunks =
   match chunks with
@@ -289,7 +295,7 @@ let list_to_vcf_row meta chunks =
     Safe.int_of_string raw_pos >>= fun vcfr_pos ->
     string_to_vcfr_ids meta raw_id >>= fun vcfr_ids ->
     string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
-    string_to_vcfr_alts raw_alt >>= fun vcfr_alts ->
+    string_to_vcfr_alts meta raw_alt >>= fun vcfr_alts ->
     string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
     string_to_vcfr_filter meta raw_filter >>= fun vcfr_filter ->
     let row = {
@@ -313,6 +319,7 @@ let parse_row_error_to_string : vcf_parse_row_error -> string = function
 | `invalid_dna s -> sprintf "invalid_dna (%s)" s
 | `unknown_info s -> sprintf "unknown_info (%s)" s
 | `unknown_filter f -> sprintf "unknown_filter (%s)" f
+| `unknown_alt s -> sprintf "unknown_alt (%s)" s
 | `duplicate_ids ids ->
   sprintf "duplicate_ids (%s)" (String.concat ~sep:", " ids)
 | `invalid_arguments_length (key, got, expected) ->
@@ -325,8 +332,6 @@ let parse_error_to_string : vcf_parse_error -> string =
   | `malformed_row (p, err, s) ->
     sprintf "malformed_row (%s, %a, %S)" (parse_row_error_to_string err) pos p s
   | `malformed_header (p, s) -> sprintf "malformed_header (%a, %s)" pos p s
-  | `alt_parsing_not_implemented p ->
-    sprintf "alt_parsing_not_implemented (%a)" pos p
   | `arbitrary_width_rows_not_supported p ->
     sprintf "arbitrary_width_rows_not_supported (%a)" pos p
   | _ -> sprintf "unknown_error"
@@ -369,7 +374,13 @@ module Transform = struct
               in Hashtbl.set vcfm_format id format_meta);
           return (`partial meta)
         | Some ("ALT", v) ->
-          fail (`alt_parsing_not_implemented (current_position p))
+          Scanf.sscanf v "<ID=%s@,Description=%S>"
+            (fun id description ->
+              let alt_meta = Alt description in
+              (** HACK(superbobry): we store ALT id as <ID> for easier
+                  lookups when parsing VCF rows. *)
+              Hashtbl.set vcfm_alt (sprintf "<%s>" id) alt_meta);
+          return (`partial meta)
         | Some (k, v) -> begin
             Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
             return (`partial meta)

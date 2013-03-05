@@ -29,8 +29,7 @@ type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta = Filter of vcf_description
 type vcf_format_meta =
   Format of vcf_number * vcf_format_type * vcf_description
-type vcf_alt_meta =
-  Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
+type vcf_alt_meta = Alt of vcf_description
 
 type vcf_meta = {
   vcfm_version : string;
@@ -38,7 +37,7 @@ type vcf_meta = {
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filters : (vcf_id * vcf_filter_meta) list;
   vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
-  vcfm_alt     : vcf_alt_meta list;
+  vcfm_alt     : (string, vcf_alt_meta) Hashtbl.t;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
 }
@@ -73,6 +72,7 @@ type vcf_parse_row_error =
   | `invalid_dna of string
   | `unknown_info of vcf_id
   | `unknown_filter of vcf_id
+  | `unknown_alt of string
   | `duplicate_ids of vcf_id list
   | `invalid_arguments_length of vcf_id * int * int
   | `arbitrary_width_rows_not_supported
@@ -82,7 +82,6 @@ type vcf_parse_error =
   [ `malformed_meta of Pos.t * string
   | `malformed_row of Pos.t * vcf_parse_row_error * string
   | `malformed_header of Pos.t * string
-  | `alt_parsing_not_implemented of Pos.t
   | `arbitrary_width_rows_not_supported of Pos.t
   | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
   | `not_ready
