@@ -16,19 +16,9 @@ type vcf_format_type = [ `integer_value
 
 type vcf_info_type = [ vcf_format_type | `flag_value ]
 
-type vcf_alt_type =
-  | Deletion
-  | Insertion
-  | Duplication
-  | Inversion
-  | CNV
-
-type vcf_alt_subtype = string
-
 type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta = Filter of vcf_description
-type vcf_format_meta =
-  Format of vcf_number * vcf_format_type * vcf_description
+type vcf_format_meta = Format of vcf_number * vcf_format_type * vcf_description
 type vcf_alt_meta = Alt of vcf_description
 
 type vcf_meta = {

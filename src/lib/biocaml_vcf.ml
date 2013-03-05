@@ -70,19 +70,9 @@ let coerce_to_vcf_info_type t s =
   | `flag_value -> Ok (`flag s)
   | t           -> coerce_to_vcf_format_type t s
 
-type vcf_alt_type =
-  | Deletion
-  | Insertion
-  | Duplication
-  | Inversion
-  | CNV
-
-type vcf_alt_subtype = string
-
 type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta = Filter of vcf_description
-type vcf_format_meta =
-  Format of vcf_number * vcf_format_type * vcf_description
+type vcf_format_meta = Format of vcf_number * vcf_format_type * vcf_description
 type vcf_alt_meta = Alt of vcf_description
 
 type vcf_meta = {
@@ -94,17 +84,6 @@ type vcf_meta = {
   vcfm_alt     : (string, vcf_alt_meta) Hashtbl.t;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
-}
-
-let default_meta = {
-  vcfm_version = "<unknown>";
-  vcfm_id_cache = Set.Poly.empty;
-  vcfm_info = Hashtbl.Poly.create ();
-  vcfm_filters = [];
-  vcfm_format = Hashtbl.Poly.create ();
-  vcfm_alt = Hashtbl.Poly.create ();
-  vcfm_arbitrary = Hashtbl.Poly.create ();
-  vcfm_header = []
 }
 
 (** Note(superbobry): this is mostly taken from PyVCF module by
@@ -168,6 +147,29 @@ and reserved_format = Hashtbl.Poly.of_alist_exn [
     ("HAP", `integer_value);
     ("AHAP", `integer_value)
   ]
+
+and reserved_alt = Hashtbl.Poly.of_alist_exn [
+    ("DEL", Alt "Deletion relative to the reference");
+    ("INS", Alt "Insertion of novel sequence relative to the reference");
+    ("DUP", Alt "Region of elevated copy number relative to the reference");
+    ("INV", Alt "Inversion of reference sequence");
+    ("CNV", Alt "Copy number variable region");
+    ("DUP:TANDEM", Alt "TANDEM Tandem duplication");
+    ("DEL:ME", Alt "ME Deletion of mobile element relative to the reference");
+    ("INS:ME", Alt "ME Insertion of a mobile element relative to the reference");
+]
+
+let default_meta = {
+  vcfm_version = "<unknown>";
+  vcfm_id_cache = Set.Poly.empty;
+  vcfm_info = Hashtbl.Poly.create ();
+  vcfm_filters = [];
+  vcfm_format = Hashtbl.Poly.create ();
+  vcfm_alt = reserved_alt;
+  vcfm_arbitrary = Hashtbl.Poly.create ();
+  vcfm_header = []
+}
+
 
 type vcf_format = [ `integer of int
                   | `float of float
@@ -280,7 +282,7 @@ let string_to_vcfr_alts { vcfm_alt } s =
         let n = String.length chunk in
         match (chunk.[0] = '<' && chunk.[n - 1] = '>', is_valid_dna chunk) with
         | (true, _)  ->
-          if Hashtbl.mem vcfm_alt chunk
+          if Hashtbl.mem vcfm_alt (String.sub ~pos:1 ~len:(n - 2) chunk)
           then return chunk
           else fail (`unknown_alt chunk)
         | (false, true)  -> return chunk
@@ -377,9 +379,7 @@ module Transform = struct
           Scanf.sscanf v "<ID=%s@,Description=%S>"
             (fun id description ->
               let alt_meta = Alt description in
-              (** HACK(superbobry): we store ALT id as <ID> for easier
-                  lookups when parsing VCF rows. *)
-              Hashtbl.set vcfm_alt (sprintf "<%s>" id) alt_meta);
+              Hashtbl.set vcfm_alt id alt_meta);
           return (`partial meta)
         | Some (k, v) -> begin
             Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
