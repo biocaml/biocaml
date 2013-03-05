@@ -108,6 +108,68 @@ let default_meta = {
   vcfm_header = []
 }
 
+(** Note(superbobry): this is mostly taken from PyVCF module by
+    James Casbon. See https://github.com/jamescasbon/PyVCF. The
+    standard does _NOT_ specify how many arguments are allowed
+    for each reserved item, so we assume 'Unknown'. *)
+let reserved_info = Hashtbl.Poly.of_alist_exn [
+    ("AA", `string_value);
+    ("AC", `integer_value);
+    ("AF", `float_value);
+    ("AN", `integer_value);
+    ("BQ", `float_value);
+    ("CIGAR", `string_value);
+    ("DB", `flag_value);
+    ("DP", `integer_value);
+    ("H2", `flag_value);
+    ("MQ", `float_value);
+    ("MQ0", `integer_value);
+    ("NS", `integer_value);
+    ("SB", `string_value);
+    ("SOMATIC", `flag_value);
+    ("VALIDATED", `flag_value);
+
+    (* VCF 4.1 Additions *)
+    ("IMPRECISE", `flag_value);
+    ("NOVEL", `flag_value);
+    ("END", `integer_value);
+    ("SVTYPE", `string_value);
+    ("CIPOS", `integer_value);
+    ("CIEND", `integer_value);
+    ("HOMLEN", `integer_value);
+    ("HOMSEQ", `integer_value);
+    ("BKPTID", `string_value);
+    ("MEINFO", `string_value);
+    ("METRANS", `string_value);
+    ("DGVID", `string_value);
+    ("DBVARID", `string_value);
+    ("MATEID", `string_value);
+    ("PARID", `string_value);
+    ("EVENT", `string_value);
+    ("CILEN", `integer_value);
+    ("CN", `integer_value);
+    ("CNADJ", `integer_value);
+    ("CICN", `integer_value);
+    ("CICNADJ",`integer_value)
+  ]
+
+and reserved_format = Hashtbl.Poly.of_alist_exn [
+    ("GT", `string_value);
+    ("DP", `integer_value);
+    ("FT", `string_value);
+    ("GL", `float_value);
+    ("GQ", `float_value);
+    ("HQ", `float_value);
+
+    (* VCF 4.1 Additions *)
+    ("CN", `integer_value);
+    ("CNQ", `float_value);
+    ("CNL", `float_value);
+    ("NQ", `integer_value);
+    ("HAP", `integer_value);
+    ("AHAP", `integer_value)
+  ]
+
 type vcf_format = [ `integer of int
                   | `float of float
                   | `character of char
@@ -169,7 +231,7 @@ let string_to_vcfr_info { vcfm_info } s =
 
       let open Result.Monad_infix in
       let chunk_values = match Hashtbl.find vcfm_info key with
-      | Some (Info (Number 0, `flag_value, _description))
+      | Some (Info (_t, `flag_value, _description))
         when raw_value = "" -> return [`flag key]
       | Some (Info (Number n, t, _description)) ->
         string_to_t raw_value t >>= fun values ->
@@ -327,7 +389,26 @@ module Transform = struct
         | "FORMAT" :: _ ->
           fail (`arbitrary_width_rows_not_supported (current_position p))
         | _ :: _ -> fail (`malformed_header (current_position p, l))
-        | [] -> return (`complete { meta with vcfm_header = chunks })
+        | [] ->
+          let merge_with_reserved ~c = Hashtbl.merge
+            ~f:(fun ~key v ->
+              match v with
+              | `Left t -> Some (c Unknown t "<reserved>")
+              | `Right parsed -> Some parsed
+              | `Both (_t, parsed) -> Some parsed)
+          in
+
+          (** Note(superbobry): merge parsed INFO and FORMAT entries with
+              predefined ones; a VCF file _may_ override any of the
+              reserved fields, in that case, default definition won't be
+              used. *)
+          let vcfm_info = merge_with_reserved reserved_info vcfm_info
+              ~c:(fun n t description -> Info (n, t, description));
+          and vcfm_format = merge_with_reserved reserved_format vcfm_format
+              ~c:(fun n t description -> Format (n, t, description));
+          in return (`complete { meta with vcfm_header = chunks;
+                                           vcfm_info;
+                                           vcfm_format })
         end
       | _ -> fail (`malformed_header (current_position p, l))
       end
