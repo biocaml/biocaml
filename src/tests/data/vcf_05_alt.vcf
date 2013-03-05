@@ -12,22 +12,7 @@
 ##INFO=<ID=MEINFO,Number=4,Type=String,Description="Mobile element info of the form NAME,START,END,POLARITY">
 ##INFO=<ID=SVLEN,Number=.,Type=Integer,Description="Difference in length between REF and ALT alleles">
 ##INFO=<ID=SVTYPE,Number=1,Type=String,Description="Type of structural variant">
-##ALT=<ID=DEL,Description="Deletion">
 ##ALT=<ID=DEL:ME:ALU,Description="Deletion of ALU element">
-##ALT=<ID=DEL:ME:L1,Description="Deletion of L1 element">
-##ALT=<ID=DUP,Description="Duplication">
-##ALT=<ID=DUP:TANDEM,Description="Tandem Duplication">
-##ALT=<ID=INS,Description="Insertion of novel sequence">
-##ALT=<ID=INS:ME:ALU,Description="Insertion of ALU element">
-##ALT=<ID=INS:ME:L1,Description="Insertion of L1 element">
-##ALT=<ID=INV,Description="Inversion">
-##ALT=<ID=CNV,Description="Copy number variable region">
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##FORMAT=<ID=GQ,Number=1,Type=Float,Description="Genotype quality">
-##FORMAT=<ID=CN,Number=1,Type=Integer,Description="Copy number genotype for imprecise events">
-##FORMAT=<ID=CNQ,Number=1,Type=Float,Description="Copy number genotype quality for imprecise events">
 #CHROM  POS ID  REF ALT QUAL    FILTER  INFO
 2   321682  .   T   <DEL>   6   PASS    IMPRECISE;SVTYPE=DEL;END=321887;SVLEN=-105;CIPOS=-56,20;CIEND=-10,62
 2   14477084    .   C   <DEL:ME:ALU>    12  PASS    IMPRECISE;SVTYPE=DEL;END=14477381;SVLEN=-297;MEINFO=AluYa5,5,307,+;CIPOS=-22,18;CIEND=-12,32
-3   9425916 .   C   <INS:ME:L1> 23  PASS    IMPRECISE;SVTYPE=INS;END=9425916;SVLEN=6027;CIPOS=-16,22;MEINFO=L1HS,1,6025,-
-3   12665100    .   A   <DUP>   14  PASS    IMPRECISE;SVTYPE=DUP;

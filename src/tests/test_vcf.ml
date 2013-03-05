@@ -34,6 +34,19 @@ let make_row ~chrom ~pos ~ids ~ref ~alts ~qual ~filter ~info =
       vcfr_info
     }
 
+let test_parse_vcf_generic filename rows =
+  let s = make_stream filename in
+  List.iter rows ~f:(fun row ->
+    match Stream.next s with
+      | Some (Ok actual_row) ->
+        assert_equal ~cmp:compare_rows row actual_row
+      | Some (Error err) ->
+        let msg = Vcf.parse_error_to_string err in
+        assert_bool
+          (sprintf "%s:row *not* parsed, reason: %s" filename  msg)
+          false
+      | None -> assert_bool (sprintf "%s:row missing" filename) false)
+
 let test_parse_vcf_header () =
   let s = make_stream "vcf_01_header_only.vcf" in
   match Stream.next s with
@@ -44,8 +57,8 @@ let test_parse_vcf_header () =
     assert_bool (Printf.sprintf "test_parse_vcf_header, reason: %s" msg) false
 
 let test_parse_vcf_simple () =
-  let s = make_stream "vcf_02_simple.vcf" in
-  let row = make_row ~chrom:"20" ~pos:14370 ~ids:["rs6054257"]
+  test_parse_vcf_generic "vcf_02_simple.vcf" [
+    make_row ~chrom:"20" ~pos:14370 ~ids:["rs6054257"]
       ~ref:"G" ~alts:["A"]
       ~qual:(Some 29.0) ~filter:[]
       ~info:[("NS", [`integer 3]);
@@ -53,18 +66,10 @@ let test_parse_vcf_simple () =
              ("AF", [`float 0.5]);
              ("DB", [`flag "DB"]);
              ("H2", [`flag "H2"])]
-  in match Stream.next s with
-  | Some (Ok actual_row) -> assert_equal ~cmp:compare_rows actual_row row
-  | Some (Error err) ->
-    let msg = Vcf.parse_error_to_string err in
-    assert_bool
-      (Printf.sprintf "test_parse_vcf_simple:row *not* parsed, reason: %s" msg)
-      false
-  | None -> assert_bool "test_parse_vcf_simple:row missing" false
+  ]
 
 let test_parse_vcf_1000g () =
-  let s = make_stream "vcf_03_1000g.vcf" in
-  let rows = [
+  test_parse_vcf_generic "vcf_03_1000g.vcf"  [
     make_row ~chrom:"20" ~pos:17330 ~ids:[]
       ~ref:"T" ~alts:["A"]
       ~qual:(Some 3.0) ~filter:["q10"]
@@ -91,20 +96,11 @@ let test_parse_vcf_1000g () =
       ~info:[("NS", [`integer 3]);
              ("DP", [`integer 9]);
              ("AA", [`string "G"])]
-  ] in List.iter rows ~f:(fun row ->
-    match Stream.next s with
-      | Some (Ok actual_row) ->
-        assert_equal ~cmp:compare_rows row actual_row
-      | Some (Error err) ->
-        let msg = Vcf.parse_error_to_string err in
-        assert_bool
-          (Printf.sprintf "test_parse_vcf_1000g:row *not* parsed, reason: %s" msg)
-          false
-      | None -> assert_bool "test_parse_vcf_1000g:row missing" false)
+  ]
 
 let test_parse_vcf_reserved () =
-  let s = make_stream "vcf_04_reserved.vcf" in
-  let row = make_row ~chrom:"20" ~pos:14370 ~ids:["rs6054257"]
+  test_parse_vcf_generic "vcf_04_reserved.vcf" [
+    make_row ~chrom:"20" ~pos:14370 ~ids:["rs6054257"]
       ~ref:"G" ~alts:["A"]
       ~qual:(Some 29.0) ~filter:[]
       ~info:[("NS", [`integer 3]);
@@ -112,18 +108,10 @@ let test_parse_vcf_reserved () =
              ("AF", [`float 0.5]);
              ("DB", [`flag "DB"]);
              ("H2", [`flag "H2"])]
-  in match Stream.next s with
-  | Some (Ok actual_row) -> assert_equal ~cmp:compare_rows actual_row row
-  | Some (Error err) ->
-    let msg = Vcf.parse_error_to_string err in
-    assert_bool
-      (Printf.sprintf "test_parse_vcf_reserved:row *not* parsed, reason: %s" msg)
-      false
-  | None -> assert_bool "test_parse_vcf_reserved:row missing" false
+  ]
 
 let test_parse_vcf_alt () =
-  let s = make_stream "vcf_05_alt.vcf" in
-  let rows = [
+  test_parse_vcf_generic "vcf_05_alt.vcf" [
     make_row ~chrom:"2" ~pos:321682 ~ids:[]
       ~ref:"T" ~alts:["<DEL>"]
       ~qual:(Some 6.0) ~filter:[]
@@ -133,16 +121,17 @@ let test_parse_vcf_alt () =
              ("SVLEN", [`integer (-105)]);
              ("CIPOS", [`integer (-56); `integer 20]);
              ("CIEND", [`integer (-10); `integer 62])];
-  ] in List.iter rows ~f:(fun row ->
-    match Stream.next s with
-      | Some (Ok actual_row) ->
-        assert_equal ~cmp:compare_rows row actual_row
-      | Some (Error err) ->
-        let msg = Vcf.parse_error_to_string err in
-        assert_bool
-          (Printf.sprintf "test_parse_vcf_alt:row *not* parsed, reason: %s" msg)
-          false
-      | None -> assert_bool "test_parse_vcf_alt:row missing" false)
+    make_row ~chrom:"2" ~pos:14477084 ~ids:[]
+      ~ref:"C" ~alts:["<DEL:ME:ALU>"]
+      ~qual:(Some 12.0) ~filter:[]
+      ~info:[("IMPRECISE", [`flag "IMPRECISE"]);
+             ("SVTYPE", [`string "DEL"]);
+             ("END", [`integer 14477381]);
+             ("SVLEN", [`integer (-297)]);
+             ("MEINFO", [`string "AluYa5"; `string "5"; `string "307"; `string "+"]);
+             ("CIPOS", [`integer (-22); `integer 18]);
+             ("CIEND", [`integer (-12); `integer 32])]
+  ]
 
 let tests = "VCF" >::: [
   "Parse VCF header" >:: test_parse_vcf_header;
