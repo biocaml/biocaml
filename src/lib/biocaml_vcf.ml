@@ -70,21 +70,10 @@ let coerce_to_vcf_info_type t s =
   | `flag_value -> Ok (`flag s)
   | t           -> coerce_to_vcf_format_type t s
 
-type vcf_alt_type =
-  | Deletion
-  | Insertion
-  | Duplication
-  | Inversion
-  | CNV
-
-type vcf_alt_subtype = string
-
 type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
 type vcf_filter_meta = Filter of vcf_description
-type vcf_format_meta =
-  Format of vcf_number * vcf_format_type * vcf_description
-type vcf_alt_meta =
-  Alt of vcf_alt_type * vcf_alt_subtype list * vcf_description
+type vcf_format_meta = Format of vcf_number * vcf_format_type * vcf_description
+type vcf_alt_meta = Alt of vcf_description
 
 type vcf_meta = {
   vcfm_version : string;
@@ -92,10 +81,83 @@ type vcf_meta = {
   vcfm_info    : (vcf_id, vcf_info_meta) Hashtbl.t;
   vcfm_filters : (vcf_id * vcf_filter_meta) list;
   vcfm_format  : (vcf_id, vcf_format_meta) Hashtbl.t;
-  vcfm_alt     : vcf_alt_meta list;
+  vcfm_alt     : (string, vcf_alt_meta) Hashtbl.t;
   vcfm_arbitrary : (string, string) Hashtbl.t;
   vcfm_header  : string list
 }
+
+(** Note(superbobry): this is mostly taken from PyVCF module by
+    James Casbon. See https://github.com/jamescasbon/PyVCF. The
+    standard does _NOT_ specify how many arguments are allowed
+    for each reserved item, so we assume 'Unknown'. *)
+let reserved_info = Hashtbl.Poly.of_alist_exn [
+    ("AA", `string_value);
+    ("AC", `integer_value);
+    ("AF", `float_value);
+    ("AN", `integer_value);
+    ("BQ", `float_value);
+    ("CIGAR", `string_value);
+    ("DB", `flag_value);
+    ("DP", `integer_value);
+    ("H2", `flag_value);
+    ("MQ", `float_value);
+    ("MQ0", `integer_value);
+    ("NS", `integer_value);
+    ("SB", `string_value);
+    ("SOMATIC", `flag_value);
+    ("VALIDATED", `flag_value);
+
+    (* VCF 4.1 Additions *)
+    ("IMPRECISE", `flag_value);
+    ("NOVEL", `flag_value);
+    ("END", `integer_value);
+    ("SVTYPE", `string_value);
+    ("CIPOS", `integer_value);
+    ("CIEND", `integer_value);
+    ("HOMLEN", `integer_value);
+    ("HOMSEQ", `integer_value);
+    ("BKPTID", `string_value);
+    ("MEINFO", `string_value);
+    ("METRANS", `string_value);
+    ("DGVID", `string_value);
+    ("DBVARID", `string_value);
+    ("MATEID", `string_value);
+    ("PARID", `string_value);
+    ("EVENT", `string_value);
+    ("CILEN", `integer_value);
+    ("CN", `integer_value);
+    ("CNADJ", `integer_value);
+    ("CICN", `integer_value);
+    ("CICNADJ",`integer_value)
+  ]
+
+and reserved_format = Hashtbl.Poly.of_alist_exn [
+    ("GT", `string_value);
+    ("DP", `integer_value);
+    ("FT", `string_value);
+    ("GL", `float_value);
+    ("GQ", `float_value);
+    ("HQ", `float_value);
+
+    (* VCF 4.1 Additions *)
+    ("CN", `integer_value);
+    ("CNQ", `float_value);
+    ("CNL", `float_value);
+    ("NQ", `integer_value);
+    ("HAP", `integer_value);
+    ("AHAP", `integer_value)
+  ]
+
+and reserved_alt = Hashtbl.Poly.of_alist_exn [
+    ("DEL", Alt "Deletion relative to the reference");
+    ("INS", Alt "Insertion of novel sequence relative to the reference");
+    ("DUP", Alt "Region of elevated copy number relative to the reference");
+    ("INV", Alt "Inversion of reference sequence");
+    ("CNV", Alt "Copy number variable region");
+    ("DUP:TANDEM", Alt "TANDEM Tandem duplication");
+    ("DEL:ME", Alt "ME Deletion of mobile element relative to the reference");
+    ("INS:ME", Alt "ME Insertion of a mobile element relative to the reference");
+]
 
 let default_meta = {
   vcfm_version = "<unknown>";
@@ -103,10 +165,11 @@ let default_meta = {
   vcfm_info = Hashtbl.Poly.create ();
   vcfm_filters = [];
   vcfm_format = Hashtbl.Poly.create ();
-  vcfm_alt = [];
+  vcfm_alt = reserved_alt;
   vcfm_arbitrary = Hashtbl.Poly.create ();
   vcfm_header = []
 }
+
 
 type vcf_format = [ `integer of int
                   | `float of float
@@ -120,7 +183,7 @@ type vcf_row = {
   vcfr_pos   : int;
   vcfr_ids    : string list;
   vcfr_ref   : string;
-  vcfr_alts  : string list;
+  vcfr_alts  : string list;  (* FIXME(superbobry): proper typing! *)
   vcfr_qual  : float option;
   vcfr_filter : vcf_id list;
   vcfr_info  : (vcf_id, vcf_info list) Hashtbl.t
@@ -134,6 +197,7 @@ type vcf_parse_row_error =
   | `invalid_dna of string
   | `unknown_info of vcf_id
   | `unknown_filter of vcf_id
+  | `unknown_alt of string
   | `duplicate_ids of vcf_id list
   | `invalid_arguments_length of vcf_id * int * int
   | `arbitrary_width_rows_not_supported
@@ -143,7 +207,6 @@ type vcf_parse_error =
   [ `malformed_meta of Pos.t * string
   | `malformed_row of Pos.t * vcf_parse_row_error * string
   | `malformed_header of Pos.t * string
-  | `alt_parsing_not_implemented of Pos.t
   | `arbitrary_width_rows_not_supported of Pos.t
   | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
   | `not_ready
@@ -169,7 +232,7 @@ let string_to_vcfr_info { vcfm_info } s =
 
       let open Result.Monad_infix in
       let chunk_values = match Hashtbl.find vcfm_info key with
-      | Some (Info (Number 0, `flag_value, _description))
+      | Some (Info (_t, `flag_value, _description))
         when raw_value = "" -> return [`flag key]
       | Some (Info (Number n, t, _description)) ->
         string_to_t raw_value t >>= fun values ->
@@ -210,14 +273,21 @@ let string_to_vcfr_ids { vcfm_id_cache } s =
     then return chunks
     else fail (`duplicate_ids duplicate_ids)
 
-let string_to_vcfr_alts s =
+let string_to_vcfr_alts { vcfm_alt } s =
   let open Result.Monad_infix in
   match String.split ~on:',' s with
   | ["."]  -> return []
   | chunks ->
-    match List.find chunks ~f:(fun chunk -> not (is_valid_dna chunk)) with
-    | Some invalid -> fail (`invalid_dna invalid)
-    | None -> return chunks
+    let res = List.map chunks ~f:(fun chunk ->
+        let n = String.length chunk in
+        match (chunk.[0] = '<' && chunk.[n - 1] = '>', is_valid_dna chunk) with
+        | (true, _)  ->
+          if Hashtbl.mem vcfm_alt (String.sub ~pos:1 ~len:(n - 2) chunk)
+          then return chunk
+          else fail (`unknown_alt chunk)
+        | (false, true)  -> return chunk
+        | (false, false) -> fail (`invalid_dna chunk))  (* Impossible. *)
+    in Result.all res
 
 let list_to_vcf_row meta chunks =
   match chunks with
@@ -227,7 +297,7 @@ let list_to_vcf_row meta chunks =
     Safe.int_of_string raw_pos >>= fun vcfr_pos ->
     string_to_vcfr_ids meta raw_id >>= fun vcfr_ids ->
     string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
-    string_to_vcfr_alts raw_alt >>= fun vcfr_alts ->
+    string_to_vcfr_alts meta raw_alt >>= fun vcfr_alts ->
     string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
     string_to_vcfr_filter meta raw_filter >>= fun vcfr_filter ->
     let row = {
@@ -251,6 +321,7 @@ let parse_row_error_to_string : vcf_parse_row_error -> string = function
 | `invalid_dna s -> sprintf "invalid_dna (%s)" s
 | `unknown_info s -> sprintf "unknown_info (%s)" s
 | `unknown_filter f -> sprintf "unknown_filter (%s)" f
+| `unknown_alt s -> sprintf "unknown_alt (%s)" s
 | `duplicate_ids ids ->
   sprintf "duplicate_ids (%s)" (String.concat ~sep:", " ids)
 | `invalid_arguments_length (key, got, expected) ->
@@ -263,8 +334,6 @@ let parse_error_to_string : vcf_parse_error -> string =
   | `malformed_row (p, err, s) ->
     sprintf "malformed_row (%s, %a, %S)" (parse_row_error_to_string err) pos p s
   | `malformed_header (p, s) -> sprintf "malformed_header (%a, %s)" pos p s
-  | `alt_parsing_not_implemented p ->
-    sprintf "alt_parsing_not_implemented (%a)" pos p
   | `arbitrary_width_rows_not_supported p ->
     sprintf "arbitrary_width_rows_not_supported (%a)" pos p
   | _ -> sprintf "unknown_error"
@@ -307,7 +376,11 @@ module Transform = struct
               in Hashtbl.set vcfm_format id format_meta);
           return (`partial meta)
         | Some ("ALT", v) ->
-          fail (`alt_parsing_not_implemented (current_position p))
+          Scanf.sscanf v "<ID=%s@,Description=%S>"
+            (fun id description ->
+              let alt_meta = Alt description in
+              Hashtbl.set vcfm_alt id alt_meta);
+          return (`partial meta)
         | Some (k, v) -> begin
             Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
             return (`partial meta)
@@ -327,7 +400,26 @@ module Transform = struct
         | "FORMAT" :: _ ->
           fail (`arbitrary_width_rows_not_supported (current_position p))
         | _ :: _ -> fail (`malformed_header (current_position p, l))
-        | [] -> return (`complete { meta with vcfm_header = chunks })
+        | [] ->
+          let merge_with_reserved ~c = Hashtbl.merge
+            ~f:(fun ~key v ->
+              match v with
+              | `Left t -> Some (c Unknown t "<reserved>")
+              | `Right parsed -> Some parsed
+              | `Both (_t, parsed) -> Some parsed)
+          in
+
+          (** Note(superbobry): merge parsed INFO and FORMAT entries with
+              predefined ones; a VCF file _may_ override any of the
+              reserved fields, in that case, default definition won't be
+              used. *)
+          let vcfm_info = merge_with_reserved reserved_info vcfm_info
+              ~c:(fun n t description -> Info (n, t, description));
+          and vcfm_format = merge_with_reserved reserved_format vcfm_format
+              ~c:(fun n t description -> Format (n, t, description));
+          in return (`complete { meta with vcfm_header = chunks;
+                                           vcfm_info;
+                                           vcfm_format })
         end
       | _ -> fail (`malformed_header (current_position p, l))
       end
