@@ -222,7 +222,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
       >>= fun (items, errors) ->
       check_errors errors
       >>= fun () ->
-      for_concurrent output_specs (fun (_, outs, spec, stats_opt) ->
+      for_concurrent output_specs (fun (name_prefix, outs, spec, stats_opt) ->
         let matches, max_mismatch =
           let default_mismatch = mismatch in
           let max_mismatch = ref 0 in
@@ -240,25 +240,29 @@ let perform ~mismatch ?gzip_output ?do_statistics
               with e -> false) in
           matches, !max_mismatch
         in
-        return (matches, max_mismatch, outs, stats_opt))
+        return (name_prefix, matches, max_mismatch, outs, stats_opt))
       >>= fun (match_results, errors) ->
       check_errors errors
       >>= fun () ->
       let matches_also_policy =
         let filtered =
           List.filter_map match_results
-            (fun (matches, max_mismatch, outs, stats_opt) ->
-              if matches then Some (max_mismatch, outs, stats_opt) else None)
+            (fun (name, matches, max_mismatch, outs, stats_opt) ->
+              if matches then Some (name, max_mismatch, outs, stats_opt) else None)
         in
         match demux_specification.demux_policy with
         | `inclusive -> filtered
         | `exclusive ->
           begin match filtered with
           | [one] -> [one]
-          | any_other_number -> []
+          | any_other_number ->
+            dbg "demux.exclusive:\n  discarding matches:\n    %s"
+              (List.map any_other_number (fun (name_prefix, _, _, _) -> name_prefix)
+               |! String.concat ~sep:", ") |> Lwt.ignore_result;
+            []
           end
       in
-      for_concurrent matches_also_policy (fun (max_mismatch, outs, stats_opt) ->
+      for_concurrent matches_also_policy (fun (name, max_mismatch, outs, stats_opt) ->
         Option.iter stats_opt (fun s ->
           s.read_count <- s.read_count + 1;
           if max_mismatch = 0 then
