@@ -70,18 +70,24 @@ let sexp_of_library {name_prefix; barcoding} =
   let rest = Blang.sexp_of_t sexp_of_barcode_specification barcoding in
   List [Atom "library"; Atom name_prefix; rest]
 
-type demux_specification = library list
+type demux_specification = {
+  demux_rules: library list;
+  demux_policy: [ `exclusive | `inclusive ];
+}
 let demux_specification_of_sexp =
   let open Sexp in
   function
   | List (Atom "demux" :: rest) ->
-    List.map rest library_of_sexp
-  | List [] -> []
+    let demux_rules = List.map rest library_of_sexp in
+    { demux_rules; demux_policy = `inclusive }
+  | List (Atom "exclusive-demux" :: rest) ->
+    let demux_rules = List.map rest library_of_sexp in
+    { demux_rules; demux_policy = `exclusive; }
   | sexp -> of_sexp_error (sprintf "wrong sexp") sexp
 
 let sexp_of_demux_specification l =
   let open Sexp in
-  List (Atom "demux" :: List.map l sexp_of_library)
+  List (Atom "demux" :: List.map l.demux_rules sexp_of_library)
 
 
 let join_pair t1 t2 =
@@ -153,7 +159,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
   end
   >>= fun () ->
 
-  for_concurrent demux_specification (fun {name_prefix; barcoding} ->
+  for_concurrent demux_specification.demux_rules (fun {name_prefix; barcoding} ->
     for_concurrent_with_index read_files (fun i _ ->
       let actual_filename, transform =
         match gzip_output with
@@ -234,19 +240,34 @@ let perform ~mismatch ?gzip_output ?do_statistics
               with e -> false) in
           matches, !max_mismatch
         in
-        if matches then begin
-          Option.iter stats_opt (fun s ->
-            s.read_count <- s.read_count + 1;
-            if max_mismatch = 0 then
-              s.no_mismatch_read_count <- s.no_mismatch_read_count + 1;
-          );
-          List.fold2_exn outs items ~init:(return ())
-            ~f:(fun m (transform, out_channel) item ->
-              m >>= fun () ->
-              push_to_the_max ~transform ~out_channel item)
-        end
-        else
-          return ())
+        return (matches, max_mismatch, outs, stats_opt))
+      >>= fun (match_results, errors) ->
+      check_errors errors
+      >>= fun () ->
+      let matches_also_policy =
+        let filtered =
+          List.filter_map match_results
+            (fun (matches, max_mismatch, outs, stats_opt) ->
+              if matches then Some (max_mismatch, outs, stats_opt) else None)
+        in
+        match demux_specification.demux_policy with
+        | `inclusive -> filtered
+        | `exclusive ->
+          begin match filtered with
+          | [one] -> [one]
+          | any_other_number -> []
+          end
+      in
+      for_concurrent matches_also_policy (fun (max_mismatch, outs, stats_opt) ->
+        Option.iter stats_opt (fun s ->
+          s.read_count <- s.read_count + 1;
+          if max_mismatch = 0 then
+            s.no_mismatch_read_count <- s.no_mismatch_read_count + 1;
+        );
+        List.fold2_exn outs items ~init:(return ())
+          ~f:(fun m (transform, out_channel) item ->
+            m >>= fun () ->
+            push_to_the_max ~transform ~out_channel item))
       >>= fun (_, errors) ->
       check_errors errors
       >>= fun () ->
@@ -335,10 +356,10 @@ let command =
       ~readme:begin fun () ->
         let open Blang in
         let ex v =
-          (Sexp.to_string_hum (sexp_of_demux_specification v)) in
+          let incl = { demux_rules = v ; demux_policy = `inclusive } in
+          (Sexp.to_string_hum (sexp_of_demux_specification incl)) in
         String.concat ~sep:"\n\n" [
           "** Examples of S-Expressions:";
-          sprintf "An empty one:\n%s" (ex []);
           sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
             (ex [
               { name_prefix = "LibONE";
@@ -381,7 +402,7 @@ let command =
                 ))" in
             let spec =
               Sexp.of_string example |! demux_specification_of_sexp in
-            sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec)
+            sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec.demux_rules)
           end;
         ]
       end
@@ -438,14 +459,18 @@ let command =
               if demux_spec_from_cl <> None then demux_spec_from_cl
               else demux in
             let demux_specification =
-              let default = Option.value ~default:[] demux in
+              let default =
+                Option.value demux
+                  ~default:{demux_rules = []; demux_policy = `inclusive} in
               Option.value_map undetermined ~default
                 ~f:(fun name_prefix ->
                   let open Blang in
-                  { name_prefix;
-                    barcoding =
-                      not_ (or_ (List.map default (fun l -> l.barcoding))) }
-                  :: default)
+                  { default with
+                    demux_rules = { name_prefix;
+                                    barcoding =
+                                      not_ (or_ (List.map default.demux_rules
+                                            (fun l -> l.barcoding))) }
+                      :: default.demux_rules })
             in
             perform ~mismatch ?gzip_output ?do_statistics
               ~input_buffer_size ~read_files ~output_buffer_size
