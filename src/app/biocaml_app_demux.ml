@@ -87,7 +87,11 @@ let demux_specification_of_sexp =
 
 let sexp_of_demux_specification l =
   let open Sexp in
-  List (Atom "demux" :: List.map l.demux_rules sexp_of_library)
+  match l.demux_policy with
+  | `inclusive ->
+    List (Atom "demux" :: List.map l.demux_rules sexp_of_library)
+  | `exclusive ->
+    List (Atom "exclusive-demux" :: List.map l.demux_rules sexp_of_library)
 
 
 let join_pair t1 t2 =
@@ -337,6 +341,8 @@ let parse_configuration s =
   let demux =
     List.find_map entries (function
     | List (Atom "demux" :: _) as s ->
+      Some (demux_specification_of_sexp s)
+    | List (Atom "exclusive-demux" :: _) as s ->
       Some (demux_specification_of_sexp s)
     | _ -> None) in
   let stats =
