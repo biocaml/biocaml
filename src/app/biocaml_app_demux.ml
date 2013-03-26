@@ -52,36 +52,59 @@ let sexp_of_barcode_specification { mismatch; barcode; position; on_read} =
 
 type library = {
   name_prefix: string;
-  barcoding: barcode_specification Blang.t;
+  filter: [
+    | `barcoding of barcode_specification Blang.t
+    | `undetermined
+  ]
 (* Disjunctive normal form: or_list (and_list barcode_specs))*)
 }
 
 let library_of_sexp =
   let open Sexp in
   function
-  | List [Atom "library"; Atom name_prefix; sexp] ->
+  | List [Atom "library"; Atom name_prefix; List [Atom "barcoding"; sexp]] ->
     { name_prefix;
-      barcoding = Blang.t_of_sexp barcode_specification_of_sexp  sexp }
+      filter =
+        `barcoding (Blang.t_of_sexp barcode_specification_of_sexp  sexp) }
+  | List [Atom "library"; Atom name_prefix; Atom "undetermined"] ->
+    { name_prefix; filter = `undetermined }
   | sexp ->
     of_sexp_error (sprintf "wrong library") sexp
 
-let sexp_of_library {name_prefix; barcoding} =
+let sexp_of_library {name_prefix; filter} =
   let open Sexp in
-  let rest = Blang.sexp_of_t sexp_of_barcode_specification barcoding in
+  let rest =
+    match filter with
+    | `barcoding barcoding ->
+      List [Atom "barcoding";
+            Blang.sexp_of_t sexp_of_barcode_specification barcoding]
+    | `undetermined -> Atom "undetermined" in
   List [Atom "library"; Atom name_prefix; rest]
 
-type demux_specification = library list
+type demux_specification = {
+  demux_rules: library list;
+  demux_policy: [ `exclusive | `inclusive ];
+}
 let demux_specification_of_sexp =
   let open Sexp in
   function
   | List (Atom "demux" :: rest) ->
-    List.map rest library_of_sexp
-  | List [] -> []
+    dbgi "demux";
+    let demux_rules = List.map rest library_of_sexp in
+    dbgi "demux_rules";
+    { demux_rules; demux_policy = `inclusive }
+  | List (Atom "exclusive-demux" :: rest) ->
+    let demux_rules = List.map rest library_of_sexp in
+    { demux_rules; demux_policy = `exclusive; }
   | sexp -> of_sexp_error (sprintf "wrong sexp") sexp
 
 let sexp_of_demux_specification l =
   let open Sexp in
-  List (Atom "demux" :: List.map l sexp_of_library)
+  match l.demux_policy with
+  | `inclusive ->
+    List (Atom "demux" :: List.map l.demux_rules sexp_of_library)
+  | `exclusive ->
+    List (Atom "exclusive-demux" :: List.map l.demux_rules sexp_of_library)
 
 
 let join_pair t1 t2 =
@@ -153,7 +176,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
   end
   >>= fun () ->
 
-  for_concurrent demux_specification (fun {name_prefix; barcoding} ->
+  for_concurrent demux_specification.demux_rules (fun {name_prefix; filter} ->
     for_concurrent_with_index read_files (fun i _ ->
       let actual_filename, transform =
         match gzip_output with
@@ -174,7 +197,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
       return (transform, o))
     >>= begin function
     | (outs, []) ->
-      return (name_prefix, outs, barcoding,
+      return (name_prefix, outs, filter,
               Option.map do_statistics (fun _ -> library_statistics ()))
     | (outs, some_errors) ->
       close_all_inputs ()
@@ -216,37 +239,63 @@ let perform ~mismatch ?gzip_output ?do_statistics
       >>= fun (items, errors) ->
       check_errors errors
       >>= fun () ->
-      for_concurrent output_specs (fun (_, outs, spec, stats_opt) ->
+      for_concurrent output_specs (fun (name_prefix, outs, spec, stats_opt) ->
         let matches, max_mismatch =
           let default_mismatch = mismatch in
           let max_mismatch = ref 0 in
           let matches =
-            Blang.eval spec (fun {on_read; barcode; position; mismatch} ->
-              let mismatch =
-                Option.value ~default:default_mismatch mismatch in
-              try
-                let item = List.nth_exn items (on_read - 1) in
-                let matches, mm =
-                  check_barcode ~position ~barcode ~mismatch
-                    item.Biocaml_fastq.sequence in
-                if matches then max_mismatch := max !max_mismatch mm;
-                matches
-              with e -> false) in
+            match spec with
+            | `barcoding barcoding ->
+              Blang.eval barcoding (fun {on_read; barcode; position; mismatch} ->
+                  let mismatch =
+                    Option.value ~default:default_mismatch mismatch in
+                  try
+                    let item = List.nth_exn items (on_read - 1) in
+                    let matches, mm =
+                      check_barcode ~position ~barcode ~mismatch
+                        item.Biocaml_fastq.sequence in
+                    if matches then max_mismatch := max !max_mismatch mm;
+                    matches
+                  with e -> false)
+            | `undetermined -> false in
           matches, !max_mismatch
         in
-        if matches then begin
-          Option.iter stats_opt (fun s ->
-            s.read_count <- s.read_count + 1;
-            if max_mismatch = 0 then
-              s.no_mismatch_read_count <- s.no_mismatch_read_count + 1;
-          );
-          List.fold2_exn outs items ~init:(return ())
-            ~f:(fun m (transform, out_channel) item ->
-              m >>= fun () ->
-              push_to_the_max ~transform ~out_channel item)
-        end
-        else
-          return ())
+        return (name_prefix, matches, max_mismatch, outs, stats_opt))
+      >>= fun (match_results, errors) ->
+      check_errors errors
+      >>= fun () ->
+      let matches_also_policy =
+        let filtered =
+          List.filter_map match_results
+            (fun (name, matches, max_mismatch, outs, stats_opt) ->
+              if matches then Some (name, max_mismatch, outs, stats_opt) else None)
+        in
+        let the_undetermined () =
+          List.filter_map output_specs ~f:(function
+          | (name, outs, `undetermined, stats_opt) -> Some (name, 0, outs, stats_opt)
+          | _ -> None) in
+        match filtered with
+        | [one] -> [one]
+        | [] -> the_undetermined ()
+        | any_other_number when demux_specification.demux_policy = `exclusive ->
+          (* The only difference with the previous case *is* the
+             verbose logging: *)
+          dbg "demux.exclusive:\n  discarding matches:\n    %s"
+            (List.map any_other_number (fun (name_prefix, _, _, _) -> name_prefix)
+             |! String.concat ~sep:", ") |> Lwt.ignore_result;
+          the_undetermined ()
+        | more (* inclusive *) -> more
+      in
+      for_concurrent matches_also_policy (fun (name, max_mismatch, outs, stats_opt) ->
+        Option.iter stats_opt (fun s ->
+          s.read_count <- s.read_count + 1;
+          if max_mismatch = 0 then
+            s.no_mismatch_read_count <- s.no_mismatch_read_count + 1;
+        );
+        List.fold2_exn outs items ~init:(return ())
+          ~f:(fun m (transform, out_channel) item ->
+            m >>= fun () ->
+            push_to_the_max ~transform ~out_channel item))
       >>= fun (_, errors) ->
       check_errors errors
       >>= fun () ->
@@ -272,12 +321,12 @@ let perform ~mismatch ?gzip_output ?do_statistics
       flush_transform ~out_channel ~transform >>= fun () ->
       wrap_deferred_lwt (fun () -> Lwt_io.close out_channel))
     >>= fun (_, errors) ->
-      (* TODO: check errors *)
+    (* TODO: check errors *)
     begin match stats, stats_channel with
     | Some { read_count; no_mismatch_read_count }, Some o ->
       wrap_deferred_lwt (fun () ->
-        Lwt_io.fprintf o "(%S %d %d)\n" name
-          read_count no_mismatch_read_count)
+          Lwt_io.fprintf o "(%S %d %d)\n" name
+            read_count no_mismatch_read_count)
     | _, _ -> return ()
     end
   )
@@ -285,7 +334,7 @@ let perform ~mismatch ?gzip_output ?do_statistics
   for_concurrent transform_inputs (fun (_, i) ->
     wrap_deferred_lwt (fun () -> Lwt_io.close i))
   >>= fun (_, errors) ->
-    (* TODO: check errors *)
+  (* TODO: check errors *)
   Option.value_map stats_channel ~default:(return ())
     ~f:(fun c -> wrap_deferred_lwt (fun () -> Lwt_io.close c))
 
@@ -299,11 +348,6 @@ let parse_configuration s =
     | List [Atom "default-mismatch"; Atom vs] ->
       Some (Int.of_string vs)
     | _ -> None) in
-  let undetermined =
-    List.find_map entries (function
-    | List [Atom "undetermined"; Atom vs] ->
-      Some vs
-    | _ -> None) in
   let gzip =
     List.find_map entries (function
     | List [Atom "gzip-output"; Atom vs] ->
@@ -312,6 +356,8 @@ let parse_configuration s =
   let demux =
     List.find_map entries (function
     | List (Atom "demux" :: _) as s ->
+      Some (demux_specification_of_sexp s)
+    | List (Atom "exclusive-demux" :: _) as s ->
       Some (demux_specification_of_sexp s)
     | _ -> None) in
   let stats =
@@ -327,7 +373,7 @@ let parse_configuration s =
       | s ->
         failwithf "wrong input files specification: %s" (to_string_hum s) ()))
     | _ -> None) in
-  (mismatch, gzip, undetermined, stats, demux, inputs)
+  (mismatch, gzip, stats, demux, inputs)
 
 let command =
   Command_line.(
@@ -335,53 +381,53 @@ let command =
       ~readme:begin fun () ->
         let open Blang in
         let ex v =
-          (Sexp.to_string_hum (sexp_of_demux_specification v)) in
+          let incl = { demux_rules = v ; demux_policy = `inclusive } in
+          (Sexp.to_string_hum (sexp_of_demux_specification incl)) in
         String.concat ~sep:"\n\n" [
           "** Examples of S-Expressions:";
-          sprintf "An empty one:\n%s" (ex []);
           sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
             (ex [
-              { name_prefix = "LibONE";
-                barcoding =
-                  barcode_specification ~position:1 "ACTGTT"
-                    ~mismatch:1 ~on_read:2 };
-              { name_prefix = "LibTWO";
-                barcoding =
-                  barcode_specification ~position:1 "CTTATG"
-                    ~mismatch:1 ~on_read:2 };
-            ]);
+               { name_prefix = "LibONE";
+                 filter =
+                   `barcoding (barcode_specification ~position:1 "ACTGTT"
+                       ~mismatch:1 ~on_read:2) };
+               { name_prefix = "LibTWO";
+                 filter = `barcoding (
+                     barcode_specification ~position:1 "CTTATG"
+                       ~mismatch:1 ~on_read:2) };
+             ]);
           sprintf "A library with two barcodes to match:\n%s"
             (ex [
               { name_prefix = "LibAND";
-                barcoding =
-                  and_ [
-                    barcode_specification ~position:5 "ACTGTT"
-                      ~mismatch:1 ~on_read:1;
+                filter = `barcoding (
+                    and_ [
+                      barcode_specification ~position:5 "ACTGTT"
+                        ~mismatch:1 ~on_read:1;
                     barcode_specification ~position:1 "TTGT"
                       ~on_read:2;
-                  ]}
+                    ])}
             ]);
           sprintf "A merge of two barcodes into one “library”:\n%s"
             (ex [
               { name_prefix = "LibOR";
-                barcoding = or_ [
-                  barcode_specification ~position:5 "ACTGTT"
-                    ~mismatch:1 ~on_read:1;
-                  barcode_specification ~position:1 "TTGT" ~on_read:2;
-                ] }]);
+                filter = `barcoding (or_ [
+                      barcode_specification ~position:5 "ACTGTT"
+                        ~mismatch:1 ~on_read:1;
+                      barcode_specification ~position:1 "TTGT" ~on_read:2;
+                    ]) }]);
           begin
             let example =
               "(demux\n\
-                \  (library \"Lib with ånnœ¥ing name\" ACCCT:1:2) \
+                \  (library \"Lib with ånnœ¥ing name\" (barcoding ACCCT:1:2)) \
                     ;; one barcode on R1, at pos 2\n\
-                \  (library GetALL true) ;; get everything\n\
-                \  (library Merge (and AGTT:2:42:1 ACCC:2:42:1 \n\
-                \                   (not AGTGGTC:1:1:2)) \
+                \  (library GetALL (barcoding true)) ;; get everything\n\
+                \  (library Merge (barcoding (and AGTT:2:42:1 ACCC:2:42:1 \n\
+                \                   (not AGTGGTC:1:1:2))) \
                 ;; a ∧ b ∧ ¬c  matching\n\
                 ))" in
             let spec =
               Sexp.of_string example |! demux_specification_of_sexp in
-            sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec)
+            sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec.demux_rules)
           end;
         ]
       end
@@ -395,14 +441,12 @@ let command =
           ~doc:"<string> give the specification as a list of S-Expressions"
         +> flag "specification" ~aliases:["spec"] (optional string)
           ~doc:"<file> give a path to a file containing the specification"
-        +> flag "undetermined" (optional string)
-          ~doc:"<name> put all the non-matched reads in a library"
         +> flag "statistics" ~aliases:["stats"] (optional string)
           ~doc:"<file> do some basic statistics and write them to <file>"
         +> anon (sequence ("READ-FILES" %: string))
         ++ uses_lwt ())
       begin fun ~input_buffer_size ~output_buffer_size
-        mismatch_cl gzip_cl demux_cl spec undetermined_cl stats_cl
+        mismatch_cl gzip_cl demux_cl spec stats_cl
         read_files_cl ->
           begin
             begin match spec with
@@ -410,9 +454,9 @@ let command =
               wrap_deferred_lwt (fun () ->
                 Lwt_io.(with_file ~mode:input s (fun i -> read i)))
               >>| parse_configuration
-            | None -> return (None, None, None, None, None, None)
+            | None -> return (None, None, None, None, None)
             end
-            >>= fun (mismatch, gzip, undetermined, stats, demux, inputs) ->
+            >>= fun (mismatch, gzip, stats, demux, inputs) ->
             begin match read_files_cl, inputs with
             | [], Some l -> return l
             | l, None -> return l
@@ -426,27 +470,21 @@ let command =
               | Some s -> s
               | None -> match mismatch with Some s -> s | None -> 0 in
             let gzip_output = if gzip_cl <> None then gzip_cl else gzip in
-            let undetermined =
-              if undetermined_cl <> None then undetermined_cl else undetermined
-            in
             let do_statistics = if stats_cl <> None then stats_cl else stats in
             let demux_spec_from_cl =
-              Option.map demux_cl ~f:(fun s ->
-                Sexp.of_string (sprintf "(demux %s)" s)
-                |! demux_specification_of_sexp) in
+              Option.bind demux_cl (fun s ->
+                try
+                  Some (Sexp.of_string (sprintf "(demux %s)" s)
+                        |> demux_specification_of_sexp)
+                with e ->
+                  dbgi "Parsing error: %s" (Exn.to_string e); None) in
             let demux =
               if demux_spec_from_cl <> None then demux_spec_from_cl
               else demux in
             let demux_specification =
-              let default = Option.value ~default:[] demux in
-              Option.value_map undetermined ~default
-                ~f:(fun name_prefix ->
-                  let open Blang in
-                  { name_prefix;
-                    barcoding =
-                      not_ (or_ (List.map default (fun l -> l.barcoding))) }
-                  :: default)
-            in
+              (* let default = *)
+                Option.value demux
+                  ~default:{demux_rules = []; demux_policy = `inclusive} in
             perform ~mismatch ?gzip_output ?do_statistics
               ~input_buffer_size ~read_files ~output_buffer_size
               ~demux_specification

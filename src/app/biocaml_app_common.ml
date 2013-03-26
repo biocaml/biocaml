@@ -11,6 +11,11 @@ let dbg fmt =
     then (eprintf "biocaml: %s\n%!" s; return ())
     else return ()) fmt
 
+let dbgi fmt =
+  ksprintf (fun s ->
+    if !verbose
+    then eprintf "biocaml: %s\n%!" s;) fmt
+
 let failf fmt =
   ksprintf (fun s -> error (`failure s)) fmt
 
