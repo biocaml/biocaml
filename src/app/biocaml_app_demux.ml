@@ -141,6 +141,7 @@ let library_statistics () =
   { read_count = 0; no_mismatch_read_count = 0; }
 
 let perform ~mismatch ?gzip_output ?do_statistics
+    ~gzip_buffer_size_factor
     ~input_buffer_size ~read_files
     ~output_buffer_size ~demux_specification =
 
@@ -184,11 +185,16 @@ let perform ~mismatch ?gzip_output ?do_statistics
           (sprintf "%s_R%d.fastq" name_prefix (i + 1),
            Biocaml_fastq.Transform.item_to_string ())
         | Some level ->
+          let zlib_buffer_size =
+            gzip_buffer_size_factor *. (float output_buffer_size)
+            |> Float.iround_nearest_exn in
+          dbgi "Gzip_buffer_size_factor: %f, zlib_buffer_size: %d"
+            gzip_buffer_size_factor zlib_buffer_size;
           (sprintf "%s_R%d.fastq.gz" name_prefix (i + 1),
            Biocaml_transform.compose
              (Biocaml_fastq.Transform.item_to_string ())
              (Biocaml_zip.Transform.zip ~format:`gzip ~level
-                ~zlib_buffer_size:output_buffer_size ()))
+                ~zlib_buffer_size ()))
       in
       wrap_deferred_lwt (fun () ->
         Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
@@ -437,6 +443,11 @@ let command =
           ~doc:"<int> default maximal mismatch allowed (default 0)"
         +> flag "gzip-output" ~aliases:["gz"] (optional int)
           ~doc:"<level> output GZip files (compression level: <level>)"
+        +> flag "gzip-buffer-size-factor" ~aliases:["gzbf"]
+            (optional_with_default 1. float)
+          ~doc:"<factor> \
+                Multiply the output-buffer size by <factor> to setup ZLib \
+                (default: 1.)."
         +> flag "demux" (optional string)
           ~doc:"<string> give the specification as a list of S-Expressions"
         +> flag "specification" ~aliases:["spec"] (optional string)
@@ -446,7 +457,7 @@ let command =
         +> anon (sequence ("READ-FILES" %: string))
         ++ uses_lwt ())
       begin fun ~input_buffer_size ~output_buffer_size
-        mismatch_cl gzip_cl demux_cl spec stats_cl
+        mismatch_cl gzip_cl gzip_buffer_size_factor demux_cl spec stats_cl
         read_files_cl ->
           begin
             begin match spec with
@@ -486,6 +497,7 @@ let command =
                 Option.value demux
                   ~default:{demux_rules = []; demux_policy = `inclusive} in
             perform ~mismatch ?gzip_output ?do_statistics
+              ~gzip_buffer_size_factor
               ~input_buffer_size ~read_files ~output_buffer_size
               ~demux_specification
           end
