@@ -130,6 +130,14 @@ Executable tests_main
   Build$:		flag(tests)
   BuildDepends: 	threads, unix, oUnit (>= 1.1.0),  biocaml
 
+Executable zip_benchmark
+  Path:			src/tests
+  MainIs:       	zip_benchmark.ml
+  Install:      	false
+  CompiledObject: 	native
+  Build$:		flag(tests)
+  BuildDepends: 	threads, biocaml
+
 Executable lwt_tests
   Path: src/lwt_tests
   MainIs: main.ml
