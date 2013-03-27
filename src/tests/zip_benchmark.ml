@@ -42,6 +42,8 @@ let gzip_benchotest ~feeds ~string_sizes ~zip_levels ~zlib_bufsizes () =
       in_byte_count := String.length s + !in_byte_count;
       loop_until_not_ready transform;
     done;
+    Transform.stop transform;
+    loop_until_not_ready transform;
     let stop = Time.now () in
     (level, bufsize, feeds, string_size, start, stop,
      float !gz_byte_count /. float !in_byte_count)
