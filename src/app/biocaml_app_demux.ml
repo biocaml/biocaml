@@ -1,5 +1,6 @@
 open Core.Std
 open Flow
+open Biocaml
 open Biocaml_app_common
 
 
@@ -140,8 +141,7 @@ type library_statistics = {
 let library_statistics () =
   { read_count = 0; no_mismatch_read_count = 0; }
 
-let perform ~mismatch ?gzip_output ?do_statistics
-    ~gzip_buffer_size_factor
+let perform ~mismatch ?gzip ?do_statistics
     ~input_buffer_size ~read_files
     ~output_buffer_size ~demux_specification =
 
@@ -180,21 +180,18 @@ let perform ~mismatch ?gzip_output ?do_statistics
   for_concurrent demux_specification.demux_rules (fun {name_prefix; filter} ->
     for_concurrent_with_index read_files (fun i _ ->
       let actual_filename, transform =
-        match gzip_output with
+        match gzip with
         | None ->
           (sprintf "%s_R%d.fastq" name_prefix (i + 1),
            Biocaml_fastq.Transform.item_to_string ())
-        | Some level ->
-          let zlib_buffer_size =
-            gzip_buffer_size_factor *. (float output_buffer_size)
-            |> Float.iround_nearest_exn in
-          dbgi "Gzip_buffer_size_factor: %f, zlib_buffer_size: %d"
-            gzip_buffer_size_factor zlib_buffer_size;
+        | Some configuration ->
+          let zip_transform =
+            Command_line.gzip_output_transform configuration ~output_buffer_size
+          in
           (sprintf "%s_R%d.fastq.gz" name_prefix (i + 1),
            Biocaml_transform.compose
              (Biocaml_fastq.Transform.item_to_string ())
-             (Biocaml_zip.Transform.zip ~format:`gzip ~level
-                ~zlib_buffer_size ()))
+             zip_transform)
       in
       wrap_deferred_lwt (fun () ->
         Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
@@ -439,15 +436,9 @@ let command =
       end
       Spec.(
         file_to_file_flags ()
+        ++ gzip_output_flags ~activation:true
         +> flag "default-mismatch" (optional int)
           ~doc:"<int> default maximal mismatch allowed (default 0)"
-        +> flag "gzip-output" ~aliases:["gz"] (optional int)
-          ~doc:"<level> output GZip files (compression level: <level>)"
-        +> flag "gzip-buffer-size-factor" ~aliases:["gzbf"]
-            (optional_with_default 1. float)
-          ~doc:"<factor> \
-                Multiply the output-buffer size by <factor> to setup ZLib \
-                (default: 1.)."
         +> flag "demux" (optional string)
           ~doc:"<string> give the specification as a list of S-Expressions"
         +> flag "specification" ~aliases:["spec"] (optional string)
@@ -456,10 +447,11 @@ let command =
           ~doc:"<file> do some basic statistics and write them to <file>"
         +> anon (sequence ("READ-FILES" %: string))
         ++ uses_lwt ())
-      begin fun ~input_buffer_size ~output_buffer_size
-        mismatch_cl gzip_cl gzip_buffer_size_factor demux_cl spec stats_cl
+      begin fun ~input_buffer_size ~output_buffer_size ~gzip
+        mismatch_cl demux_cl spec stats_cl
         read_files_cl ->
           begin
+            dbgi "before doing anything";
             begin match spec with
             | Some s ->
               wrap_deferred_lwt (fun () ->
@@ -467,7 +459,7 @@ let command =
               >>| parse_configuration
             | None -> return (None, None, None, None, None)
             end
-            >>= fun (mismatch, gzip, stats, demux, inputs) ->
+            >>= fun (mismatch, gzip_conf, stats, demux, inputs) ->
             begin match read_files_cl, inputs with
             | [], Some l -> return l
             | l, None -> return l
@@ -480,7 +472,13 @@ let command =
               match mismatch_cl with
               | Some s -> s
               | None -> match mismatch with Some s -> s | None -> 0 in
-            let gzip_output = if gzip_cl <> None then gzip_cl else gzip in
+            let gzip =
+              match gzip, gzip_conf with
+              | Some config, _ -> Some config
+              | None, Some lvl -> Some (`size Zip.Default.zlib_buffer_size, lvl)
+              | None, None -> None
+            in
+            dbgi "Before do_statistics";
             let do_statistics = if stats_cl <> None then stats_cl else stats in
             let demux_spec_from_cl =
               Option.bind demux_cl (fun s ->
@@ -496,8 +494,7 @@ let command =
               (* let default = *)
                 Option.value demux
                   ~default:{demux_rules = []; demux_policy = `inclusive} in
-            perform ~mismatch ?gzip_output ?do_statistics
-              ~gzip_buffer_size_factor
+            perform ~mismatch ?gzip ?do_statistics
               ~input_buffer_size ~read_files ~output_buffer_size
               ~demux_specification
           end
