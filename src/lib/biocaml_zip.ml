@@ -2,6 +2,13 @@ open Biocaml_internal_pervasives
 
 let dbg fmt = Debug.make "ZIP" fmt
 
+module Default = struct
+
+  let zlib_buffer_size = 4096
+  let level = 3
+
+end
+
 module Transform = struct
   type unzip_error =
   [ `garbage_at_end_of_compressed_data of string
@@ -90,7 +97,7 @@ module Transform = struct
       )
     ) else try_to_output used_out
 
-  let unzip ?(format=`raw) ?(zlib_buffer_size=4096) () =
+  let unzip ?(format=`raw) ?(zlib_buffer_size=Default.zlib_buffer_size) () =
     let zstream =  ref (Zlib.inflate_init false) in
     let in_buffer = Buffer.create 42 in
     let zlib_write_buffer = String.create zlib_buffer_size  in
@@ -108,7 +115,7 @@ module Transform = struct
         begin match !current_state with
         | `inflate ->
           begin
-            try 
+            try
               let inflation =
                 inflate_as_much_as_possible in_buffer buffered
                   !zstream zlib_write_buffer zlib_buffer_size  format in
@@ -154,7 +161,8 @@ module Transform = struct
    \x00\x00\x00\x00\
    \x00\xff"
 
-  let zip ?(format=`raw) ?(level=8) ?(zlib_buffer_size=4096) () =
+  let zip ?(format=`raw)
+      ?(level=Default.level) ?(zlib_buffer_size=Default.zlib_buffer_size) () =
     let zstream =  ref (Zlib.deflate_init level false) in
     let in_buffer = Buffer.create 42 in
     let zlib_write_buffer = String.create zlib_buffer_size  in
@@ -230,5 +238,5 @@ module Transform = struct
         end
     in
     Biocaml_transform.make ()
-      ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next 
+      ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 end

@@ -12,6 +12,24 @@
 
 *)
 
+
+module Default: sig
+  (** This module contains the default values for most optional
+     parameters of the module. *)
+
+  (** The default size of the internal buffer used by the ZLib library.
+     It's value is 4096. *)
+  val zlib_buffer_size : int
+
+  (** The default compression level used in [Transform.zip]. It's
+     value is 3, bigger values (up to 9) decrease performance while
+     slightly improving the compression.  *)
+  val level : int
+
+end
+
+
+
 module Transform: sig
   type unzip_error =
   [ `garbage_at_end_of_compressed_data of string
