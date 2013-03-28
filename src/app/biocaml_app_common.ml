@@ -41,7 +41,14 @@ module Command_line = struct
     Spec.(
       step (fun k v -> k ~input_buffer_size:v)
       +> flag "input-buffer" ~aliases:["ib"] (optional_with_default 42_000 int)
-        ~doc:"<int> input buffer size (Default: 42_000)")
+        ~doc:"<int> input buffer size\n(default: 42_000)")
+
+  let output_buffer_size_flag () =
+    Spec.(
+      step (fun k v -> k ~output_buffer_size:v)
+      +> flag "output-buffer" ~aliases:["ob"] (optional_with_default 42_000 int)
+        ~doc:"<int> output buffer size\n(default: 42_000)"
+    )
 
   let verbosity_flags () =
     let set_verbosity v =
@@ -63,13 +70,66 @@ module Command_line = struct
       +> flag "verbose-app"  no_arg ~doc:" make 'biocaml' itself verbose"
     )
 
+  type gzip_output_configuration = [ `size of int | `factor of float ] * int
+
+  let gzip_output_transform
+      ~output_buffer_size (configuration: gzip_output_configuration) =
+    let size_config, level = configuration in
+    let zlib_buffer_size =
+      match size_config with
+      | `size s -> s
+      | `factor f -> f *. (float output_buffer_size) |> Float.iround_nearest_exn
+    in
+    (Biocaml_zip.Transform.zip ~format:`gzip ~level ~zlib_buffer_size ())
+
+  let gzip_output_flags ~activation =
+    dbgi "gzip_output_flags";
+    let level = ref None in
+    let buf_size = ref None in
+    let make_gzip_params factor : gzip_output_configuration option =
+      dbgi "make_gzip_params";
+      let activated =
+        match activation, !level with
+        | false, _ -> true
+        | true, None -> false
+        | true, Some _ -> true in
+      let lvl = Option.value !level ~default:Zip.Default.level in
+      if activated
+      then Some (match !buf_size, factor with
+        | Some bf, _ -> (`size bf, lvl)
+        | None, Some f -> (`factor f, lvl)
+        | None, None -> (`size Zip.Default.zlib_buffer_size, lvl))
+      else None
+    in
+    Spec.(
+      step (fun k v -> level := v; k)
+      +> flag "gzip-level" ~aliases:["gz"] (optional int)
+          ~doc:(sprintf "<level> output GZip files\
+                         with compression level <level> (included in [1, 9])\n\
+                         (default: %s)"
+              (if activation then "no compression"
+               else (Int.to_string Zip.Default.level)))
+      ++ step (fun k v -> buf_size := v; k)
+      +> flag "gzip-buffer-size" ~aliases:["gzbuf"]
+          (optional int)
+          ~doc:(sprintf "<size> \
+                         setup ZLib's internal buffer size (default: %d)"
+              Zip.Default.zlib_buffer_size)
+      ++ step (fun k v -> k ~gzip:(make_gzip_params v))
+      +> flag "gzip-buffer-size-factor" ~aliases:["gzbfs"]
+          (optional float)
+          ~doc:"<factor> \
+                multiply the output-buffer-size by <factor> to setup ZLib's\
+                internal buffer (if -gzip-buffer-size is given, it takes \
+                priority)"
+    )
+
+
   let file_to_file_flags () =
     Spec.(
       verbosity_flags ()
       ++ input_buffer_size_flag ()
-      ++ step (fun k v -> k ~output_buffer_size:v)
-      +> flag "output-buffer" ~aliases:["ob"] (optional_with_default 42_000 int)
-        ~doc:"<int> output buffer size (Default: 42_000)"
+      ++ output_buffer_size_flag ()
     )
 
 end
