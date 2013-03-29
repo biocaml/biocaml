@@ -30,22 +30,25 @@ let wrap_deferred_lwt f =
 
 module Global_configuration = struct
 
-  let output_buffer_size = ref 64_000 (* TODO *)
-  let input_buffer_size = ref 64_000 (* TODO *)
-
+  let default_output_buffer_size = 64_000
+  let default_input_buffer_size = 64_000
+  let output_buffer_size = ref default_output_buffer_size
+  let input_buffer_size = ref default_input_buffer_size
 
   type gzip_output_configuration = [ `size of int | `factor of float ] * int
 
   let gzip_output_configuration = ref (None : gzip_output_configuration option)
 
+  let zlib_buffer_size () =
+    Option.value_map ~default:Zip.Default.zlib_buffer_size
+      !gzip_output_configuration ~f:(function
+        | `size s, _ -> s
+        | `factor f, _ ->
+          f *. (float !output_buffer_size) |> Float.iround_nearest_exn)
+
   let gzip_output_transform () : (string, string) Transform.t option =
     Option.map !gzip_output_configuration (fun (size_config, level) ->
-      let zlib_buffer_size =
-        match size_config with
-        | `size s -> s
-        | `factor f ->
-          f *. (float !output_buffer_size) |> Float.iround_nearest_exn
-      in
+      let zlib_buffer_size = zlib_buffer_size () in
       (Biocaml_zip.Transform.zip ~format:`gzip ~level ~zlib_buffer_size ()))
 
   let gzip_set_if_not_set ?(level=Zip.Default.level)
@@ -55,6 +58,11 @@ module Global_configuration = struct
     | None ->
       gzip_output_configuration := Some (`size zlib_buffer_size, level)
 
+
+
+  (* TODO:
+        - same for Zip.unzip
+  *)
 
 end
 
@@ -69,15 +77,26 @@ module Command_line = struct
 
   let input_buffer_size_flag () =
     Spec.(
-      step (fun k v -> k ~input_buffer_size:v)
-      +> flag "input-buffer" ~aliases:["ib"] (optional_with_default 42_000 int)
-        ~doc:"<int> input buffer size\n(default: 42_000)")
+      step (fun k v ->
+        Option.iter v (fun v ->
+          Global_configuration.input_buffer_size := v);
+        k)
+      +> flag "input-buffer" ~aliases:["ib"] (optional int)
+        ~doc:(sprintf
+            "<int> set the input buffer size\n(default: %d)"
+            Global_configuration.default_input_buffer_size)
+    )
 
   let output_buffer_size_flag () =
     Spec.(
-      step (fun k v -> k ~output_buffer_size:v)
-      +> flag "output-buffer" ~aliases:["ob"] (optional_with_default 42_000 int)
-        ~doc:"<int> output buffer size\n(default: 42_000)"
+      step (fun k v ->
+        Option.iter v (fun v ->
+          Global_configuration.output_buffer_size := v);
+        k)
+      +> flag "output-buffer" ~aliases:["ob"] (optional int)
+        ~doc:(sprintf
+            "<int> set the output buffer size\n(default: %d)"
+            Global_configuration.default_output_buffer_size)
     )
 
   let verbosity_flags () =
@@ -201,9 +220,9 @@ let file_to_file transfo ?(input_buffer_size=42_000) bamfile
   )
 
 
-let go_through_input ~transform ~max_read_bytes ~input_buffer_size filename =
-  Lwt_io.(
-    with_file ~mode:input ~buffer_size:input_buffer_size filename (fun i ->
+let go_through_input ~transform ~max_read_bytes filename =
+  let input_buffer_size = !Global_configuration.input_buffer_size in
+  Lwt_io.(with_file ~mode:input ~buffer_size:input_buffer_size filename (fun i ->
       let rec count_all stopped =
         match Biocaml_transform.next transform with
         | `output (Ok _) -> count_all stopped
@@ -320,8 +339,8 @@ let output_transform_name = function
   | `to_int_fasta _ -> "to_int_fasta"
   | `to_table _ -> "to_table"
 
-let output_transform_of_tags ~zlib_buffer_size (output_tags: Tags.t) =
-  let rec output_transform ?with_zip  ~zlib_buffer_size output_tags =
+let output_transform_of_tags (output_tags: Tags.t) =
+  let rec output_transform ?with_zip output_tags =
     let with_zip_result t =
       match with_zip with
       | Some z -> Transform.compose_result_left t z
@@ -333,15 +352,14 @@ let output_transform_of_tags ~zlib_buffer_size (output_tags: Tags.t) =
       | None -> t
     in
     let to_sam_item t = return (`to_sam_item (with_zip_result t) : output_transform) in
+    let zlib_buffer_size = Global_configuration.zlib_buffer_size () in
     match output_tags with
     | `raw_zip tags ->
       output_transform
-        ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`raw ())
-        ~zlib_buffer_size tags
+        ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`raw ()) tags
     | `gzip tags ->
       output_transform
-        ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`gzip ())
-        ~zlib_buffer_size tags
+        ?with_zip:(Global_configuration.gzip_output_transform ()) tags
     | `bam ->
       to_sam_item (
         Transform.compose_result_left
@@ -386,5 +404,5 @@ let output_transform_of_tags ~zlib_buffer_size (output_tags: Tags.t) =
       in
       return (`to_table (with_zip_no_error t) : output_transform)
   in
-  output_transform ~zlib_buffer_size output_tags
+  output_transform output_tags
 

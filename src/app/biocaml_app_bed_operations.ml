@@ -4,7 +4,7 @@ open Flow
 open Biocaml_app_common
 
 
-let load ~on_output ~input_buffer_size ?(max_read_bytes=Int.max_value) filename =
+let load ~on_output ?(max_read_bytes=Int.max_value) filename =
   let tags =
     match Biocaml_tags.guess_from_filename filename with
     | Ok o -> o
@@ -20,13 +20,14 @@ let load ~on_output ~input_buffer_size ?(max_read_bytes=Int.max_value) filename 
       Biocaml_transform.compose_results
         ~on_error:(function `left l -> `unzip l | `right r -> `bed r)
         (Biocaml_zip.Transform.unzip
-           ~zlib_buffer_size:(10 * input_buffer_size) ~format:`gzip ())
+           ~zlib_buffer_size:(2 * !Global_configuration.input_buffer_size)
+           ~format:`gzip ())
         (Biocaml_bed.Transform.string_to_item ())
     | _ ->
       (failwith "cannot handle file-format")
   in
   let transform = Biocaml_transform.on_output parsing_transform ~f:on_output in
-  go_through_input ~transform ~max_read_bytes ~input_buffer_size filename
+  go_through_input ~transform ~max_read_bytes filename
 
 let load_itree () =
   let map = ref String.Map.empty in
@@ -79,13 +80,12 @@ let intersects map name low high =
   | None ->
     say "Record for %S not found\n" name
 
-let rset_folding ~fold_operation ~fold_init
-    ~input_buffer_size max_read_bytes input_files =
+let rset_folding ~fold_operation ~fold_init max_read_bytes input_files =
   let all_names = ref String.Set.empty in
   List.fold input_files ~init:(return []) ~f:(fun prev file ->
     prev >>= fun current_list ->
     let map_ref, on_output = load_rset () in
-    load ~input_buffer_size ?max_read_bytes ~on_output file
+    load ?max_read_bytes ~on_output file
     >>= fun () ->
     all_names := Set.union !all_names
       (String.Set.of_list (Map.keys !map_ref));
@@ -118,10 +118,10 @@ let command =
            +> anon ("STOP" %: int)
            ++ uses_lwt ()
          )
-         (fun ~input_buffer_size max_read_bytes input_file name start stop ->
+         (fun max_read_bytes input_file name start stop ->
            let map_ref, on_output = load_itree () in
            begin
-             load ~input_buffer_size ?max_read_bytes ~on_output input_file
+             load ?max_read_bytes ~on_output input_file
              >>= fun () ->
              intersects !map_ref  name start stop
            end
@@ -137,10 +137,10 @@ let command =
            +> anon ("BED-ish-FILE" %: string)
            ++ uses_lwt ()
          )
-         (fun ~input_buffer_size max_read_bytes input_file ->
+         (fun max_read_bytes input_file ->
            let map_ref, on_output = load_rset () in
            begin
-             load ~input_buffer_size ?max_read_bytes ~on_output input_file
+             load ?max_read_bytes ~on_output input_file
              >>= fun () ->
              Map.fold !map_ref ~init:(return ()) ~f:(fun ~key ~data m ->
                m >>= fun () ->
@@ -161,11 +161,11 @@ let command =
            +> anon (sequence ("BED-ish-FILES" %: string))
            ++ uses_lwt ()
          )
-         (fun ~input_buffer_size max_read_bytes input_files ->
+         (fun max_read_bytes input_files ->
            rset_folding
              ~fold_operation:Biocaml_rSet.union
              ~fold_init:Biocaml_rSet.empty
-             ~input_buffer_size max_read_bytes input_files
+             max_read_bytes input_files
            >>< common_error_to_string)
       );
       ("intersection",
@@ -179,11 +179,11 @@ let command =
            +> anon (sequence ("BED-ish-FILES" %: string))
            ++ uses_lwt ()
          )
-         (fun ~input_buffer_size max_read_bytes input_files ->
+         (fun max_read_bytes input_files ->
            rset_folding
              ~fold_operation:Biocaml_rSet.inter
              ~fold_init:(Biocaml_rSet.of_range_list [Int.min_value, Int.max_value])
-             ~input_buffer_size max_read_bytes input_files
+             max_read_bytes input_files
            >>< common_error_to_string)
       );
     ])

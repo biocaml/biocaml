@@ -49,7 +49,8 @@ let input_transform_name = function
   | `from_table _ -> "from_table"
 
 
-let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
+let rec input_transform ?with_unzip input_tags =
+  let zlib_buffer_size = Global_configuration.zlib_buffer_size () in
   let with_unzip t =
     match with_unzip with
     | Some z ->
@@ -62,12 +63,10 @@ let rec input_transform ?with_unzip ~zlib_buffer_size input_tags =
   match input_tags with
   | `raw_zip tags ->
     input_transform
-      ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`raw ())
-      ~zlib_buffer_size tags
+      ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`raw ()) tags
   | `gzip tags ->
     input_transform
-      ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`gzip ())
-      ~zlib_buffer_size tags
+      ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`gzip ()) tags
   | `bam ->
     from_sam_item (
       Transform.compose_results
@@ -236,27 +235,26 @@ let transforms_to_do
   loop [] input_files_tags_and_transforms
 
 
-let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
+let run_transform ~output_tags files =
   begin
-    let zlib_buffer_size = 2 * input_buffer_size in
     while_sequential files (fun file_optionally_tagged ->
       match String.lsplit2 ~on:':' file_optionally_tagged with
       | None ->
         of_result (Tags.guess_from_filename file_optionally_tagged)
         >>= fun tags ->
-        input_transform ~zlib_buffer_size tags
+        input_transform tags
         >>= fun meta_transform ->
         return (file_optionally_tagged, tags, meta_transform)
       | Some (one, two) ->
         of_result (Tags.of_string two)
         >>= fun tags ->
-        input_transform ~zlib_buffer_size tags
+        input_transform tags
         >>= fun meta_transform ->
         return (one, tags, meta_transform))
     >>= fun input_files_tags_and_transforms ->
     of_result (Tags.of_string output_tags)
     >>= fun tags ->
-    output_transform_of_tags ~zlib_buffer_size:(output_buffer_size) tags
+    output_transform_of_tags tags
     >>= fun meta_output_transform ->
     while_sequential input_files_tags_and_transforms (fun (filename, tags, tr) ->
       dbg "Convert %s (%s) %s %s"
@@ -270,8 +268,7 @@ let run_transform  ~input_buffer_size ~output_buffer_size ~output_tags files =
     for_concurrent transforms begin function
     | `file_to_file (filein, tr, fileout) ->
       dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
-      IO.Transform.file_to_file (Transform.to_object tr)
-        ~input_buffer_size filein ~output_buffer_size fileout
+      IO.Transform.file_to_file (Transform.to_object tr) filein  fileout
     end
     >>= fun (results, errors) ->
     begin match errors with

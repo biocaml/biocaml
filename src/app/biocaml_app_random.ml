@@ -354,7 +354,6 @@ let do_output output_meta_channel transform nb_items =
     loop nb_items)
 
 let do_random ~output_file ~gzip ~nb_items spec =
-  let zlib_buffer_size  = 4200 in
   let output_meta_channel =
     match output_file with
     | None -> `stdout
@@ -369,7 +368,7 @@ let do_random ~output_file ~gzip ~nb_items spec =
     | `bam args -> if gzip then (`gzip `bam, args) else (`bam, args)
     | `table args ->  if gzip then (`gzip (`table '\t'), args) else (`table '\t', args)
   in
-  output_transform_of_tags ~zlib_buffer_size tags
+  output_transform_of_tags tags
   >>= begin function
   | `to_fastq tr ->
     let transform = Transform.compose (random_fastq_transform ~args ()) tr in

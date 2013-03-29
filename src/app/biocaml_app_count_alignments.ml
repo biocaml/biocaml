@@ -123,7 +123,7 @@ let build_wig ?(max_read_bytes=Int.max_value)
       Ok (`alignment al)
     | o -> o)
   in
-  go_through_input ~transform ~max_read_bytes ~input_buffer_size bamfile
+  go_through_input ~transform ~max_read_bytes bamfile
   >>= fun () ->
   let bed_set = bed_set tree in
   Lwt_io.(
@@ -146,9 +146,8 @@ let cmd_extract_wig =
         +> anon ("WIG-FILE" %: string)
         ++ uses_lwt ()
       )
-      (fun ~input_buffer_size ~output_buffer_size max_read_bytes input_file wig ->
-        build_wig ~input_buffer_size ~output_buffer_size ?max_read_bytes
-          input_file wig
+      (fun max_read_bytes input_file wig ->
+        build_wig  ?max_read_bytes input_file wig
         >>< common_error_to_string)
   )
 

@@ -141,9 +141,10 @@ type library_statistics = {
 let library_statistics () =
   { read_count = 0; no_mismatch_read_count = 0; }
 
-let perform ~mismatch ?do_statistics
-    ~input_buffer_size ~read_files
-    ~output_buffer_size ~demux_specification =
+let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
+
+  let input_buffer_size = !Global_configuration.input_buffer_size in
+  let output_buffer_size = !Global_configuration.output_buffer_size in
 
   for_concurrent read_files (fun filename ->
     wrap_deferred_lwt (fun () ->
@@ -443,9 +444,7 @@ let command =
           ~doc:"<file> do some basic statistics and write them to <file>"
         +> anon (sequence ("READ-FILES" %: string))
         ++ uses_lwt ())
-      begin fun ~input_buffer_size ~output_buffer_size
-        mismatch_cl demux_cl spec stats_cl
-        read_files_cl ->
+      begin fun mismatch_cl demux_cl spec stats_cl read_files_cl ->
           begin
             dbgi "before doing anything";
             begin match spec with
@@ -487,9 +486,7 @@ let command =
               (* let default = *)
                 Option.value demux
                   ~default:{demux_rules = []; demux_policy = `inclusive} in
-            perform ~mismatch ?do_statistics
-              ~input_buffer_size ~read_files ~output_buffer_size
-              ~demux_specification
+            perform ~mismatch ?do_statistics ~read_files ~demux_specification
           end
           >>< begin function
           | Ok () -> return ()
