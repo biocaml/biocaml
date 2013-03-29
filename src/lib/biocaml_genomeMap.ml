@@ -7,31 +7,39 @@ type 'a location = 'a * range
 module Range = Biocaml_range
 module Accu = Biocaml_accu
 
+module Map = struct
+  include Core.Std.Map.Poly.Tree
+
+  let to_stream t = Stream.of_list (to_alist t)
+  let of_stream xs =
+    Stream.fold xs ~init:empty ~f:(fun accu (key,data) -> add accu ~key ~data)
+end
+
 module Selection = struct
-  type 'a t = ('a, Biocaml_iset.t) Map.Poly.t
+  type 'a t = ('a, Biocaml_iset.t) Map.t
 
   let inter u v =
-    Map.fold u ~init:Map.Poly.empty ~f:(fun ~key:k ~data:set_u accu ->
+    Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
       match Map.find v k with
-      | Some set_v -> Map.Poly.add accu ~key:k ~data:(Biocaml_iset.inter set_u set_v)
+      | Some set_v -> Map.add accu ~key:k ~data:(Biocaml_iset.inter set_u set_v)
       | None -> accu
     )
 
   let union u v =
-    Map.fold u ~init:Map.Poly.empty ~f:(fun ~key:k ~data:set_u accu ->
+    Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
       match Map.find v k with
-      | Some set_v -> Map.Poly.add accu ~key:k ~data:(Biocaml_iset.union set_u set_v)
+      | Some set_v -> Map.add accu ~key:k ~data:(Biocaml_iset.union set_u set_v)
       | None -> accu
     )
 
   let diff u v =
-    Map.fold u ~init:Map.Poly.empty ~f:(fun ~key:k ~data:set_u accu ->
+    Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
       let set_u' =
 	match Map.find v k with
 	| Some set_v -> Biocaml_iset.diff set_u set_v
 	| None -> set_u
       in 
-      Map.Poly.add ~key:k ~data:set_u' accu
+      Map.add ~key:k ~data:set_u' accu
     )
 
   let size x =
@@ -77,7 +85,7 @@ end
 module LMap = struct
   module T = Biocaml_interval_tree
 
-  type ('a,'b) t = ('a, 'b T.t) Map.Poly.t
+  type ('a,'b) t = ('a, 'b T.t) Map.t
 
   let intersects (k,r) lmap =
     Option.value_map (Map.find lmap k) ~default:false ~f:(fun x -> Range.(T.intersects x r.lo r.hi))
@@ -116,7 +124,7 @@ end
 module LSet = struct
   module T = Biocaml_interval_tree
 
-  type 'a t = ('a, unit T.t) Map.Poly.t
+  type 'a t = ('a, unit T.t) Map.t
 
   let intersects = LMap.intersects
 

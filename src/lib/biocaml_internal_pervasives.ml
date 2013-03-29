@@ -75,7 +75,7 @@ module Map = struct
   include Core.Std.Map
   let to_stream t = Stream.of_list (to_alist t)
   let of_stream xs =
-    Stream.fold xs ~init:Poly.empty ~f:(fun accu (key,data) -> Poly.add accu ~key ~data) ;
+    Stream.fold xs ~init:Poly.empty ~f:(fun accu (key,data) -> Poly.add accu ~key ~data)
 end
 module Monad = Core.Std.Monad
 module Nat = Core.Std.Nat
