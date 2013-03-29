@@ -117,7 +117,7 @@ module Command_line = struct
       ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "ZIP"; k)
       +> flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
       ++ step (fun k v ->  if v then verbose := true; k)
-      +> flag "verbose-app"  no_arg ~doc:" make 'biocaml' itself verbose"
+      +> flag "verbose-app" ~aliases:["v"] no_arg ~doc:" make 'biocaml' itself verbose"
     )
 
 

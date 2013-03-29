@@ -442,7 +442,8 @@ let command =
   let open Command_line in
   let spec =
     let open Spec in
-    output_buffer_size_flag ()
+    verbosity_flags ()
+    ++ output_buffer_size_flag ()
     ++ gzip_output_flags ~activation:true
     ++ step (fun k v -> k ~output_file:v)
     +> flag "output-file" ~aliases:["o"] (optional string)
