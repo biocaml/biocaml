@@ -1,10 +1,14 @@
+(** This module is a “standard library” for all the components of the
+[biocaml] command line application *)
 
 open Core.Std
 open Flow
 open Biocaml
 
 
+(** Verbosity of the biocaml application. *)
 let verbose = ref false
+
 let dbg fmt =
   ksprintf (fun s ->
     if !verbose
@@ -28,17 +32,33 @@ end
 let wrap_deferred_lwt f =
   wrap_deferred (fun () -> f ()) ~on_exn:(fun e -> `lwt_exn e)
 
-module Global_configuration = struct
 
+
+module Global_configuration = struct
+  (** This module contains global configuration variables and their
+     usage/access functions. *)
+
+  (** [input_buffer_size] and [output_buffer_size] are the
+     buffer-sizes used for [Lwt] channels.
+
+     In the future we may make more distinctions:
+     - possible different buffer-sizes for different files
+     - use these numbers for the Lwt-channels creations but have a
+       different configuration variable for the calls to
+       [Lwt_io.read].
+  *)
   let default_output_buffer_size = 64_000
   let default_input_buffer_size = 64_000
   let output_buffer_size = ref default_output_buffer_size
   let input_buffer_size = ref default_input_buffer_size
 
+
+  (** Configuration of the [Zip.Transform.zip] transform. *)
   type gzip_output_configuration = [ `size of int | `factor of float ] * int
 
   let gzip_output_configuration = ref (None : gzip_output_configuration option)
 
+  (** Get the [~zlib_buffer_size] parameter to give to the transformations. *)
   let zlib_buffer_size () =
     Option.value_map ~default:Zip.Default.zlib_buffer_size
       !gzip_output_configuration ~f:(function
@@ -46,11 +66,17 @@ module Global_configuration = struct
         | `factor f, _ ->
           f *. (float !output_buffer_size) |> Float.iround_nearest_exn)
 
+  (** Actually create the [Zip.Transform.zip] transform with current
+     values of the configuration.  *)
   let gzip_output_transform () : (string, string) Transform.t option =
     Option.map !gzip_output_configuration (fun (size_config, level) ->
       let zlib_buffer_size = zlib_buffer_size () in
       (Biocaml_zip.Transform.zip ~format:`gzip ~level ~zlib_buffer_size ()))
 
+  (** If the configuration is not set, then set it. This is useful
+     when the information can come from a configuration file and from the
+     command-line (in this case the CL takes precedence as is it parsed
+     before the potential configuration file). *)
   let gzip_set_if_not_set ?(level=Zip.Default.level)
       ?(zlib_buffer_size=Zip.Default.zlib_buffer_size) () =
     match !gzip_output_configuration with
@@ -58,7 +84,9 @@ module Global_configuration = struct
     | None ->
       gzip_output_configuration := Some (`size zlib_buffer_size, level)
 
-  let gzip_output_activated () = (!gzip_output_configuration <> None)
+  (** Tell if the configuration has been set (for example to add
+     [".gz"] to file-names). *)
+  let gzip_output_activated () : bool = (!gzip_output_configuration <> None)
 
 
   (* TODO:
@@ -68,14 +96,20 @@ module Global_configuration = struct
 end
 
 module Command_line = struct
+  (** This module is Core's [Command] module plus a few predefined
+     command-line flags. *)
+
   include  Command
 
-
   let lwts_to_run = ref ([]: (unit, string) Flow.t list)
+
+  (** [uses_lwt ()] means: “register this command in
+     [lwts_to_run]”. It must be given last. *)
   let uses_lwt () =
     Spec.step (fun lwt () -> lwts_to_run := lwt :: !lwts_to_run)
 
-
+  (** Add the [-input-buffer] size flag to the CL. It configures
+     [Global_configuration.input_buffer_size]. *)
   let input_buffer_size_flag () =
     Spec.(
       step (fun k v ->
@@ -88,6 +122,7 @@ module Command_line = struct
             Global_configuration.default_input_buffer_size)
     )
 
+  (** Like [input_buffer_size_flag] but for the output-buffers. *)
   let output_buffer_size_flag () =
     Spec.(
       step (fun k v ->
@@ -100,6 +135,7 @@ module Command_line = struct
             Global_configuration.default_output_buffer_size)
     )
 
+  (** Append all the know verbosity flags (even if not relevant …). *)
   let verbosity_flags () =
     let set_verbosity v =
       if v then Biocaml_internal_pervasives.Debug.enable "BAM";
@@ -121,6 +157,8 @@ module Command_line = struct
     )
 
 
+  (** Add 3 flags that configure GZip-output transforms (also in the
+     [Global_configuration] module). *)
   let gzip_output_flags ~activation =
     dbgi "gzip_output_flags";
     let level = ref None in
@@ -168,7 +206,7 @@ module Command_line = struct
                 priority)"
     )
 
-
+  (** Add flags relevant for file-to-file conversions. *)
   let file_to_file_flags () =
     Spec.(
       verbosity_flags ()
@@ -178,6 +216,7 @@ module Command_line = struct
 
 end
 
+(** Run a transform between two files. *)
 let file_to_file transfo bamfile samfile =
   let input_buffer_size = !Global_configuration.input_buffer_size in
   let output_buffer_size = !Global_configuration.output_buffer_size in
@@ -224,7 +263,7 @@ let file_to_file transfo bamfile samfile =
     )
   )
 
-
+(** Run a transform on an input-file and discard it's output. *)
 let go_through_input ~transform ~max_read_bytes filename =
   let input_buffer_size = !Global_configuration.input_buffer_size in
   Lwt_io.(with_file ~mode:input ~buffer_size:input_buffer_size filename (fun i ->
@@ -281,7 +320,10 @@ let go_through_input ~transform ~max_read_bytes filename =
       loop 0
     ))
 
-let pull_next ~in_channel ~transform =
+(** Run a transform on an in_channel until it returns something or
+   consumes all the input. *)
+let pull_next
+    ~in_channel ~(transform: (string, 'b) Transform.t) : ('b option, _) Flow.t =
   let rec loop () =
     match Biocaml_transform.next transform with
     | `output o -> return (Some o)
@@ -302,7 +344,9 @@ let pull_next ~in_channel ~transform =
   in
   loop ()
 
-let flush_transform ~out_channel ~transform =
+(** Output the outputs of transform until its finished or not-ready. *)
+let flush_transform
+    ~out_channel ~(transform : ('a, string) Transform.t) : (unit, _) Flow.t =
   let rec loop () =
     match Biocaml_transform.next transform with
     | `output o ->
@@ -314,16 +358,20 @@ let flush_transform ~out_channel ~transform =
   in
   loop ()
 
+(** Feed a transform and then flush it (with [flush_transform]). *)
 let push_to_the_max ~out_channel ~transform input =
   Biocaml_transform.feed transform input;
   flush_transform ~out_channel ~transform
 
-
+(** Merge of the possible output errors of transforms of type
+   [output_transform] (most output transforms are error-free).  *)
 type output_error =
 [ `bam of Biocaml_bam.Transform.item_to_raw_error
 | `sam of Biocaml_sam.Error.item_to_raw
 ]
 with sexp_of
+
+(** Generic union of possible output transforms. *)
 type output_transform = [
 | `to_sam_item of (Sam.item, (string, output_error) Result.t) Transform.t
 | `to_gff of(Gff.stream_item, string) Transform.t
@@ -344,7 +392,9 @@ let output_transform_name = function
   | `to_int_fasta _ -> "to_int_fasta"
   | `to_table _ -> "to_table"
 
-let output_transform_of_tags (output_tags: Tags.t) =
+(** Guess the [output_transform] from file tags. *)
+let output_transform_of_tags
+    (output_tags: Tags.t) : (output_transform, _) Flow.t =
   let rec output_transform ?with_zip output_tags =
     let with_zip_result t =
       match with_zip with
