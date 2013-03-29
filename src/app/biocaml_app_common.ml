@@ -175,8 +175,9 @@ module Command_line = struct
 
 end
 
-let file_to_file transfo ?(input_buffer_size=42_000) bamfile
-    ?(output_buffer_size=42_000) samfile =
+let file_to_file transfo bamfile samfile =
+  let input_buffer_size = !Global_configuration.input_buffer_size in
+  let output_buffer_size = !Global_configuration.output_buffer_size in
   Lwt_io.(
     with_file ~mode:input ~buffer_size:input_buffer_size bamfile (fun i ->
       with_file ~mode:output ~buffer_size:output_buffer_size samfile (fun o ->
