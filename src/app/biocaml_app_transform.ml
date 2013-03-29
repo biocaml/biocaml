@@ -297,6 +297,7 @@ let command =
   let spec =
     let open Spec in
     file_to_file_flags ()
+    ++ gzip_output_flags ~activation:false
     ++ step (fun k v -> k ~output_tags:v)
     +> flag "output-tags" ~aliases:["to"] (required string)
       ~doc:"<string> give the specification of the output"
