@@ -145,10 +145,13 @@ module Command_line = struct
     Spec.(
       step (fun k v -> level := v; k)
       +> flag "gzip-level" ~aliases:["gz"] (optional int)
-          ~doc:(sprintf "<level> output GZip files\
-                         with compression level <level> (included in [1, 9])\n\
+          ~doc:(sprintf "<level> %s <level> (included in [1, 9])\n\
                          (default: %s)"
-              (if activation then "no compression"
+              (if activation
+               then "compress output files with GZip-level "
+               else "set the GZip compression level to ")
+              (if activation
+               then "no compression"
                else (Int.to_string Zip.Default.level)))
       ++ step (fun k v -> buf_size := v; k)
       +> flag "gzip-buffer-size" ~aliases:["gzbuf"]
