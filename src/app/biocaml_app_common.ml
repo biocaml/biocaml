@@ -28,6 +28,36 @@ end
 let wrap_deferred_lwt f =
   wrap_deferred (fun () -> f ()) ~on_exn:(fun e -> `lwt_exn e)
 
+module Global_configuration = struct
+
+  let output_buffer_size = ref 64_000 (* TODO *)
+  let input_buffer_size = ref 64_000 (* TODO *)
+
+
+  type gzip_output_configuration = [ `size of int | `factor of float ] * int
+
+  let gzip_output_configuration = ref (None : gzip_output_configuration option)
+
+  let gzip_output_transform () : (string, string) Transform.t option =
+    Option.map !gzip_output_configuration (fun (size_config, level) ->
+      let zlib_buffer_size =
+        match size_config with
+        | `size s -> s
+        | `factor f ->
+          f *. (float !output_buffer_size) |> Float.iround_nearest_exn
+      in
+      (Biocaml_zip.Transform.zip ~format:`gzip ~level ~zlib_buffer_size ()))
+
+  let gzip_set_if_not_set ?(level=Zip.Default.level)
+      ?(zlib_buffer_size=Zip.Default.zlib_buffer_size) () =
+    match !gzip_output_configuration with
+    | Some s -> ()
+    | None ->
+      gzip_output_configuration := Some (`size zlib_buffer_size, level)
+
+
+end
+
 module Command_line = struct
   include  Command
 
@@ -70,23 +100,12 @@ module Command_line = struct
       +> flag "verbose-app"  no_arg ~doc:" make 'biocaml' itself verbose"
     )
 
-  type gzip_output_configuration = [ `size of int | `factor of float ] * int
-
-  let gzip_output_transform
-      ~output_buffer_size (configuration: gzip_output_configuration) =
-    let size_config, level = configuration in
-    let zlib_buffer_size =
-      match size_config with
-      | `size s -> s
-      | `factor f -> f *. (float output_buffer_size) |> Float.iround_nearest_exn
-    in
-    (Biocaml_zip.Transform.zip ~format:`gzip ~level ~zlib_buffer_size ())
 
   let gzip_output_flags ~activation =
     dbgi "gzip_output_flags";
     let level = ref None in
     let buf_size = ref None in
-    let make_gzip_params factor : gzip_output_configuration option =
+    let make_gzip_params factor : unit =
       dbgi "make_gzip_params";
       let activated =
         match activation, !level with
@@ -95,11 +114,13 @@ module Command_line = struct
         | true, Some _ -> true in
       let lvl = Option.value !level ~default:Zip.Default.level in
       if activated
-      then Some (match !buf_size, factor with
-        | Some bf, _ -> (`size bf, lvl)
-        | None, Some f -> (`factor f, lvl)
-        | None, None -> (`size Zip.Default.zlib_buffer_size, lvl))
-      else None
+      then
+        Global_configuration.gzip_output_configuration :=
+          Some (match !buf_size, factor with
+          | Some bf, _ -> (`size bf, lvl)
+          | None, Some f -> (`factor f, lvl)
+          | None, None -> (`size Zip.Default.zlib_buffer_size, lvl))
+      else ()
     in
     Spec.(
       step (fun k v -> level := v; k)
@@ -115,7 +136,7 @@ module Command_line = struct
           ~doc:(sprintf "<size> \
                          setup ZLib's internal buffer size (default: %d)"
               Zip.Default.zlib_buffer_size)
-      ++ step (fun k v -> k ~gzip:(make_gzip_params v))
+      ++ step (fun k v -> make_gzip_params v; k)
       +> flag "gzip-buffer-size-factor" ~aliases:["gzbfs"]
           (optional float)
           ~doc:"<factor> \
