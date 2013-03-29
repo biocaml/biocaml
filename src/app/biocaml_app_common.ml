@@ -58,6 +58,7 @@ module Global_configuration = struct
     | None ->
       gzip_output_configuration := Some (`size zlib_buffer_size, level)
 
+  let gzip_output_activated () = (!gzip_output_configuration <> None)
 
 
   (* TODO:

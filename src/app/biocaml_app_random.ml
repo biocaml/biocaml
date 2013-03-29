@@ -326,7 +326,9 @@ let random_sam_item_transform ~args () =
 
 
 let do_output output_meta_channel transform nb_items =
-  IO.with_out_channel output_meta_channel ~f:(fun out ->
+  IO.with_out_channel
+    ~buffer_size:!Global_configuration.output_buffer_size
+    output_meta_channel ~f:(fun out ->
     let rec loop = function
       | 0 ->
         Transform.stop transform;
@@ -353,7 +355,7 @@ let do_output output_meta_channel transform nb_items =
     in
     loop nb_items)
 
-let do_random ~output_file ~gzip ~nb_items spec =
+let do_random ~output_file ~nb_items spec =
   let output_meta_channel =
     match output_file with
     | None -> `stdout
@@ -361,12 +363,17 @@ let do_random ~output_file ~gzip ~nb_items spec =
   parse_spec (String.concat ~sep:" " spec)
   >>= fun spec ->
   let tags, args =
-    match spec with
-    | `fastq args -> if gzip then (`gzip `fastq, args) else (`fastq, args)
-    | `bed args -> if gzip then (`gzip `bed, args) else (`bed, args)
-    | `sam args -> if gzip then (`gzip `sam, args) else (`sam, args)
-    | `bam args -> if gzip then (`gzip `bam, args) else (`bam, args)
-    | `table args ->  if gzip then (`gzip (`table '\t'), args) else (`table '\t', args)
+    let t, a =
+      match spec with
+      | `fastq args -> (`fastq, args)
+      | `bed args   -> (`bed, args)
+      | `sam args   -> (`sam, args)
+      | `bam args   -> (`bam, args)
+      | `table args -> (`table '\t', args)
+    in
+    if Global_configuration.gzip_output_activated ()
+    then (`gzip t, a)
+    else (t, a)
   in
   output_transform_of_tags tags
   >>= begin function
@@ -428,20 +435,18 @@ let stringify m =
     ] >> e |! Sexp.to_string_hum)
   end
 
-let do_random ~output_file ~gzip ~nb_items spec =
-  stringify (do_random ~output_file ~gzip ~nb_items  spec)
+let do_random ~output_file ~nb_items spec =
+  stringify (do_random ~output_file ~nb_items  spec)
 
 let command =
   let open Command_line in
   let spec =
     let open Spec in
-    empty
+    output_buffer_size_flag ()
+    ++ gzip_output_flags ~activation:true
     ++ step (fun k v -> k ~output_file:v)
     +> flag "output-file" ~aliases:["o"] (optional string)
-      ~doc:"<filename> output to a file"
-    ++ step (fun k v -> k ~gzip:v)
-    +> flag "gzip" ~aliases:["gz"] no_arg
-      ~doc:" GZip the output"
+        ~doc:"<filename> output to a file"
     ++ step (fun k v -> k ~nb_items:v)
     +> flag "items" (optional_with_default 42 int)
       ~doc:"<nb> Number of records/items to produce"
