@@ -375,58 +375,108 @@ let parse_configuration s =
     | _ -> None) in
   (mismatch, gzip, stats, demux, inputs)
 
-let more_help () =
+(** Return a string containing a manual in markdown-ish syntax. *)
+let more_help () : string =
   let open Blang in
-  let ex v =
-    let incl = { demux_rules = v ; demux_policy = `inclusive } in
+  let ex ?(demux_policy = `inclusive) v =
+    let incl = { demux_rules = v ; demux_policy } in
     (Sexp.to_string_hum (sexp_of_demux_specification incl)) in
-  String.concat ~sep:"\n\n" [
-    "** Examples of S-Expressions:";
-    sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
-      (ex [
-         { name_prefix = "LibONE";
-           filter =
-             `barcoding (barcode_specification ~position:1 "ACTGTT"
-                 ~mismatch:1 ~on_read:2) };
-         { name_prefix = "LibTWO";
-           filter = `barcoding (
-               barcode_specification ~position:1 "CTTATG"
-                 ~mismatch:1 ~on_read:2) };
-       ]);
-    sprintf "A library with two barcodes to match:\n%s"
-      (ex [
-         { name_prefix = "LibAND";
-           filter = `barcoding (
-               and_ [
-                 barcode_specification ~position:5 "ACTGTT"
-                   ~mismatch:1 ~on_read:1;
-                 barcode_specification ~position:1 "TTGT"
-                   ~on_read:2;
-               ])}
-       ]);
-    sprintf "A merge of two barcodes into one “library”:\n%s"
-      (ex [
-         { name_prefix = "LibOR";
-           filter = `barcoding (or_ [
-                 barcode_specification ~position:5 "ACTGTT"
-                   ~mismatch:1 ~on_read:1;
-                 barcode_specification ~position:1 "TTGT" ~on_read:2;
-               ]) }]);
-    begin
-      let example =
-        "(demux\n\
-        \  (library \"Lib with ånnœ¥ing name\" (barcoding ACCCT:1:2)) \
-         ;; one barcode on R1, at pos 2\n\
-        \  (library GetALL (barcoding true)) ;; get everything\n\
-        \  (library Merge (barcoding (and AGTT:2:42:1 ACCC:2:42:1 \n\
-        \                   (not AGTGGTC:1:1:2))) \
-         ;; a ∧ b ∧ ¬c  matching\n\
-         ))" in
-      let spec =
-        Sexp.of_string example |! demux_specification_of_sexp in
-      sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec.demux_rules)
-    end;
-  ]
+  let outbuf = Buffer.create 1024 in
+  let out fmt = ksprintf (Buffer.add_string outbuf) fmt in
+  let title fmt = out ("# " ^^ fmt ^^ "\n\n") in
+  let section fmt = out ("## " ^^ fmt ^^ "\n\n") in
+  let word_wrap text =
+    (* In Core_extended there were also: String.{squeeze,word_wrap} *)
+    let outbuf = Buffer.create 42 in
+    let out fmt = ksprintf (Buffer.add_string outbuf) fmt in
+    let words =
+      String.(split ~on:' '
+          (map text (function '\n' | '\t' | '\r' -> ' ' | c -> c))) in
+    let rec loop count = function
+    | [] -> ()
+    | "" :: more
+    | "\n" :: more -> loop count more
+    | one :: more ->
+      let lgth = String.length one + count + 1 in
+      if lgth > 72
+      then (out "\n%s" one; loop (String.length one + 1) more)
+      else (out "%s%s" (if count > 0 then " " else "") one; loop lgth more)
+    in
+    loop 0 words;
+    Buffer.contents outbuf
+  in
+  let par fmt = ksprintf (fun s ->
+      out "%s\n\n" (word_wrap s)
+    ) fmt
+  in
+  let ul l = List.iter l ~f:(fun s -> out "- %s\n" (word_wrap s)); out "\n" in
+  let code s =
+    out "%s\n\n" (String.split s ~on:'\n'
+                  |> List.map ~f:(sprintf "    %s")
+                  |> String.concat ~sep:"\n") in
+  title "Biocaml's Demultiplexer";
+  section "Usage";
+  par "The general idea is to call";
+  code "`biocaml demux <specification> [<more options>] <R1> <R2> <R3> ...`";
+  par "where";
+  ul [
+    "`specification` is either `-specification <file>` or `-demux <string>`. \
+     A specification file containing `(demux <string>)` is equivalent to \
+     `-demux <string>`";
+    "`R1`, `R2`, … are (potentially gzipped) fastq files containing \
+     the reads to demultiplex";
+    "many other options are available, see `biocaml demux -help`";
+  ];
+  section "Examples of Demux-Specifications:";
+  par "Two Illumina-style libraries (the index is read n°2):";
+  code
+    (ex [
+       { name_prefix = "LibONE";
+         filter =
+           `barcoding (barcode_specification ~position:1 "ACTGTT"
+               ~mismatch:1 ~on_read:2) };
+       { name_prefix = "LibTWO";
+         filter = `barcoding (
+             barcode_specification ~position:1 "CTTATG"
+               ~mismatch:1 ~on_read:2) };
+     ]);
+  par "A library with two barcodes to match:";
+  code
+    (ex [
+       { name_prefix = "LibAND";
+         filter = `barcoding (
+             and_ [
+               barcode_specification ~position:5 "ACTGTT"
+                 ~mismatch:1 ~on_read:1;
+               barcode_specification ~position:1 "TTGT"
+                 ~on_read:2;
+             ])}
+     ]);
+  par "A merge of two barcodes into one “library”:";
+  code
+    (ex [
+       { name_prefix = "LibOR";
+         filter = `barcoding (or_ [
+               barcode_specification ~position:5 "ACTGTT"
+                 ~mismatch:1 ~on_read:1;
+               barcode_specification ~position:1 "TTGT" ~on_read:2;
+             ]) }]);
+  let example =
+    "(demux\n\
+    \  (library \"Lib with ånnœ¥ing name\" (barcoding ACCCT:1:2)) \
+     ;; one barcode on R1, at pos 2\n\
+    \  (library GetALL (barcoding true)) ;; get everything\n\
+    \  (library Merge (barcoding (and AGTT:2:42:1 ACCC:2:42:1 \n\
+    \                   (not AGTGGTC:1:1:2))) \
+     ;; a ∧ b ∧ ¬c  matching\n\
+     ))" in
+  let spec = Sexp.of_string example |! demux_specification_of_sexp in
+  par "The following one uses the abbreviated syntax:";
+  code example;
+  par "which is equivalent to:";
+  code (ex spec.demux_rules);
+  Buffer.contents outbuf
+
 
 let command =
   Command_line.(
