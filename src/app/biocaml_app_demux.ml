@@ -536,7 +536,9 @@ let command =
         +> flag "default-mismatch" (optional int)
             ~doc:"<int> default maximal mismatch allowed (default 0)"
         +> flag "demux" (optional string)
-            ~doc:"<string> give the specification as a list of S-Expressions"
+            ~doc:"<string> give the (inclusive) specification as a list of S-Expressions"
+        +> flag "exclusive-demux" (optional string)
+            ~doc:"<string> give the (exclusive) specification as a list of S-Expressions"
         +> flag "specification" ~aliases:["spec"] (optional string)
             ~doc:"<file> give a path to a file containing the specification"
         +> flag "statistics" ~aliases:["stats"] (optional string)
@@ -545,50 +547,54 @@ let command =
             ~doc:" display more help about demultiplexing"
         +> anon (sequence ("READ-FILES" %: string))
         ++ uses_lwt ())
-      begin fun mismatch_cl demux_cl spec stats_cl manual read_files_cl ->
+      begin fun mismatch_cl indemux_cl exdemux_cl spec stats_cl manual read_files_cl ->
         begin
-          if manual then printf "\n%s\n%!" (more_help ());
-          dbgi "before doing anything";
-          begin match spec with
-          | Some s ->
-            wrap_deferred_lwt (fun () ->
-                Lwt_io.(with_file ~mode:input s (fun i -> read i)))
-            >>| parse_configuration
-          | None -> return (None, None, None, None, None)
-          end
-          >>= fun (mismatch, gzip_conf, stats, demux, inputs) ->
-          begin match read_files_cl, inputs with
-          | [], Some l -> return l
-          | l, None -> return l
-          | l, Some ll ->
-            failf "conflict: input files defined in command line \
-                   and configuration file"
-          end
-          >>= fun read_files ->
-          let mismatch =
-            match mismatch_cl with
-            | Some s -> s
-            | None -> match mismatch with Some s -> s | None -> 0 in
-          let () =
-            Option.iter gzip_conf (fun level ->
-              Global_configuration.gzip_set_if_not_set ~level ()) in
-          dbgi "Before do_statistics";
-          let do_statistics = if stats_cl <> None then stats_cl else stats in
-          let demux_spec_from_cl =
-            Option.bind demux_cl (fun s ->
-              try
-                Some (Sexp.of_string (sprintf "(demux %s)" s)
-                      |> demux_specification_of_sexp)
-              with e ->
-                dbgi "Parsing error: %s" (Exn.to_string e); None) in
-          let demux =
-            if demux_spec_from_cl <> None then demux_spec_from_cl
-            else demux in
-          let demux_specification =
-            (* let default = *)
-            Option.value demux
-              ~default:{demux_rules = []; demux_policy = `inclusive} in
-          perform ~mismatch ?do_statistics ~read_files ~demux_specification
+          if manual then
+            begin
+              printf "\n%s\n%!" (more_help ());
+              return ()
+            end
+          else
+            begin match spec with
+            | Some s ->
+              wrap_deferred_lwt (fun () ->
+                  Lwt_io.(with_file ~mode:input s (fun i -> read i)))
+              >>| parse_configuration
+            | None -> return (None, None, None, None, None)
+            end
+            >>= fun (mismatch, gzip_conf, stats, demux, inputs) ->
+            begin match read_files_cl, inputs with
+            | [], Some l -> return l
+            | l, None -> return l
+            | l, Some ll ->
+              failf "conflict: input files defined in command line \
+                     and configuration file"
+            end
+            >>= fun read_files ->
+            let mismatch =
+              match mismatch_cl with
+              | Some s -> s
+              | None -> match mismatch with Some s -> s | None -> 0 in
+            let () =
+              Option.iter gzip_conf (fun level ->
+                Global_configuration.gzip_set_if_not_set ~level ()) in
+            dbgi "Before do_statistics";
+            let do_statistics = if stats_cl <> None then stats_cl else stats in
+            let demux_specification =
+              let parse s =
+                try
+                  Sexp.of_string s |> demux_specification_of_sexp
+                with e ->
+                  failwithf "Parsing error: %s\n%!" (Exn.to_string e) ()
+              in
+              match indemux_cl, exdemux_cl, demux with
+              | Some s, None, _ -> parse (sprintf "(demux %s)" s)
+              | None, Some s, _ -> parse (sprintf "(exclusive-demux %s)" s)
+              | None, None, Some d -> d
+              | _ ->
+                failwith "No demux-specification provided (file or command-line)"
+            in
+            perform ~mismatch ?do_statistics ~read_files ~demux_specification
         end
         >>< begin function
         | Ok () -> return ()
