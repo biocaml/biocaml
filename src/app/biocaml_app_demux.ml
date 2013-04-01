@@ -375,136 +375,142 @@ let parse_configuration s =
     | _ -> None) in
   (mismatch, gzip, stats, demux, inputs)
 
+let more_help () =
+  let open Blang in
+  let ex v =
+    let incl = { demux_rules = v ; demux_policy = `inclusive } in
+    (Sexp.to_string_hum (sexp_of_demux_specification incl)) in
+  String.concat ~sep:"\n\n" [
+    "** Examples of S-Expressions:";
+    sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
+      (ex [
+         { name_prefix = "LibONE";
+           filter =
+             `barcoding (barcode_specification ~position:1 "ACTGTT"
+                 ~mismatch:1 ~on_read:2) };
+         { name_prefix = "LibTWO";
+           filter = `barcoding (
+               barcode_specification ~position:1 "CTTATG"
+                 ~mismatch:1 ~on_read:2) };
+       ]);
+    sprintf "A library with two barcodes to match:\n%s"
+      (ex [
+         { name_prefix = "LibAND";
+           filter = `barcoding (
+               and_ [
+                 barcode_specification ~position:5 "ACTGTT"
+                   ~mismatch:1 ~on_read:1;
+                 barcode_specification ~position:1 "TTGT"
+                   ~on_read:2;
+               ])}
+       ]);
+    sprintf "A merge of two barcodes into one “library”:\n%s"
+      (ex [
+         { name_prefix = "LibOR";
+           filter = `barcoding (or_ [
+                 barcode_specification ~position:5 "ACTGTT"
+                   ~mismatch:1 ~on_read:1;
+                 barcode_specification ~position:1 "TTGT" ~on_read:2;
+               ]) }]);
+    begin
+      let example =
+        "(demux\n\
+        \  (library \"Lib with ånnœ¥ing name\" (barcoding ACCCT:1:2)) \
+         ;; one barcode on R1, at pos 2\n\
+        \  (library GetALL (barcoding true)) ;; get everything\n\
+        \  (library Merge (barcoding (and AGTT:2:42:1 ACCC:2:42:1 \n\
+        \                   (not AGTGGTC:1:1:2))) \
+         ;; a ∧ b ∧ ¬c  matching\n\
+         ))" in
+      let spec =
+        Sexp.of_string example |! demux_specification_of_sexp in
+      sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec.demux_rules)
+    end;
+  ]
+
 let command =
   Command_line.(
     basic ~summary:"Fastq deumltiplexer"
       ~readme:begin fun () ->
-        let open Blang in
-        let ex v =
-          let incl = { demux_rules = v ; demux_policy = `inclusive } in
-          (Sexp.to_string_hum (sexp_of_demux_specification incl)) in
-        String.concat ~sep:"\n\n" [
-          "** Examples of S-Expressions:";
-          sprintf "Two Illumina-style libraries (the index is read n°2):\n%s"
-            (ex [
-               { name_prefix = "LibONE";
-                 filter =
-                   `barcoding (barcode_specification ~position:1 "ACTGTT"
-                       ~mismatch:1 ~on_read:2) };
-               { name_prefix = "LibTWO";
-                 filter = `barcoding (
-                     barcode_specification ~position:1 "CTTATG"
-                       ~mismatch:1 ~on_read:2) };
-             ]);
-          sprintf "A library with two barcodes to match:\n%s"
-            (ex [
-              { name_prefix = "LibAND";
-                filter = `barcoding (
-                    and_ [
-                      barcode_specification ~position:5 "ACTGTT"
-                        ~mismatch:1 ~on_read:1;
-                    barcode_specification ~position:1 "TTGT"
-                      ~on_read:2;
-                    ])}
-            ]);
-          sprintf "A merge of two barcodes into one “library”:\n%s"
-            (ex [
-              { name_prefix = "LibOR";
-                filter = `barcoding (or_ [
-                      barcode_specification ~position:5 "ACTGTT"
-                        ~mismatch:1 ~on_read:1;
-                      barcode_specification ~position:1 "TTGT" ~on_read:2;
-                    ]) }]);
-          begin
-            let example =
-              "(demux\n\
-                \  (library \"Lib with ånnœ¥ing name\" (barcoding ACCCT:1:2)) \
-                    ;; one barcode on R1, at pos 2\n\
-                \  (library GetALL (barcoding true)) ;; get everything\n\
-                \  (library Merge (barcoding (and AGTT:2:42:1 ACCC:2:42:1 \n\
-                \                   (not AGTGGTC:1:1:2))) \
-                ;; a ∧ b ∧ ¬c  matching\n\
-                ))" in
-            let spec =
-              Sexp.of_string example |! demux_specification_of_sexp in
-            sprintf "This one:\n%s\nis equivalent to:\n%s" example (ex spec.demux_rules)
-          end;
-        ]
+        "See option [-manual] for more detailed explanations."
       end
       Spec.(
         file_to_file_flags ()
         ++ gzip_output_flags ~activation:true
         +> flag "default-mismatch" (optional int)
-          ~doc:"<int> default maximal mismatch allowed (default 0)"
+            ~doc:"<int> default maximal mismatch allowed (default 0)"
         +> flag "demux" (optional string)
-          ~doc:"<string> give the specification as a list of S-Expressions"
+            ~doc:"<string> give the specification as a list of S-Expressions"
         +> flag "specification" ~aliases:["spec"] (optional string)
-          ~doc:"<file> give a path to a file containing the specification"
+            ~doc:"<file> give a path to a file containing the specification"
         +> flag "statistics" ~aliases:["stats"] (optional string)
-          ~doc:"<file> do some basic statistics and write them to <file>"
+            ~doc:"<file> do some basic statistics and write them to <file>"
+        +> flag "manual" ~aliases:["man"] (no_arg)
+            ~doc:" display more help about demultiplexing"
         +> anon (sequence ("READ-FILES" %: string))
         ++ uses_lwt ())
-      begin fun mismatch_cl demux_cl spec stats_cl read_files_cl ->
-          begin
-            dbgi "before doing anything";
-            begin match spec with
-            | Some s ->
-              wrap_deferred_lwt (fun () ->
+      begin fun mismatch_cl demux_cl spec stats_cl manual read_files_cl ->
+        begin
+          if manual then printf "\n%s\n%!" (more_help ());
+          dbgi "before doing anything";
+          begin match spec with
+          | Some s ->
+            wrap_deferred_lwt (fun () ->
                 Lwt_io.(with_file ~mode:input s (fun i -> read i)))
-              >>| parse_configuration
-            | None -> return (None, None, None, None, None)
-            end
-            >>= fun (mismatch, gzip_conf, stats, demux, inputs) ->
-            begin match read_files_cl, inputs with
-            | [], Some l -> return l
-            | l, None -> return l
-            | l, Some ll ->
-              failf "conflict: input files defined in command line \
-                     and configuration file"
-            end
-            >>= fun read_files ->
-            let mismatch =
-              match mismatch_cl with
-              | Some s -> s
-              | None -> match mismatch with Some s -> s | None -> 0 in
-            let () =
-              Option.iter gzip_conf (fun level ->
-                Global_configuration.gzip_set_if_not_set ~level ()) in
-            dbgi "Before do_statistics";
-            let do_statistics = if stats_cl <> None then stats_cl else stats in
-            let demux_spec_from_cl =
-              Option.bind demux_cl (fun s ->
-                try
-                  Some (Sexp.of_string (sprintf "(demux %s)" s)
-                        |> demux_specification_of_sexp)
-                with e ->
-                  dbgi "Parsing error: %s" (Exn.to_string e); None) in
-            let demux =
-              if demux_spec_from_cl <> None then demux_spec_from_cl
-              else demux in
-            let demux_specification =
-              (* let default = *)
-                Option.value demux
-                  ~default:{demux_rules = []; demux_policy = `inclusive} in
-            perform ~mismatch ?do_statistics ~read_files ~demux_specification
+            >>| parse_configuration
+          | None -> return (None, None, None, None, None)
           end
-          >>< begin function
-          | Ok () -> return ()
-          | Error e ->
-            let s =
-              Sexp.to_string_hum
-                (<:sexp_of<
-                    [ `failure of string
-                    | `lwt_exn of exn
-                    | `io_multi_error of
-                        [ `failure of string
-                        | `lwt_exn of exn
-                        | `openning_files of [ `lwt_exn of exn ] list ] list
-                    | `openning_files of [ `lwt_exn of exn ] list ] >>
-                    e)
-            in
-            error s
+          >>= fun (mismatch, gzip_conf, stats, demux, inputs) ->
+          begin match read_files_cl, inputs with
+          | [], Some l -> return l
+          | l, None -> return l
+          | l, Some ll ->
+            failf "conflict: input files defined in command line \
+                   and configuration file"
           end
+          >>= fun read_files ->
+          let mismatch =
+            match mismatch_cl with
+            | Some s -> s
+            | None -> match mismatch with Some s -> s | None -> 0 in
+          let () =
+            Option.iter gzip_conf (fun level ->
+              Global_configuration.gzip_set_if_not_set ~level ()) in
+          dbgi "Before do_statistics";
+          let do_statistics = if stats_cl <> None then stats_cl else stats in
+          let demux_spec_from_cl =
+            Option.bind demux_cl (fun s ->
+              try
+                Some (Sexp.of_string (sprintf "(demux %s)" s)
+                      |> demux_specification_of_sexp)
+              with e ->
+                dbgi "Parsing error: %s" (Exn.to_string e); None) in
+          let demux =
+            if demux_spec_from_cl <> None then demux_spec_from_cl
+            else demux in
+          let demux_specification =
+            (* let default = *)
+            Option.value demux
+              ~default:{demux_rules = []; demux_policy = `inclusive} in
+          perform ~mismatch ?do_statistics ~read_files ~demux_specification
+        end
+        >>< begin function
+        | Ok () -> return ()
+        | Error e ->
+          let s =
+            Sexp.to_string_hum
+              (<:sexp_of<
+                  [ `failure of string
+                  | `lwt_exn of exn
+                  | `io_multi_error of
+                      [ `failure of string
+                      | `lwt_exn of exn
+                      | `openning_files of [ `lwt_exn of exn ] list ] list
+                  | `openning_files of [ `lwt_exn of exn ] list ] >>
+                 e)
+          in
+          error s
+        end
       end)
 
 
