@@ -531,10 +531,7 @@ let command =
       begin fun mismatch_cl indemux_cl exdemux_cl spec stats_cl manual read_files_cl ->
         begin
           if manual then
-            begin
-              printf "\n%s\n%!" (more_help ());
-              return ()
-            end
+            Say.raw "%s%!" (more_help ())
           else
             begin match spec with
             | Some s ->
@@ -560,20 +557,18 @@ let command =
               Option.iter gzip_conf (fun level ->
                 Global_configuration.gzip_set_if_not_set ~level ()) in
             let do_statistics = if stats_cl <> None then stats_cl else stats in
-            let demux_specification =
-              let parse s =
-                try
-                  Sexp.of_string s |> demux_specification_of_sexp
-                with e ->
-                  failwithf "Parsing error: %s\n%!" (Exn.to_string e) ()
-              in
-              match indemux_cl, exdemux_cl, demux with
-              | Some s, None, _ -> parse (sprintf "(demux %s)" s)
-              | None, Some s, _ -> parse (sprintf "(exclusive-demux %s)" s)
-              | None, None, Some d -> d
-              | _ ->
-                failwith "No demux-specification provided (file or command-line)"
-            in
+            let parse s =
+              try
+                return (Sexp.of_string s |> demux_specification_of_sexp)
+              with e ->
+                failf "Parsing error: %s\n%!" (Exn.to_string e) in
+            begin match indemux_cl, exdemux_cl, demux with
+            | Some s, None, _ -> parse (sprintf "(demux %s)" s)
+            | None, Some s, _ -> parse (sprintf "(exclusive-demux %s)" s)
+            | None, None, Some d -> return d
+            | _ -> failf "No demux-specification provided (file or command-line)"
+            end
+            >>= fun demux_specification ->
             perform ~mismatch ?do_statistics ~read_files ~demux_specification
         end
         >>< begin function
@@ -591,7 +586,8 @@ let command =
                   | `openning_files of [ `lwt_exn of exn ] list ] >>
                  e)
           in
-          error s
+          Say.problemi "%s" s;
+          return ()
         end
       end)
 

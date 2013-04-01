@@ -89,6 +89,10 @@ module Say = struct
       eprintf "%s:\n%s\n%!" (red "Biocaml-ERROR") (word_wrap ~prefix:"  | " s);
     ) fmt
 
+  let raw fmt =
+    ksprintf (fun s ->
+      wrap_deferred_lwt (fun () -> Lwt_io.print s)) fmt
+
 end
 
 module Global_configuration = struct
