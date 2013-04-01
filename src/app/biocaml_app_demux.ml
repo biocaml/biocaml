@@ -4,15 +4,22 @@ open Biocaml
 open Biocaml_app_common
 
 
+(** A [barcode_specification] is a matching rule for a single barcode
+   (a library can have more than one barcode). *)
 type barcode_specification = {
   barcode: string;
   position: int;
   on_read: int;
+  (** [mismatch]: [None] means “leave decision to application defaults” *)
   mismatch: int option;
 }
+
+(** Create a [barcode_specification]. *)
 let barcode_specification ?mismatch ~position ~on_read barcode =
   Blang.base { mismatch; barcode; position; on_read }
-let barcode_specification_of_sexp =
+
+(** Parse an S-Expression into a [barcode_specification]. *)
+let barcode_specification_of_sexp : Sexp.t -> barcode_specification =
   let open Sexp in
   function
   | Atom all_in_one as sexp ->
@@ -39,6 +46,8 @@ let barcode_specification_of_sexp =
     { mismatch; barcode; position; on_read}
   | sexp -> of_sexp_error (sprintf "wrong barcode spec") sexp
 
+(** Serialize a [barcode_specification] to an S-Expression (as
+   human-readable as possible). *)
 let sexp_of_barcode_specification { mismatch; barcode; position; on_read} =
   let open Sexp in
   let more =
@@ -50,16 +59,20 @@ let sexp_of_barcode_specification { mismatch; barcode; position; on_read} =
         :: Atom "at" :: Atom "position" :: Atom (Int.to_string position)
         :: more)
 
-
+(** We define a [library] as a “prefix” (to output files
+   [prefix_{R1,R2,R3}]), and a matching rule. The later can be either
+   [`undetermined], which means “catch” all the non-matched reads, or
+   [`barcoding expr], where [expr] is a boolean expression where the
+   atoms are [barcode_specification] rules.  *)
 type library = {
   name_prefix: string;
   filter: [
     | `barcoding of barcode_specification Blang.t
     | `undetermined
   ]
-(* Disjunctive normal form: or_list (and_list barcode_specs))*)
 }
 
+(** Parse an S-Expression into a [library] specification. *)
 let library_of_sexp =
   let open Sexp in
   function
@@ -72,6 +85,7 @@ let library_of_sexp =
   | sexp ->
     of_sexp_error (sprintf "wrong library") sexp
 
+(** Serialize a [library] into an [SExp.t]. *)
 let sexp_of_library {name_prefix; filter} =
   let open Sexp in
   let rest =
@@ -82,10 +96,16 @@ let sexp_of_library {name_prefix; filter} =
     | `undetermined -> Atom "undetermined" in
   List [Atom "library"; Atom name_prefix; rest]
 
+(** The specification of a whole demultiplexing is a list of library
+   matching specifications, and global matching parameters. For now the
+   only parameter is the [demux_policy] which dictates how are handled
+   libraries that match more than one rule. *)
 type demux_specification = {
   demux_rules: library list;
   demux_policy: [ `exclusive | `inclusive ];
 }
+
+(** Parse an S-Expression into a [demux_specification]. *)
 let demux_specification_of_sexp =
   let open Sexp in
   function
@@ -99,6 +119,7 @@ let demux_specification_of_sexp =
     { demux_rules; demux_policy = `exclusive; }
   | sexp -> of_sexp_error (sprintf "wrong sexp") sexp
 
+(** Serialize a [demux_specification] into a [Sexp.t]. *)
 let sexp_of_demux_specification l =
   let open Sexp in
   match l.demux_policy with
@@ -107,16 +128,13 @@ let sexp_of_demux_specification l =
   | `exclusive ->
     List (Atom "exclusive-demux" :: List.map l.demux_rules sexp_of_library)
 
-
-let join_pair t1 t2 =
-  wrap_deferred_lwt (fun () -> Lwt_list.map_p ident [t1; t2])
-  >>= begin function
-  | [ r1; r2] -> return (r1, r2)
-  | _ -> failf "join_pair did not return 2 elements"
-  end
-
-
-let check_barcode ~mismatch ~position ~barcode sequence =
+(** [check_barcode] is the function that tells if a
+   [barcode_specification] (here exploded into many arguments) matches a
+   given read-sequence. If [true], it also returns the mismatch that
+   was needed. *)
+let check_barcode
+    ~mismatch ~position ~barcode
+    (sequence: string): bool * int =
   let allowed_mismatch = ref mismatch in
   let index = ref 0 in
   while !allowed_mismatch >= 0 && !index <= String.length barcode - 1 do
@@ -126,6 +144,7 @@ let check_barcode ~mismatch ~position ~barcode sequence =
   done;
   (!allowed_mismatch >= 0, mismatch - !allowed_mismatch)
 
+(** Convert FASTQ input errors to strings. *)
 let string_of_error e =
   let module M = struct
     type t = [ Biocaml_fastq.Error.t
@@ -134,6 +153,7 @@ let string_of_error e =
   end in
   Sexp.to_string_hum (M.sexp_of_t e)
 
+(** Structure used to record demux-statistics. *)
 type library_statistics = {
   mutable read_count: int;
   mutable no_mismatch_read_count: int;
@@ -141,11 +161,18 @@ type library_statistics = {
 let library_statistics () =
   { read_count = 0; no_mismatch_read_count = 0; }
 
+(** Big demultiplexing function. *)
 let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
 
+  (* Get some parameters from App_common.Global_configuration *)
   let input_buffer_size = !Global_configuration.input_buffer_size in
   let output_buffer_size = !Global_configuration.output_buffer_size in
 
+  (* Open all the input files and prepare their parsing transforms
+     (using the tags to guess if unzipping is needed).
+
+     TODO: also handle pairs of fasta, and non-aligned BAM/SAM content
+  *)
   for_concurrent read_files (fun filename ->
     wrap_deferred_lwt (fun () ->
       Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size filename))
@@ -164,12 +191,15 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
     return (transform, inp))
   >>= fun (transform_inputs, errors) ->
 
+  (* Cleanly close all the input files (used for error management). *)
   let close_all_inputs () =
     while_sequential transform_inputs (fun (_, i) ->
       wrap_deferred_lwt (fun () -> Lwt_io.close i))
     >>= fun _ ->
     return ()
   in
+
+  (* Check the errors of the previous for_concurrent *)
   begin match errors with
   | [] -> return ()
   | some ->
@@ -178,6 +208,9 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
   end
   >>= fun () ->
 
+  (* For all the output-library-specifications, prepare the output
+     channels (one per read of each library!) and the output transforms
+     (optionally with GZip). *)
   for_concurrent demux_specification.demux_rules (fun {name_prefix; filter} ->
     for_concurrent_with_index read_files (fun i _ ->
       let actual_filename, transform =
@@ -208,6 +241,8 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
       error (`openning_files some_errors)
     end)
   >>= fun (output_specs, errors) ->
+
+  (* Close all inputs *and* outputs. *)
   let close_all () =
     close_all_inputs ()
     >>= fun () ->
@@ -215,6 +250,9 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
       while_sequential outs (fun (_, o) ->
         wrap_deferred_lwt (fun () -> Lwt_io.close o)))
   in
+
+  (* Go through a list of errors, and propagate them altogether after
+     closing I/O channels. *)
   let check_errors = function
     | [] -> return ()
     | some -> close_all () >>= fun _ -> error (`io_multi_error some)
@@ -222,6 +260,7 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
   check_errors errors
   >>= fun () ->
 
+  (* This defines the main demultiplexing loop. *)
   let rec loop () =
     for_concurrent transform_inputs (fun (transform, in_channel) ->
       pull_next ~transform  ~in_channel)
@@ -303,6 +342,8 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
     end
   in
   loop () >>= fun () ->
+
+  (* Optionally open the statistics file. *)
   begin match do_statistics with
   | Some s ->
     let open Lwt_io in
@@ -315,6 +356,9 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
   | None -> return None
   end
   >>= fun stats_channel ->
+
+  (* Cleanly stop all the transformations, close the out_channels, and
+     output the statistics. *)
   for_concurrent output_specs (fun (name, os, spec, stats) ->
     for_concurrent os ~f:(fun (transform, out_channel) ->
       Biocaml_transform.stop transform;
@@ -338,6 +382,8 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
   Option.value_map stats_channel ~default:(return ())
     ~f:(fun c -> wrap_deferred_lwt (fun () -> Lwt_io.close c))
 
+(** Parse the “global” configuration file (containing parameters that
+   can be set on command line *and* the demultiplexing specification). *)
 let parse_configuration s =
   let open Sexp in
   let sexp = ksprintf of_string "(\n%s\n)" s in
