@@ -429,31 +429,14 @@ let more_help () : string =
   let out fmt = ksprintf (Buffer.add_string outbuf) fmt in
   let title fmt = out ("# " ^^ fmt ^^ "\n\n") in
   let section fmt = out ("## " ^^ fmt ^^ "\n\n") in
-  let word_wrap text =
-    (* In Core_extended there were also: String.{squeeze,word_wrap} *)
-    let outbuf = Buffer.create 42 in
-    let out fmt = ksprintf (Buffer.add_string outbuf) fmt in
-    let words =
-      String.(split ~on:' '
-          (map text (function '\n' | '\t' | '\r' -> ' ' | c -> c))) in
-    let rec loop count = function
-    | [] -> ()
-    | "" :: more
-    | "\n" :: more -> loop count more
-    | one :: more ->
-      let lgth = String.length one + count + 1 in
-      if lgth > 72
-      then (out "\n%s" one; loop (String.length one + 1) more)
-      else (out "%s%s" (if count > 0 then " " else "") one; loop lgth more)
-    in
-    loop 0 words;
-    Buffer.contents outbuf
-  in
   let par fmt = ksprintf (fun s ->
-      out "%s\n\n" (word_wrap s)
+      out "%s\n\n" (Text.word_wrap s)
     ) fmt
   in
-  let ul l = List.iter l ~f:(fun s -> out "- %s\n" (word_wrap s)); out "\n" in
+  let ul l =
+    List.iter l ~f:(fun s -> out "- %s\n"
+        (Text.word_wrap ~prefix:"  " ~start:"" s));
+    out "\n" in
   let code s =
     out "%s\n\n" (String.split s ~on:'\n'
                   |> List.map ~f:(sprintf "    %s")

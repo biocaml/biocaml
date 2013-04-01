@@ -6,9 +6,6 @@ open Flow
 open Biocaml
 
 
-(** Verbosity of the biocaml application. *)
-let verbose = ref false
-
 let failf fmt =
   ksprintf (fun s -> error (`failure s)) fmt
 
@@ -22,18 +19,75 @@ let wrap_deferred_lwt f =
   wrap_deferred (fun () -> f ()) ~on_exn:(fun e -> `lwt_exn e)
 
 
-module Say = struct
+module Text = struct
 
-  let dbg fmt =
-    ksprintf (fun s ->
-      if !verbose
-      then (eprintf "biocaml-debug: %s\n%!" s; return ())
-      else return ()) fmt
+  let word_wrap ?(prefix="") ?start ?(text_width=72) text =
+    (* In Core_extended there were also: String.{squeeze,word_wrap} *)
+    let outbuf = Buffer.create 42 in
+    let out fmt = ksprintf (Buffer.add_string outbuf) fmt in
+    let words =
+      String.(split ~on:' '
+          (map text (function '\n' | '\t' | '\r' -> ' ' | c -> c))) in
+    let prefix_lgth = String.length prefix in
+    let before_string = Option.value start ~default:prefix in
+    let rec loop count = function
+    | [] -> ()
+    | "" :: more
+    | "\n" :: more -> loop count more
+    | one :: more ->
+      let lgth = String.length one + count + 1 in
+      if lgth > text_width
+      then (out "\n%s%s" prefix one; loop (prefix_lgth + String.length one + 1) more)
+      else
+        (out "%s%s" (if count > prefix_lgth then " " else before_string) one;
+         loop lgth more)
+    in
+    loop prefix_lgth words;
+    Buffer.contents outbuf
+
+end
+
+module Say = struct
+  open Text
+
+  (** Verbosity of the biocaml application. *)
+  let verbose = ref false
+
+  let with_color = ref true
+
+  let if_color f s = if !with_color then f s else s
+  let red s      = if_color (sprintf "\x1b[31;1m%s\x1b[0m") s
+  let green s    = if_color (sprintf "\x1b[32;1m%s\x1b[0m") s
+  let blue s     = if_color (sprintf "\x1b[34;1m%s\x1b[0m") s
+  let yellow s   = if_color (sprintf "\x1b[33;1m%s\x1b[0m") s
 
   let dbgi fmt =
     ksprintf (fun s ->
-      if !verbose
-      then eprintf "biocaml-debug: %s\n%!" s;) fmt
+      if !verbose then
+        eprintf "%s:\n%s\n%!"
+          (yellow "Biocaml-debug") (word_wrap ~prefix:"  | " s)
+    ) fmt
+
+  let dbg fmt =
+    ksprintf (fun s -> dbgi "%s" s; return ()) fmt
+
+  let info fmt =
+    ksprintf (fun s ->
+      wrap_deferred_lwt (fun () ->
+        Lwt_io.printf "%s:\n%s\n%!"
+          (green "Biocaml") (word_wrap ~prefix:"  | " s))
+    ) fmt
+
+  let problem fmt =
+    ksprintf (fun s ->
+      wrap_deferred_lwt (fun () ->
+        Lwt_io.eprintf "%s:\n%s\n%!" (red "Biocaml-ERROR") (word_wrap ~prefix:"  | " s))
+    ) fmt
+
+  let problemi fmt =
+    ksprintf (fun s ->
+      eprintf "%s:\n%s\n%!" (red "Biocaml-ERROR") (word_wrap ~prefix:"  | " s);
+    ) fmt
 
 end
 
@@ -144,7 +198,7 @@ module Command_line = struct
       if v then Biocaml_internal_pervasives.Debug.enable "BAM";
       if v then Biocaml_internal_pervasives.Debug.enable "SAM";
       if v then Biocaml_internal_pervasives.Debug.enable "ZIP";
-      verbose := v;
+      Say.verbose := v;
     in
     Spec.(
       step (fun k v -> set_verbosity v; k)
@@ -155,8 +209,10 @@ module Command_line = struct
       +> flag "verbose-sam"  no_arg ~doc:" make Biocaml_sam verbose"
       ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "ZIP"; k)
       +> flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
-      ++ step (fun k v ->  if v then verbose := true; k)
+      ++ step (fun k v ->  if v then Say.verbose := true; k)
       +> flag "verbose-app" ~aliases:["v"] no_arg ~doc:" make 'biocaml' itself verbose"
+      ++ step (fun k v -> if v then Say.with_color := false; k)
+      +> flag "no-color" no_arg ~doc:" disable colors in the output"
     )
 
 
