@@ -257,7 +257,7 @@ let run_transform ~output_tags files =
     output_transform_of_tags tags
     >>= fun meta_output_transform ->
     while_sequential input_files_tags_and_transforms (fun (filename, tags, tr) ->
-      dbg "Convert %s (%s) %s %s"
+      Say.dbg "Convert %s (%s) %s %s"
         filename (Tags.to_string tags) (input_transform_name tr)
         (output_transform_name meta_output_transform)
     )
@@ -267,7 +267,7 @@ let run_transform ~output_tags files =
 
     for_concurrent transforms begin function
     | `file_to_file (filein, tr, fileout) ->
-      dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
+      Say.dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
       IO.Transform.file_to_file (Transform.to_object tr) filein  fileout
     end
     >>= fun (results, errors) ->

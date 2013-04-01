@@ -16,7 +16,7 @@ module Http_method = struct
     end
 
   let shell_command_to_string s =
-    dbg "Running %S" s >>= fun () ->
+    Say.dbg "Running %S" s >>= fun () ->
     System.Shell.execute s
     >>= begin function
     | (stdo, stde, `exited 0) -> return stdo

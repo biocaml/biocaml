@@ -9,17 +9,6 @@ open Biocaml
 (** Verbosity of the biocaml application. *)
 let verbose = ref false
 
-let dbg fmt =
-  ksprintf (fun s ->
-    if !verbose
-    then (eprintf "biocaml: %s\n%!" s; return ())
-    else return ()) fmt
-
-let dbgi fmt =
-  ksprintf (fun s ->
-    if !verbose
-    then eprintf "biocaml: %s\n%!" s;) fmt
-
 let failf fmt =
   ksprintf (fun s -> error (`failure s)) fmt
 
@@ -33,6 +22,20 @@ let wrap_deferred_lwt f =
   wrap_deferred (fun () -> f ()) ~on_exn:(fun e -> `lwt_exn e)
 
 
+module Say = struct
+
+  let dbg fmt =
+    ksprintf (fun s ->
+      if !verbose
+      then (eprintf "biocaml-debug: %s\n%!" s; return ())
+      else return ()) fmt
+
+  let dbgi fmt =
+    ksprintf (fun s ->
+      if !verbose
+      then eprintf "biocaml-debug: %s\n%!" s;) fmt
+
+end
 
 module Global_configuration = struct
   (** This module contains global configuration variables and their
@@ -160,11 +163,9 @@ module Command_line = struct
   (** Add 3 flags that configure GZip-output transforms (also in the
      [Global_configuration] module). *)
   let gzip_output_flags ~activation =
-    dbgi "gzip_output_flags";
     let level = ref None in
     let buf_size = ref None in
     let make_gzip_params factor : unit =
-      dbgi "make_gzip_params";
       let activated =
         match activation, !level with
         | false, _ -> true
@@ -231,23 +232,21 @@ let file_to_file transfo bamfile samfile =
             print_all stopped
           | `end_of_stream ->
             if stopped then
-              dbg "=====  WELL TERMINATED \n%!"
+              Say.dbg "=====  WELL TERMINATED \n%!"
             else begin
-              dbg "=====  PREMATURE TERMINATION \n%!"
+              Say.dbg "=====  PREMATURE TERMINATION \n%!"
               >>= fun () ->
               failf "file_to_file: premature termination"
             end
           | `not_ready ->
-            dbg "NOT READY" >>= fun () ->
+            Say.dbg "NOT READY" >>= fun () ->
             if stopped then print_all stopped else return ()
           | `output (Error (`string s)) ->
-            dbg "=====  ERROR: %s\n%!" s
+            Say.dbg "=====  ERROR: %s\n%!" s
         in
         let rec loop () =
           wrap_deferred_lwt (fun () -> read ~count:input_buffer_size i)
           >>= fun read_string ->
-          (* dbg verbose "read_string: %d" (String.length read_string) *)
-          (* >>= fun () -> *)
           if read_string = "" then (
             Biocaml_transform.stop transfo;
             print_all true
@@ -272,14 +271,14 @@ let go_through_input ~transform ~max_read_bytes filename =
         | `output (Ok _) -> count_all stopped
         | `end_of_stream ->
           if stopped then
-            dbg "=====  WELL TERMINATED \n%!"
+            Say.dbg "=====  WELL TERMINATED \n%!"
           else begin
-            dbg "=====  PREMATURE TERMINATION \n%!"
+            Say.dbg "=====  PREMATURE TERMINATION \n%!"
             >>= fun () ->
             failf "go_through_input (%s): premature termination" filename
           end
         | `not_ready ->
-          dbg "NOT READY" >>= fun () ->
+          Say.dbg "NOT READY" >>= fun () ->
           if stopped then count_all stopped else return ()
         | `output (Error (`bed s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
@@ -304,7 +303,7 @@ let go_through_input ~transform ~max_read_bytes filename =
         wrap_deferred_lwt (fun () -> read ~count:input_buffer_size i)
         >>= fun read_string ->
         let read_bytes = (String.length read_string) + c in
-        dbg "read_string: %d, c: %d" (String.length read_string) c
+        Say.dbg "read_string: %d, c: %d" (String.length read_string) c
         >>= fun () ->
         if read_bytes >= max_read_bytes then count_all false
         else if read_string = "" then (

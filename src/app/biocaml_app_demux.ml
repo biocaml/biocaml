@@ -110,9 +110,7 @@ let demux_specification_of_sexp =
   let open Sexp in
   function
   | List (Atom "demux" :: rest) ->
-    dbgi "demux";
     let demux_rules = List.map rest library_of_sexp in
-    dbgi "demux_rules";
     { demux_rules; demux_policy = `inclusive }
   | List (Atom "exclusive-demux" :: rest) ->
     let demux_rules = List.map rest library_of_sexp in
@@ -319,9 +317,9 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
         | any_other_number when demux_specification.demux_policy = `exclusive ->
           (* The only difference with the previous case *is* the
              verbose logging: *)
-          dbg "demux.exclusive:\n  discarding matches:\n    %s"
+          Say.dbgi "demux.exclusive:\n  discarding matches:\n    %s"
             (List.map any_other_number (fun (name_prefix, _, _, _) -> name_prefix)
-             |! String.concat ~sep:", ") |> Lwt.ignore_result;
+             |! String.concat ~sep:", ");
           the_undetermined ()
         | more (* inclusive *) -> more
       in
@@ -578,7 +576,6 @@ let command =
             let () =
               Option.iter gzip_conf (fun level ->
                 Global_configuration.gzip_set_if_not_set ~level ()) in
-            dbgi "Before do_statistics";
             let do_statistics = if stats_cl <> None then stats_cl else stats in
             let demux_specification =
               let parse s =
