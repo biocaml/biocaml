@@ -445,7 +445,7 @@ let more_help original_help : string =
   par buf "The file is a sequence of S-Expressions (c.f. [W:S-Expression])
        which configure the demultiplexing, usual lisp/scheme-styled
        comments are allowed. Each block can be omitted
-       but then some oof them have to be supplied in the command line.";
+       but then some of them have to be supplied in the command line.";
   par buf "Here is a detailed example of specification file (meant to be
        used with the option `-specification`):";
   code buf "\

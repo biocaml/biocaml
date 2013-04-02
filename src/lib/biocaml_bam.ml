@@ -27,7 +27,7 @@ type raw_item =
 | `reference_information of (string * int) array ]
 with sexp
 
-module Transform = struct 
+module Transform = struct
   type parse_optional_error = [
   | `wrong_auxiliary_data of
       [ `array_size of int
@@ -92,7 +92,7 @@ module Transform = struct
                   (bit_or (shift_left b3 16)
                      (shift_left b4 24)))) in
     try return (Int32.to_int_exn i32) with e -> fail (`wrong_int32 buf)
-      
+
   let parse_header buf =
     check (String.length buf >= 12) `no
     >>= fun () ->
@@ -300,7 +300,7 @@ module Transform = struct
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 
   let string_to_raw ?zlib_buffer_size () =
-    Biocaml_transform.compose_results 
+    Biocaml_transform.compose_results
       ~on_error:(function
       | `left l -> `unzip l
       | `right r ->
@@ -546,7 +546,7 @@ module Transform = struct
       | None -> fail (`reference_name_not_found (al, s))
       end
     in
-    
+
     let qname = al.S.query_template_name in
     let flag = (al.S.flags :> int) in
     begin match al.S.reference_sequence with
@@ -622,7 +622,7 @@ module Transform = struct
           buf
         | `int i ->
           begin match typ with
-          | 'c' | 'C' -> 
+          | 'c' | 'C' ->
             let buf = String.create 1 in
             Binary_packing.pack_unsigned_8 (0xff land i) ~buf ~pos:0;
             buf
@@ -631,7 +631,7 @@ module Transform = struct
             Binary_packing.pack_signed_16 (0xffff land i)
               ~byte_order:`Little_endian ~buf ~pos:0;
             buf
-          | _ -> 
+          | _ ->
             let buf = String.create 4 in
             Binary_packing.pack_signed_32_int i
               ~byte_order:`Little_endian ~buf ~pos:0;
@@ -704,7 +704,7 @@ module Transform = struct
           ref_dict := r;
           output_ok (`header (Buffer.contents header))
         | `alignment al ->
-          if not !ref_dict_done 
+          if not !ref_dict_done
           then begin
             dbg "reference_information: %d" Array.(length !ref_dict);
             ref_dict_done := true;
@@ -723,7 +723,7 @@ module Transform = struct
     in
     Biocaml_transform.make ~name ~feed:(Dequeue.push_back queue) ()
       ~next
-      
+
   let uncompressed_bam_printer () : (raw_item, string) Biocaml_transform.t =
     let name = "uncompressed_bam_printer" in
     let buffer = Buffer.create 4096  in
@@ -736,9 +736,9 @@ module Transform = struct
       done in
     let write_32_int = write_little_endian_int 4 in
     let feed = function
-    
+
       | `alignment ra ->
-        
+
         let l_read_name = String.length ra.qname + 1 in
         let n_cigar_op = (String.length ra.cigar / 4) in
         let l_seq = (String.length ra.seq) in
@@ -793,7 +793,7 @@ module Transform = struct
         done;
         write buffer ra.optional;
         dbg "ending buffer: %d size: %d" (Buffer.length buffer) size;
-        
+
       | `header h ->
         dbg "raw_printing the header";
         write buffer "BAM\x01";
@@ -816,9 +816,9 @@ module Transform = struct
         Buffer.clear buffer;
         `output s in
     Biocaml_transform.make ~name ~feed ~next ()
-      
-  let raw_to_string ?zlib_buffer_size () =
+
+  let raw_to_string ?gzip_level ?zlib_buffer_size () =
     Biocaml_transform.compose
       (uncompressed_bam_printer ())
-      (Zip.Transform.zip ~format:`gzip ?zlib_buffer_size ())
+      (Zip.Transform.zip ~format:`gzip ?level:gzip_level ?zlib_buffer_size ())
 end

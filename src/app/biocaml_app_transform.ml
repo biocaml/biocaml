@@ -298,9 +298,49 @@ let more_help original_help : string =
     let open Text.Markdown in
     title buf "Biocaml's File Conversion Tool";
     section buf "Usage";
-    par buf "TODO !";
+    par buf "This command is used to convert a set of input files to \
+        another format.";
+    code buf "biocaml transform <input_1> <input_2> ... -to <output-format>";
+    par buf "If `input_n` is simply a filename, Biocaml will try to
+        guess how to parse it (for now using the file extension). But
+        if more flexibility is needed one can describe the file-format using
+        the `Biocaml.Tags.t` format after a colon character,
+        e.g. `my_file:(gzip fastq)`.";
+    par buf "The output format also uses the `Biocaml.Tags.t` format
+        (c.f. [Biocaml_tags]).";
+    par buf "The transformations are based on the idea of parsing
+        *semantically similar* formats to a common representation and
+        printing that representation to compatible formats. The *FASTQ*
+        and *SAM-Item* representations are partially implemented so
+        far. Here are the *half-transformations* available:";
+    ul buf [
+      "Parse `fastq` → *FASTQ*";
+      "Parse `(gzip fastq)` → *FASTQ*";
+      "Print *FASTQ* -> `(gzip fastq)`";
+      "Print *FASTQ* -> `fastq`";
+      "Print *FASTQ* -> `sam` (so-called non-aligned SAM/BAM files)";
+      "Print *FASTQ* -> `(gzip sam)`";
+      "Print *FASTQ* -> `bam`";
+      "Parse `sam` → *SAM-Item*";
+      "Parse `(gzip sam)` → *SAM-Item*";
+      "Parse `bam` → *SAM-Item*";
+      "Print *SAM-Item* -> `sam`";
+      "Print *SAM-Item* -> `(gzip sam)`";
+      "Print *SAM-Item* -> `bam`";
+    ];
+    par buf "Note that other meaningless file-formats are *not forbidden* like
+       `(gzip (gzip fastq))` or `(gzip bam)`.";
+    par buf "`biocaml transform` outputs files named like their corresponding
+        inputs but tagged with a time-stamp and the correct file-extension.";
+    lines buf [
+      "[Biocaml_tags]: http://biocaml.org/doc/dev/api/Biocaml_tags.html";
+    ];
     section buf "Examples";
-    par buf "TODO !";
+    par buf "A simple SAM to BAM conversion:";
+    code buf "biocaml transform  my_file.sam -to bam";
+    par buf "A Fastq file with a non-recognizable name converted to a
+        BAM file with maximal compression to gain a few bytes:";
+    code buf "biocaml transform my_file:fastq -gzip-level 9 -to bam";
     let command = "transform" in
     command_line_section buf ~command ~original_help;
     about_the_manual_section buf ~command;

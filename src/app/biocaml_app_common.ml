@@ -176,6 +176,11 @@ module Global_configuration = struct
         | `factor f, _ ->
           f *. (float !output_buffer_size) |> Float.iround_nearest_exn)
 
+  (** Get the configured gzip compression level. *)
+  let gzip_level () =
+    Option.value_map ~default:Zip.Default.level
+      !gzip_output_configuration ~f:snd
+
   (** Actually create the [Zip.Transform.zip] transform with current
      values of the configuration.  *)
   let gzip_output_transform () : (string, string) Transform.t option =
@@ -522,6 +527,7 @@ let output_transform_of_tags
     in
     let to_sam_item t = return (`to_sam_item (with_zip_result t) : output_transform) in
     let zlib_buffer_size = Global_configuration.zlib_buffer_size () in
+    let gzip_level = Global_configuration.gzip_level () in
     match output_tags with
     | `raw_zip tags ->
       output_transform
@@ -535,7 +541,7 @@ let output_transform_of_tags
           (Transform.on_output
              (Bam.Transform.item_to_raw ())
              (function Ok o -> Ok o | Error e -> Error (`bam e)))
-          (Bam.Transform.raw_to_string ~zlib_buffer_size ()))
+          (Bam.Transform.raw_to_string ~gzip_level ~zlib_buffer_size ()))
     | `sam ->
       to_sam_item (
         Transform.compose_result_left
