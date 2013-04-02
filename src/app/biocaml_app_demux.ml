@@ -447,13 +447,74 @@ let more_help () : string =
   code "`biocaml demux <specification> [<more options>] <R1> <R2> <R3> ...`";
   par "where";
   ul [
-    "`specification` is either `-specification <file>` or `-demux <string>`. \
+    "`specification` is either `-specification <file>`, `-demux <string>`, \
+     or `-exclusive-demux <string>`. \
      A specification file containing `(demux <string>)` is equivalent to \
-     `-demux <string>`";
+     `-demux <string>` (idem for `eclusive-demux`).";
     "`R1`, `R2`, … are (potentially gzipped) fastq files containing \
      the reads to demultiplex";
     "many other options are available, see `biocaml demux -help`";
   ];
+  section "Demux-Specification Format";
+  par "The file is a sequence of S-Expressions (c.f. [W:S-Expression])
+       which configure the demultiplexing, usual lisp/scheme-styled
+       comments are allowed. Each block can be omitted
+       but then some oof them have to be supplied in the command line.";
+  par "Here is a detailed example of specification file (meant to be
+       used with the option `-specification`):";
+  code "\
+    ;; Set the input files:\n\
+    (input \n\
+   \   My_raw_read_1.fastq\n\
+   \   My_raw_read_2.fastq.gz\n\
+   \   My_raw_read_3.fastq.gz)\n\
+    ;; Set the default-mismatch allowed (when not provided in a given\n\
+    ;; matching rule)\n\
+    (default-mismatch 1)\n\
+    ;; Write some demultiplexing statistics to a file.\n\
+    ;; Here, the filename contains a space so we need quotes.\n\
+    (statistics \"Demux statistics.sexp\")\n\
+    ;; Define the actual demultiplexing, instead of 'demux' one can use\n\
+    ;; the keyword 'exclusive-demux' which change the notion of matching.\n\
+    (demux\n\
+   \  ;; a library will an Illumina-like barcode (on read 2)\n\
+   \  (library The_one\n\
+   \     (barcoding (ACTGGT on read 2 at position 1 with mismatch 1)))\n\
+   \  (library The_two ;; this one will expect the default-mismatch\n\
+   \     (barcoding (ACTGGT on read 2 at position 1)))\n\
+   \  ;; the undetermined library (reads that do not match other cases)\n\
+   \  (library The_undetermined undetermined)\n\
+    )\n\
+    ;; Ask for gzipped output files (the interger is the compression level)\n\
+    (gzip-output 3)\n\
+";
+  par "*Entries in the specification file:*";
+  ul [
+    "`input`: expects a list of filenames (Fastq or Gzipped Fastq),
+    each file must contain the same number or reads for the
+    demultiplexing to make sense. This entry corresponds to the
+    anonymous arguments on the command line.";
+    "`default-mismatch`: expects a positive integer, usually 0 or 1.";
+    "`statistics`: expects a filename (to write statistics to).";
+    "`demux` or `exclusive-demux`: both expect demultiplexing rules which
+     are a list of `library` definitions. Each library is defined by its
+     name (used as prefix in the output files) and its matching rule.
+     A matching rule is either 'undetermined' or a boolean expression
+     where the leaves are barcode definitions. There are two syntaxes
+     for barcodes: the explicit one (like in the previous example), and
+     the abreviated one: ACTGTT:3:2:1 means 'ACTGTT on read 3 at
+     position 2 with mismatch 1'.";
+    (* explain alternate syntax here *)
+    "`gzip-output`: expects a gzip-compression level (in [1, 9]).";
+  ];
+  par "*Note on Illumina-styled reads:*
+    to get the indexes sequenced in a particular FASTQ file, run
+    CASAVA with these options: ";
+  ul [
+    "In the case of a paired-end run:  `--use-bases-mask 'Y*,Y*n,Y*'` ";
+    "In the case of a single-end run:  `--use-bases-mask 'Y*,Y*n'` ";
+  ];
+  par "[W:S-Expression]: http://en.wikipedia.org/wiki/S-expression";
   section "Examples of Demux-Specifications:";
   par "Two Illumina-style libraries (the index is read n°2):";
   code
@@ -479,6 +540,24 @@ let more_help () : string =
                  ~on_read:2;
              ])}
      ]);
+  par "An exclusive demultiplexing:";
+  code
+    (ex ~demux_policy:`exclusive [
+       { name_prefix = "LibAAA";
+         filter = `barcoding (and_ [
+               barcode_specification ~position:1 "AACCA" ~on_read:1;
+               barcode_specification ~position:1 "ATCACG" ~on_read:2; ]) };
+       { name_prefix = "LibBBB";
+         filter = `barcoding (and_ [
+               barcode_specification ~position:1 "AAGGA" ~on_read:1;
+               barcode_specification ~position:1 "ATCACG" ~on_read:2; ]) };
+       { name_prefix = "LibUndetermined";
+         filter = `undetermined }
+     ]);
+  par "→ assuming that default-mismatch is 1, in this case, a read of
+    whose barcode on read 1 is AACGA and on read 2 ATCACG will be
+    treated as undetermined (because it matches both LibAAA and LibBBB).
+    ";
   par "A merge of two barcodes into one “library”:";
   code
     (ex [
@@ -502,6 +581,14 @@ let more_help () : string =
   code example;
   par "which is equivalent to:";
   code (ex spec.demux_rules);
+  section "About This Manual";
+  par "You can get this manual by calling `biocaml demux -manual`,
+    or even `biocaml demux -manual | less` but
+    if you have a markdown processor, like [Pandoc] or a script using [Cow],
+    you may view this in your favorite browser:";
+  code "biocaml demux -man | pandoc -s -o demux-manual.html";
+  out "[Pandoc]: http://johnmacfarlane.net/pandoc/\n";
+  out "[Cow]: https://github.com/mirage/ocaml-cow\n";
   Buffer.contents outbuf
 
 
