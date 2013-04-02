@@ -26,10 +26,13 @@ module Selection = struct
     )
 
   let union u v =
-    Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
-      match Map.find v k with
-      | Some set_v -> Map.add accu ~key:k ~data:(Biocaml_iset.union set_u set_v)
-      | None -> accu
+    let keys = List.dedup (Map.keys u @ Map.keys v) in
+    List.fold keys ~init:Map.empty ~f:(fun accu k ->
+      Map.add accu ~key:k ~data:(
+        Biocaml_iset.union
+          (Option.value (Map.find u k) ~default:Biocaml_iset.empty)
+          (Option.value (Map.find v k) ~default:Biocaml_iset.empty)
+      )
     )
 
   let diff u v =
