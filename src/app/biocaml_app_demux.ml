@@ -567,19 +567,9 @@ let more_help original_help : string =
   code buf example;
   par buf "which is equivalent to:";
   code buf (ex spec.demux_rules);
-  section buf "Command Line Arguments";
-  par buf "This is the output of `biocaml demux -help`:";
-  code buf original_help;
-  section buf "About This Manual";
-  par buf "You can get this manual by calling `biocaml demux -manual`,
-    or even `biocaml demux -manual | less` but
-    if you have a markdown processor, like [Pandoc] or a script using [Cow],
-    you may view this in your favorite browser:";
-  code buf "biocaml demux -man | pandoc -s -o demux-manual.html";
-  lines buf [
-    "[Pandoc]: http://johnmacfarlane.net/pandoc/\n";
-    "[Cow]: https://github.com/mirage/ocaml-cow\n";
-  ];
+  let command = "demux" in
+  command_line_section buf ~command ~original_help;
+  about_the_manual_section buf ~command;
   Buffer.contents buf
 
 

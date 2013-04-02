@@ -72,6 +72,26 @@ module Text = struct
       out b "%s\n\n" (String.split s ~on:'\n'
                     |> List.map ~f:(sprintf "    %s")
                     |> String.concat ~sep:"\n")
+
+
+    let command_line_section buf ~command ~original_help =
+      section buf "Command Line Arguments";
+      par buf "This is the output of `biocaml %s -help`:" command;
+      code buf original_help
+
+    let about_the_manual_section buf ~command =
+      section buf "About This Manual";
+      par buf "You can get this manual by calling `biocaml %s -manual`,
+          or even `biocaml %s -manual | less` but if you have a
+          markdown processor, like [Pandoc] or a script using [Cow],
+          you may view this in your favorite browser:" command command;
+      ksprintf (code buf) "biocaml %s -man | pandoc -s -o demux-manual.html"
+        command;
+      lines buf [
+        "[Pandoc]: http://johnmacfarlane.net/pandoc/\n";
+        "[Cow]: https://github.com/mirage/ocaml-cow\n";
+      ]
+
   end
 
 end
