@@ -139,10 +139,11 @@ module Transform: sig
      (raw_item, [> item_to_raw_error]) Core.Result.t) Biocaml_transform.t
   (** Create a transform that downgrades [Sam.item]s to [raw_item]s. *)
 
-  val raw_to_string: ?zlib_buffer_size:int -> unit ->
+  val raw_to_string: ?gzip_level:int -> ?zlib_buffer_size:int -> unit ->
     (raw_item, string) Biocaml_transform.t
   (** Create a transform that “prints” [raw_item]s in the BAM format.
-      The [zlib_buffer_size] option is passed to the [Biocaml_zip] module. *)
+      The [gzip_level] and [zlib_buffer_size] options are passed to
+      the [Biocaml_zip] module. *)
 
 end
 

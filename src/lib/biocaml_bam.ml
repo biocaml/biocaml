@@ -816,9 +816,9 @@ module Transform = struct
         Buffer.clear buffer;
         `output s in
     Biocaml_transform.make ~name ~feed ~next ()
-      
-  let raw_to_string ?zlib_buffer_size () =
+
+  let raw_to_string ?gzip_level ?zlib_buffer_size () =
     Biocaml_transform.compose
       (uncompressed_bam_printer ())
-      (Zip.Transform.zip ~format:`gzip ?zlib_buffer_size ())
+      (Zip.Transform.zip ~format:`gzip ?level:gzip_level ?zlib_buffer_size ())
 end
