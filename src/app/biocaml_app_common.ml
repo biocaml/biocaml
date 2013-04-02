@@ -45,6 +45,35 @@ module Text = struct
     loop prefix_lgth words;
     Buffer.contents outbuf
 
+  let with_buffer f =
+    let buffer = Buffer.create 1023 in
+    f buffer;
+    Buffer.contents buffer
+
+  module Markdown = struct
+
+
+    let out outbuf fmt = ksprintf (Buffer.add_string outbuf) fmt
+
+    let title b fmt = out b ("# " ^^ fmt ^^ "\n\n")
+    let section b fmt = out b ("## " ^^ fmt ^^ "\n\n")
+    let subsection b fmt = out b ("### " ^^ fmt ^^ "\n\n")
+    let par b fmt = ksprintf (fun s ->
+        out b "%s\n\n" (word_wrap s)
+      ) fmt
+    let lines b l =
+      List.iter l ~f:(fun s -> out b "%s\n" (word_wrap ~prefix:"" ~start:"" s));
+      out b "\n"
+    let ul b l =
+      List.iter l ~f:(fun s -> out b "- %s\n"
+          (word_wrap ~prefix:"  " ~start:"" s));
+      out b "\n"
+    let code b s =
+      out b "%s\n\n" (String.split s ~on:'\n'
+                    |> List.map ~f:(sprintf "    %s")
+                    |> String.concat ~sep:"\n")
+  end
+
 end
 
 module Say = struct

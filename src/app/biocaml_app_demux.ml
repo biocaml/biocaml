@@ -425,28 +425,14 @@ let more_help original_help : string =
   let ex ?(demux_policy = `inclusive) v =
     let incl = { demux_rules = v ; demux_policy } in
     (Sexp.to_string_hum (sexp_of_demux_specification incl)) in
-  let outbuf = Buffer.create 1024 in
-  let out fmt = ksprintf (Buffer.add_string outbuf) fmt in
-  let title fmt = out ("# " ^^ fmt ^^ "\n\n") in
-  let section fmt = out ("## " ^^ fmt ^^ "\n\n") in
-  let par fmt = ksprintf (fun s ->
-      out "%s\n\n" (Text.word_wrap s)
-    ) fmt
-  in
-  let ul l =
-    List.iter l ~f:(fun s -> out "- %s\n"
-        (Text.word_wrap ~prefix:"  " ~start:"" s));
-    out "\n" in
-  let code s =
-    out "%s\n\n" (String.split s ~on:'\n'
-                  |> List.map ~f:(sprintf "    %s")
-                  |> String.concat ~sep:"\n") in
-  title "Biocaml's Demultiplexer";
-  section "Usage";
-  par "The general idea is to call";
-  code "`biocaml demux <specification> [<more options>] <R1> <R2> <R3> ...`";
-  par "where";
-  ul [
+  let buf = Buffer.create 1024 in
+  let open Text.Markdown in
+  title buf "Biocaml's Demultiplexer";
+  section buf "Usage";
+  par buf "The general idea is to call";
+  code buf "`biocaml demux <specification> [<more options>] <R1> <R2> <R3> ...`";
+  par buf "where";
+  ul buf [
     "`specification` is either `-specification <file>`, `-demux <string>`, \
      or `-exclusive-demux <string>`. \
      A specification file containing `(demux <string>)` is equivalent to \
@@ -455,14 +441,14 @@ let more_help original_help : string =
      the reads to demultiplex";
     "many other options are available, see `biocaml demux -help`";
   ];
-  section "Demux-Specification Format";
-  par "The file is a sequence of S-Expressions (c.f. [W:S-Expression])
+  section buf "Demux-Specification Format";
+  par buf "The file is a sequence of S-Expressions (c.f. [W:S-Expression])
        which configure the demultiplexing, usual lisp/scheme-styled
        comments are allowed. Each block can be omitted
        but then some oof them have to be supplied in the command line.";
-  par "Here is a detailed example of specification file (meant to be
+  par buf "Here is a detailed example of specification file (meant to be
        used with the option `-specification`):";
-  code "\
+  code buf "\
     ;; Set the input files:\n\
     (input \n\
    \   My_raw_read_1.fastq\n\
@@ -488,8 +474,8 @@ let more_help original_help : string =
     ;; Ask for gzipped output files (the interger is the compression level)\n\
     (gzip-output 3)\n\
 ";
-  par "*Entries in the specification file:*";
-  ul [
+  par buf "*Entries in the specification file:*";
+  ul buf [
     "`input`: expects a list of filenames (Fastq or Gzipped Fastq),
     each file must contain the same number or reads for the
     demultiplexing to make sense. This entry corresponds to the
@@ -507,17 +493,17 @@ let more_help original_help : string =
     (* explain alternate syntax here *)
     "`gzip-output`: expects a gzip-compression level (in [1, 9]).";
   ];
-  par "*Note on Illumina-styled reads:*
+  par buf "*Note on Illumina-styled reads:*
     to get the indexes sequenced in a particular FASTQ file, run
     CASAVA with these options: ";
-  ul [
+  ul buf [
     "In the case of a paired-end run:  `--use-bases-mask 'Y*,Y*n,Y*'` ";
     "In the case of a single-end run:  `--use-bases-mask 'Y*,Y*n'` ";
   ];
-  par "[W:S-Expression]: http://en.wikipedia.org/wiki/S-expression";
-  section "Examples of Demux-Specifications:";
-  par "Two Illumina-style libraries (the index is read n°2):";
-  code
+  par buf "[W:S-Expression]: http://en.wikipedia.org/wiki/S-expression";
+  section buf "Examples of Demux-Specifications:";
+  par buf "Two Illumina-style libraries (the index is read n°2):";
+  code buf
     (ex [
        { name_prefix = "LibONE";
          filter =
@@ -528,8 +514,8 @@ let more_help original_help : string =
              barcode_specification ~position:1 "CTTATG"
                ~mismatch:1 ~on_read:2) };
      ]);
-  par "A library with two barcodes to match:";
-  code
+  par buf "A library with two barcodes to match:";
+  code buf
     (ex [
        { name_prefix = "LibAND";
          filter = `barcoding (
@@ -540,8 +526,8 @@ let more_help original_help : string =
                  ~on_read:2;
              ])}
      ]);
-  par "An exclusive demultiplexing:";
-  code
+  par buf "An exclusive demultiplexing:";
+  code buf
     (ex ~demux_policy:`exclusive [
        { name_prefix = "LibAAA";
          filter = `barcoding (and_ [
@@ -554,12 +540,12 @@ let more_help original_help : string =
        { name_prefix = "LibUndetermined";
          filter = `undetermined }
      ]);
-  par "→ assuming that default-mismatch is 1, in this case, a read of
+  par buf "→ assuming that default-mismatch is 1, in this case, a read of
     whose barcode on read 1 is AACGA and on read 2 ATCACG will be
     treated as undetermined (because it matches both LibAAA and LibBBB).
     ";
-  par "A merge of two barcodes into one “library”:";
-  code
+  par buf "A merge of two barcodes into one “library”:";
+  code buf
     (ex [
        { name_prefix = "LibOR";
          filter = `barcoding (or_ [
@@ -577,22 +563,24 @@ let more_help original_help : string =
      ;; a ∧ b ∧ ¬c  matching\n\
      ))" in
   let spec = Sexp.of_string example |! demux_specification_of_sexp in
-  par "The following one uses the abbreviated syntax:";
-  code example;
-  par "which is equivalent to:";
-  code (ex spec.demux_rules);
-  section "Command Line Arguments";
-  par "This is the output of `biocaml demux -help`:";
-  code original_help;
-  section "About This Manual";
-  par "You can get this manual by calling `biocaml demux -manual`,
+  par buf "The following one uses the abbreviated syntax:";
+  code buf example;
+  par buf "which is equivalent to:";
+  code buf (ex spec.demux_rules);
+  section buf "Command Line Arguments";
+  par buf "This is the output of `biocaml demux -help`:";
+  code buf original_help;
+  section buf "About This Manual";
+  par buf "You can get this manual by calling `biocaml demux -manual`,
     or even `biocaml demux -manual | less` but
     if you have a markdown processor, like [Pandoc] or a script using [Cow],
     you may view this in your favorite browser:";
-  code "biocaml demux -man | pandoc -s -o demux-manual.html";
-  out "[Pandoc]: http://johnmacfarlane.net/pandoc/\n";
-  out "[Cow]: https://github.com/mirage/ocaml-cow\n";
-  Buffer.contents outbuf
+  code buf "biocaml demux -man | pandoc -s -o demux-manual.html";
+  lines buf [
+    "[Pandoc]: http://johnmacfarlane.net/pandoc/\n";
+    "[Cow]: https://github.com/mirage/ocaml-cow\n";
+  ];
+  Buffer.contents buf
 
 
 let command =
