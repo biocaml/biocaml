@@ -304,6 +304,12 @@ module Command_line = struct
       ++ output_buffer_size_flag ()
     )
 
+  let display_manual_flag ()=
+    Spec.(
+      step (fun k v -> k ~manual:v)
+      +> flag "manual" ~aliases:["man"] (no_arg)
+          ~doc:" display more help about this command"
+    )
 end
 
 (** Run a transform between two files. *)

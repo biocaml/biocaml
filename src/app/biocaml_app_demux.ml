@@ -602,12 +602,11 @@ let command =
             ~doc:"<file> give a path to a file containing the specification"
         +> flag "statistics" ~aliases:["stats"] (optional string)
             ~doc:"<file> do some basic statistics and write them to <file>"
-        +> flag "manual" ~aliases:["man"] (no_arg)
-            ~doc:" display more help about this command"
+        ++ display_manual_flag ()
         +> anon (sequence ("READ-FILES" %: string))
         +> help
         ++ uses_lwt ())
-      begin fun mismatch_cl indemux_cl exdemux_cl spec stats_cl manual read_files_cl help ->
+      begin fun mismatch_cl indemux_cl exdemux_cl spec stats_cl ~manual read_files_cl help ->
         begin
           if manual then
             Say.raw "%s%!" (more_help (Lazy.force help))
