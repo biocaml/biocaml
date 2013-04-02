@@ -292,6 +292,20 @@ let run_transform ~output_tags files =
   end
 
 
+(** Return a string containing a manual in markdown-ish syntax. *)
+let more_help original_help : string =
+  Text.with_buffer begin fun buf ->
+    let open Text.Markdown in
+    title buf "Biocaml's File Conversion Tool";
+    section buf "Usage";
+    par buf "TODO !";
+    section buf "Examples";
+    par buf "TODO !";
+    let command = "transform" in
+    command_line_section buf ~command ~original_help;
+    about_the_manual_section buf ~command;
+  end
+
 let command =
   let open Command_line in
   let spec =
@@ -299,9 +313,23 @@ let command =
     file_to_file_flags ()
     ++ gzip_output_flags ~activation:false
     ++ step (fun k v -> k ~output_tags:v)
-    +> flag "output-tags" ~aliases:["to"] (required string)
-      ~doc:"<string> give the specification of the output"
+    +> flag "output-tags" ~aliases:["to"] (optional string)
+        ~doc:"<string> give the specification of the output"
     +> anon (sequence ("INPUT-FILE:tag-definition" %: string))
+    ++ display_manual_flag ()
+    +> help
     ++ uses_lwt ()
   in
-  basic ~summary:"Transform files" spec run_transform
+  basic ~summary:"Transform files" spec
+    (fun ~output_tags tagged_files ~manual help ->
+      if manual then
+        Say.raw "%s%!" (more_help (Lazy.force help))
+        >>< fun _ -> return ()
+      else
+        begin match output_tags with
+        | Some output_tags ->
+          run_transform ~output_tags tagged_files
+        | None ->
+          Say.problem "Expecting either -help, -manual, or -output-tags"
+          >>< fun _ -> return ()
+        end)
