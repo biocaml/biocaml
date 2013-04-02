@@ -420,7 +420,7 @@ let parse_configuration s =
   (mismatch, gzip, stats, demux, inputs)
 
 (** Return a string containing a manual in markdown-ish syntax. *)
-let more_help () : string =
+let more_help original_help : string =
   let open Blang in
   let ex ?(demux_policy = `inclusive) v =
     let incl = { demux_rules = v ; demux_policy } in
@@ -581,6 +581,9 @@ let more_help () : string =
   code example;
   par "which is equivalent to:";
   code (ex spec.demux_rules);
+  section "Command Line Arguments";
+  par "This is the output of `biocaml demux -help`:";
+  code original_help;
   section "About This Manual";
   par "You can get this manual by calling `biocaml demux -manual`,
     or even `biocaml demux -manual | less` but
@@ -602,7 +605,7 @@ let command =
         file_to_file_flags ()
         ++ gzip_output_flags ~activation:true
         +> flag "default-mismatch" (optional int)
-            ~doc:"<int> default maximal mismatch allowed (default 0)"
+            ~doc:"<int> default maximal mismatch allowed\n(default: 0)"
         +> flag "demux" (optional string)
             ~doc:"<string> give the (inclusive) specification as a list of S-Expressions"
         +> flag "exclusive-demux" (optional string)
@@ -612,13 +615,14 @@ let command =
         +> flag "statistics" ~aliases:["stats"] (optional string)
             ~doc:"<file> do some basic statistics and write them to <file>"
         +> flag "manual" ~aliases:["man"] (no_arg)
-            ~doc:" display more help about demultiplexing"
+            ~doc:" display more help about this command"
         +> anon (sequence ("READ-FILES" %: string))
+        +> help
         ++ uses_lwt ())
-      begin fun mismatch_cl indemux_cl exdemux_cl spec stats_cl manual read_files_cl ->
+      begin fun mismatch_cl indemux_cl exdemux_cl spec stats_cl manual read_files_cl help ->
         begin
           if manual then
-            Say.raw "%s%!" (more_help ())
+            Say.raw "%s%!" (more_help (Lazy.force help))
           else
             begin match spec with
             | Some s ->
