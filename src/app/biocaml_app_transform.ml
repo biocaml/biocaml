@@ -188,6 +188,30 @@ let fastq_item_to_sam_item () =
           quality;
           optional_content = []; }))
 
+let sam_item_to_fastq_item () : (Sam.item, Fastq.item) Transform.t =
+  let queue = Queue.create () in
+  Transform.make () ~name:"sam_item_to_fastq_item"
+    ~next:(fun stopped ->
+      match Queue.dequeue queue with
+      | Some s -> `output s
+      | None -> if stopped then `end_of_stream else `not_ready)
+    ~feed:begin function
+    | `header_line _
+    | `header _
+    | `comment _
+    | `reference_sequence_dictionary _ -> ()
+    | `alignment {Sam. query_template_name; sequence = `string seq; quality; _} ->
+      let qualities =
+        Array.map quality ~f:(fun c ->
+          Phred_score.(to_ascii c |> Option.value ~default:'{' |> Char.to_string))
+        |> String.concat_array ~sep:"" in
+      Queue.enqueue queue
+        { Fastq.name = query_template_name; sequence = seq;
+          comment = ""; qualities }
+    | `alignment {Sam. query_template_name; sequence ; quality; _} ->
+      ()
+    end
+
 let transforms_to_do
     input_files_tags_and_transforms meta_output_transform output_tags =
   let rec loop acc l =
@@ -224,6 +248,20 @@ let transforms_to_do
             ~on_error:(function `left e -> `input e | `right e -> `output e)
             tri (compose (fastq_item_to_sam_item ()) tro))
           |! transform_stringify_errors in
+        let out_extension = Tags.default_extension output_tags in
+        let base = filename_chop_all_extensions filename in
+        `file_to_file (filename, transfo, filename_make_new base out_extension)
+      in
+      loop (m :: acc) t
+    | (filename, tags, `from_sam_item tri) :: t, `to_fastq tro ->
+      let m =
+        let transfo =
+          Transform.(
+            on_error ~f:(fun e -> `input e)
+              (compose_result_left
+                 tri
+                 (compose (sam_item_to_fastq_item ()) tro))
+          ) |> transform_stringify_errors in
         let out_extension = Tags.default_extension output_tags in
         let base = filename_chop_all_extensions filename in
         `file_to_file (filename, transfo, filename_make_new base out_extension)
@@ -327,6 +365,9 @@ let more_help original_help : string =
       "Print *SAM-Item* -> `sam`";
       "Print *SAM-Item* -> `(gzip sam)`";
       "Print *SAM-Item* -> `bam`";
+      "Print *SAM-Item* -> `fastq` (gets the name, sequences and qualities \
+                                from alignments and discards any other info)";
+      "Print *SAM-Item* -> `(gzip fastq)`";
     ];
     par buf "Note that other meaningless file-formats are *not forbidden* like
        `(gzip (gzip fastq))` or `(gzip bam)`.";
