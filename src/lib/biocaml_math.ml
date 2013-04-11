@@ -93,7 +93,7 @@ let median a =
   let n = Array.length a in
   assert (n > 0);
   let a = Array.copy a in
-  Array.sort Pervasives.compare a;
+  Array.sort ~cmp:Pervasives.compare a;
   if odd n
   then a.((n+1)/2 - 1)
   else let m = (n+1)/2 in (a.(m-1) +. a.(m)) /. 2.0
@@ -150,7 +150,7 @@ let histogram (type t) ?(cmp=Pervasives.compare) arr =
       type t_ = t (* required only because OCaml doesn't have type non-rec definitions *)
       type t = t_
       let compare = cmp
-      let sexp_of_t _ = assert false 
+      let sexp_of_t _ = assert false
       let t_of_sexp _ = assert false
     end)
   end
@@ -187,7 +187,7 @@ let pearson (a1:float array) (a2:float array) =
 let rank arr =
   let arr = Array.copy arr in
   let arr = Array.mapi (fun i a -> a,i) arr in
-  Array.sort (fun (a,_) (b,_) -> Pervasives.compare a b) arr;
+  Array.sort ~cmp:(fun (a,_) (b,_) -> Pervasives.compare a b) arr;
   let g prev il ans =
     let count = List.length il in
     let n = count + (List.length ans) in
@@ -306,7 +306,7 @@ let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 =
 
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = Array.mapi a ~f:(fun i b -> (i, b)) in
-  Array.sort (fun a b -> cmp (snd a) (snd b)) a;
+  Array.sort ~cmp:(fun a b -> cmp (snd a) (snd b)) a;
   Array.map ~f:fst a
 
 let find_regions ?(max_gap=0) pred a =

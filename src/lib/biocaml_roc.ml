@@ -7,12 +7,12 @@ type confusion_matrix = {
   fn : int ;
 }
 
-let make ~pos ~neg = 
+let make ~pos ~neg =
   let pos = Array.of_stream pos
   and neg = Array.of_stream neg in
-  Array.sort (Fn.flip compare) pos ;
-  Array.sort (Fn.flip compare) neg ;
-  let sorted_elements = 
+  Array.sort ~cmp:(Fn.flip compare) pos ;
+  Array.sort ~cmp:(Fn.flip compare) neg ;
+  let sorted_elements =
     Stream.merge
       ~cmp:(Fn.flip compare)
       (Array.to_stream pos |! Stream.map ~f:(fun x -> x, `pos))
@@ -22,16 +22,16 @@ let make ~pos ~neg =
     tn = Array.length neg ;
     fp = 0 ;
     fn = Array.length pos
-  } 
+  }
   in
     Stream.append
       (Stream.singleton (Float.infinity, initial))
       (Stream.unfold
 	 initial
-	 (fun accu -> 
+	 (fun accu ->
 	   if Stream.is_empty sorted_elements then None
 	   else match Stream.next sorted_elements with
-	     | Some (x, `pos) -> 
+	     | Some (x, `pos) ->
 	       let next = { accu with tp = accu.tp + 1 ; fn = accu.fn - 1 } in
 	       Some ((x, next), next)
 	     | Some (x, `neg) ->
@@ -44,7 +44,7 @@ let negative cm = cm.tn + cm.fp
 
 let cardinal cm = cm.tp + cm.tn + cm.fp + cm.fn
 
-let sensitivity cm = 
+let sensitivity cm =
   float cm.tp /. float (cm.tp + cm.fn)
 
 let false_positive_rate cm =
@@ -53,10 +53,10 @@ let false_positive_rate cm =
 let accuracy cm =
   float (cm.tp + cm.tn) /. float (cardinal cm)
 
-let specificity cm = 
+let specificity cm =
   float cm.tn /. float (cm.fp + cm.tn)
 
-let positive_predictive_value cm = 
+let positive_predictive_value cm =
   float cm.tp /. float (cm.tp + cm.fp)
 
 let negative_predictive_value cm =
@@ -75,7 +75,7 @@ let auc points = match Stream.next points with
   | Some p ->
     Stream.fold
       points
-      ~f:(fun ((x1,y1), sum) ((x2,y2) as p) -> 
+      ~f:(fun ((x1,y1), sum) ((x2,y2) as p) ->
 	(p, sum +. trapez_area x1 x2 y1 y2))
       ~init:(p, 0.)
     |! snd
