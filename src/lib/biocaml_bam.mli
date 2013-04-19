@@ -40,6 +40,7 @@ type raw_item =
 val raw_item_of_sexp : Sexplib.Sexp.t -> raw_item
 val sexp_of_raw_item : raw_item -> Sexplib.Sexp.t
 
+
 module Error: sig
   (** The possible errors returned by parsing and printing functions. *)
 
@@ -111,13 +112,43 @@ module Error: sig
   val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
   val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
 
-  type t = [ raw_to_item | item_to_raw ]
+  type t = [ raw_bam | raw_to_item | item_to_raw ]
   (** The union of all the errors declared here. *)
 
   val t_of_sexp: Sexplib.Sexp.t -> t
   val sexp_of_t: t -> Sexplib.Sexp.t
 
 end
+
+exception Error of [ `bam of Error.t | `unzip of Biocaml_zip.Transform.unzip_error ]
+
+
+val in_channel_to_raw_item_stream :
+  ?zlib_buffer_size:int ->
+  ?buffer_size:int ->
+  in_channel ->
+  (raw_item,
+   [> `bam of [> Error.raw_bam ]
+   | `unzip of [> Biocaml_zip.Transform.unzip_error ] ])
+    Core.Result.t Stream.t
+
+val in_channel_to_raw_item_stream_exn :
+  ?zlib_buffer_size:int ->
+  ?buffer_size:int ->
+  in_channel -> raw_item Stream.t
+
+val in_channel_to_item_stream :
+  ?zlib_buffer_size:int ->
+  ?buffer_size:int ->
+  in_channel ->
+  (Biocaml_sam.item,
+   [> `bam of [> Error.t ]
+   | `unzip of [> Biocaml_zip.Transform.unzip_error ] ])
+    Core.Result.t Stream.t
+
+val in_channel_to_item_stream_exn :
+  ?zlib_buffer_size:int -> ?buffer_size:int -> in_channel ->
+  Biocaml_sam.item Stream.t
 
 module Transform: sig
   (** The low-level [Transform.t] implementations. *)

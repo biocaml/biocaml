@@ -78,7 +78,7 @@ module Error = struct
   | `reference_name_not_found of Sam.alignment * string ]
   with sexp
 
-  type t = [ raw_to_item | item_to_raw ] with sexp
+  type t = [ raw_bam | raw_to_item | item_to_raw ] with sexp
 
 end
 
@@ -835,3 +835,26 @@ module Low_level = struct
   let parse_cigar = parse_cigar
 
 end
+
+
+let in_channel_to_raw_item_stream ?zlib_buffer_size ?buffer_size inp =
+  let t = Transform.string_to_raw ?zlib_buffer_size () in
+  Biocaml_transform.in_channel_strings_to_stream ?buffer_size inp t
+
+let in_channel_to_item_stream ?zlib_buffer_size ?buffer_size inp =
+  let t1 = Transform.string_to_raw ?zlib_buffer_size () in
+  let t2 = Transform.raw_to_item  () in
+  Biocaml_transform.(
+    in_channel_strings_to_stream ?buffer_size inp
+      (compose_results t1 t2 ~on_error:(function `left x -> x | `right x -> `bam x))
+  )
+
+exception Error of [ `bam of Error.t | `unzip of Zip.Transform.unzip_error ]
+let error_to_exn e = Error e
+
+let in_channel_to_raw_item_stream_exn ?zlib_buffer_size ?buffer_size inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_raw_item_stream ?zlib_buffer_size ?buffer_size inp)
+let in_channel_to_item_stream_exn ?zlib_buffer_size ?buffer_size inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_item_stream ?zlib_buffer_size ?buffer_size inp)
