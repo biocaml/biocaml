@@ -115,14 +115,6 @@ end
 module Transform: sig
   (** The low-level [Transform.t] implementations. *)
 
-  val parse_cigar: ?pos:int -> ?len:int -> string ->
-    (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Core.Result.t
-  (** Parse CIGAR operations from a string (lowest-level function). *)
-
-  val parse_optional: ?pos:int -> ?len:int -> string ->
-    (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
-  (** Parse optional content from a string (lowest-level function). *)
-
   val raw_to_item: unit ->
     (raw_item, (Biocaml_sam.item, [> Error.raw_to_item]) Core.Result.t)
       Biocaml_transform.t
