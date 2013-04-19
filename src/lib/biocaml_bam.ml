@@ -827,3 +827,10 @@ module Transform = struct
       (uncompressed_bam_printer ())
       (Zip.Transform.zip ~format:`gzip ?level:gzip_level ?zlib_buffer_size ())
 end
+
+module Low_level = struct
+  open Transform
+  let parse_optional = parse_optional
+  let parse_cigar = parse_cigar
+
+end
