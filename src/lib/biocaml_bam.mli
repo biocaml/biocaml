@@ -80,16 +80,6 @@ module Error: sig
   val sexp_of_parse_cigar : parse_cigar -> Sexplib.Sexp.t
 
 
-  type item_to_raw =
-  [ `cannot_get_sequence of Biocaml_sam.alignment
-  | `header_line_not_first of string
-  | `reference_name_not_found of Biocaml_sam.alignment * string ]
-  (** Inconsistency errors that may happen while trnasforming a
-      [Sam.item] to a [raw_item]. *)
-
-  val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
-  val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
-
   type raw_to_item = [
   | `header_line_not_first of int
   | `header_line_without_version of (string * string) list
@@ -111,6 +101,21 @@ module Error: sig
   val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
   val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
 
+  type item_to_raw =
+  [ `cannot_get_sequence of Biocaml_sam.alignment
+  | `header_item_not_first of string
+  | `reference_name_not_found of Biocaml_sam.alignment * string ]
+  (** Inconsistency errors that may happen while trnasforming a
+      [Sam.item] to a [raw_item]. *)
+
+  val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
+  val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
+
+  type t = [ raw_to_item | item_to_raw ]
+  (** The union of all the errors declared here. *)
+
+  val t_of_sexp: Sexplib.Sexp.t -> t
+  val sexp_of_t: t -> Sexplib.Sexp.t
 
 end
 

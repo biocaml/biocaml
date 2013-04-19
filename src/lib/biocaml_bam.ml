@@ -74,10 +74,11 @@ module Error = struct
 
   type item_to_raw =
   [ `cannot_get_sequence of Sam.alignment
-  | `header_line_not_first of string
+  | `header_item_not_first of string
   | `reference_name_not_found of Sam.alignment * string ]
   with sexp
 
+  type t = [ raw_to_item | item_to_raw ] with sexp
 
 end
 
@@ -685,7 +686,7 @@ module Transform = struct
           next stopped
         | `header_line (version, ordering, rest) ->
           if Buffer.contents header <> "" then
-            output_error (`header_line_not_first (Buffer.contents header))
+            output_error (`header_item_not_first (Buffer.contents header))
           else begin
             ksprintf (Buffer.add_string header) "@HD\tVN:%s\tSO:%s%s\n"
               version
