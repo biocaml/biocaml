@@ -1,7 +1,7 @@
 (** Parsing and printing of BAM files. *)
 
 (**
-This module provides parsing from [stirng] buffers to [raw_item]s
+This module provides parsing from [string] buffers to [raw_item]s
 (minimal parsing), and conversion from [raw_item]s to [Sam.item]s
 (higher-level constructs).
 *)
@@ -23,8 +23,10 @@ type raw_alignment = {
   optional : string;
 }
 (** The type of an alignment record in a BAM file.
-    The rather unmeaningful names come from the “almost official”
-    specification of the format. *)
+
+    The rather meaningless names come from the “almost official”
+    specification of the format (c.f.
+    {{:http://samtools.sourceforge.net/SAM1.pdf}SAM1.pdf}). *)
 
 val raw_alignment_of_sexp : Sexplib.Sexp.t -> raw_alignment
 val sexp_of_raw_alignment : raw_alignment -> Sexplib.Sexp.t
@@ -39,7 +41,7 @@ val raw_item_of_sexp : Sexplib.Sexp.t -> raw_item
 val sexp_of_raw_item : raw_item -> Sexplib.Sexp.t
 
 module Error: sig
-  (** The possible errors returns by parsing and printing functions. *)
+  (** The possible errors returned by parsing and printing functions. *)
 
   type raw_bam = [
   | `read_name_not_null_terminated of string
@@ -103,7 +105,7 @@ module Error: sig
   | `wrong_pos of raw_alignment
   | `wrong_qname of raw_alignment
   | `wrong_tlen of raw_alignment ]
-  (** All the possible errors one encounter while going from [raw_item]s to
+  (** All the possible errors one can encounter while going from [raw_item]s to
       [Sam.item]s. *)
 
   val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
@@ -147,12 +149,13 @@ module Transform: sig
 end
 
 module Low_level: sig
+  (** Lower-level (parsing) functions. *)
 
   val parse_cigar: ?pos:int -> ?len:int -> string ->
     (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Core.Result.t
-  (** Parse CIGAR operations from a string (lowest-level function). *)
+  (** Parse CIGAR operations from a string which (c.f. [raw_alignment.cigar]). *)
 
   val parse_optional: ?pos:int -> ?len:int -> string ->
     (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
-  (** Parse optional content from a string (lowest-level function). *)
+  (** Parse optional content from a string (c.f. [raw_alignment.optional]). *)
 end
