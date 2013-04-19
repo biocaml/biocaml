@@ -38,10 +38,10 @@ type raw_item =
 val raw_item_of_sexp : Sexplib.Sexp.t -> raw_item
 val sexp_of_raw_item : raw_item -> Sexplib.Sexp.t
 
-module Transform: sig
-  (** The low-level [Transform.t] implementations. *)
+module Error: sig
+  (** The possible errors returns by parsing and printing functions. *)
 
-  type raw_bam_error = [
+  type raw_bam = [
   | `read_name_not_null_terminated of string
   | `reference_information_name_not_null_terminated of string
   | `reference_information_overflow of int * string
@@ -51,21 +51,10 @@ module Transform: sig
   (** The possible non-gzip-related errors encountered while parsing a
       BAM file. *)
 
-  val raw_bam_error_of_sexp : Sexplib.Sexp.t -> raw_bam_error
-  val sexp_of_raw_bam_error : raw_bam_error -> Sexplib.Sexp.t
+  val raw_bam_of_sexp : Sexplib.Sexp.t -> raw_bam
+  val sexp_of_raw_bam : raw_bam -> Sexplib.Sexp.t
 
-  val string_to_raw:
-    ?zlib_buffer_size:int ->
-    unit ->
-    (string,
-     (raw_item, [> `unzip of Biocaml_zip.Transform.unzip_error
-                | `bam of raw_bam_error ] )
-       Core.Result.t)
-      Biocaml_transform.t
-  (** Create a transform that parses a BAM file.
-      The [zlib_buffer_size] is passed to the [Biocaml_zip] module. *)
-
-  type parse_optional_error = [
+  type parse_optional = [
   | `wrong_auxiliary_data of
       [ `array_size of int
       | `null_terminated_hexarray
@@ -77,35 +66,37 @@ module Transform: sig
   (** The potential failures while parsing the optional content in BAM
       alignments. *)
 
-  val parse_optional_error_of_sexp : Sexplib.Sexp.t -> parse_optional_error
-  val sexp_of_parse_optional_error : parse_optional_error -> Sexplib.Sexp.t
+  val parse_optional_of_sexp : Sexplib.Sexp.t -> parse_optional
+  val sexp_of_parse_optional : parse_optional -> Sexplib.Sexp.t
 
-  val parse_optional: ?pos:int -> ?len:int -> string ->
-    (Biocaml_sam.optional_content, [> parse_optional_error]) Core.Result.t
-  (** Parse optional content from a string (lowest-level function). *)
-
-  type parse_cigar_error = [
+  type parse_cigar = [
   | `wrong_cigar of string
   | `wrong_cigar_length of int ]
   (** The potential failures while parsing the so-called CIGAR operations *)
 
-  val parse_cigar_error_of_sexp : Sexplib.Sexp.t -> parse_cigar_error
-  val sexp_of_parse_cigar_error : parse_cigar_error -> Sexplib.Sexp.t
+  val parse_cigar_of_sexp : Sexplib.Sexp.t -> parse_cigar
+  val sexp_of_parse_cigar : parse_cigar -> Sexplib.Sexp.t
 
 
-  val parse_cigar: ?pos:int -> ?len:int -> string ->
-    (Biocaml_sam.cigar_op array, [> parse_cigar_error]) Core.Result.t
-  (** Parse CIGAR operations from a string (lowest-level function). *)
+  type item_to_raw =
+  [ `cannot_get_sequence of Biocaml_sam.alignment
+  | `header_line_not_first of string
+  | `reference_name_not_found of Biocaml_sam.alignment * string ]
+  (** Inconsistency errors that may happen while trnasforming a
+      [Sam.item] to a [raw_item]. *)
 
-  type raw_to_item_error = [
+  val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
+  val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
+
+  type raw_to_item = [
   | `header_line_not_first of int
   | `header_line_without_version of (string * string) list
   | `header_line_wrong_sorting of string
   | `invalid_header_tag of int * string
   | `invalid_tag_value_list of int * string list
   | `reference_sequence_not_found of raw_alignment
-  | parse_optional_error
-  | parse_cigar_error
+  | parse_optional
+  | parse_cigar
   | `wrong_flag of raw_alignment
   | `wrong_mapq of raw_alignment
   | `wrong_pnext of raw_alignment
@@ -115,28 +106,44 @@ module Transform: sig
   (** All the possible errors one encounter while going from [raw_item]s to
       [Sam.item]s. *)
 
-  val raw_to_item_error_of_sexp : Sexplib.Sexp.t -> raw_to_item_error
-  val sexp_of_raw_to_item_error : raw_to_item_error -> Sexplib.Sexp.t
+  val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
+  val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
+
+
+end
+
+module Transform: sig
+  (** The low-level [Transform.t] implementations. *)
+
+  val parse_cigar: ?pos:int -> ?len:int -> string ->
+    (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Core.Result.t
+  (** Parse CIGAR operations from a string (lowest-level function). *)
+
+  val parse_optional: ?pos:int -> ?len:int -> string ->
+    (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
+  (** Parse optional content from a string (lowest-level function). *)
 
   val raw_to_item: unit ->
-    (raw_item, (Biocaml_sam.item, [> raw_to_item_error]) Core.Result.t)
+    (raw_item, (Biocaml_sam.item, [> Error.raw_to_item]) Core.Result.t)
       Biocaml_transform.t
   (** Create a transform that lifts [raw_item]s to the higher-level representation
       defined in the [Biocaml_sam] module. *)
 
-  type item_to_raw_error =
-  [ `cannot_get_sequence of Biocaml_sam.alignment
-  | `header_line_not_first of string
-  | `reference_name_not_found of Biocaml_sam.alignment * string ]
-  (** Inconsistency errors that may happen while trnasforming a
-      [Sam.item] to a [raw_item]. *)
+  val string_to_raw:
+    ?zlib_buffer_size:int ->
+    unit ->
+    (string,
+     (raw_item, [> `unzip of Biocaml_zip.Transform.unzip_error
+                | `bam of Error.raw_bam ] )
+       Core.Result.t)
+      Biocaml_transform.t
+  (** Create a transform that parses a BAM file.
+      The [zlib_buffer_size] is passed to the [Biocaml_zip] module. *)
 
-  val item_to_raw_error_of_sexp : Sexplib.Sexp.t -> item_to_raw_error
-  val sexp_of_item_to_raw_error : item_to_raw_error -> Sexplib.Sexp.t
 
   val item_to_raw: unit ->
     (Biocaml_sam.item,
-     (raw_item, [> item_to_raw_error]) Core.Result.t) Biocaml_transform.t
+     (raw_item, [> Error.item_to_raw]) Core.Result.t) Biocaml_transform.t
   (** Create a transform that downgrades [Sam.item]s to [raw_item]s. *)
 
   val raw_to_string: ?gzip_level:int -> ?zlib_buffer_size:int -> unit ->

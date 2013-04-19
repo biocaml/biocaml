@@ -1,18 +1,18 @@
 open Core.Std
 open Lwt
-  
+
 let failf fmt =
   ksprintf (fun s -> fail (Failure s)) fmt
-    
+
 module Command_line = struct
   include  Command
-    
-    
+
+
   let lwts_to_run = ref ([]: unit Lwt.t list)
   let uses_lwt () =
     Spec.step (fun lwt -> lwts_to_run := lwt :: !lwts_to_run)
 
-  
+
 
   let bench_flags () =
     let default_reps = 1 in
@@ -53,7 +53,7 @@ let lwt_file_to_file ~transform ?(input_buffer_size=42_000) bamfile
             end
           | `not_ready ->
             if stopped then print_all stopped else return ()
-          | `output (Error (`string s)) -> 
+          | `output (Error (`string s)) ->
             Lwt_io.eprintf "=====  ERROR: %s\n%!" s
         in
         let rec loop () =
@@ -93,7 +93,7 @@ let lwt_go_through_input ~transform ~max_read_bytes ~input_buffer_size filename 
           end
         | `not_ready ->
           if stopped then count_all stopped else return ()
-        | `output (Error (`string s)) -> 
+        | `output (Error (`string s)) ->
           Lwt_io.eprintf "=====  ERROR: %s\n%!" s
       in
       let rec loop c =
@@ -116,7 +116,7 @@ let lwt_go_through_input ~transform ~max_read_bytes ~input_buffer_size filename 
 
 
 let err_to_string sexp e = Error (`string (Sexp.to_string_hum (sexp e)))
-  
+
 let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
   Biocaml_transform.(
     on_output
@@ -131,11 +131,11 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
       ~f:(function
       | Ok o -> Ok o
       | Error (`left (`left (`bam e))) ->
-        err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+        err_to_string Biocaml_bam.Error.sexp_of_raw_bam e
       | Error (`left (`left (`unzip e))) ->
         err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
       | Error (`left (`right e)) ->
-        err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
+        err_to_string Biocaml_bam.Error.sexp_of_raw_to_item e
       | Error (`right  e) ->
         err_to_string Biocaml_sam.Error.sexp_of_item_to_raw e
       )
@@ -156,10 +156,10 @@ let fastq_file_trimmer filename =
       (Biocaml_fastq.Transform.item_to_string ())
   )
 (*  string  ---  fastq-record --- trimmed-fast \
-                                               f --- named-fastq --- string 
-    unit  ---  count --------------------------/                              *)    
+                                               f --- named-fastq --- string
+    unit  ---  count --------------------------/                              *)
 
-    
+
 let cmd_convert =
   Command_line.(
     basic ~summary:"Benchmark the conversion from BAM to SAM or trimming FASTQs"
@@ -225,9 +225,9 @@ let cmd_convert =
         );
         List.iter !results (function
         | `lwt (ib, ob, t) ->
-          printf "Lwt\t%d\t%d\t%.2f\t%.2f\n" ib ob t (t /. float repetitions) 
+          printf "Lwt\t%d\t%d\t%.2f\t%.2f\n" ib ob t (t /. float repetitions)
         | `unix (ib, ob, t) ->
-          printf "Unix\t%d\t%d\t%.2f\t%.2f\n" ib ob t (t /. float repetitions) 
+          printf "Unix\t%d\t%d\t%.2f\t%.2f\n" ib ob t (t /. float repetitions)
         );
       )
   )
@@ -251,7 +251,7 @@ let cmd_just_parse_bam =
                   ~f:(function
                   | Ok o -> Ok o
                   | Error ( (`bam e)) ->
-                    err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+                    err_to_string Biocaml_bam.Error.sexp_of_raw_bam e
                   | Error ( (`unzip e)) ->
                     err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
                   )) in
@@ -274,11 +274,11 @@ let cmd_just_parse_bam =
                   ~f:(function
                   | Ok o -> Ok o
                   | Error (`left (`bam e)) ->
-                    err_to_string Biocaml_bam.Transform.sexp_of_raw_bam_error e
+                    err_to_string Biocaml_bam.Error.sexp_of_raw_bam e
                   | Error (`left (`unzip e)) ->
                     err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
                   | Error (`right e) ->
-                    err_to_string Biocaml_bam.Transform.sexp_of_raw_to_item_error e
+                    err_to_string Biocaml_bam.Error.sexp_of_raw_to_item e
                   )) in
             lwt_go_through_input ~transform ~max_read_bytes:Int.max_value
               ~input_buffer_size bam |! Lwt_main.run
@@ -288,14 +288,14 @@ let cmd_just_parse_bam =
         );
         List.iter !results (function
         | `item (ib, t) ->
-          printf "Item\t%d\t%.2f\t%.2f\n" ib t (t /. float repetitions) 
+          printf "Item\t%d\t%.2f\t%.2f\n" ib t (t /. float repetitions)
         | `raw (ib, t) ->
-          printf "Raw\t%d\t%.2f\t%.2f\n" ib t (t /. float repetitions) 
+          printf "Raw\t%d\t%.2f\t%.2f\n" ib t (t /. float repetitions)
         );
       )
   )
-  
-    
+
+
 let () =
   Command_line.(
     let whole_thing =

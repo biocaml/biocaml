@@ -27,8 +27,9 @@ type raw_item =
 | `reference_information of (string * int) array ]
 with sexp
 
-module Transform = struct
-  type parse_optional_error = [
+module Error = struct
+
+  type parse_optional = [
   | `wrong_auxiliary_data of
       [ `array_size of int
       | `null_terminated_hexarray
@@ -39,7 +40,7 @@ module Transform = struct
   ]
   with sexp
 
-  type raw_bam_error = [
+  type raw_bam = [
   | `read_name_not_null_terminated of string
   | `reference_information_name_not_null_terminated of string
   | `reference_information_overflow of int * string
@@ -48,20 +49,20 @@ module Transform = struct
   ]
   with sexp
 
-  type parse_cigar_error = [
+  type parse_cigar = [
   | `wrong_cigar of string
   | `wrong_cigar_length of int ]
   with sexp
 
-  type raw_to_item_error = [
+  type raw_to_item = [
   | `header_line_not_first of int
   | `header_line_without_version of (string * string) list
   | `header_line_wrong_sorting of string
   | `invalid_header_tag of int * string
   | `invalid_tag_value_list of int * string list
   | `reference_sequence_not_found of raw_alignment
-  | parse_optional_error
-  | parse_cigar_error
+  | parse_optional
+  | parse_cigar
   | `wrong_flag of raw_alignment
   | `wrong_mapq of raw_alignment
   | `wrong_pnext of raw_alignment
@@ -71,12 +72,16 @@ module Transform = struct
   with sexp
 
 
-  type item_to_raw_error =
+  type item_to_raw =
   [ `cannot_get_sequence of Sam.alignment
   | `header_line_not_first of string
   | `reference_name_not_found of Sam.alignment * string ]
   with sexp
 
+
+end
+
+module Transform = struct
   let dbg fmt = Debug.make "BAM" fmt
 
   let check b e = if b then return () else fail e
@@ -306,7 +311,7 @@ module Transform = struct
       | `right r ->
         match r with
         | `no -> failwith "got `right `no"
-        | #raw_bam_error as a -> `bam a)
+        | #Error.raw_bam as a -> `bam a)
       (Zip.Transform.unzip ~format:`gzip ?zlib_buffer_size ())
       (uncompressed_bam_parser ())
 

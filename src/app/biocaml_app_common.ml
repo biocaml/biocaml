@@ -405,7 +405,7 @@ let go_through_input ~transform ~max_read_bytes filename =
             (Biocaml_bed.Error.sexp_of_parsing s |! Sexp.to_string_hum)
         | `output (Error (`bam s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_bam.Transform.sexp_of_raw_bam_error s |! Sexp.to_string_hum)
+            (Biocaml_bam.Error.sexp_of_raw_bam s |! Sexp.to_string_hum)
         | `output (Error (`sam s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
             (Biocaml_sam.Error.sexp_of_string_to_raw s |! Sexp.to_string_hum)
@@ -414,7 +414,7 @@ let go_through_input ~transform ~max_read_bytes filename =
             (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
         | `output (Error (`bam_to_item s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_bam.Transform.sexp_of_raw_to_item_error s |! Sexp.to_string_hum)
+            (Biocaml_bam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
         | `output (Error (`sam_to_item s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
             (Biocaml_sam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
@@ -484,11 +484,10 @@ let push_to_the_max ~out_channel ~transform input =
 
 (** Merge of the possible output errors of transforms of type
    [output_transform] (most output transforms are error-free).  *)
-type output_error =
-[ `bam of Biocaml_bam.Transform.item_to_raw_error
-| `sam of Biocaml_sam.Error.item_to_raw
-]
-with sexp_of
+type output_error = [
+  | `bam of Biocaml_bam.Error.item_to_raw
+  | `sam of Biocaml_sam.Error.item_to_raw
+] with sexp_of
 
 (** Generic union of possible output transforms. *)
 type output_transform = [

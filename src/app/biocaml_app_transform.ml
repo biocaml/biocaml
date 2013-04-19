@@ -6,8 +6,8 @@ open Biocaml
 
 
 type input_error = [
-  | `bam of Biocaml_bam.Transform.raw_bam_error
-  | `bam_to_item of [ Biocaml_bam.Transform.raw_to_item_error ]
+  | `bam of Biocaml_bam.Error.raw_bam
+  | `bam_to_item of [ Biocaml_bam.Error.raw_to_item ]
   | `sam of [ Biocaml_sam.Error.string_to_raw ]
   | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
   | `unzip of Biocaml_zip.Transform.unzip_error
