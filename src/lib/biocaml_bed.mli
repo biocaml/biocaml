@@ -70,6 +70,19 @@ module Error: sig
 
 end
 
+exception Error of  Error.t
+(** The exception raised by the [*_exn] functions. *)
+
+val in_channel_to_item_stream : ?buffer_size:int -> ?more_columns:parsing_spec ->
+  in_channel -> (item, [> Error.parsing]) Core.Result.t Biocaml_stream.t
+(** Parse an input-channel into [item] values. *)
+
+val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spec ->
+  in_channel -> item Biocaml_stream.t
+(** Like [in_channel_to_item_stream] but use exceptions for errors
+    (raised within [Stream.next]). *)
+
+
 val item_of_line: how:parsing_spec -> Biocaml_lines.item ->
   (item, [> Error.parsing]) Core.Result.t
 (** Basic parsing of a single line. *)

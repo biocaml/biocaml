@@ -65,3 +65,15 @@ module Transform = struct
       ~f:(fun item -> item_to_line item)
 
 end
+
+exception Error of  Error.t
+let error_to_exn e = Error e
+
+let in_channel_to_item_stream ?(buffer_size=65536) ?more_columns inp =
+  let x = Transform.string_to_item ?more_columns () in
+  Biocaml_transform.(in_channel_strings_to_stream inp x ~buffer_size)
+
+let in_channel_to_item_stream_exn ?buffer_size ?more_columns inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_item_stream ?buffer_size ?more_columns inp)
+
