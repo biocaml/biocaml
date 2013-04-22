@@ -29,7 +29,7 @@ type params = {
   long_format : bool;
   meth : meth
 }
-    
+
 type options = {
   mutable option_in_files : string list;
   mutable option_long_format : bool;
@@ -65,12 +65,12 @@ let options_to_params (t:options) : params =
       t.option_in_files
     )
   in
-  
+
   let long_format = match t.option_long_format with
     | true -> true
     | false -> List.length in_files > 2
   in
-  
+
   let meth = match t.option_meth with
     | None -> Pearson
     | Some x -> (
@@ -80,16 +80,16 @@ let options_to_params (t:options) : params =
           | _ -> failwith (sprintf "%s: unknown correlation method" x)
       )
   in
-  
+
   {
     in_files = in_files;
     long_format = long_format;
     meth = meth
   }
-    
+
 let parse_cmdline () : params =
   let t = {option_in_files=[]; option_long_format=false; option_meth=None; option_help=false} in
-  
+
   let opts = [
     'l', "", Some (fun () -> t.option_long_format <- true), None;
     'm', "", None, Some (fun x -> t.option_meth <- Some x);
@@ -98,7 +98,7 @@ let parse_cmdline () : params =
   in
 
   let anon_handler x = t.option_in_files <- x::t.option_in_files in
-  
+
   Getopt.parse_cmdline opts anon_handler;
   t.option_in_files <- List.rev t.option_in_files;
   options_to_params t
@@ -106,7 +106,7 @@ let corr meth wig_file1 wig_file2 : float =
   let wig_of_file file =
     let wig =
       let transfo =
-        Biocaml_transform.compose_results 
+        Biocaml_transform.compose_results
           ~on_error:ident
           (Biocaml_wig.Transform.string_to_t ())
           (Biocaml_wig.Transform.t_to_bed_graph ()) in
@@ -116,7 +116,7 @@ let corr meth wig_file1 wig_file2 : float =
             ~error_to_exn:(function
             | `left e ->
               failwithf "Parsing error %s"
-                (Biocaml_wig.parse_error_to_string e) ()
+                (Biocaml_wig.Error.parsing_error_to_string e) ()
             | `right `not_in_variable_step_state ->
               failwith "Parsing error not_in_variable_step_state"
             | `right `not_in_fixed_step_state ->
@@ -135,23 +135,23 @@ let corr meth wig_file1 wig_file2 : float =
 
   if n1 <> n2 then
     failwith (sprintf "%s and %s: files do not have same number of data points" wig_file1 wig_file2);
-  
+
   for i = 0 to n1 - 1 do
     let chr1,lo1,hi1,_ = wig1.(i) in
     let chr2,lo2,hi2,_ = wig2.(i) in
     if (chr1,lo1,hi1) <> (chr2,lo2,hi2) then
       failwith (sprintf "%s and %s: files provide data for different ranges %s:%d-%d and %s:%d-%d" wig_file1 wig_file2 chr1 lo1 hi1 chr2 lo2 hi2)
   done;
-  
+
   let wig1,wig2 =
     let f (_,_,_,x) = x in
     Array.map f wig1, Array.map f wig2
   in
-  
+
   let meth = match meth with
     | Pearson -> Math.pearson
     | Spearman -> Math.spearman
-  in  
+  in
   meth wig1 wig2
 
 ;;
@@ -173,5 +173,5 @@ try
   done
 
 with
-    Invalid_argument msg | Failure msg | Getopt.Error msg -> 
+    Invalid_argument msg | Failure msg | Getopt.Error msg ->
       eprintf "%s: %s\n" prog_name msg

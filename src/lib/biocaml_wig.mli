@@ -48,8 +48,6 @@ type fixed_step = [
 
 type bed_graph_value = string * int * int * float
 
-(** {2 Parsing and Printing} *)
-
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 (** The most general type that the default parser outputs.
     {[
@@ -57,25 +55,40 @@ type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_v
     ]}
 *)
 
-type parse_error = [
-| `cannot_parse_key_values of Biocaml_pos.t * string
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of Biocaml_pos.t * string list * string option
-| `missing_chrom_value of Biocaml_pos.t * string
-| `missing_start_value of Biocaml_pos.t * string
-| `missing_step_value of Biocaml_pos.t * string
-| `wrong_start_value of Biocaml_pos.t * string
-| `wrong_step_value of Biocaml_pos.t * string
-| `unrecognizable_line of Biocaml_pos.t * string list
-| `wrong_bed_graph_value of Biocaml_pos.t * string
-| `wrong_fixed_step_value of Biocaml_pos.t * string
-| `wrong_span_value of Biocaml_pos.t * string
-| `wrong_variable_step_value of Biocaml_pos.t * string
-]
-(** The parsing errors. *)
+module Error: sig
+  (** The errors of the [ Wig ] module. *)
 
-val parse_error_to_string: parse_error -> string
-(** Convert a [parse_error] to a string. *)
+
+  type parsing = [
+    | `cannot_parse_key_values of Biocaml_pos.t * string
+    | `empty_line of Biocaml_pos.t
+    | `incomplete_input of Biocaml_pos.t * string list * string option
+    | `missing_chrom_value of Biocaml_pos.t * string
+    | `missing_start_value of Biocaml_pos.t * string
+    | `missing_step_value of Biocaml_pos.t * string
+    | `wrong_start_value of Biocaml_pos.t * string
+    | `wrong_step_value of Biocaml_pos.t * string
+    | `unrecognizable_line of Biocaml_pos.t * string list
+    | `wrong_bed_graph_value of Biocaml_pos.t * string
+    | `wrong_fixed_step_value of Biocaml_pos.t * string
+    | `wrong_span_value of Biocaml_pos.t * string
+    | `wrong_variable_step_value of Biocaml_pos.t * string
+  ]
+  (** The parsing errors. *)
+
+  val parsing_error_to_string: parsing -> string
+  (** Convert a [parsing] error to a string. *)
+
+  type t = parsing
+  (** The union of all errors. *)
+
+  val parsing_of_sexp__ : Sexplib.Sexp.t -> parsing
+  val parsing_of_sexp : Sexplib.Sexp.t -> parsing
+  val sexp_of_parsing : parsing -> Sexplib.Sexp.t
+  val t_of_sexp__ : Sexplib.Sexp.t -> t
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
+end
 
 type tag = [ `sharp_comments | `pedantic ]
 (** Additional tags (c.f. {!Biocaml_tags}). *)
@@ -90,7 +103,7 @@ module Transform: sig
     ?filename:string ->
     ?tags: tag list ->
     unit ->
-    (string, (t, [> parse_error]) Core.Result.t) Biocaml_transform.t
+    (string, (t, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create the parsing [Biocaml_transform.t]. The parser is
       "best-effort" and stateless (i.e. a line containing ["1000 42."]
       will parsed succesfully as a [`variable_step_value (1000, 42.)]
@@ -125,9 +138,7 @@ val bed_graph_value_of_sexp : Sexplib.Sexp.t -> bed_graph_value
 val sexp_of_bed_graph_value : bed_graph_value -> Sexplib.Sexp.t
 val t_of_sexp : Sexplib.Sexp.t -> t
 val t_of_sexp__ : Sexplib.Sexp.t -> t
-val sexp_of_t : t -> Sexplib.Sexp.t val parse_error_of_sexp : Sexplib.Sexp.t -> parse_error
-val parse_error_of_sexp__ : Sexplib.Sexp.t -> parse_error
-val sexp_of_parse_error : parse_error -> Sexplib.Sexp.t
+val sexp_of_t : t -> Sexplib.Sexp.t
 val tag_of_sexp : Sexplib.Sexp.t -> tag
 val tag_of_sexp__ : Sexplib.Sexp.t -> tag
 val sexp_of_tag : tag -> Sexplib.Sexp.t

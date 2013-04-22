@@ -12,7 +12,7 @@ type input_error = [
   | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
   | `unzip of Biocaml_zip.Transform.unzip_error
   | `gff of Gff.parse_error
-  | `wig of Wig.parse_error
+  | `wig of Wig.Error.parsing
   | `bed of Bed.Error.parsing
   | `fastq of Fastq.Error.t
   | `fasta of Fasta.Error.t

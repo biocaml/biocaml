@@ -15,64 +15,69 @@ type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (* name, start, step, span *)
 | `fixed_step_value of float
-]  
+]
 with sexp
 type bed_graph_value = string * int * int * float
 with sexp
-  
+
 type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 with sexp
 
 type tag = [ `sharp_comments | `pedantic ] with sexp
 let default_tags = [ `sharp_comments; `pedantic ]
 
-type parse_error = [
-| `cannot_parse_key_values of Pos.t * string
-| `empty_line of Pos.t
-| `incomplete_input of Pos.t * string list * string option
-| `missing_chrom_value of Pos.t * string
-| `missing_start_value of Pos.t * string
-| `missing_step_value of Pos.t * string
-| `wrong_start_value of Pos.t * string
-| `wrong_step_value of Pos.t * string
-| `unrecognizable_line of Pos.t * string list
-| `wrong_bed_graph_value of Pos.t * string
-| `wrong_fixed_step_value of Pos.t * string
-| `wrong_span_value of Pos.t * string
-| `wrong_variable_step_value of Pos.t * string
-]
-with sexp
-let parse_error_to_string =
-  let pos () a = Pos.to_string a in
-  function
-  | `cannot_parse_key_values (p, s) ->
-    sprintf "cannot_parse_key_values (%a, %S)" pos p s
-  | `empty_line p -> sprintf "empty_line (%a)" pos p
-  | `incomplete_input (p, vs, vo) -> (* Pos.t * string list *string option *)
-    sprintf "incomplete_input (%a, %s, %S)" pos p
-      (String.concat ~sep:"; " vs) (Option.value ~default:"" vo)
-  | `missing_chrom_value (p, v) -> (* Pos.t * string *)
-    sprintf "missing_chrom_value (%a, %s)" pos p v
-  | `missing_start_value (p, v) -> (* Pos.t * string *)
-    sprintf "missing_start_value (%a, %s)" pos p v
-  | `missing_step_value (p, v) -> (* Pos.t * string *)
-    sprintf "missing_step_value (%a, %s)" pos p v
-  | `wrong_start_value (p, v) -> (* Pos.t * string *)
-    sprintf "wrong_start_value (%a, %s)" pos p v
-  | `wrong_step_value (p, v) -> (* Pos.t * string *)
-    sprintf "wrong_step_value (%a, %s)" pos p v
-  | `unrecognizable_line (p, v) -> (* Pos.t * string list *)
-    sprintf "unrecognizable_line (%a, %s)" pos p (String.concat ~sep:" " v)
-  | `wrong_bed_graph_value (p, v) -> (* Pos.t * string *)
-    sprintf "wrong_bed_graph_value (%a, %s)" pos p v
-  | `wrong_fixed_step_value (p, v) -> (* Pos.t * string *)
-    sprintf "wrong_fixed_step_value (%a, %s)" pos p v
-  | `wrong_span_value (p, v) -> (* Pos.t * string *)
-    sprintf "wrong_span_value (%a, %s)" pos p v
-  | `wrong_variable_step_value (p, v) -> (* Pos.t * string *)
-    sprintf "wrong_variable_step_value (%a, %s)" pos p v
+module Error = struct
+  type parsing = [
+    | `cannot_parse_key_values of Pos.t * string
+    | `empty_line of Pos.t
+    | `incomplete_input of Pos.t * string list * string option
+    | `missing_chrom_value of Pos.t * string
+    | `missing_start_value of Pos.t * string
+    | `missing_step_value of Pos.t * string
+    | `wrong_start_value of Pos.t * string
+    | `wrong_step_value of Pos.t * string
+    | `unrecognizable_line of Pos.t * string list
+    | `wrong_bed_graph_value of Pos.t * string
+    | `wrong_fixed_step_value of Pos.t * string
+    | `wrong_span_value of Pos.t * string
+    | `wrong_variable_step_value of Pos.t * string
+  ]
+  with sexp
 
-module Transform = struct      
+  let parsing_error_to_string =
+    let pos () a = Pos.to_string a in
+    function
+    | `cannot_parse_key_values (p, s) ->
+      sprintf "cannot_parse_key_values (%a, %S)" pos p s
+    | `empty_line p -> sprintf "empty_line (%a)" pos p
+    | `incomplete_input (p, vs, vo) -> (* Pos.t * string list *string option *)
+      sprintf "incomplete_input (%a, %s, %S)" pos p
+        (String.concat ~sep:"; " vs) (Option.value ~default:"" vo)
+    | `missing_chrom_value (p, v) -> (* Pos.t * string *)
+      sprintf "missing_chrom_value (%a, %s)" pos p v
+    | `missing_start_value (p, v) -> (* Pos.t * string *)
+      sprintf "missing_start_value (%a, %s)" pos p v
+    | `missing_step_value (p, v) -> (* Pos.t * string *)
+      sprintf "missing_step_value (%a, %s)" pos p v
+    | `wrong_start_value (p, v) -> (* Pos.t * string *)
+      sprintf "wrong_start_value (%a, %s)" pos p v
+    | `wrong_step_value (p, v) -> (* Pos.t * string *)
+      sprintf "wrong_step_value (%a, %s)" pos p v
+    | `unrecognizable_line (p, v) -> (* Pos.t * string list *)
+      sprintf "unrecognizable_line (%a, %s)" pos p (String.concat ~sep:" " v)
+    | `wrong_bed_graph_value (p, v) -> (* Pos.t * string *)
+      sprintf "wrong_bed_graph_value (%a, %s)" pos p v
+    | `wrong_fixed_step_value (p, v) -> (* Pos.t * string *)
+      sprintf "wrong_fixed_step_value (%a, %s)" pos p v
+    | `wrong_span_value (p, v) -> (* Pos.t * string *)
+      sprintf "wrong_span_value (%a, %s)" pos p v
+    | `wrong_variable_step_value (p, v) -> (* Pos.t * string *)
+      sprintf "wrong_variable_step_value (%a, %s)" pos p v
+
+  type t = parsing with sexp
+end
+
+module Transform = struct
   let explode_key_value loc s =
     try
       let by_space =
@@ -85,7 +90,7 @@ module Transform = struct
         end))
     with
       Not_found -> Error (`cannot_parse_key_values (loc, s))
-        
+
   let rec next ?(pedantic=true) ?(sharp_comments=true) p =
     let open Biocaml_transform.Line_oriented in
     let assoc_find ~missing l v =
@@ -109,11 +114,11 @@ module Transform = struct
         assoc_find assoc "chrom"
           ~missing:(`missing_chrom_value (current_position p, l))
         >>= fun chrom ->
-        assoc_find_map assoc "start" 
+        assoc_find_map assoc "start"
           ~missing:(`missing_start_value (current_position p, l))
           ~f:Int.of_string ~wrong:(`wrong_start_value (current_position p, l))
         >>= fun start ->
-        assoc_find_map assoc "step" 
+        assoc_find_map assoc "step"
           ~missing:(`missing_step_value (current_position p, l))
           ~f:Int.of_string ~wrong:(`wrong_step_value (current_position p, l))
         >>= fun step ->
@@ -168,10 +173,10 @@ module Transform = struct
       | l ->
         output_error (`unrecognizable_line (current_position p, l))
       end
-    | None -> 
+    | None ->
       `not_ready
-        
-        
+
+
   let string_to_t ?filename ?(tags=default_tags) () =
     let pedantic = List.mem tags `pedantic in
     let sharp_comments = List.mem tags `sharp_comments in
@@ -192,7 +197,7 @@ module Transform = struct
           Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
       | `variable_step_value (pos, v) -> sprintf "%d %g\n" pos v
       | `fixed_step_state_change (chrom, start, step, span) ->
-        sprintf "fixedStep chrom=%s start=%d step=%d%s\n" chrom start step 
+        sprintf "fixedStep chrom=%s start=%d step=%d%s\n" chrom start step
           Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
       | `fixed_step_value v -> sprintf "%g\n" v
       | `bed_graph_value (chrom, start, stop, v) ->
@@ -238,6 +243,6 @@ module Transform = struct
         match Queue.dequeue queue with
         | None -> if stopped then `end_of_stream else `not_ready
         | Some v -> v)
-      
+
 end
 

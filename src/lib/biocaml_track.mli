@@ -86,7 +86,7 @@ module Transform: sig
 
   val string_to_wig: ?filename:string -> unit ->
     (string,
-     ([ t | Biocaml_wig.t ], [> parse_error | Biocaml_wig.parse_error ])
+     ([ t | Biocaml_wig.t ], [> parse_error | Biocaml_wig.Error.parsing ])
        Core.Result.t)
       Biocaml_transform.t
   (** Create a composite parser for UCSC WIG files.  *)

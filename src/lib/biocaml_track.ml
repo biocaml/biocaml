@@ -130,7 +130,7 @@ module Transform = struct
       | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
       | Error _ as n -> `bypass n)
 
-  type wig_parser_error = [ parse_error | Wig.parse_error ]
+  type wig_parser_error = [ parse_error | Wig.Error.parsing ]
   type wig_t = [ track | Wig.t]
 
   let string_to_wig ?filename () =
