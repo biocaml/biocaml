@@ -1,4 +1,4 @@
-(** SAM files. *)
+(** SAM files and SAM-alignements high-level representation. *)
 
 type raw_alignment = {
   qname : string;
@@ -197,6 +197,9 @@ module Error : sig
       ]
       ]}*)
 
+  type t = parse
+  (** The union of all possible errors. *)
+
   (** {3 S-Expressions conversions for Errors} *)
 
   val optional_content_parsing_of_sexp : Sexplib.Sexp.t -> optional_content_parsing
@@ -214,24 +217,34 @@ module Error : sig
   val parse_of_sexp : Sexplib.Sexp.t -> parse
   val parse_of_sexp__ : Sexplib.Sexp.t -> parse
   val sexp_of_parse : parse -> Sexplib.Sexp.t
+  val t_of_sexp : Sexplib.Sexp.t -> parse
+  val t_of_sexp__ : Sexplib.Sexp.t -> parse
+  val sexp_of_t : parse -> Sexplib.Sexp.t
 
 end
 
-exception Error of  Error.parse
+exception Error of  Error.t
+(** The only exception raised by [*_exn] functions in this module. *)
 
 (** {2 Stream functions } *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
   (item, [> Error.parse]) Core.Result.t Stream.t
+(** Parse an input-channel into a stream of high-level items. *)
 
 val in_channel_to_raw_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
   (raw_item, [> Error.parse]) Core.Result.t Stream.t
+(** Parse an input-channel into a stream of low-level (“raw”) items. *)
 
 val in_channel_to_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
   item Stream.t
+(** Like in_channel_to_item_stream but each call to [Stream.next] may
+    raise [Error _] *)
 
 val in_channel_to_raw_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
   raw_item Stream.t
+(** Like in_channel_to_raw_item_stream but each call to [Stream.next] may
+    raise [Error _] *)
 
 
 (** {2 Low-level partial parsing} *)

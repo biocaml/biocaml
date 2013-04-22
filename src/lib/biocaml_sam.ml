@@ -194,6 +194,8 @@ module Error = struct
   ]
   with sexp
 
+  type t = parse with sexp
+
 end
 
 module Low_level_parsing = struct
@@ -689,8 +691,7 @@ module Transform = struct
   let raw_to_string () =
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
-      PQ.make ~to_string:(function
-      | `comment c -> sprintf "@CO\t%s\n" c
+      PQ.make ~to_string:(function | `comment c -> sprintf "@CO\t%s\n" c
       | `header (t, l) -> sprintf "@%s\t%s\n" t
         (List.map l (fun (a,b) -> sprintf "%s:%s" a b) |! String.concat ~sep:"\t")
       | `alignment a -> alignment_to_string a
@@ -703,7 +704,7 @@ module Transform = struct
         | s -> `output s)
 end
 
-exception Error of  Error.parse
+exception Error of  Error.t
 let error_to_exn e = Error e
 
 let in_channel_to_raw_item_stream ?(buffer_size=65536) ?filename inp =
