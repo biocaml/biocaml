@@ -217,10 +217,22 @@ module Error : sig
 
 end
 
+exception Error of  Error.parse
+
 (** {2 Stream functions } *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
   (item, [> Error.parse]) Core.Result.t Stream.t
+
+val in_channel_to_raw_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
+  (raw_item, [> Error.parse]) Core.Result.t Stream.t
+
+val in_channel_to_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
+  item Stream.t
+
+val in_channel_to_raw_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
+  raw_item Stream.t
+
 
 (** {2 Low-level partial parsing} *)
 

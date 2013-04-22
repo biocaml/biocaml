@@ -40,7 +40,7 @@ with sexp
 
 let reference_sequence
     ?assembly_identifier ?checksum ?species ?uri ?(unknown_data=[]) name length =
-  { 
+  {
     ref_name                = name               ;
     ref_length              = length             ;
     ref_assembly_identifier = assembly_identifier;
@@ -50,15 +50,15 @@ let reference_sequence
     ref_unknown             = unknown_data ;
   }
 
-    
-module Flags = struct 
+
+module Flags = struct
   type t = int
   with sexp
 
   let of_int = ident
-    
+
   let flag_is_set s f = (f land s) <> 0
-    
+
   let has_multiple_segments            = flag_is_set 0x1
   let each_segment_properly_aligned    = flag_is_set 0x2
   let segment_unmapped                 = flag_is_set 0x4
@@ -71,7 +71,7 @@ module Flags = struct
   let not_passing_quality_controls     = flag_is_set 0x200
   let pcr_or_optical_duplicate         = flag_is_set 0x400
 end
-  
+
 type cigar_op = [
 | `D of int
 | `Eq of int
@@ -93,7 +93,7 @@ type optional_content_value = [
 | `string of string ]
 with sexp
 
-type optional_content = (string * char * optional_content_value) list   
+type optional_content = (string * char * optional_content_value) list
 with sexp
 
 type alignment = {
@@ -308,12 +308,12 @@ module Low_level_parsing = struct
       in
       loop [] >>| Array.of_list_rev
     end
-      
+
 
 
   let parse_optional_content raw =
     let error e = fail (`wrong_optional (raw, e)) in
-    let char tag typ raw = 
+    let char tag typ raw =
       if String.length raw <> 1 then error (`not_a_char raw)
       else return (tag, typ, `char raw.[0]) in
     let int tag typ raw =
@@ -333,7 +333,7 @@ module Low_level_parsing = struct
       begin match typ with
       | 'Z' -> return (tag, typ, `string raw_v)
       | 'H' -> return (tag, typ, `string raw_v)
-      | 'B' -> 
+      | 'B' ->
         begin match String.split ~on:',' raw_v with
         | [] ->  error (`wrong_array (`wrong_type raw_v))
         | f :: _ when String.length f <> 1 ->
@@ -354,7 +354,7 @@ module Low_level_parsing = struct
         end
       | c -> parse_cCsSiIf tag typ raw_v
       end)
-      
+
   let expand_alignment raw ref_dict =
     let {qname; flag; rname; pos;
          mapq; cigar; rnext; pnext;
@@ -384,7 +384,7 @@ module Low_level_parsing = struct
     begin match rnext with
     | "*" -> return `none
     | "=" -> return `qname
-    | s -> 
+    | s ->
       begin match tryfind s with
       | None -> return (`name s)
       | Some r -> return (`reference_sequence r)
@@ -413,7 +413,7 @@ module Low_level_parsing = struct
     >>= fun quality ->
     parse_optional_content optional
     >>= fun optional_content ->
-    
+
     return {
       query_template_name = qname;
       flags = flag;
@@ -431,7 +431,7 @@ module Low_level_parsing = struct
 end
 
 module Transform = struct
-    
+
   open Low_level_parsing
 
   let rec next p =
@@ -443,7 +443,7 @@ module Transform = struct
       parse_header_line (current_position p) l |! output_result
     | Some l ->
       parse_alignment (current_position p) l |! output_result
-          
+
   let string_to_raw ?filename () =
     let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
     Biocaml_transform.Line_oriented.make_merge_error
@@ -461,7 +461,7 @@ module Transform = struct
 
   let reference_sequence_aggregator () =
     let refs = ref [] in
-    let get_line line = 
+    let get_line line =
       let sn = ref None in
       let ln = ref (Error "") in
       let asi = ref None in
@@ -500,7 +500,7 @@ module Transform = struct
       if List.length deduped <> List.length !refs then
         fail (`duplicate_in_reference_sequence_dictionary
                  (Array.of_list_rev !refs))
-      else 
+      else
         return (Array.of_list_rev !refs)
     in
     (get_line, finish)
@@ -555,7 +555,7 @@ module Transform = struct
     in
     Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
       ~next
-      
+
   let downgrade_alignment al =
     let qname = al.query_template_name in
     let flag = al.flags in
@@ -566,7 +566,7 @@ module Transform = struct
       | `reference_sequence rs -> rs.ref_name in
     let pos = Option.value ~default:0 al.position in
     let mapq = Option.value ~default:255 al.mapping_quality in
-    let cigar = 
+    let cigar =
       match al.cigar_operations with
       | [| |] -> "*"
       | some ->
@@ -581,7 +581,7 @@ module Transform = struct
         | `Eq v -> sprintf "%d%c" v '='
         | `X  v -> sprintf "%d%c" v 'X')
         |! String.concat_array ~sep:"" in
-    let rnext = 
+    let rnext =
       match al.next_reference_sequence with
       | `qname -> "=" | `none -> "*" | `name s -> s
       | `reference_sequence rs -> rs.ref_name in
@@ -617,7 +617,7 @@ module Transform = struct
     return (`alignment {qname; flag; rname; pos;
                         mapq; cigar; rnext; pnext;
                         tlen; seq; qual; optional; })
-      
+
 
   let item_to_raw () =
     let name = "sam_item_to_raw" in
@@ -679,7 +679,7 @@ module Transform = struct
     Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
       ~next
 
-      
+
   let alignment_to_string x =
     sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n"
       x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual
@@ -702,7 +702,13 @@ module Transform = struct
         | "" -> if stopped then `end_of_stream else `not_ready
         | s -> `output s)
 end
-      
+
+exception Error of  Error.parse
+let error_to_exn e = Error e
+
+let in_channel_to_raw_item_stream ?(buffer_size=65536) ?filename inp =
+  let x = Transform.string_to_raw ?filename () in
+  Biocaml_transform.(in_channel_strings_to_stream inp x ~buffer_size)
 
 let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   let x = Transform.string_to_raw ?filename () in
@@ -711,3 +717,11 @@ let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
     |! in_channel_strings_to_stream ~buffer_size inp
   )
+
+let in_channel_to_raw_item_stream_exn ?buffer_size ?filename inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_raw_item_stream ?filename ?buffer_size inp)
+
+let in_channel_to_item_stream_exn ?buffer_size ?filename inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_item_stream ?filename ?buffer_size inp)
