@@ -14,7 +14,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.48.3.1 r9886"
-   sodipodi:docname="transform_boxes_model.svg">
+   sodipodi:docname="transform_filter_compose.svg">
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -335,7 +335,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -386,7 +386,7 @@
        transform="translate(-197.14286,-198.57142)">
       <path
          transform="matrix(1.3028169,0,0,1,-259.47686,137.14285)"
-         d="m 1031.4286,535.2193 a 101.42857,51.42857 0 1 1 -202.85717,0 101.42857,51.42857 0 1 1 202.85717,0 z"
+         d="m 1031.4286,535.2193 c 0,28.40321 -45.41115,51.42857 -101.4286,51.42857 -56.01745,0 -101.42857,-23.02536 -101.42857,-51.42857 0,-28.40322 45.41112,-51.42857 101.42857,-51.42857 56.01745,0 101.4286,23.02535 101.4286,51.42857 z"
          sodipodi:ry="51.42857"
          sodipodi:rx="101.42857"
          sodipodi:cy="535.2193"
@@ -498,7 +498,7 @@
        transform="translate(-603.24553,-229.60323)">
       <path
          transform="translate(-8.5714285,137.14285)"
-         d="m 1031.4286,535.2193 a 101.42857,51.42857 0 1 1 -202.85717,0 101.42857,51.42857 0 1 1 202.85717,0 z"
+         d="m 1031.4286,535.2193 c 0,28.40321 -45.41115,51.42857 -101.4286,51.42857 -56.01745,0 -101.42857,-23.02536 -101.42857,-51.42857 0,-28.40322 45.41112,-51.42857 101.42857,-51.42857 56.01745,0 101.4286,23.02535 101.4286,51.42857 z"
          sodipodi:ry="51.42857"
          sodipodi:rx="101.42857"
          sodipodi:cy="535.2193"
@@ -551,46 +551,46 @@
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="326.73355"
-       y="346.09454"
+       x="284.73355"
+       y="324.95169"
        id="text2987-01-1"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="326.73355"
-         y="346.09454"
-         id="tspan2991-1-5">`Yes _</tspan></text>
+         x="284.73355"
+         y="324.95169"
+         id="tspan2991-1-5">`transform _</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
        x="421.5282"
-       y="444.94012"
+       y="450.65442"
        id="text2987-01-1-7"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
          x="421.5282"
-         y="444.94012"
-         id="tspan2991-1-5-2">`No _</tspan></text>
+         y="450.65442"
+         id="tspan2991-1-5-2">`bypass _</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="645.81384"
-       y="370.65445"
+       x="638.67096"
+       y="360.65445"
        id="text2987-01-1-6"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="645.81384"
-         y="370.65445"
-         id="tspan2991-1-5-9">`Done _</tspan></text>
+         x="638.67096"
+         y="360.65445"
+         id="tspan3067">`transformed _</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:28px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#aa0d0f;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
-       x="501.52814"
-       y="514.94019"
+       x="487.24243"
+       y="526.36877"
        id="text2987-01-1-8"
        sodipodi:linespacing="125%"><tspan
          sodipodi:role="line"
-         x="501.52814"
-         y="514.94019"
-         id="tspan2991-1-5-7">`Filtered _</tspan></text>
+         x="487.24243"
+         y="526.36877"
+         id="tspan2991-1-5-7">`bypassed _</tspan></text>
   </g>
 </svg>

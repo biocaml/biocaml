@@ -145,7 +145,7 @@ let filter_compose left right ~destruct ~reconstruct =
     ~next:(fun () ->
       let call_right_next () =
         begin match next right with
-        | `output o -> `output (reconstruct (`Done o))
+        | `output o -> `output (reconstruct (`transformed o))
         | `not_ready -> `not_ready
         | `end_of_stream -> `end_of_stream
         end
@@ -153,8 +153,8 @@ let filter_compose left right ~destruct ~reconstruct =
       match next left with
       | `output o ->
         begin match destruct o with
-        | `Yes y -> feed right y; call_right_next ()
-        | `No n -> `output (reconstruct (`Filtered n))
+        | `transform y -> feed right y; call_right_next ()
+        | `bypass n -> `output (reconstruct (`bypassed n))
         end
       | `not_ready -> call_right_next ()
       | `end_of_stream -> stop right; call_right_next ())

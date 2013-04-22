@@ -125,14 +125,14 @@ val mix : ('a1, 'b1) t -> ('a2, 'b2) t -> f:('b1 -> 'b2 -> 'c) -> ('a1 * 'a2, 'c
 
 val filter_compose:
   ('il, 'ol) t -> ('ir, 'our) t ->
-  destruct:('ol -> [`Yes of 'ir | `No of 'filtered]) ->
-  reconstruct:([`Filtered of 'filtered | `Done of 'our] -> 'result) ->
+  destruct:('ol -> [`transform of 'ir | `bypass of 'filtered]) ->
+  reconstruct:([`bypassed of 'filtered | `transformed of 'our] -> 'result) ->
   ('il, 'result) t
-(** [filter_compose t u ~destruct ~reconstruct] produces a
-    transform that feeds a filtered subset of [t]s outputs to
-    [u]. Only those outputs [ol] of [t] for which [destruct ol]
-    returns [`Yes] are passsed on to [u]. The filterd out values are
-    combined with [u]'s output using [reconstruct].
+(** [filter_compose t u ~destruct ~reconstruct] produces a transform
+    that feeds a filtered subset of [t]s outputs to [u]. Only those
+    outputs [ol] of [t] for which [destruct ol] returns [`transform] are
+    passed on to [u]. The filterd out values are combined with [u]'s
+    output using [reconstruct].
     {figure src/doc/figures/transform_filter_compose.svg 50%
     “Compose” two transforms with a filtering function }
 *)

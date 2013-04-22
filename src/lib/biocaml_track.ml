@@ -126,9 +126,9 @@ module Transform = struct
     Biocaml_transform.filter_compose
       track_parser
       ~destruct:(function
-      | Ok (`content s) -> `Yes (s ^ "\n")
+      | Ok (`content s) -> `transform (s ^ "\n")
       | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
-      | Error _ as n -> `No n)
+      | Error _ as n -> `bypass n)
 
   type wig_parser_error = [ parse_error | Wig.parse_error ]
   type wig_t = [ track | Wig.t]
@@ -147,10 +147,10 @@ module Transform = struct
       | Error _ as n -> `No n) *)
       wig_parser
       ~reconstruct:(function
-      | `Filtered (Ok f) -> Ok (f :> wig_t)
-      | `Filtered (Error f) -> Error (f :> [> wig_parser_error])
-      | `Done (Ok o) -> Ok (o :> wig_t)
-      | `Done (Error e) -> Error (e :> [> wig_parser_error]))
+      | `bypassed (Ok f) -> Ok (f :> wig_t)
+      | `bypassed (Error f) -> Error (f :> [> wig_parser_error])
+      | `transformed (Ok o) -> Ok (o :> wig_t)
+      | `transformed (Error e) -> Error (e :> [> wig_parser_error]))
 
   type gff_parse_error = [parse_error | Gff.parse_error]
   type gff_t = [track | Gff.stream_item]
@@ -158,10 +158,10 @@ module Transform = struct
     let gff = Gff.Transform.string_to_item ?filename () in
     embed_parser  ?filename gff
       ~reconstruct:(function
-      | `Filtered (Ok f) -> Ok (f :> gff_t)
-      | `Filtered (Error f) -> Error (f :> [> gff_parse_error])
-      | `Done (Ok o) -> Ok (o :> gff_t)
-      | `Done (Error e) -> Error (e :> [> gff_parse_error]))
+      | `bypassed (Ok f) -> Ok (f :> gff_t)
+      | `bypassed (Error f) -> Error (f :> [> gff_parse_error])
+      | `transformed (Ok o) -> Ok (o :> gff_t)
+      | `transformed (Error e) -> Error (e :> [> gff_parse_error]))
 
   type bed_parse_error = [parse_error| Bed.Error.parsing]
   type bed_t = [track |  Bed.item content ]
@@ -170,10 +170,10 @@ module Transform = struct
     let bed = Bed.Transform.string_to_item ?more_columns () in
     embed_parser  ?filename bed
       ~reconstruct:(function
-      | `Filtered (Ok f) -> Ok (f :> bed_t)
-      | `Filtered (Error f) -> Error (f :> [> bed_parse_error])
-      | `Done (Ok o) -> Ok (`content o :> bed_t)
-      | `Done (Error e) -> Error (e :> [> bed_parse_error]))
+      | `bypassed (Ok f) -> Ok (f :> bed_t)
+      | `bypassed (Error f) -> Error (f :> [> bed_parse_error])
+      | `transformed (Ok o) -> Ok (`content o :> bed_t)
+      | `transformed (Error e) -> Error (e :> [> bed_parse_error]))
 
 
   let make_printer p ~split () =
