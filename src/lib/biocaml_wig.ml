@@ -249,3 +249,26 @@ module Transform = struct
 
 end
 
+exception Error of  Error.t
+let error_to_exn e = Error e
+
+let in_channel_to_item_stream ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_item ?filename ?tags () in
+  Biocaml_transform.(in_channel_strings_to_stream inp x ~buffer_size)
+
+let in_channel_to_item_stream_exn ?buffer_size ?filename ?tags inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_item_stream ?filename ?buffer_size ?tags inp)
+
+let in_channel_to_bed_graph ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_item ?filename ?tags () in
+  let y = Transform.item_to_bed_graph () in
+  Biocaml_transform.(
+    compose_results x y ~on_error:(function `left x -> x | `right x -> x)
+    |! in_channel_strings_to_stream ~buffer_size inp
+  )
+
+let in_channel_to_bed_graph_exn ?buffer_size ?filename ?tags inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_bed_graph ?filename ?buffer_size ?tags inp)
+
