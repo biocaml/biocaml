@@ -79,7 +79,11 @@ module Error: sig
   val parsing_error_to_string: parsing -> string
   (** Convert a [parsing] error to a string. *)
 
-  type t = parsing
+  type to_bed_graph = [`not_in_variable_step_state | `not_in_fixed_step_state]
+  (** The errors encountered while transforming [item] values to
+  bed-graph-only values. *)
+
+  type t = [ parsing | to_bed_graph ]
   (** The union of all errors. *)
 
   val parsing_of_sexp__ : Sexplib.Sexp.t -> parsing
@@ -88,6 +92,9 @@ module Error: sig
   val t_of_sexp__ : Sexplib.Sexp.t -> t
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
+  val to_bed_graph_of_sexp__ : Sexplib.Sexp.t -> to_bed_graph
+  val to_bed_graph_of_sexp : Sexplib.Sexp.t -> to_bed_graph
+  val sexp_of_to_bed_graph : to_bed_graph -> Sexplib.Sexp.t
 end
 
 type tag = [ `sharp_comments | `pedantic ]
@@ -114,8 +121,7 @@ module Transform: sig
 
   val item_to_bed_graph: unit ->
     (item,
-     (bed_graph_value,
-      [> `not_in_variable_step_state | `not_in_fixed_step_state]) Core.Result.t)
+     (bed_graph_value, [> Error.to_bed_graph]) Core.Result.t)
       Biocaml_transform.t
   (** Create a transform which converts [`variable_step_value _] and
       [`fixed_step_value _] values to [`bed_graph_value _] values, using the

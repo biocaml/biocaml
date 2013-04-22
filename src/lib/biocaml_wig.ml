@@ -74,7 +74,10 @@ module Error = struct
     | `wrong_variable_step_value (p, v) -> (* Pos.t * string *)
       sprintf "wrong_variable_step_value (%a, %s)" pos p v
 
-  type t = parsing with sexp
+  type to_bed_graph = [`not_in_variable_step_state | `not_in_fixed_step_state]
+  with sexp
+
+  type t = [ parsing | to_bed_graph ] with sexp
 end
 
 module Transform = struct
