@@ -20,7 +20,7 @@ with sexp
 type bed_graph_value = string * int * int * float
 with sexp
 
-type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
+type item = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 with sexp
 
 type tag = [ `sharp_comments | `pedantic ] with sexp
@@ -177,7 +177,7 @@ module Transform = struct
       `not_ready
 
 
-  let string_to_t ?filename ?(tags=default_tags) () =
+  let string_to_item ?filename ?(tags=default_tags) () =
     let pedantic = List.mem tags `pedantic in
     let sharp_comments = List.mem tags `sharp_comments in
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
@@ -186,7 +186,7 @@ module Transform = struct
       ~name ?filename ~next ()
 
 
-  let t_to_string ?(tags=default_tags) () =
+  let item_to_string ?(tags=default_tags) () =
     let sharp_comments = List.mem tags `sharp_comments in
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
@@ -209,7 +209,7 @@ module Transform = struct
         | "" -> if stopped then `end_of_stream else `not_ready
         | s -> `output s)
 
-  let t_to_bed_graph () =
+  let item_to_bed_graph () =
     let queue = Queue.create () in
     let current_state = ref None in
     Biocaml_transform.make ~name:"wig_to_variable_step" ()

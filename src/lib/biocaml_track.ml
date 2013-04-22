@@ -131,11 +131,11 @@ module Transform = struct
       | Error _ as n -> `bypass n)
 
   type wig_parser_error = [ parse_error | Wig.Error.parsing ]
-  type wig_t = [ track | Wig.t]
+  type wig_t = [ track | Wig.item]
 
   let string_to_wig ?filename () =
     let wig_parser =
-      Wig.Transform.string_to_t ?filename () in
+      Wig.Transform.string_to_item ?filename () in
     embed_parser ?filename
       (*
     let track_parser = string_to_string_content ?filename () in
@@ -186,11 +186,11 @@ module Transform = struct
         track)
 
   let wig_to_string () =
-    let wig = Wig.Transform.t_to_string () in
+    let wig = Wig.Transform.item_to_string () in
     make_printer wig ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x
-      | #Wig.t as y -> `right y)
+      | #Wig.item as y -> `right y)
 
   let gff_to_string ?tags () =
     let gff = Gff.Transform.item_to_string ?tags () in

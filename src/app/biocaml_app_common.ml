@@ -493,7 +493,7 @@ type output_error = [
 type output_transform = [
 | `to_sam_item of (Sam.item, (string, output_error) Result.t) Transform.t
 | `to_gff of(Gff.stream_item, string) Transform.t
-| `to_wig of (Wig.t, string) Transform.t
+| `to_wig of (Wig.item, string) Transform.t
 | `to_bed of (Bed.item, string) Transform.t
 | `to_fastq of (Fastq.item, string) Transform.t
 | `to_char_fasta of (Fasta.char_seq Fasta.Transform.raw_item, string) Transform.t
@@ -552,7 +552,7 @@ let output_transform_of_tags
       let t = Gff.Transform.item_to_string ~tags:tag_list () in
       return (`to_gff (with_zip_no_error t) : output_transform)
     | `wig tag_list ->
-      let t = Wig.Transform.t_to_string  ~tags:tag_list () in
+      let t = Wig.Transform.item_to_string  ~tags:tag_list () in
       return (`to_wig (with_zip_no_error t) : output_transform)
     | `bed ->
       let t = Bed.Transform.item_to_string  () in

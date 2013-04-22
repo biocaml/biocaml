@@ -108,8 +108,8 @@ let corr meth wig_file1 wig_file2 : float =
       let transfo =
         Biocaml_transform.compose_results
           ~on_error:ident
-          (Biocaml_wig.Transform.string_to_t ())
-          (Biocaml_wig.Transform.t_to_bed_graph ()) in
+          (Biocaml_wig.Transform.string_to_item ())
+          (Biocaml_wig.Transform.item_to_bed_graph ()) in
       In_channel.with_file file ~f:(fun inp ->
         Biocaml_transform.in_channel_strings_to_stream inp transfo
         |! Biocaml_stream.result_to_exn

@@ -5,15 +5,15 @@ open Biocaml
 let file_parser_stream file =
   let filename = "src/tests/data/" ^ file in
   let t =
-    Wig.Transform.string_to_t  ~filename () in
+    Wig.Transform.string_to_item  ~filename () in
   let ic = open_in filename in
   Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
 
 let file_reprinter_stream file =
   let filename = "src/tests/data/" ^ file in
   let t =
-    Wig.Transform.string_to_t ~filename () in
-  let printer = Wig.Transform.t_to_string () in
+    Wig.Transform.string_to_item ~filename () in
+  let printer = Wig.Transform.item_to_string () in
   let transfo = Transform.compose_result_left t printer in
   let ic = open_in filename in
   Transform.in_channel_strings_to_stream ~buffer_size:4 ic transfo
@@ -33,7 +33,7 @@ let check_end s =
 
 let test_parser () =
   let s = file_parser_stream "wig_01.wig" in
-    
+
   check_output s "comment line" (`comment " one comment");
   check_output s "variableStep" (`variable_step_state_change ("chr19", Some 150));
 
@@ -50,7 +50,7 @@ let test_parser () =
   check_error s "incomplete line" (function
   | (`incomplete_input (_)) -> true
   | _ -> false);
-  
+
   let s = file_parser_stream "wig_02.wig" in
 
   check_output s "comment" (`comment " one comment");
@@ -61,7 +61,7 @@ let test_parser () =
   check_error s "missing_start_value" (function
   | (`missing_start_value (_, "fixedStep chrom=chr19  step=300 span=200")) -> true
   | _ -> false);
-  
+
   check_output s "fix1000" (`fixed_step_value 1000.);
 
   check_error s "wrong_fixed_step_value" (function
@@ -89,7 +89,7 @@ let test_printer () =
   check_error s "incomplete line" (function
   | `incomplete_input (_) -> true
   | _ -> false);
-  
+
   let s = file_reprinter_stream "wig_02.wig" in
 
   check_output s "comment" "# one comment\n";
@@ -99,15 +99,15 @@ let test_printer () =
   check_error s "missing_start_value" (function
   | `missing_start_value (_, _) -> true
   | _ -> false);
-  
+
   check_output s "1000" "1000\n";
 
   check_error s "wrong_fixed_step_value" (function
   | `wrong_fixed_step_value (_, " 900s") -> true
   | _ -> false);
-  
+
   check_output s "800" "800\n";
-  
+
   check_end s;
   ()
 
@@ -115,8 +115,8 @@ let test_to_bed_graph () =
   let stream file =
     let filename = "src/tests/data/" ^ file in
     let t =
-      Wig.Transform.string_to_t ~filename () in
-    let to_bg = Wig.Transform.t_to_bed_graph () in
+      Wig.Transform.string_to_item ~filename () in
+    let to_bg = Wig.Transform.item_to_bed_graph () in
     let transfo = Transform.compose_results_merge_error t to_bg in
     let ic = open_in filename in
     Transform.in_channel_strings_to_stream ~buffer_size:7 ic transfo in
@@ -137,7 +137,7 @@ let test_to_bed_graph () =
   ()
 
 
-  
+
 let tests = "WIG" >::: [
   "Parse WIG" >:: test_parser;
   "Print WIG" >:: test_printer;

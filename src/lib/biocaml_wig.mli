@@ -48,7 +48,7 @@ type fixed_step = [
 
 type bed_graph_value = string * int * int * float
 
-type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
+type item = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 (** The most general type that the default parser outputs.
     {[
     type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
@@ -99,28 +99,28 @@ val default_tags: tag list
 module Transform: sig
   (** Low-level {!Biocaml_transform.t}. *)
 
-  val string_to_t :
+  val string_to_item :
     ?filename:string ->
     ?tags: tag list ->
     unit ->
-    (string, (t, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
+    (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create the parsing [Biocaml_transform.t]. The parser is
       "best-effort" and stateless (i.e. a line containing ["1000 42."]
       will parsed succesfully as a [`variable_step_value (1000, 42.)]
       even if no ["variableStep"] was line present before). *)
 
-  val t_to_string: ?tags: tag list -> unit -> (t, string) Biocaml_transform.t
-  (** Create the transform that prints [t] values to strings. *)
+  val item_to_string: ?tags: tag list -> unit -> (item, string) Biocaml_transform.t
+  (** Create the transform that prints [item] values to strings. *)
 
-  val t_to_bed_graph: unit ->
-    (t,
+  val item_to_bed_graph: unit ->
+    (item,
      (bed_graph_value,
       [> `not_in_variable_step_state | `not_in_fixed_step_state]) Core.Result.t)
       Biocaml_transform.t
   (** Create a transform which converts [`variable_step_value _] and
       [`fixed_step_value _] values to [`bed_graph_value _] values, using the
-      current state. The [`bed_graph_value _] and [`comment _] values stay
-      untouched. *)
+      current state. The [`bed_graph_value _] items stay untouched
+      and [`comment _] values are ignored. *)
 end
 
 (** {2 S-Expressions} *)
@@ -136,9 +136,9 @@ val fixed_step_of_sexp__ : Sexplib.Sexp.t -> fixed_step
 val sexp_of_fixed_step : fixed_step -> Sexplib.Sexp.t
 val bed_graph_value_of_sexp : Sexplib.Sexp.t -> bed_graph_value
 val sexp_of_bed_graph_value : bed_graph_value -> Sexplib.Sexp.t
-val t_of_sexp : Sexplib.Sexp.t -> t
-val t_of_sexp__ : Sexplib.Sexp.t -> t
-val sexp_of_t : t -> Sexplib.Sexp.t
+val item_of_sexp : Sexplib.Sexp.t -> item
+val item_of_sexp__ : Sexplib.Sexp.t -> item
+val sexp_of_item : item -> Sexplib.Sexp.t
 val tag_of_sexp : Sexplib.Sexp.t -> tag
 val tag_of_sexp__ : Sexplib.Sexp.t -> tag
 val sexp_of_tag : tag -> Sexplib.Sexp.t

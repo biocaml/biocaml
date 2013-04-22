@@ -86,13 +86,13 @@ module Transform: sig
 
   val string_to_wig: ?filename:string -> unit ->
     (string,
-     ([ t | Biocaml_wig.t ], [> parse_error | Biocaml_wig.Error.parsing ])
+     ([ t | Biocaml_wig.item ], [> parse_error | Biocaml_wig.Error.parsing ])
        Core.Result.t)
       Biocaml_transform.t
   (** Create a composite parser for UCSC WIG files.  *)
 
   val wig_to_string: unit ->
-    ([ t | Biocaml_wig.t ], string) Biocaml_transform.t
+    ([ t | Biocaml_wig.item ], string) Biocaml_transform.t
   (** Create a printer for track files containing WIG lines. *)
 
   val string_to_gff: ?filename:string -> ?tags: Biocaml_gff.tag list -> unit ->

@@ -28,7 +28,7 @@ with sexp_of
 type input_transform = [
   | `from_sam_item of (string, (Sam.item, input_error) Result.t) Transform.t
   | `from_gff of(string, (Gff.stream_item, input_error) Result.t) Transform.t
-  | `from_wig of (string, (Wig.t, input_error) Result.t) Transform.t
+  | `from_wig of (string, (Wig.item, input_error) Result.t) Transform.t
   | `from_bed of (string, (Bed.item, input_error) Result.t) Transform.t
   | `from_fastq of (string, (Fastq.item, input_error) Result.t) Transform.t
   | `from_char_fasta of
@@ -89,7 +89,7 @@ let rec input_transform ?with_unzip input_tags =
   | `wig wig_tag_list ->
     let t =
       Transform.on_output
-        (Wig.Transform.string_to_t ~tags:wig_tag_list ())
+        (Wig.Transform.string_to_item ~tags:wig_tag_list ())
         (function Ok o -> Ok o | Error e -> Error (`wig e))
     in
     return (`from_wig (with_unzip t) : input_transform)
