@@ -59,10 +59,14 @@ module Error: sig
 
   type parsing = [ `bed of parsing_base ]
 
+  type t = parsing
+
   val parsing_base_of_sexp : Sexplib.Sexp.t -> parsing_base
   val sexp_of_parsing_base : parsing_base -> Sexplib.Sexp.t
   val parsing_of_sexp : Sexplib.Sexp.t -> parsing
   val sexp_of_parsing : parsing -> Sexplib.Sexp.t
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
 
 end
 

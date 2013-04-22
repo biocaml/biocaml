@@ -23,6 +23,8 @@ module Error = struct
 
   type parsing = [ `bed of parsing_base ]
   with sexp
+
+  type t = parsing with sexp
 end
 
 let item_of_line ~how line =
