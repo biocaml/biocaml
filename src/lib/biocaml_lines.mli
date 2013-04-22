@@ -5,6 +5,8 @@ type item = Biocaml_line.t
 (** [Lines.item] is a [Line.t] *)
 
 module Error : sig
+  (** The errors of the [Lines] module. *)
+
   type t = [
   | `premature_end_of_input
   ]
@@ -12,11 +14,19 @@ module Error : sig
     - [`premature_end_of_input] - expected more lines than available.
   *)
 
+  val t_of_sexp: Sexplib.Sexp.t -> t
+  val sexp_of_t: t -> Sexplib.Sexp.t
+
 end
 
 val of_char_stream : char Stream.t -> item Stream.t
+(** Parse a stream of characters into a stream of lines.writing the *)
+
 val of_channel : in_channel -> item Stream.t
+(** Get a stream of lines out of an input-channel. *)
+
 val to_channel : item Stream.t -> out_channel -> unit
+(** Write a stream of lines to an output-channel. *)
 
 module Buffer : sig
   (** Buffer used to parse strings into lines. *)
@@ -71,6 +81,7 @@ module Buffer : sig
 end
 
 module Transform : sig
+  (** Transforms from/to [Lines.item]. *)
 
   (** Return a transform that converts a stream of arbitrary strings
       to a stream of lines. If the input terminates without a newline,
@@ -87,6 +98,9 @@ module Transform : sig
 
   val item_to_string: ?buffer:[ `clear of int | `reset of int ] ->
     unit -> (item, string) Biocaml_transform.t
+  (** Return a transform that output [Line.item]s to strings (in other
+      words a buffer with the lines {i plus} their end-of-line
+      character). *)
 
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->

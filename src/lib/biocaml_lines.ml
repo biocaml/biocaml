@@ -9,7 +9,7 @@ module Error = struct
 
   type t = [
   | `premature_end_of_input
-  ]
+  ] with sexp
 
 end
 
