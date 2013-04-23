@@ -69,6 +69,20 @@ type tag = [ `version of [`two | `three] | `pedantic ]
 val default_tags: tag list
 (** Default tags for a random Gff file: [[`version `three; `pedantic]]. *)
 
+exception Error of  Error.t
+(** The exception raised by the [*_exn] functions. *)
+
+val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string ->
+  ?tags:tag list -> in_channel ->
+  (item, [> Error.parsing]) Core.Result.t Biocaml_stream.t
+(** Parse an input-channel into [item] values. *)
+
+val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:tag list ->
+  in_channel -> item Biocaml_stream.t
+(** Like [in_channel_to_item_stream] but use exceptions for errors
+    (raised within [Stream.next]). *)
+
+
 module Transform: sig
   (** Lower-level stream transformations. *)
 

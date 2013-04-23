@@ -249,3 +249,13 @@ module Transform = struct
         | s -> `output s)
 end
 
+exception Error of  Error.t
+let error_to_exn e = Error e
+
+let in_channel_to_item_stream ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_item ?tags ?filename () in
+  Biocaml_transform.(in_channel_strings_to_stream inp x ~buffer_size)
+
+let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
+  Stream.result_to_exn ~error_to_exn
+    (in_channel_to_item_stream ?buffer_size ?tags inp)
