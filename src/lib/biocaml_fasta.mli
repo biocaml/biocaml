@@ -160,9 +160,7 @@ val in_channel_to_char_seq_item_stream :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   in_channel ->
-  char_seq item Stream.t
-(** Returns a stream of [char_seq item]s. Initial comments are
-    discarded. @raise Error in case of any errors. *)
+  (char_seq item, [> Error.t]) Core.Result.t Stream.t
 
 val in_channel_to_int_seq_item_stream :
   ?buffer_size:int ->
@@ -171,34 +169,30 @@ val in_channel_to_int_seq_item_stream :
   ?sharp_comments:bool ->
   ?semicolon_comments:bool ->
   in_channel ->
+  (int_seq item, [> Error.t]) Core.Result.t Stream.t
+
+
+val in_channel_to_char_seq_item_stream_exn :
+  ?buffer_size:int ->
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  ?semicolon_comments:bool ->
+  in_channel ->
+  char_seq item Stream.t
+(** Returns a stream of [char_seq item]s. Initial comments are
+    discarded. [Stream.next] will raise [Error _] in case of any error. *)
+
+val in_channel_to_int_seq_item_stream_exn :
+  ?buffer_size:int ->
+  ?filename:string ->
+  ?pedantic:bool ->
+  ?sharp_comments:bool ->
+  ?semicolon_comments:bool ->
+  in_channel ->
   int_seq item Stream.t
 (** Returns a stream of [int_seq item]s. Initial comments are
-    discarded. @raise Error in case of any errors. *)
-
-(** {2 Exceptionless } *)
-
-module Result : sig
-  (** Exception-less version of [in_channel_to_*] functions. *)
-
-  val in_channel_to_char_seq_item_stream :
-    ?buffer_size:int ->
-    ?filename:string ->
-    ?pedantic:bool ->
-    ?sharp_comments:bool ->
-    ?semicolon_comments:bool ->
-    in_channel ->
-    (char_seq item, [> Error.t]) Core.Result.t Stream.t
-
-  val in_channel_to_int_seq_item_stream :
-    ?buffer_size:int ->
-    ?filename:string ->
-    ?pedantic:bool ->
-    ?sharp_comments:bool ->
-    ?semicolon_comments:bool ->
-    in_channel ->
-    (int_seq item, [> Error.t]) Core.Result.t Stream.t
-
-end
+    discarded.  [Stream.next] will raise [Error _] in case of any error. *)
 
 (** {2 Transforms } *)
 
