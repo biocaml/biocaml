@@ -4,8 +4,7 @@ open Biocaml
 
 let make_stream file =
   let t =
-    Fasta.Transform.string_to_char_seq_raw_item ~pedantic:true 
-      ~sharp_comments:true ~semicolon_comments:true () in
+    Fasta.Transform.string_to_char_seq_raw_item () in
   let ic = open_in file in
   Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
 
@@ -21,7 +20,7 @@ let test_parsing_01 stream =
   assert_bool "Non-EOF" (Stream.next stream <> None);
   assert_bool "EOF" (Stream.next stream = None);
   assert_bool "EOF again" (Stream.next stream = None);
-  
+
   ()
 
 let parse_comments stream =
@@ -43,7 +42,7 @@ let get_empty_line_error_after_two stream =
   assert_bool "Non-EOF" (Stream.next stream <> None);
   assert_bool "EOF" (Stream.next stream = None);
   ()
-  
+
 let malformed stream =
   assert_bool "Name 1" (check_next_ok stream (`header "sequence 1|sid=4"));
   assert_bool "Error because of malformed sequence (fasta_04.fa)"
@@ -56,7 +55,7 @@ let malformed stream =
   assert_bool "Non-EOF" (Stream.next stream <> None);
   assert_bool "EOF" (Stream.next stream = None);
   ()
-  
+
 let test_printer () =
   let stream_02 = make_stream "src/tests/data/fasta_02.fa" in
   let fasta_printer =
@@ -79,11 +78,10 @@ let test_printer () =
   assert_bool "Printer7" (check_next_ok stream  ("ACTACGTACGATCAGTCGATCG\n"));
   assert_bool "EOF" (Stream.next stream = None);
   ()
-  
+
 let score_parser () =
-  let t = 
-    Fasta.Transform.string_to_int_seq_raw_item ~pedantic:true 
-      ~sharp_comments:true ~semicolon_comments:true () in
+  let t =
+    Fasta.Transform.string_to_int_seq_raw_item  () in
   let ic = open_in "src/tests/data/fasta_05.fa" in
   let stream = Transform.in_channel_strings_to_stream ~buffer_size:100 ic t in
   parse_comments stream;
@@ -99,7 +97,7 @@ let score_parser () =
     | _ -> false);
   assert_bool "EOF" (Stream.next stream = None);
   ()
-  
+
 
 let sequence_aggregator_stream file =
   let t = Fasta.Transform.string_to_char_seq_raw_item  () in
@@ -131,11 +129,10 @@ let sequence_aggregator () =
   assert_bool "EOF" (Stream.next stream = None);
   ()
 
-  
+
 let score_aggregator () =
-  let t = 
-    Fasta.Transform.string_to_int_seq_raw_item ~pedantic:true 
-      ~sharp_comments:true ~semicolon_comments:true () in
+  let t =
+    Fasta.Transform.string_to_int_seq_raw_item  () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let transform = Transform.compose_results_merge_error t aggregator in
   let ic = open_in "src/tests/data/fasta_05.fa" in
@@ -154,8 +151,8 @@ let score_aggregator () =
   assert_bool "EOF" (Stream.next stream = None);
   assert_bool "EOF" (Stream.next stream = None);
   ()
-  
-let sequence_slicer_stream file = 
+
+let sequence_slicer_stream file =
   let t = Fasta.Transform.string_to_char_seq_raw_item  () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
   let slicer =
@@ -196,11 +193,10 @@ let sequence_slicer () =
   assert_bool "seq CGAT" (check_next_ok stream (`partial_sequence "CGAT"));
   assert_bool "seq CG  " (check_next_ok stream (`partial_sequence "CG"));
   ()
-    
+
 let score_slicer () =
-  let t = 
-    Fasta.Transform.string_to_int_seq_raw_item ~pedantic:true 
-      ~sharp_comments:true ~semicolon_comments:true () in
+  let t =
+    Fasta.Transform.string_to_int_seq_raw_item  () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let slicer = Fasta.Transform.int_seq_item_to_raw_item ~items_per_line:3 () in
   let transform =
@@ -211,7 +207,7 @@ let score_slicer () =
   assert_bool "name 1" (check_next_ok stream (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (check_next_ok stream (`partial_sequence [42; 42; 224354;]));
   assert_bool "sco: 2" (check_next_ok stream (`partial_sequence [54325543; 54354544; 543554;]));
-  assert_bool "sco: 3" (check_next_ok stream (`partial_sequence [42; 43])); 
+  assert_bool "sco: 3" (check_next_ok stream (`partial_sequence [42; 43]));
   assert_bool "Error score_slicer -> error"
     (match Stream.next stream with
     | Some (Error (`left (`malformed_partial_sequence _))) -> true
@@ -241,8 +237,8 @@ let test_parser () =
 
   score_parser ();
   ()
-    
-    
+
+
 let tests = "Fasta" >::: [
   "Reading FASTA" >:: test_parser;
   "Writing FASTA" >:: test_printer;

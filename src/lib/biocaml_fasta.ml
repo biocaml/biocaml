@@ -17,6 +17,57 @@ type 'a raw_item = [
 ]
 with sexp
 
+module Tags = struct
+
+  type common = [
+    | `forbid_empty_lines
+    | `only_header_comment
+    | `sharp_comments
+    | `semicolon_comments
+  ]
+  with sexp
+
+  type int_seq = [ common ] list with sexp
+  type char_seq = [ common | `impose_sequence_alphabet of (char -> bool) ] list
+  with sexp
+
+  type t = [
+    | `int_sequence of int_seq
+    | `char_sequence of char_seq
+  ]
+  with sexp
+
+  let default = `char_sequence []
+
+  let common_pedantry = [`forbid_empty_lines; `only_header_comment ]
+
+  let pedantic_with (base: t) =
+    match base with
+    | `int_sequence l -> `int_sequence (common_pedantry @ l)
+    | `char_sequence l ->
+      `char_sequence (common_pedantry @ [
+                        `impose_sequence_alphabet (function
+                        | 'A' .. 'Z' -> true
+                        | _ -> false)
+                      ] @ l)
+
+  let forbid_empty_lines  tags = List.mem tags `forbid_empty_lines
+  let only_header_comment tags = List.mem tags `only_header_commen
+  let sharp_comments      tags = List.mem tags `sharp_comments
+  let semicolon_comments  tags = List.mem tags `semicolon_comments
+  let impose_sequence_alphabet tags =
+    List.find_map tags ~f:(function
+    | `impose_sequence_alphabet f -> Some f
+    | _ -> None)
+
+  let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
+  let of_string s =
+    try Ok (Sexplib.Sexp.of_string s |> t_of_sexp)
+    with e -> Error (`tags_of_string e)
+
+
+end
+
 module Error = struct
   type string_to_raw_item = [
     | `empty_line of Pos.t
@@ -38,22 +89,22 @@ module Transform = struct
   (** The {i next} function used to construct the transform in
       [generic_parser]. *)
   let rec next ~parse_sequence
-      ?(pedantic=true) ?(sharp_comments=true) ?(semicolon_comments=false) p =
+      ~forbid_empty_lines ~sharp_comments ~semicolon_comments p =
     let open Biocaml_transform.Line_oriented in
     match next_line p with
     | Some "" ->
-      if pedantic
+      if forbid_empty_lines
       then output_error (`empty_line (current_position p))
       else
-        next ~parse_sequence ~pedantic ~sharp_comments ~semicolon_comments p
+        next ~parse_sequence
+          ~forbid_empty_lines ~sharp_comments ~semicolon_comments p
     | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l when semicolon_comments && String.is_prefix l ~prefix:";" ->
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l when String.is_prefix l ~prefix:">" ->
       output_ok (`header String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l ->
-      parse_sequence ~pedantic l
+    | Some l -> parse_sequence l
     | None ->
       `not_ready
 
@@ -61,27 +112,39 @@ module Transform = struct
       function [parse_sequence] for parsing either [char_seq]s or
       [int_seq]s. *)
   let generic_parser ~parse_sequence
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
+      ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments () =
     let name =
       sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
     let next =
-      next ~parse_sequence ?pedantic ?sharp_comments ?semicolon_comments in
+      next ~parse_sequence
+        ~forbid_empty_lines ~sharp_comments ~semicolon_comments in
     Biocaml_transform.Line_oriented.make ~name ?filename ~next ()
       ~on_error:(function `next e -> e
       | `incomplete_input e -> `incomplete_input e)
 
   let string_to_char_seq_raw_item
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
-    generic_parser ~parse_sequence:(fun ~pedantic l ->
-      if pedantic && String.exists l
-        ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true)
-      then output_error (`malformed_partial_sequence l)
-      else output_ok (`partial_sequence l)
-    ) ?filename ?pedantic ?sharp_comments ?semicolon_comments ()
+      ?filename ?(tags=[]) () =
+      (* ?pedantic ?sharp_comments ?semicolon_comments () = *)
+    let sharp_comments = Tags.sharp_comments tags in
+    let semicolon_comments = Tags.semicolon_comments tags in
+    let forbid_empty_lines = Tags.forbid_empty_lines tags in
+    let impose_sequence_alphabet = Tags.impose_sequence_alphabet tags in
+    generic_parser ~parse_sequence:(fun l ->
+      match impose_sequence_alphabet with
+      | Some f when String.exists l ~f ->
+        output_error (`malformed_partial_sequence l)
+      | _ ->
+      (* if impose_sequence_alphabet && String.exists l ~f:(filter_fun) *)
+        (* ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true) *)
+        output_ok (`partial_sequence l)
+    ) ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments ()
 
   let string_to_int_seq_raw_item
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () =
-    generic_parser ~parse_sequence:(fun ~pedantic l ->
+      ?filename ?(tags=[]) () =
+    let sharp_comments = Tags.sharp_comments tags in
+    let semicolon_comments = Tags.semicolon_comments tags in
+    let forbid_empty_lines = Tags.forbid_empty_lines tags in
+    generic_parser ~parse_sequence:(fun l ->
         let exploded = String.split ~on:' ' l in
         try
           output_ok (`partial_sequence
@@ -89,7 +152,7 @@ module Transform = struct
                           | "" -> None
                           | s -> Some (Int.of_string s))))
         with _ -> output_error (`malformed_partial_sequence l)
-    ) ?filename ?pedantic ?sharp_comments ?semicolon_comments ()
+    ) ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments ()
 
 
   let raw_item_to_string_pure ?comment_char alpha_to_string =
@@ -224,32 +287,24 @@ let int_seq_raw_item_to_string =
   Transform.(raw_item_to_string_pure int_seq_to_string_pure)
 
 
-let in_channel_to_char_seq_raw_item_stream ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
-  let x = Transform.string_to_char_seq_raw_item
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+let in_channel_to_char_seq_raw_item_stream ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_char_seq_raw_item ?filename ?tags () in
   Biocaml_transform.(in_channel_strings_to_stream ~buffer_size inp x)
 
-let in_channel_to_int_seq_raw_item_stream ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
-  let x = Transform.string_to_int_seq_raw_item
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+let in_channel_to_int_seq_raw_item_stream ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_int_seq_raw_item ?filename ?tags () in
   Biocaml_transform.(in_channel_strings_to_stream ~buffer_size inp x)
 
-let in_channel_to_char_seq_item_stream ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
-  let x = Transform.string_to_char_seq_raw_item
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+let in_channel_to_char_seq_item_stream ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_char_seq_raw_item ?filename ?tags () in
   let y = Transform.char_seq_raw_item_to_item () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
     |! in_channel_strings_to_stream ~buffer_size inp
   )
 
-let in_channel_to_int_seq_item_stream ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
-  let x = Transform.string_to_int_seq_raw_item
-      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+let in_channel_to_int_seq_item_stream ?(buffer_size=65536) ?filename ?tags inp =
+  let x = Transform.string_to_int_seq_raw_item ?filename ?tags () in
   let y = Transform.int_seq_raw_item_to_item () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
@@ -260,30 +315,26 @@ exception Error of Error.t
 
 let error_to_exn err = Error err
 
-let in_channel_to_char_seq_raw_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
+let in_channel_to_char_seq_raw_item_stream_exn ?(buffer_size=65536) ?filename
+    ?tags inp =
   Stream.result_to_exn ~error_to_exn (
-    in_channel_to_char_seq_raw_item_stream ?filename ?pedantic
-      ?sharp_comments ?semicolon_comments inp
+    in_channel_to_char_seq_raw_item_stream ?filename ?tags inp
   )
 
-let in_channel_to_int_seq_raw_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
+let in_channel_to_int_seq_raw_item_stream_exn ?(buffer_size=65536) ?filename
+    ?tags inp =
   Stream.result_to_exn ~error_to_exn (
-    in_channel_to_int_seq_raw_item_stream ?filename ?pedantic
-      ?sharp_comments ?semicolon_comments inp
+    in_channel_to_int_seq_raw_item_stream ?filename ?tags inp
   )
 
-let in_channel_to_char_seq_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
+let in_channel_to_char_seq_item_stream_exn ?(buffer_size=65536) ?filename
+    ?tags inp =
   Stream.result_to_exn ~error_to_exn (
-    in_channel_to_char_seq_item_stream ?filename ?pedantic
-      ?sharp_comments ?semicolon_comments inp
+    in_channel_to_char_seq_item_stream ?filename ?tags inp
   )
 
-let in_channel_to_int_seq_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
-    ?sharp_comments ?semicolon_comments inp =
+let in_channel_to_int_seq_item_stream_exn ?(buffer_size=65536) ?filename
+    ?tags inp =
   Stream.result_to_exn ~error_to_exn (
-    in_channel_to_int_seq_item_stream ?filename ?pedantic
-      ?sharp_comments ?semicolon_comments inp
+    in_channel_to_int_seq_item_stream ?filename ?tags inp
   )
