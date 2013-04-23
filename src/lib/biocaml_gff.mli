@@ -23,7 +23,7 @@
 *)
 
 
-type t = {
+type record = {
   seqname: string;
   source: string option;
   feature: string option;
@@ -35,7 +35,7 @@ type t = {
 }
 (** The type of the GFF records/rows. *)
 
-type stream_item = [ `comment of string | `record of t ]
+type item = [ `comment of string | `record of record ]
 (** The items being output by the parser. *)
 
 module Error: sig
@@ -76,14 +76,12 @@ module Transform: sig
     ?filename:string ->
     ?tags: tag list ->
     unit ->
-    (string, (stream_item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
+    (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
-  val item_to_string:
-    ?tags: tag list ->
-    unit ->
-    (stream_item, string) Biocaml_transform.t
-(** Create a printer for a given version. *)
+  val item_to_string: ?tags: tag list -> unit ->
+    (item, string) Biocaml_transform.t
+  (** Create a printer for a given version. *)
 
 end
 
@@ -93,3 +91,7 @@ end
 val tag_of_sexp : Sexplib.Sexp.t -> tag
 val tag_of_sexp__ : Sexplib.Sexp.t -> tag
 val sexp_of_tag : tag -> Sexplib.Sexp.t
+val record_of_sexp : Sexplib.Sexp.t -> record
+val sexp_of_record : record -> Sexplib.Sexp.t
+val item_of_sexp : Sexplib.Sexp.t -> item
+val sexp_of_item : item -> Sexplib.Sexp.t

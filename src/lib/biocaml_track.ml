@@ -153,7 +153,7 @@ module Transform = struct
       | `transformed (Error e) -> Error (e :> [> wig_parser_error]))
 
   type gff_parse_error = [parse_error | Gff.Error.parsing]
-  type gff_t = [track | Gff.stream_item]
+  type gff_t = [track | Gff.item]
   let string_to_gff ?filename ?tags () =
     let gff = Gff.Transform.string_to_item ?filename () in
     embed_parser  ?filename gff
@@ -197,7 +197,7 @@ module Transform = struct
     make_printer gff ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x
-      | #Gff.stream_item as y -> `right y)
+      | #Gff.item as y -> `right y)
 
   let bed_to_string () =
     let bed = Bed.Transform.item_to_string () in

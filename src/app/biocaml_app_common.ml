@@ -492,7 +492,7 @@ type output_error = [
 (** Generic union of possible output transforms. *)
 type output_transform = [
 | `to_sam_item of (Sam.item, (string, output_error) Result.t) Transform.t
-| `to_gff of(Gff.stream_item, string) Transform.t
+| `to_gff of(Gff.item, string) Transform.t
 | `to_wig of (Wig.item, string) Transform.t
 | `to_bed of (Bed.item, string) Transform.t
 | `to_fastq of (Fastq.item, string) Transform.t

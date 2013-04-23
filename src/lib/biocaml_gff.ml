@@ -10,7 +10,7 @@ open Biocaml_internal_pervasives
   http://gmod.org/wiki/GFF3
 *)
 
-type t = {
+type record = {
   seqname: string;
   source: string option;
   feature: string option;
@@ -21,8 +21,10 @@ type t = {
   phase: int option;
   attributes: (string * string list) list;
 }
+with sexp
 
-type stream_item = [ `comment of string | `record of t ]
+type item = [ `comment of string | `record of record ]
+with sexp
 
 type tag = [ `version of [`two | `three] | `pedantic ] with sexp
 let default_tags = [`version `three; `pedantic]

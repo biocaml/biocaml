@@ -27,7 +27,7 @@ with sexp_of
 
 type input_transform = [
   | `from_sam_item of (string, (Sam.item, input_error) Result.t) Transform.t
-  | `from_gff of(string, (Gff.stream_item, input_error) Result.t) Transform.t
+  | `from_gff of(string, (Gff.item, input_error) Result.t) Transform.t
   | `from_wig of (string, (Wig.item, input_error) Result.t) Transform.t
   | `from_bed of (string, (Bed.item, input_error) Result.t) Transform.t
   | `from_fastq of (string, (Fastq.item, input_error) Result.t) Transform.t
