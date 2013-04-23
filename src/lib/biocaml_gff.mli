@@ -82,6 +82,8 @@ val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:tag list ->
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
+val item_to_string: ?tags:tag list -> item -> string
+(** Convert an item to a string. *)
 
 module Transform: sig
   (** Lower-level stream transformations. *)

@@ -206,41 +206,41 @@ module Transform = struct
     Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next ()
 
+  let item_to_string_pure version = (function
+  | `comment c -> sprintf "#%s\n" c
+  | `record t ->
+    let escape =
+      match version with | `three -> Url.escape | `two -> sprintf "%S" in
+    let optescape  o =  Option.value_map ~default:"." o ~f:escape in
+    String.concat ~sep:"\t" [
+      escape t.seqname;
+      optescape t.source;
+      optescape t.feature;
+      sprintf "%d" (fst t.pos);
+      sprintf "%d" (snd t.pos);
+      Option.value_map ~default:"." ~f:(sprintf "%g") t.score;
+      (match t.strand with`plus -> "+" | `minus -> "-"
+                        | `not_applicable -> "." | `unknown -> "?");
+      Option.value_map ~default:"." ~f:(sprintf "%d") t.phase;
+      String.concat ~sep:";"
+        (List.map t.attributes (fun (k,v) ->
+           match version with
+           | `three ->
+             sprintf "%s=%s" (Url.escape k)
+               (List.map v Url.escape |! String.concat ~sep:",")
+           | `two ->
+             sprintf "%S %s" k
+               (List.map v escape |! String.concat ~sep:",")
+         ));
+    ] ^ "\n"
+  )
 
   let item_to_string ?(tags=default_tags) () =
     let module PQ = Biocaml_transform.Printer_queue in
     let version =
       List.find_map tags (function `version v -> Some v | _ -> None)
       |! Option.value ~default:`three in
-    let printer =
-      PQ.make () ~to_string:(function
-      | `comment c -> sprintf "#%s\n" c
-      | `record t ->
-        let escape =
-          match version with | `three -> Url.escape | `two -> sprintf "%S" in
-        let optescape  o =  Option.value_map ~default:"." o ~f:escape in
-        String.concat ~sep:"\t" [
-          escape t.seqname;
-          optescape t.source;
-          optescape t.feature;
-          sprintf "%d" (fst t.pos);
-          sprintf "%d" (snd t.pos);
-          Option.value_map ~default:"." ~f:(sprintf "%g") t.score;
-          (match t.strand with`plus -> "+" | `minus -> "-"
-          | `not_applicable -> "." | `unknown -> "?");
-          Option.value_map ~default:"." ~f:(sprintf "%d") t.phase;
-        String.concat ~sep:";"
-          (List.map t.attributes (fun (k,v) ->
-            match version with
-            | `three ->
-              sprintf "%s=%s" (Url.escape k)
-                (List.map v Url.escape |! String.concat ~sep:",")
-            | `two ->
-              sprintf "%S %s" k
-                (List.map v escape |! String.concat ~sep:",")
-           ));
-      ] ^ "\n"
-      ) in
+    let printer = PQ.make () ~to_string:(item_to_string_pure version) in
     Biocaml_transform.make ~name:"gff_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
@@ -259,3 +259,9 @@ let in_channel_to_item_stream ?(buffer_size=65536) ?filename ?tags inp =
 let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
   Stream.result_to_exn ~error_to_exn
     (in_channel_to_item_stream ?buffer_size ?tags inp)
+
+let item_to_string ?(tags=default_tags) item =
+  let version =
+    List.find_map tags (function `version v -> Some v | _ -> None)
+    |! Option.value ~default:`three in
+  Transform.item_to_string_pure version item
