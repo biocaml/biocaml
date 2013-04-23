@@ -209,6 +209,19 @@ module Transform = struct
 end
 
 
+
+let in_channel_to_char_seq_raw_item_stream ?(buffer_size=65536) ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  let x = Transform.string_to_char_seq_raw_item
+      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+  Biocaml_transform.(in_channel_strings_to_stream ~buffer_size inp x)
+
+let in_channel_to_int_seq_raw_item_stream ?(buffer_size=65536) ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  let x = Transform.string_to_int_seq_raw_item
+      ?filename ?pedantic ?sharp_comments ?semicolon_comments () in
+  Biocaml_transform.(in_channel_strings_to_stream ~buffer_size inp x)
+
 let in_channel_to_char_seq_item_stream ?(buffer_size=65536) ?filename ?pedantic
     ?sharp_comments ?semicolon_comments inp =
   let x = Transform.string_to_char_seq_raw_item
@@ -232,6 +245,20 @@ let in_channel_to_int_seq_item_stream ?(buffer_size=65536) ?filename ?pedantic
 exception Error of Error.t
 
 let error_to_exn err = Error err
+
+let in_channel_to_char_seq_raw_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  Stream.result_to_exn ~error_to_exn (
+    in_channel_to_char_seq_raw_item_stream ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp
+  )
+
+let in_channel_to_int_seq_raw_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
+    ?sharp_comments ?semicolon_comments inp =
+  Stream.result_to_exn ~error_to_exn (
+    in_channel_to_int_seq_raw_item_stream ?filename ?pedantic
+      ?sharp_comments ?semicolon_comments inp
+  )
 
 let in_channel_to_char_seq_item_stream_exn ?(buffer_size=65536) ?filename ?pedantic
     ?sharp_comments ?semicolon_comments inp =
