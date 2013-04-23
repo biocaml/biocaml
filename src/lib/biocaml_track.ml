@@ -152,7 +152,7 @@ module Transform = struct
       | `transformed (Ok o) -> Ok (o :> wig_t)
       | `transformed (Error e) -> Error (e :> [> wig_parser_error]))
 
-  type gff_parse_error = [parse_error | Gff.parse_error]
+  type gff_parse_error = [parse_error | Gff.Error.parsing]
   type gff_t = [track | Gff.stream_item]
   let string_to_gff ?filename ?tags () =
     let gff = Gff.Transform.string_to_item ?filename () in

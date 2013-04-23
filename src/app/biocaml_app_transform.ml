@@ -11,7 +11,7 @@ type input_error = [
   | `sam of [ Biocaml_sam.Error.string_to_raw ]
   | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
   | `unzip of Biocaml_zip.Transform.unzip_error
-  | `gff of Gff.parse_error
+  | `gff of Gff.Error.parsing
   | `wig of Wig.Error.parsing
   | `bed of Bed.Error.parsing
   | `fastq of Fastq.Error.t

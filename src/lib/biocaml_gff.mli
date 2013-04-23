@@ -38,17 +38,30 @@ type t = {
 type stream_item = [ `comment of string | `record of t ]
 (** The items being output by the parser. *)
 
-type parse_error =
-[ `cannot_parse_float of Biocaml_pos.t * string
-| `cannot_parse_int of Biocaml_pos.t * string
-| `cannot_parse_strand of Biocaml_pos.t * string
-| `cannot_parse_string of Biocaml_pos.t * string
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of Biocaml_pos.t * string list * string option
-| `wrong_attributes of Biocaml_pos.t * string
-| `wrong_row of Biocaml_pos.t * string
-| `wrong_url_escaping of Biocaml_pos.t * string ]
-(** The possible parsing errors. *)
+module Error: sig
+  (** The errors of the [Gff] module. *)
+
+
+  type parsing =
+    [ `cannot_parse_float of Biocaml_pos.t * string
+    | `cannot_parse_int of Biocaml_pos.t * string
+    | `cannot_parse_strand of Biocaml_pos.t * string
+    | `cannot_parse_string of Biocaml_pos.t * string
+    | `empty_line of Biocaml_pos.t
+    | `incomplete_input of Biocaml_pos.t * string list * string option
+    | `wrong_attributes of Biocaml_pos.t * string
+    | `wrong_row of Biocaml_pos.t * string
+    | `wrong_url_escaping of Biocaml_pos.t * string ]
+  (** The possible parsing errors. *)
+
+  type t = parsing
+  (** The union of all the errors of this module. *)
+
+  val parsing_of_sexp : Sexplib.Sexp.t -> parsing
+  val sexp_of_parsing : parsing -> Sexplib.Sexp.t
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
+end
 
 type tag = [ `version of [`two | `three] | `pedantic ]
 (** Additional format-information tags (c.f. {!Biocaml_tags}). *)
@@ -63,7 +76,7 @@ module Transform: sig
     ?filename:string ->
     ?tags: tag list ->
     unit ->
-    (string, (stream_item, [> parse_error]) Core.Result.t) Biocaml_transform.t
+    (string, (stream_item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
   val item_to_string:
@@ -77,9 +90,6 @@ end
 
 (** {2 S-Expressions } *)
 
-val parse_error_of_sexp : Sexplib.Sexp.t -> parse_error
-val parse_error_of_sexp__ : Sexplib.Sexp.t -> parse_error
-val sexp_of_parse_error : parse_error -> Sexplib.Sexp.t
 val tag_of_sexp : Sexplib.Sexp.t -> tag
 val tag_of_sexp__ : Sexplib.Sexp.t -> tag
 val sexp_of_tag : tag -> Sexplib.Sexp.t

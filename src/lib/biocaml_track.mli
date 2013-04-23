@@ -97,7 +97,7 @@ module Transform: sig
 
   val string_to_gff: ?filename:string -> ?tags: Biocaml_gff.tag list -> unit ->
     (string,
-     ([t | Biocaml_gff.stream_item], [> parse_error | Biocaml_gff.parse_error])
+     ([t | Biocaml_gff.stream_item], [> parse_error | Biocaml_gff.Error.parsing])
        Core.Result.t) Biocaml_transform.t
   (** Create a composite parser for UCSC GFF files.  *)
 

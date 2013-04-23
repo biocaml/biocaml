@@ -4,7 +4,7 @@ open Biocaml_internal_pervasives
   Version 2:
   http://www.sanger.ac.uk/resources/software/gff/spec.html
   http://gmod.org/wiki/GFF2
-  
+
   Version 3:
   http://www.sequenceontology.org/gff3.shtml
   http://gmod.org/wiki/GFF3
@@ -27,23 +27,27 @@ type stream_item = [ `comment of string | `record of t ]
 type tag = [ `version of [`two | `three] | `pedantic ] with sexp
 let default_tags = [`version `three; `pedantic]
 
-type parse_error = 
-[ `cannot_parse_float of Biocaml_pos.t * string
-| `cannot_parse_int of Biocaml_pos.t * string
-| `cannot_parse_strand of Biocaml_pos.t * string
-| `cannot_parse_string of Biocaml_pos.t * string
-| `empty_line of Biocaml_pos.t
-| `incomplete_input of
-    Biocaml_pos.t * string list * string option
-| `wrong_attributes of Biocaml_pos.t * string
-| `wrong_row of Biocaml_pos.t * string
-| `wrong_url_escaping of Biocaml_pos.t * string ]
-with sexp
+module Error = struct
+  type parsing =
+    [ `cannot_parse_float of Biocaml_pos.t * string
+    | `cannot_parse_int of Biocaml_pos.t * string
+    | `cannot_parse_strand of Biocaml_pos.t * string
+    | `cannot_parse_string of Biocaml_pos.t * string
+    | `empty_line of Biocaml_pos.t
+    | `incomplete_input of
+        Biocaml_pos.t * string list * string option
+    | `wrong_attributes of Biocaml_pos.t * string
+    | `wrong_row of Biocaml_pos.t * string
+    | `wrong_url_escaping of Biocaml_pos.t * string ]
+  with sexp
+
+  type t = parsing with sexp
+end
 
 module Transform = struct
   open Result
 
-    
+
   let parse_string msg pos i =
     begin try Ok (Scanf.sscanf i "%S " ident) with
     | e ->
@@ -63,21 +67,21 @@ module Transform = struct
     parse_string msg pos i >>= fun s ->
     (try return (Int.of_string s)
      with e -> fail (`cannot_parse_int (pos, msg)))
-      
+
   let parse_float_opt msg pos i =
     parse_string_opt msg pos i >>= function
     | Some s ->
       (try return (Some (Float.of_string s))
        with e -> fail (`cannot_parse_float (pos, msg)))
     | None -> return None
-      
+
   let parse_int_opt msg pos i =
     parse_string_opt msg pos i >>= function
     | Some s ->
       (try return (Some (Int.of_string s))
        with e -> fail (`cannot_parse_int (pos, msg)))
     | None -> return None
-      
+
   let parse_attributes_version_3 position i =
     let whole_thing = String.concat ~sep:"\t" i in
   (*   let b = Buffer.create 42 in *)
@@ -142,7 +146,7 @@ module Transform = struct
     in
     go_3_by_3 [] tokens
 
-      
+
   let parse_row ~version pos s =
     let fields = String.split ~on:'\t' s in
     begin match fields with
@@ -177,7 +181,7 @@ module Transform = struct
     | other ->
       output_error (`wrong_row (pos, s))
     end
-      
+
   let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
     let open Biocaml_transform.Line_oriented in
     let open Result in
@@ -199,8 +203,8 @@ module Transform = struct
     let next = next ~pedantic ?version in
     Biocaml_transform.Line_oriented.make_merge_error
       ~name ?filename ~next ()
-      
-      
+
+
   let item_to_string ?(tags=default_tags) () =
     let module PQ = Biocaml_transform.Printer_queue in
     let version =
