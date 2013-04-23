@@ -161,6 +161,7 @@ val in_channel_to_char_seq_item_stream :
   ?semicolon_comments:bool ->
   in_channel ->
   (char_seq item, [> Error.t]) Core.Result.t Stream.t
+(** Parse an input-channel into a stream of [char_seq item] results. *)
 
 val in_channel_to_int_seq_item_stream :
   ?buffer_size:int ->
@@ -170,6 +171,7 @@ val in_channel_to_int_seq_item_stream :
   ?semicolon_comments:bool ->
   in_channel ->
   (int_seq item, [> Error.t]) Core.Result.t Stream.t
+(** Parse an input-channel into a stream of [int_seq item] results. *)
 
 
 val in_channel_to_char_seq_item_stream_exn :
@@ -180,7 +182,7 @@ val in_channel_to_char_seq_item_stream_exn :
   ?semicolon_comments:bool ->
   in_channel ->
   char_seq item Stream.t
-(** Returns a stream of [char_seq item]s. Initial comments are
+(** Returns a stream of [char_seq item]s. Comments are
     discarded. [Stream.next] will raise [Error _] in case of any error. *)
 
 val in_channel_to_int_seq_item_stream_exn :
@@ -191,7 +193,7 @@ val in_channel_to_int_seq_item_stream_exn :
   ?semicolon_comments:bool ->
   in_channel ->
   int_seq item Stream.t
-(** Returns a stream of [int_seq item]s. Initial comments are
+(** Returns a stream of [int_seq item]s. Comments are
     discarded.  [Stream.next] will raise [Error _] in case of any error. *)
 
 val in_channel_to_char_seq_raw_item_stream :
@@ -202,6 +204,7 @@ val in_channel_to_char_seq_raw_item_stream :
   ?semicolon_comments:bool ->
   in_channel ->
   (char_seq raw_item, [> Error.t]) Core.Result.t Stream.t
+(** Parse an input-channel into a stream of [char_seq raw_item] results. *)
 
 val in_channel_to_int_seq_raw_item_stream :
   ?buffer_size:int ->
@@ -211,6 +214,7 @@ val in_channel_to_int_seq_raw_item_stream :
   ?semicolon_comments:bool ->
   in_channel ->
   (int_seq raw_item, [> Error.t]) Core.Result.t Stream.t
+(** Parse an input-channel into a stream of [int_seq raw_item] results. *)
 
 
 val in_channel_to_char_seq_raw_item_stream_exn :
@@ -221,7 +225,7 @@ val in_channel_to_char_seq_raw_item_stream_exn :
   ?semicolon_comments:bool ->
   in_channel ->
   char_seq raw_item Stream.t
-(** Returns a stream of [char_seq item]s. Initial comments are
+(** Returns a stream of [char_seq raw_item]s.  Comments are
     discarded. [Stream.next] will raise [Error _] in case of any error. *)
 
 val in_channel_to_int_seq_raw_item_stream_exn :
@@ -232,8 +236,8 @@ val in_channel_to_int_seq_raw_item_stream_exn :
   ?semicolon_comments:bool ->
   in_channel ->
   int_seq raw_item Stream.t
-(** Returns a stream of [int_seq item]s. Initial comments are
-    discarded.  [Stream.next] will raise [Error _] in case of any error. *)
+(** Returns a stream of [int_seq raw_item]s. Comments are discarded.
+    [Stream.next] will raise [Error _] in case of any error. *)
 
 val char_seq_raw_item_to_string: char_seq raw_item -> string
 (** Convert a [raw_item] to a string (ignore comments). *)
