@@ -32,9 +32,9 @@ type input_transform = [
   | `from_bed of (string, (Bed.item, input_error) Result.t) Transform.t
   | `from_fastq of (string, (Fastq.item, input_error) Result.t) Transform.t
   | `from_char_fasta of
-    (string, (Fasta.char_seq Fasta.Transform.raw_item, input_error) Result.t) Transform.t
+    (string, (Fasta.char_seq Fasta.raw_item, input_error) Result.t) Transform.t
   | `from_int_fasta of
-    (string, (Fasta.int_seq Fasta.Transform.raw_item, input_error) Result.t) Transform.t
+    (string, (Fasta.int_seq Fasta.raw_item, input_error) Result.t) Transform.t
   | `from_table of
     (string, (Biocaml.Table.Row.t, input_error) Result.t) Transform.t
 ]

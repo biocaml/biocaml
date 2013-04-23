@@ -496,8 +496,8 @@ type output_transform = [
 | `to_wig of (Wig.item, string) Transform.t
 | `to_bed of (Bed.item, string) Transform.t
 | `to_fastq of (Fastq.item, string) Transform.t
-| `to_char_fasta of (Fasta.char_seq Fasta.Transform.raw_item, string) Transform.t
-| `to_int_fasta of (Fasta.int_seq Fasta.Transform.raw_item, string) Transform.t
+| `to_char_fasta of (Fasta.char_seq Fasta.raw_item, string) Transform.t
+| `to_int_fasta of (Fasta.int_seq Fasta.raw_item, string) Transform.t
 | `to_table of (Table.Row.t, string) Biocaml.Transform.t
 ]
 let output_transform_name = function

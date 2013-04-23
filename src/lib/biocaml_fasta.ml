@@ -10,29 +10,30 @@ type 'a item = {
   sequence : 'a;
 } with sexp
 
+type 'a raw_item = [
+  | `comment of string
+  | `header of string
+  | `partial_sequence of 'a
+]
+with sexp
+
 module Error = struct
   type string_to_raw_item = [
-  | `empty_line of Pos.t
-  | `incomplete_input of Pos.t * string list * string option
-  | `malformed_partial_sequence of string
+    | `empty_line of Pos.t
+    | `incomplete_input of Pos.t * string list * string option
+    | `malformed_partial_sequence of string
   ]
   with sexp
 
   type t = [
-    string_to_raw_item
-  | `unnamed_char_seq of char_seq
-  | `unnamed_int_seq of int_seq
+    | string_to_raw_item
+    | `unnamed_char_seq of char_seq
+    | `unnamed_int_seq of int_seq
   ]
   with sexp
 end
 
 module Transform = struct
-  type 'a raw_item = [
-  | `comment of string
-  | `header of string
-  | `partial_sequence of 'a
-  ]
-  with sexp
 
   (** The {i next} function used to construct the transform in
       [generic_parser]. *)
