@@ -91,17 +91,22 @@ module Transform = struct
         with _ -> output_error (`malformed_partial_sequence l)
     ) ?filename ?pedantic ?sharp_comments ?semicolon_comments ()
 
+
+  let raw_item_to_string_pure ?comment_char alpha_to_string =
+    function
+    | `comment c ->
+      Option.value_map comment_char
+        ~default:"" ~f:(fun o -> sprintf "%c%s\n" o c)
+    | `header n -> ">" ^ n ^ "\n"
+    | `partial_sequence s -> (alpha_to_string s) ^ "\n"
+
   (** Return a transform for converting [raw_item]s to strings, given
       a function [to_string] for converting either [char_seq]s or
       [int_seq]s. *)
   let generic_printer ~to_string ?comment_char () =
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
-    PQ.make ~to_string:(function
-    | `comment c ->
-      Option.value_map comment_char ~default:"" ~f:(fun o -> sprintf "%c%s\n" o c)
-    | `header n -> ">" ^ n ^ "\n"
-    | `partial_sequence s -> (to_string s) ^ "\n") () in
+    PQ.make ~to_string:(raw_item_to_string_pure ?comment_char to_string) () in
     Biocaml_transform.make ~name:"fasta_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
@@ -111,8 +116,11 @@ module Transform = struct
 
   let char_seq_raw_item_to_string = generic_printer ~to_string:ident
 
-  let int_seq_raw_item_to_string = generic_printer ~to_string:(fun l ->
-    String.concat ~sep:" " (List.map l Int.to_string))
+  let int_seq_to_string_pure = fun l ->
+    String.concat ~sep:" " (List.map l Int.to_string)
+
+  let int_seq_raw_item_to_string =
+    generic_printer ~to_string:int_seq_to_string_pure
 
   (** Return transform for aggregating [raw_item]s into [item]s given
       methods for working with buffers of [char_seq]s or [int_seq]s. *)
@@ -208,6 +216,12 @@ module Transform = struct
         | None -> if stopped then `end_of_stream else `not_ready)
 end
 
+
+let char_seq_raw_item_to_string =
+  Transform.raw_item_to_string_pure ident
+
+let int_seq_raw_item_to_string =
+  Transform.(raw_item_to_string_pure int_seq_to_string_pure)
 
 
 let in_channel_to_char_seq_raw_item_stream ?(buffer_size=65536) ?filename ?pedantic

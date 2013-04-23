@@ -235,6 +235,13 @@ val in_channel_to_int_seq_raw_item_stream_exn :
 (** Returns a stream of [int_seq item]s. Initial comments are
     discarded.  [Stream.next] will raise [Error _] in case of any error. *)
 
+val char_seq_raw_item_to_string: char_seq raw_item -> string
+(** Convert a [raw_item] to a string (ignore comments). *)
+
+val int_seq_raw_item_to_string: int_seq raw_item -> string
+(** Convert a [raw_item] to a string (ignore comments). *)
+
+
 (** {2 Transforms } *)
 
 module Transform: sig
