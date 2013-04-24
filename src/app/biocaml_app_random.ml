@@ -137,7 +137,16 @@ let parse_spec_aux s =
   end
 
 let parse_spec s =
-  parse_spec_aux s
+  begin
+    let s' = String.strip s in
+    if String.is_prefix s' ~prefix:"fasta:"
+    then
+      Fasta.Tags.of_string (String.sub s' 6 (String.length s' - 6)) |> of_result
+      >>= fun tags ->
+      return (`fasta tags)
+    else
+      parse_spec_aux s
+  end
   >>< begin function
   | Ok o -> return o
   | Error e -> error (`parse_specification e)
@@ -362,18 +371,19 @@ let do_random ~output_file ~nb_items spec =
     | Some f -> `overwrite_file f in
   parse_spec (String.concat ~sep:" " spec)
   >>= fun spec ->
-  let tags, args =
-    let t, a =
+  let tags, args, fasta_tags =
+    let t, a, ft =
       match spec with
-      | `fastq args -> (`fastq, args)
-      | `bed args   -> (`bed, args)
-      | `sam args   -> (`sam, args)
-      | `bam args   -> (`bam, args)
-      | `table args -> (`table '\t', args)
+      | `fastq args -> (`fastq,      args, `char_sequence [])
+      | `bed args   -> (`bed,        args, `char_sequence [])
+      | `sam args   -> (`sam,        args, `char_sequence [])
+      | `bam args   -> (`bam,        args, `char_sequence [])
+      | `table args -> (`table '\t', args, `char_sequence [])
+      | `fasta tags -> (`fasta `char, [], tags)
     in
     if Global_configuration.gzip_output_activated ()
-    then (`gzip t, a)
-    else (t, a)
+    then (`gzip t, a, ft)
+    else (t, a, ft)
   in
   output_transform_of_tags tags
   >>= begin function
@@ -406,6 +416,12 @@ let do_random ~output_file ~nb_items spec =
       ) in
  *)
     do_output output_meta_channel transform nb_items
+  | `to_char_fasta tr ->
+    of_result
+      (Fasta.Transform.unit_to_random_char_seq_raw_item ~tags:fasta_tags ())
+    >>= fun random_transform ->
+    let transform = Transform.compose random_transform tr in
+    do_output output_meta_channel transform nb_items
 
   | _ -> error (`not_implemented)
   end
@@ -424,12 +440,14 @@ let stringify m =
     error (<:sexp_of< [
     | `io_exn of exn
     | `not_implemented
+    | `inconsistent_tags of [ `int_sequence ]
     | `file_exists of string
     | `wrong_path of string
     | `parse_specification of
         [ `expecting_spec_but_got of Genlex.token list
         | `expecting_column_type_or_and_but_got of Genlex.token list
         | `lexical of string
+        | `tags_of_string of exn
         | `not_a_meta_int of Genlex.token list
         | `uknown_specification of Genlex.token list ]
     ] >> e |! Sexp.to_string_hum)
