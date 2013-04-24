@@ -114,19 +114,26 @@ module Tags: sig
     | `semicolon_comments
     | `items_per_line of int
   ]
+  (** The format details for any kind of FASTA file. *)
 
   type int_seq = [ common ] list
+  (** The format details for [int_seq] FASTA files. *)
+
   type char_seq = [ common | `impose_sequence_alphabet of (char -> bool) ] list
+  (** The format details for [char_seq] FASTA files. *)
+
   type t = [
     | `int_sequence of int_seq
     | `char_sequence of char_seq
   ]
+  (** The tags describing as much information as possible a given
+      FASTA “sub-format” *)
 
   val default: t
-  (** TODO *)
+  (** The default tags (for [char_seq]). *)
 
   val pedantic_with: t -> t
-    (** For a given set of tags [base], [pedantic_with base] is TODO *)
+  (** For a given set of tags [base], add pedantry.  *)
 
   val to_string: t -> string
   (** Serialize tags (for now S-Expressions). *)
