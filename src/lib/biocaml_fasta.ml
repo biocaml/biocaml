@@ -56,7 +56,7 @@ module Tags = struct
                       ] @ l)
 
   let forbid_empty_lines  tags = List.mem tags `forbid_empty_lines
-  let only_header_comment tags = List.mem tags `only_header_commen
+  let only_header_comment tags = List.mem tags `only_header_comment
   let sharp_comments      tags = List.mem tags `sharp_comments
   let semicolon_comments  tags = List.mem tags `semicolon_comments
   let impose_sequence_alphabet tags =
@@ -291,6 +291,71 @@ module Transform = struct
         match Queue.dequeue queue with
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
+
+  let unit_to_random_char_seq_raw_item ?(tags=Tags.default) () =
+    let open Result in
+    begin match tags with
+    | `char_sequence intags ->
+      let has_comments =
+        Tags.sharp_comments intags || Tags.semicolon_comments intags in
+      let impose_sequence_alphabet = Tags.impose_sequence_alphabet intags in
+      let only_header_comment  = Tags.only_header_comment intags in
+      let items_per_line = Tags.items_per_line tags in
+      let random_letter: 'a -> Char.t =
+        match impose_sequence_alphabet with
+        | Some f ->
+          (fun _ ->
+            let rec pick n =
+              if (f n) then n else pick (Random.int 127 |> Char.of_int_exn) in
+            pick (Random.int 127 |> Char.of_int_exn))
+        | None -> (fun _ -> Random.int 26 + 65 |> Char.of_int_exn) in
+      let header_or_comment =
+        let first_time = ref true in
+        fun id ->
+          if !first_time
+          then (
+            first_time := false;
+            begin match Random.int 3 with
+            | 0 when has_comments -> `comment "Some random comment"
+            | _ -> ksprintf (fun s -> `header s) "Sequence %d" id
+            end
+          ) else (
+            begin match Random.int 5 with
+            | 0 when has_comments && not only_header_comment ->
+              `comment "Some random comment"
+            | _ ->  ksprintf (fun s -> `header s) "Sequence %d" id
+            end
+          ) in
+      let next_raw_item =
+        let sequence_allowed = ref false in
+        let seq_num = ref 0 in
+        fun () ->
+          if !sequence_allowed then
+            begin  match Random.int 100 with
+            | 0 -> incr seq_num; header_or_comment !seq_num
+            | _ -> `partial_sequence (String.init items_per_line random_letter)
+            end
+          else
+            begin match header_or_comment !seq_num with
+            | `header _ as h -> sequence_allowed := true; h
+            | other -> other
+            end
+      in
+      let todo = ref 0 in
+      return (Biocaml_transform.make ()
+          ~next:(fun stopped ->
+            match !todo, stopped with
+            | 0, true -> `end_of_stream
+            | 0, false -> `not_ready
+            | n, _  when n < 0 -> assert false
+            | n, _ ->
+              decr todo;
+              `output (next_raw_item ()))
+          ~feed:(fun () -> incr todo))
+    | `int_sequence _ ->
+      fail (`inconsistent_tags `int_sequence)
+    end
+
 end
 
 

@@ -334,6 +334,14 @@ module Transform: sig
   (** Print [int_seq item]s. Comments will be ignored if
       [comment_char] is omitted. *)
 
+  (** {3 Random Generation} *)
+
+  val unit_to_random_char_seq_raw_item: ?tags:Tags.t -> unit ->
+    ((unit, char_seq raw_item) Biocaml_transform.t,
+     [> `inconsistent_tags of [> `int_sequence ]]) Core.Result.t
+  (** Create a transformation that generates random [char_seq
+      raw_item] values according to the [tags]. *)
+
 
 end
 
