@@ -560,13 +560,12 @@ let output_transform_of_tags
     | `fastq ->
       let t = Fastq.Transform.item_to_string () in
       return (`to_fastq (with_zip_no_error t) : output_transform)
-    | `fasta `unknown
-    | `fasta `char ->
-    (* TODO output warning? if `unknown *)
-      let t = Fasta.Transform.char_seq_raw_item_to_string () in
+    | `fasta (`char_sequence _ as tags) ->
+      (* TODO output warning? if `unknown *)
+      let t = Fasta.Transform.char_seq_raw_item_to_string ~tags () in
       return (`to_char_fasta (with_zip_no_error t) : output_transform)
-    | `fasta `int ->
-      let t = Fasta.Transform.int_seq_raw_item_to_string () in
+    | `fasta (`int_sequence _ as tags) ->
+      let t = Fasta.Transform.int_seq_raw_item_to_string ~tags () in
       return (`to_int_fasta (with_zip_no_error t) : output_transform)
     | `table sep ->
       let t =

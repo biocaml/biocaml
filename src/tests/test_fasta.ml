@@ -59,7 +59,8 @@ let malformed stream =
 let test_printer () =
   let stream_02 = make_stream "src/tests/data/fasta_02.fa" in
   let fasta_printer =
-    Fasta.Transform.char_seq_raw_item_to_string ~comment_char:'#' () in
+    let tags = `char_sequence [`sharp_comments] in
+    Fasta.Transform.char_seq_raw_item_to_string ~tags () in
   let stream =
     Transform.to_stream_fun fasta_printer (Stream.from (fun _ ->
       match Stream.next stream_02 with

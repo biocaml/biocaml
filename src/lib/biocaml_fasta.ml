@@ -72,6 +72,15 @@ module Tags = struct
     | `int_sequence tags -> find 25 tags
     | `char_sequence tags -> find 72 tags
 
+  let comment_char (t: t) =
+    let find tags =
+      List.find_map tags (function `sharp_comments -> Some '#'
+                                 | `semicolon_comments -> Some ';'
+                                 | _ -> None) in
+    match t with
+    | `int_sequence tags -> find tags
+    | `char_sequence tags -> find tags
+
   let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
   let of_string s =
     try Ok (Sexplib.Sexp.of_string s |> t_of_sexp)
@@ -178,8 +187,9 @@ module Transform = struct
   (** Return a transform for converting [raw_item]s to strings, given
       a function [to_string] for converting either [char_seq]s or
       [int_seq]s. *)
-  let generic_printer ~to_string ?comment_char () =
+  let generic_printer ~to_string ~tags () =
     let module PQ = Biocaml_transform.Printer_queue in
+    let comment_char = Tags.comment_char tags in
     let printer =
     PQ.make ~to_string:(raw_item_to_string_pure ?comment_char to_string) () in
     Biocaml_transform.make ~name:"fasta_printer" ()
@@ -189,13 +199,14 @@ module Transform = struct
         | "" -> if stopped then `end_of_stream else `not_ready
         | s -> `output s)
 
-  let char_seq_raw_item_to_string = generic_printer ~to_string:ident
+  let char_seq_raw_item_to_string  ?(tags=Tags.default) =
+    generic_printer ~to_string:ident ~tags
 
   let int_seq_to_string_pure = fun l ->
     String.concat ~sep:" " (List.map l Int.to_string)
 
-  let int_seq_raw_item_to_string =
-    generic_printer ~to_string:int_seq_to_string_pure
+  let int_seq_raw_item_to_string ?(tags=Tags.int_seq_default) =
+    generic_printer ~to_string:int_seq_to_string_pure ~tags
 
   (** Return transform for aggregating [raw_item]s into [item]s given
       methods for working with buffers of [char_seq]s or [int_seq]s. *)

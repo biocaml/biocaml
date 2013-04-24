@@ -107,19 +107,17 @@ let rec input_transform ?with_unzip input_tags =
         (function Ok o -> Ok o | Error e -> Error (`fastq e))
     in
     return (`from_fastq (with_unzip t) : input_transform)
-  | `fasta `unknown
-  | `fasta `char ->
-    (* TODO output warning? if `unknown *)
+  | `fasta (`char_sequence  tags) ->
     let t =
       Transform.on_output
-        (Fasta.Transform.string_to_char_seq_raw_item ())
+        (Fasta.Transform.string_to_char_seq_raw_item ~tags ())
         (function Ok o -> Ok o | Error e -> Error (`fasta e))
     in
     return (`from_char_fasta (with_unzip t) : input_transform)
-  | `fasta `int ->
+  | `fasta (`int_sequence tags) ->
     let t =
       Transform.on_output
-        (Fasta.Transform.string_to_int_seq_raw_item ())
+        (Fasta.Transform.string_to_int_seq_raw_item ~tags ())
         (function Ok o -> Ok o | Error e -> Error (`fasta e))
     in
     return (`from_int_fasta (with_unzip t) : input_transform)

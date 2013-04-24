@@ -379,7 +379,7 @@ let do_random ~output_file ~nb_items spec =
       | `sam args   -> (`sam,        args, `char_sequence [])
       | `bam args   -> (`bam,        args, `char_sequence [])
       | `table args -> (`table '\t', args, `char_sequence [])
-      | `fasta tags -> (`fasta `char, [], tags)
+      | `fasta tags -> (`fasta tags, [], tags)
     in
     if Global_configuration.gzip_output_activated ()
     then (`gzip t, a, ft)

@@ -11,7 +11,7 @@ type t = [
 | `bed
 | `fastq
 | `table of char
-| `fasta of [`int | `char | `unknown ]
+| `fasta of Biocaml_fasta.Tags.t
 ]
 (** Description of file formats. *)
 

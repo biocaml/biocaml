@@ -134,6 +134,9 @@ module Tags: sig
   val of_string: string -> (t, [> `tags_of_string of exn]) Core.Result.t
   (** Parse tags (for now S-Expressions). *)
 
+  val t_of_sexp: Sexplib.Sexp.t -> t
+  val sexp_of_t: t -> Sexplib.Sexp.t
+
 end
 
 module Error : sig
@@ -294,7 +297,7 @@ module Transform: sig
       characters (default 80). *)
 
   val char_seq_raw_item_to_string:
-    ?comment_char:char ->
+    ?tags:Tags.t ->
     unit ->
     (char_seq raw_item, string) Biocaml_transform.t
   (** Print [char_seq item]s. Comments will be ignored if
@@ -328,7 +331,7 @@ module Transform: sig
       (default 27). *)
 
   val int_seq_raw_item_to_string:
-    ?comment_char:char ->
+    ?tags:Tags.t ->
     unit ->
     (int_seq raw_item, string) Biocaml_transform.t
   (** Print [int_seq item]s. Comments will be ignored if

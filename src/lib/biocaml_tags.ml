@@ -13,7 +13,7 @@ type t = [
 | `sam
 | `bed
 | `fastq
-| `fasta of [`int | `char | `unknown ]
+| `fasta of Biocaml_fasta.Tags.t
 ] with sexp
 
 let rec default_extension = function
@@ -44,7 +44,7 @@ let rec guess_from_filename filename =
     | "sam" -> return `sam
     | "bed" -> return `bed
     | "fastq" -> return `fastq
-    | "fasta" -> return (`fasta `unknown)
+    | "fasta" -> return (`fasta Biocaml_fasta.Tags.default)
     | "tsv" -> return (`table '\t')
     | u -> fail (`extension_unknown u)
     end
