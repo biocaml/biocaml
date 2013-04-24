@@ -24,11 +24,14 @@ module Tags = struct
     | `only_header_comment
     | `sharp_comments
     | `semicolon_comments
+    | `items_per_line of int
   ]
   with sexp
 
   type int_seq = [ common ] list with sexp
-  type char_seq = [ common | `impose_sequence_alphabet of (char -> bool) ] list
+  type char_seq_item = [ common | `impose_sequence_alphabet of (char -> bool) ]
+  with sexp
+  type char_seq = char_seq_item list
   with sexp
 
   type t = [
@@ -38,6 +41,7 @@ module Tags = struct
   with sexp
 
   let default = `char_sequence []
+  let int_seq_default = `int_sequence []
 
   let common_pedantry = [`forbid_empty_lines; `only_header_comment ]
 
@@ -59,6 +63,14 @@ module Tags = struct
     List.find_map tags ~f:(function
     | `impose_sequence_alphabet f -> Some f
     | _ -> None)
+
+  let items_per_line (t: t) =
+    let find default tags =
+      List.find_map tags (function `items_per_line i -> Some i | _ -> None)
+      |> Option.value ~default in
+    match t with
+    | `int_sequence tags -> find 25 tags
+    | `char_sequence tags -> find 72 tags
 
   let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
   let of_string s =
@@ -239,7 +251,8 @@ module Transform = struct
       ~unnamed_sequence:(fun x -> `unnamed_int_seq x)
       ()
 
-  let char_seq_item_to_raw_item ?(items_per_line=80) () =
+  let char_seq_item_to_raw_item ?(tags=Tags.default) () =
+    let items_per_line = Tags.items_per_line tags in
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
       ~feed:(fun {header=hdr; sequence=seq} ->
@@ -259,7 +272,8 @@ module Transform = struct
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
 
-  let int_seq_item_to_raw_item ?(items_per_line=27) () =
+  let int_seq_item_to_raw_item ?(tags=Tags.int_seq_default) () =
+    let items_per_line = Tags.items_per_line tags in
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
       ~feed:(fun {header=hdr; sequence=seq} ->

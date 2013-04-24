@@ -112,6 +112,7 @@ module Tags: sig
     | `only_header_comment
     | `sharp_comments
     | `semicolon_comments
+    | `items_per_line of int
   ]
 
   type int_seq = [ common ] list
@@ -286,7 +287,7 @@ module Transform: sig
 
   (** {3 [char_seq] unparsers} *)
 
-  val char_seq_item_to_raw_item: ?items_per_line:int -> unit ->
+  val char_seq_item_to_raw_item: ?tags:Tags.t -> unit ->
     (char_seq item, char_seq raw_item) Biocaml_transform.t
   (** Cut a stream of [char_seq item]s into a stream of [char_seq
       raw_item]s, where lines are cut at [items_per_line]
@@ -320,7 +321,7 @@ module Transform: sig
 
   (** {3 [int_seq] unparsers} *)
 
-  val int_seq_item_to_raw_item: ?items_per_line:int -> unit ->
+  val int_seq_item_to_raw_item: ?tags:Tags.t -> unit ->
     (int_seq item, int_seq raw_item) Biocaml_transform.t
   (** Cut a stream of [int_seq item]s into a stream of [int_seq
       raw_item]s, where lines are cut at [items_per_line] integers
