@@ -141,9 +141,10 @@ let parse_spec s =
     let s' = String.strip s in
     if String.is_prefix s' ~prefix:"fasta:"
     then
-      Fasta.Tags.of_string (String.sub s' 6 (String.length s' - 6)) |> of_result
-      >>= fun tags ->
-      return (`fasta tags)
+      Fasta.Random.specification_of_string
+        (String.sub s' 6 (String.length s' - 6)) |> of_result
+      >>= fun spec ->
+      return (`fasta spec)
     else
       parse_spec_aux s
   end
@@ -374,12 +375,16 @@ let do_random ~output_file ~nb_items spec =
   let tags, args, fasta_tags =
     let t, a, ft =
       match spec with
-      | `fastq args -> (`fastq,      args, `char_sequence [])
-      | `bed args   -> (`bed,        args, `char_sequence [])
-      | `sam args   -> (`sam,        args, `char_sequence [])
-      | `bam args   -> (`bam,        args, `char_sequence [])
-      | `table args -> (`table '\t', args, `char_sequence [])
-      | `fasta tags -> (`fasta tags, [], tags)
+      | `fastq args -> (`fastq,      args, [])
+      | `bed args   -> (`bed,        args, [])
+      | `sam args   -> (`sam,        args, [])
+      | `bam args   -> (`bam,        args, [])
+      | `table args -> (`table '\t', args, [])
+      | `fasta spec ->
+        let tags =
+          Fasta.Random.get_tags spec
+          |> Option.value ~default:Fasta.Tags.default in
+        (`fasta tags, [], spec)
     in
     if Global_configuration.gzip_output_activated ()
     then (`gzip t, a, ft)
@@ -418,7 +423,7 @@ let do_random ~output_file ~nb_items spec =
     do_output output_meta_channel transform nb_items
   | `to_char_fasta tr ->
     of_result
-      (Fasta.Transform.unit_to_random_char_seq_raw_item ~tags:fasta_tags ())
+      (Fasta.Random.unit_to_random_char_seq_raw_item fasta_tags)
     >>= fun random_transform ->
     let transform = Transform.compose random_transform tr in
     do_output output_meta_channel transform nb_items
@@ -447,6 +452,7 @@ let stringify m =
         [ `expecting_spec_but_got of Genlex.token list
         | `expecting_column_type_or_and_but_got of Genlex.token list
         | `lexical of string
+        | `fasta of [> `parse_specification of exn ]
         | `tags_of_string of exn
         | `not_a_meta_int of Genlex.token list
         | `uknown_specification of Genlex.token list ]

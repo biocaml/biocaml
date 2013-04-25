@@ -40,6 +40,7 @@ module Tags = struct
   ]
   with sexp
 
+
   let default = `char_sequence []
   let int_seq_default = `int_sequence []
 
@@ -302,9 +303,28 @@ module Transform = struct
         match Queue.dequeue queue with
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
+end
 
-  let unit_to_random_char_seq_raw_item ?(tags=Tags.default) () =
+module Random = struct
+
+  type specification = [
+    | `non_sequence_probability of float
+    | `tags of Tags.t
+  ]
+  with sexp
+
+  type specification_list = specification list with sexp
+
+  let specification_of_string s =
+    try Ok (specification_list_of_sexp (Core.Std.Sexp.of_string s))
+    with e -> Error (`fasta (`parse_specification e))
+
+  let get_tags specification =
+    List.find_map specification (function `tags t -> Some t | _ -> None)
+
+  let unit_to_random_char_seq_raw_item specification =
     let open Result in
+    let tags = get_tags specification |> Option.value ~default:Tags.default in
     begin match tags with
     | `char_sequence intags ->
       let has_comments =
@@ -312,6 +332,10 @@ module Transform = struct
       let impose_sequence_alphabet = Tags.impose_sequence_alphabet intags in
       let only_header_comment  = Tags.only_header_comment intags in
       let max_items_per_line = Tags.max_items_per_line tags in
+      let non_sequence_probability =
+        List.find_map specification
+          (function `non_sequence_probability p -> Some p | _ -> None)
+        |> Option.value ~default:0.2 in
       let random_letter: 'a -> Char.t =
         match impose_sequence_alphabet with
         | Some f ->
@@ -325,10 +349,11 @@ module Transform = struct
         fun id ->
           if !first_time
           then (
-            first_time := false;
             begin match Random.int 3 with
             | 0 when has_comments -> `comment "Some random comment"
-            | _ -> ksprintf (fun s -> `header s) "Sequence %d" id
+            | _ ->
+              first_time := false;
+              ksprintf (fun s -> `header s) "Sequence %d" id
             end
           ) else (
             begin match Random.int 5 with
@@ -342,10 +367,11 @@ module Transform = struct
         let seq_num = ref 0 in
         fun () ->
           if !sequence_allowed then
-            begin  match Random.int 100 with
-            | 0 -> incr seq_num; header_or_comment !seq_num
+            begin  match Random.float 1. with
+            | f when f <= non_sequence_probability ->
+              incr seq_num; header_or_comment !seq_num
             | _ ->
-              let items_per_line = Random.int max_items_per_line in
+              let items_per_line = 1 + Random.int max_items_per_line in
               `partial_sequence (String.init items_per_line random_letter)
             end
           else

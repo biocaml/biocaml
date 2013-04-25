@@ -343,10 +343,23 @@ module Transform: sig
     (int_seq raw_item, string) Biocaml_transform.t
   (** Print [int_seq item]s. Comments will be ignored if
       [comment_char] is omitted. *)
+end
 
+module Random: sig
   (** {3 Random Generation} *)
 
-  val unit_to_random_char_seq_raw_item: ?tags:Tags.t -> unit ->
+  type specification = [
+    | `non_sequence_probability of float
+    | `tags of Tags.t
+  ]
+
+  val specification_of_string: string ->
+    (specification list, [> `fasta of [> `parse_specification of exn]])
+      Core.Std.Result.t
+
+  val get_tags: [> specification] list -> Tags.t option
+
+  val unit_to_random_char_seq_raw_item: [> specification] list ->
     ((unit, char_seq raw_item) Biocaml_transform.t,
      [> `inconsistent_tags of [> `int_sequence ]]) Core.Result.t
   (** Create a transformation that generates random [char_seq
