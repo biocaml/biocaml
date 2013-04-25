@@ -112,7 +112,7 @@ module Tags: sig
     | `only_header_comment
     | `sharp_comments
     | `semicolon_comments
-    | `items_per_line of int
+    | `max_items_per_line of int
   ]
   (** The format details for any kind of FASTA file. *)
 

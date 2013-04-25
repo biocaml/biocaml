@@ -157,7 +157,7 @@ let sequence_slicer_stream file =
   let t = Fasta.Transform.string_to_char_seq_raw_item  () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
   let slicer =
-    let tags = `char_sequence [`items_per_line 4] in
+    let tags = `char_sequence [`max_items_per_line 4] in
     Fasta.Transform.char_seq_item_to_raw_item ~tags () in
   let transform =
     Transform.(compose_result_left
@@ -201,7 +201,7 @@ let score_slicer () =
     Fasta.Transform.string_to_int_seq_raw_item  () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let slicer =
-    let tags = `int_sequence [`items_per_line 4] in
+    let tags = `int_sequence [`max_items_per_line 4] in
     Fasta.Transform.int_seq_item_to_raw_item ~tags () in
   let transform =
     Transform.(compose_result_left

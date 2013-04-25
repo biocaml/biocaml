@@ -24,7 +24,7 @@ module Tags = struct
     | `only_header_comment
     | `sharp_comments
     | `semicolon_comments
-    | `items_per_line of int
+    | `max_items_per_line of int
   ]
   with sexp
 
@@ -64,9 +64,9 @@ module Tags = struct
     | `impose_sequence_alphabet f -> Some f
     | _ -> None)
 
-  let items_per_line (t: t) =
+  let max_items_per_line (t: t) =
     let find default tags =
-      List.find_map tags (function `items_per_line i -> Some i | _ -> None)
+      List.find_map tags (function `max_items_per_line i -> Some i | _ -> None)
       |> Option.value ~default in
     match t with
     | `int_sequence tags -> find 25 tags
@@ -263,7 +263,7 @@ module Transform = struct
       ()
 
   let char_seq_item_to_raw_item ?(tags=Tags.default) () =
-    let items_per_line = Tags.items_per_line tags in
+    let items_per_line = Tags.max_items_per_line tags in
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
       ~feed:(fun {header=hdr; sequence=seq} ->
@@ -284,7 +284,7 @@ module Transform = struct
         | None -> if stopped then `end_of_stream else `not_ready)
 
   let int_seq_item_to_raw_item ?(tags=Tags.int_seq_default) () =
-    let items_per_line = Tags.items_per_line tags in
+    let items_per_line = Tags.max_items_per_line tags in
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
       ~feed:(fun {header=hdr; sequence=seq} ->
@@ -311,7 +311,7 @@ module Transform = struct
         Tags.sharp_comments intags || Tags.semicolon_comments intags in
       let impose_sequence_alphabet = Tags.impose_sequence_alphabet intags in
       let only_header_comment  = Tags.only_header_comment intags in
-      let items_per_line = Tags.items_per_line tags in
+      let max_items_per_line = Tags.max_items_per_line tags in
       let random_letter: 'a -> Char.t =
         match impose_sequence_alphabet with
         | Some f ->
@@ -344,7 +344,9 @@ module Transform = struct
           if !sequence_allowed then
             begin  match Random.int 100 with
             | 0 -> incr seq_num; header_or_comment !seq_num
-            | _ -> `partial_sequence (String.init items_per_line random_letter)
+            | _ ->
+              let items_per_line = Random.int max_items_per_line in
+              `partial_sequence (String.init items_per_line random_letter)
             end
           else
             begin match header_or_comment !seq_num with
