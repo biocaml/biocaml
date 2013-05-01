@@ -203,22 +203,16 @@ module Error : sig
   (** {3 S-Expressions conversions for Errors} *)
 
   val optional_content_parsing_of_sexp : Sexplib.Sexp.t -> optional_content_parsing
-  val optional_content_parsing_of_sexp__ : Sexplib.Sexp.t -> optional_content_parsing
   val sexp_of_optional_content_parsing : optional_content_parsing -> Sexplib.Sexp.t
   val string_to_raw_of_sexp : Sexplib.Sexp.t -> string_to_raw
-  val string_to_raw_of_sexp__ : Sexplib.Sexp.t -> string_to_raw
   val sexp_of_string_to_raw : string_to_raw -> Sexplib.Sexp.t
   val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
-  val raw_to_item_of_sexp__ : Sexplib.Sexp.t -> raw_to_item
   val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
   val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
-  val item_to_raw_of_sexp__ : Sexplib.Sexp.t -> item_to_raw
   val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
   val parse_of_sexp : Sexplib.Sexp.t -> parse
-  val parse_of_sexp__ : Sexplib.Sexp.t -> parse
   val sexp_of_parse : parse -> Sexplib.Sexp.t
   val t_of_sexp : Sexplib.Sexp.t -> parse
-  val t_of_sexp__ : Sexplib.Sexp.t -> parse
   val sexp_of_t : parse -> Sexplib.Sexp.t
 
 end
@@ -305,15 +299,12 @@ end
 (** {2 S-Expressions } *)
 
 val cigar_op_of_sexp : Sexplib.Sexp.t -> cigar_op
-val cigar_op_of_sexp__ : Sexplib.Sexp.t -> cigar_op
 val sexp_of_cigar_op : cigar_op -> Sexplib.Sexp.t
 val optional_content_value_of_sexp : Sexplib.Sexp.t -> optional_content_value
-val optional_content_value_of_sexp__ : Sexplib.Sexp.t -> optional_content_value
 val sexp_of_optional_content_value : optional_content_value -> Sexplib.Sexp.t
 val optional_content_of_sexp : Sexplib.Sexp.t -> optional_content
 val sexp_of_optional_content : optional_content -> Sexplib.Sexp.t
 val alignment_of_sexp : Sexplib.Sexp.t -> alignment
 val sexp_of_alignment : alignment -> Sexplib.Sexp.t
 val item_of_sexp : Sexplib.Sexp.t -> item
-val item_of_sexp__ : Sexplib.Sexp.t -> item
 val sexp_of_item : item -> Sexplib.Sexp.t

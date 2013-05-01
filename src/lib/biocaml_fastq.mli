@@ -39,7 +39,6 @@ module Error : sig
   (** All possible errors. *)
 
   val t_of_sexp : Sexplib.Sexp.t -> t
-  val t_of_sexp__ : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
 
   val t_to_string : t -> string

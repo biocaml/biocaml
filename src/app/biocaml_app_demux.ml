@@ -144,12 +144,8 @@ let check_barcode
 
 (** Convert FASTQ input errors to strings. *)
 let string_of_error e =
-  let module M = struct
-    type t = [ Biocaml_fastq.Error.t
-             | `unzip of Biocaml_zip.Transform.unzip_error ]
-    with sexp
-  end in
-  Sexp.to_string_hum (M.sexp_of_t e)
+  Sexp.to_string_hum (<:sexp_of<
+  [ Biocaml_fastq.Error.t | `unzip of Biocaml_zip.Transform.unzip_error ] >> e)
 
 (** Structure used to record demux-statistics. *)
 type library_statistics = {

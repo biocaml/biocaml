@@ -57,7 +57,6 @@ module Transform: sig
   (** Create a transform that writes compressed data. *)
 
   val unzip_error_of_sexp : Sexplib.Sexp.t -> unzip_error
-  val unzip_error_of_sexp__ : Sexplib.Sexp.t -> unzip_error
   val sexp_of_unzip_error : unzip_error -> Sexplib.Sexp.t
 
 

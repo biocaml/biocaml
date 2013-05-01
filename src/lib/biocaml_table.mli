@@ -39,12 +39,10 @@ module Row : sig
 
 
   val item_of_sexp : Sexplib.Sexp.t -> item
-  val item_of_sexp__ : Sexplib.Sexp.t -> item
   val sexp_of_item : item -> Sexplib.Sexp.t
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
   val item_type_of_sexp : Sexplib.Sexp.t -> item_type
-  val item_type_of_sexp__ : Sexplib.Sexp.t -> item_type
   val sexp_of_item_type : item_type -> Sexplib.Sexp.t
   val t_type_of_sexp : Sexplib.Sexp.t -> t_type
   val sexp_of_t_type : t_type -> Sexplib.Sexp.t

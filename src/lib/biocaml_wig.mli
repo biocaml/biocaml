@@ -86,13 +86,10 @@ module Error: sig
   type t = [ parsing | to_bed_graph ]
   (** The union of all errors. *)
 
-  val parsing_of_sexp__ : Sexplib.Sexp.t -> parsing
   val parsing_of_sexp : Sexplib.Sexp.t -> parsing
   val sexp_of_parsing : parsing -> Sexplib.Sexp.t
-  val t_of_sexp__ : Sexplib.Sexp.t -> t
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
-  val to_bed_graph_of_sexp__ : Sexplib.Sexp.t -> to_bed_graph
   val to_bed_graph_of_sexp : Sexplib.Sexp.t -> to_bed_graph
   val sexp_of_to_bed_graph : to_bed_graph -> Sexplib.Sexp.t
 end
@@ -155,20 +152,15 @@ end
 (** {2 S-Expressions} *)
 
 val comment_of_sexp : Sexplib.Sexp.t -> comment
-val comment_of_sexp__ : Sexplib.Sexp.t -> comment
 val sexp_of_comment : comment -> Sexplib.Sexp.t
 val variable_step_of_sexp : Sexplib.Sexp.t -> variable_step
-val variable_step_of_sexp__ : Sexplib.Sexp.t -> variable_step
 val sexp_of_variable_step : variable_step -> Sexplib.Sexp.t
 val fixed_step_of_sexp : Sexplib.Sexp.t -> fixed_step
-val fixed_step_of_sexp__ : Sexplib.Sexp.t -> fixed_step
 val sexp_of_fixed_step : fixed_step -> Sexplib.Sexp.t
 val bed_graph_value_of_sexp : Sexplib.Sexp.t -> bed_graph_value
 val sexp_of_bed_graph_value : bed_graph_value -> Sexplib.Sexp.t
 val item_of_sexp : Sexplib.Sexp.t -> item
-val item_of_sexp__ : Sexplib.Sexp.t -> item
 val sexp_of_item : item -> Sexplib.Sexp.t
 val tag_of_sexp : Sexplib.Sexp.t -> tag
-val tag_of_sexp__ : Sexplib.Sexp.t -> tag
 val sexp_of_tag : tag -> Sexplib.Sexp.t
 

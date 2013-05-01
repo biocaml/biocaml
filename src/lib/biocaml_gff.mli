@@ -105,7 +105,6 @@ end
 (** {2 S-Expressions } *)
 
 val tag_of_sexp : Sexplib.Sexp.t -> tag
-val tag_of_sexp__ : Sexplib.Sexp.t -> tag
 val sexp_of_tag : tag -> Sexplib.Sexp.t
 val record_of_sexp : Sexplib.Sexp.t -> record
 val sexp_of_record : record -> Sexplib.Sexp.t
