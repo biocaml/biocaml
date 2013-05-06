@@ -191,14 +191,12 @@ module Transform: sig
 
 end
 
-module Low_level: sig
-  (** Lower-level (parsing) functions. *)
+(** {2 Lower-level (parsing) functions} *)
 
-  val parse_cigar: ?pos:int -> ?len:int -> string ->
-    (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Core.Result.t
-  (** Parse CIGAR operations from a string which (c.f. [raw_alignment.cigar]). *)
+val parse_cigar: ?pos:int -> ?len:int -> string ->
+  (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Core.Result.t
+(** Parse CIGAR operations from a string (c.f. [raw_alignment.cigar]). *)
 
-  val parse_optional: ?pos:int -> ?len:int -> string ->
-    (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
-  (** Parse optional content from a string (c.f. [raw_alignment.optional]). *)
-end
+val parse_optional: ?pos:int -> ?len:int -> string ->
+  (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
+(** Parse optional content from a string (c.f. [raw_alignment.optional]). *)

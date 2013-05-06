@@ -243,34 +243,39 @@ val in_channel_to_raw_item_stream_exn : ?buffer_size:int -> ?filename:string -> 
 
 (** {2 Low-level partial parsing} *)
 
-module Low_level_parsing: sig
 
-  (** This submodule exposes functions used both in {!Biocaml_sam.Transform} and
+(** Here we expose functions used both in {!Biocaml_sam.Transform} and
       {!Biocaml_bam.Transform} for parsing.
-      It can be ignored by most users.
-  *)
+      It can be ignored by most users but can be useful.
+*)
 
-  val parse_cigar_text: string ->
-    (cigar_op array, [> `wrong_cigar_text of string ]) Core.Result.t
+(** Parse CIGAR operations from a string. *)
+val parse_cigar_text: string ->
+  (cigar_op array, [> `wrong_cigar_text of string ]) Core.Result.t
 
-  val parse_optional_content: (string * char * string) list ->
-    (optional_content, [> Error.optional_content_parsing]) Core.Result.t
 
-  val parse_header_line:
-    'a -> string ->
-    ([> `comment of string
-     | `header of string * (string * string) list ],
-     [> `invalid_header_tag of 'a * string
-     | `invalid_tag_value_list of 'a * string list ]) Core.Result.t
+(** Parse optional content from a “tokenized” string. *)
+val parse_optional_content: (string * char * string) list ->
+  (optional_content, [> Error.optional_content_parsing]) Core.Result.t
 
-  val expand_header_line:
-    (string * string) list ->
-    ([> `header_line of
+(** Parse a header line form a string. The first argument is used to
+    pass the location to the error values
+    (c.f. {!type:Error.string_to_raw}). *)
+val parse_header_line:
+  'a -> string ->
+  ([> `comment of string
+   | `header of string * (string * string) list ],
+   [> `invalid_header_tag of 'a * string
+   | `invalid_tag_value_list of 'a * string list ]) Core.Result.t
+
+(** Parse a header line into a more detailed type. *)
+val expand_header_line:
+  (string * string) list ->
+  ([> `header_line of
         string * [ `coordinate | `queryname | `unknown | `unsorted ] *
           (string * string) list ],
-     [> `header_line_without_version of (string * string) list
-     | `header_line_wrong_sorting of string ]) Core.Result.t
-end
+   [> `header_line_without_version of (string * string) list
+   | `header_line_wrong_sorting of string ]) Core.Result.t
 
 (** {2 Low-level Transforms} *)
 

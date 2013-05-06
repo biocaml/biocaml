@@ -445,14 +445,14 @@ module Transform = struct
     let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
     while_ok lines (fun idx line ->
       dbg "parse_sam_header %d %s" idx line;
-      Sam.Low_level_parsing.parse_header_line idx line
+      Sam.parse_header_line idx line
       >>= fun raw_sam ->
       begin match raw_sam with
       | `comment s -> return (`comment s)
       | `header ("HD", l) ->
         if idx <> 0
         then fail (`header_line_not_first idx)
-        else Sam.Low_level_parsing.expand_header_line l
+        else Sam.expand_header_line l
       | `header h -> return (`header h)
       end)
 
@@ -829,12 +829,9 @@ module Transform = struct
       (Zip.Transform.zip ~format:`gzip ?level:gzip_level ?zlib_buffer_size ())
 end
 
-module Low_level = struct
-  open Transform
-  let parse_optional = parse_optional
-  let parse_cigar = parse_cigar
-
-end
+open Transform
+let parse_optional = Transform.parse_optional
+let parse_cigar = Transform.parse_cigar
 
 
 let in_channel_to_raw_item_stream ?zlib_buffer_size ?buffer_size inp =

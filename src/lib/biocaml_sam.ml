@@ -198,79 +198,78 @@ module Error = struct
 
 end
 
-module Low_level_parsing = struct
 
-  let is_tag_char = function
-    | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
-    | _ -> false
-  let is_valid_tag s =
-    if String.length s = 2 then (is_tag_char s.[0] && is_tag_char s.[1])
-    else false
+let is_tag_char = function
+| 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
+| _ -> false
+let is_valid_tag s =
+  if String.length s = 2 then (is_tag_char s.[0] && is_tag_char s.[1])
+  else false
 
-  let parse_header_line position line =
-    match String.(split ~on:'\t' (chop_prefix_exn line ~prefix:"@")) with
-    | [] -> assert false
-    | "CO" :: rest -> return (`comment (String.concat ~sep:"\t" rest))
-    | tag :: values ->
-      if is_valid_tag tag then (
-        let tag_values () =
-          List.map values (fun v ->
+let parse_header_line position line =
+  match String.(split ~on:'\t' (chop_prefix_exn line ~prefix:"@")) with
+  | [] -> assert false
+  | "CO" :: rest -> return (`comment (String.concat ~sep:"\t" rest))
+  | tag :: values ->
+    if is_valid_tag tag then (
+      let tag_values () =
+        List.map values (fun v ->
             match String.split ~on:':' v with
             | tag :: value :: [] ->
               if is_valid_tag tag then (tag, value)
               else failwith "A"
             | other ->  failwith "A") in
-        begin try return (tag_values ()) with
-        | Failure _ -> fail (`invalid_tag_value_list (position, values))
-        end
-            >>= fun tv ->
-        return (`header (tag, tv))
-      ) else
-        fail (`invalid_header_tag (position, tag))
+      begin try return (tag_values ()) with
+      | Failure _ -> fail (`invalid_tag_value_list (position, values))
+      end
+      >>= fun tv ->
+      return (`header (tag, tv))
+    ) else
+      fail (`invalid_header_tag (position, tag))
 
-  let parse_optional_field position s =
-    match String.split s ~on:':' with
-    | [tag; typ; value] ->
-      if is_valid_tag tag then
-        begin match typ with
-        | "A" | "c" | "C" | "s" | "S" | "i" | "I" | "f" | "Z" | "H" | "B" ->
-          return (tag, typ.[0], value)
-        | _ ->
-          fail (`wrong_optional_field (position, s))
-        end
-      else
+let parse_optional_field position s =
+  match String.split s ~on:':' with
+  | [tag; typ; value] ->
+    if is_valid_tag tag then
+      begin match typ with
+      | "A" | "c" | "C" | "s" | "S" | "i" | "I" | "f" | "Z" | "H" | "B" ->
+        return (tag, typ.[0], value)
+      | _ ->
         fail (`wrong_optional_field (position, s))
-    | _ ->
+      end
+    else
       fail (`wrong_optional_field (position, s))
+  | _ ->
+    fail (`wrong_optional_field (position, s))
 
-  let parse_alignment position s  =
-    let int field x =
-      try return (int_of_string x)
-      with Failure _ -> fail (`not_an_int (position, field, x)) in
-    match String.split s ~on:'\t' with
-    | qname  ::  flag :: rname :: pos :: mapq :: cigar :: rnext :: pnext
-      :: tlen :: seq :: qual :: optional ->
-      begin
-        int "flag" flag >>= fun flag ->
-        int "pos" pos >>= fun pos ->
-        int "mapq" mapq >>= fun mapq ->
-        int "pnext" pnext >>= fun pnext ->
-        int "tlen" tlen >>= fun tlen ->
-        while_ok optional (fun _ -> parse_optional_field position)
-        >>= fun optional ->
-        return (`alignment {
+let parse_alignment position s  =
+  let int field x =
+    try return (int_of_string x)
+    with Failure _ -> fail (`not_an_int (position, field, x)) in
+  match String.split s ~on:'\t' with
+  | qname  ::  flag :: rname :: pos :: mapq :: cigar :: rnext :: pnext
+    :: tlen :: seq :: qual :: optional ->
+    begin
+      int "flag" flag >>= fun flag ->
+      int "pos" pos >>= fun pos ->
+      int "mapq" mapq >>= fun mapq ->
+      int "pnext" pnext >>= fun pnext ->
+      int "tlen" tlen >>= fun tlen ->
+      while_ok optional (fun _ -> parse_optional_field position)
+      >>= fun optional ->
+      return (`alignment {
           qname;  flag; rname; pos; mapq; cigar; rnext;
           pnext; tlen; seq; qual; optional })
-      end
-    | _ ->
-      fail (`wrong_alignment (position, s))
+    end
+  | _ ->
+    fail (`wrong_alignment (position, s))
 
 
-  let expand_header_line l =
-    let version = ref None in
-    let sorting_order = ref (Ok `unknown) in
-    let unknown =
-      List.filter_map l (function
+let expand_header_line l =
+  let version = ref None in
+  let sorting_order = ref (Ok `unknown) in
+  let unknown =
+    List.filter_map l (function
       | ("VN", s) -> version := Some s; None
       | "SO", "unknown" ->     sorting_order := Ok `unknown; None
       | "SO", "unsorted" ->    sorting_order := Ok `unsorted; None
@@ -278,60 +277,60 @@ module Low_level_parsing = struct
       | "SO", "coordinate" ->  sorting_order := Ok `coordinate; None
       | "SO", any -> sorting_order := Error any; None
       | other -> Some other) in
-    match !version, !sorting_order with
-    | Some v, Ok so -> return (`header_line (v, so, unknown))
-    | None, _ -> fail (`header_line_without_version l)
-    | _, Error s -> fail (`header_line_wrong_sorting s)
+  match !version, !sorting_order with
+  | Some v, Ok so -> return (`header_line (v, so, unknown))
+  | None, _ -> fail (`header_line_without_version l)
+  | _, Error s -> fail (`header_line_wrong_sorting s)
 
-  let parse_cigar_text text =
-    if text = "*" then return [| |]
-    else begin
-      let ch = Scanf.Scanning.from_string text in
-      let rec loop acc =
-        if Scanf.Scanning.end_of_input ch then return acc
-        else begin
-          try
-            let v = Scanf.bscanf ch "%d" ident in
-            let c = Scanf.bscanf ch "%c" ident in
-            match c with
-            | 'M' -> (loop (`M  v :: acc))
-            | 'I' -> (loop (`I  v :: acc))
-            | 'D' -> (loop (`D  v :: acc))
-            | 'N' -> (loop (`N  v :: acc))
-            | 'S' -> (loop (`S  v :: acc))
-            | 'H' -> (loop (`H  v :: acc))
-            | 'P' -> (loop (`P  v :: acc))
-            | '=' -> (loop (`Eq v :: acc))
-            | 'X' -> (loop (`X  v :: acc))
-            | other -> failwith ""
-          with
-            e -> fail (`wrong_cigar_text text)
-        end
-      in
-      loop [] >>| Array.of_list_rev
-    end
+let parse_cigar_text text =
+  if text = "*" then return [| |]
+  else begin
+    let ch = Scanf.Scanning.from_string text in
+    let rec loop acc =
+      if Scanf.Scanning.end_of_input ch then return acc
+      else begin
+        try
+          let v = Scanf.bscanf ch "%d" ident in
+          let c = Scanf.bscanf ch "%c" ident in
+          match c with
+          | 'M' -> (loop (`M  v :: acc))
+          | 'I' -> (loop (`I  v :: acc))
+          | 'D' -> (loop (`D  v :: acc))
+          | 'N' -> (loop (`N  v :: acc))
+          | 'S' -> (loop (`S  v :: acc))
+          | 'H' -> (loop (`H  v :: acc))
+          | 'P' -> (loop (`P  v :: acc))
+          | '=' -> (loop (`Eq v :: acc))
+          | 'X' -> (loop (`X  v :: acc))
+          | other -> failwith ""
+        with
+          e -> fail (`wrong_cigar_text text)
+      end
+    in
+    loop [] >>| Array.of_list_rev
+  end
 
 
 
-  let parse_optional_content raw =
-    let error e = fail (`wrong_optional (raw, e)) in
-    let char tag typ raw =
-      if String.length raw <> 1 then error (`not_a_char raw)
-      else return (tag, typ, `char raw.[0]) in
-    let int tag typ raw =
-      try let i = Int.of_string raw in return (tag, typ, `int i)
-      with e -> error (`not_an_int raw) in
-    let float tag typ raw =
-      try let i = Float.of_string raw in return (tag, typ, `float i)
-      with e -> error (`not_a_float raw) in
-    let parse_cCsSiIf tag typ raw =
-      begin match typ with
-      | 'i' | 's' | 'I' | 'S' -> int tag typ raw
-      | 'A' | 'c' | 'C' -> char tag typ raw
-      | 'f' -> float tag typ raw
-      | _ -> error (`unknown_type typ)
-      end in
-    while_ok raw (fun _ (tag, typ, raw_v) ->
+let parse_optional_content raw =
+  let error e = fail (`wrong_optional (raw, e)) in
+  let char tag typ raw =
+    if String.length raw <> 1 then error (`not_a_char raw)
+    else return (tag, typ, `char raw.[0]) in
+  let int tag typ raw =
+    try let i = Int.of_string raw in return (tag, typ, `int i)
+    with e -> error (`not_an_int raw) in
+  let float tag typ raw =
+    try let i = Float.of_string raw in return (tag, typ, `float i)
+    with e -> error (`not_a_float raw) in
+  let parse_cCsSiIf tag typ raw =
+    begin match typ with
+    | 'i' | 's' | 'I' | 'S' -> int tag typ raw
+    | 'A' | 'c' | 'C' -> char tag typ raw
+    | 'f' -> float tag typ raw
+    | _ -> error (`unknown_type typ)
+    end in
+  while_ok raw (fun _ (tag, typ, raw_v) ->
       begin match typ with
       | 'Z' -> return (tag, typ, `string raw_v)
       | 'H' -> return (tag, typ, `string raw_v)
@@ -343,12 +342,12 @@ module Low_level_parsing = struct
         | typs :: l ->
           let array = Array.create List.(length l) (`string "no") in
           let rec loop i = function
-            | [] -> return array
-            | h :: t ->
-              begin match parse_cCsSiIf "" typs.[0] h with
-              | Ok (_, _, v) -> array.(i) <- v; loop (i + 1) t
-              | Error (`wrong_optional (_, e)) -> error (`wrong_array e)
-              end
+          | [] -> return array
+          | h :: t ->
+            begin match parse_cCsSiIf "" typs.[0] h with
+            | Ok (_, _, v) -> array.(i) <- v; loop (i + 1) t
+            | Error (`wrong_optional (_, e)) -> error (`wrong_array e)
+            end
           in
           loop 0 l
           >>= fun a ->
@@ -357,51 +356,51 @@ module Low_level_parsing = struct
       | c -> parse_cCsSiIf tag typ raw_v
       end)
 
-  let expand_alignment raw ref_dict =
-    let {qname; flag; rname; pos;
-         mapq; cigar; rnext; pnext;
-         tlen; seq; qual; optional; } = raw in
-    let check c e = if c then return () else fail e in
-    check (0 <= flag && flag <= 65535) (`wrong_flag raw) >>= fun () ->
-    check (1 <= String.length qname && String.length qname <= 255)
-      (`wrong_qname raw)
-    >>= fun () ->
-    let tryfind rname =
-      let open Option in
-      ref_dict
-      >>= fun ri ->
-      Array.find ri ~f:(fun r -> r.ref_name = rname) in
-    let reference_sequence =
-      match rname with
-      | "*" -> `none
-      | s ->
-        begin match tryfind rname with
-        | Some r -> `reference_sequence r
-        | None -> `name s
-        end
-    in
-    check (0 <= pos && pos <= 536870911) (`wrong_pos raw) >>= fun () ->
-    check (0 <= mapq && mapq <= 255) (`wrong_mapq raw) >>= fun () ->
-    parse_cigar_text cigar >>= fun cigar_operations ->
-    begin match rnext with
-    | "*" -> return `none
-    | "=" -> return `qname
+let expand_alignment raw ref_dict =
+  let {qname; flag; rname; pos;
+       mapq; cigar; rnext; pnext;
+       tlen; seq; qual; optional; } = raw in
+  let check c e = if c then return () else fail e in
+  check (0 <= flag && flag <= 65535) (`wrong_flag raw) >>= fun () ->
+  check (1 <= String.length qname && String.length qname <= 255)
+    (`wrong_qname raw)
+  >>= fun () ->
+  let tryfind rname =
+    let open Option in
+    ref_dict
+    >>= fun ri ->
+    Array.find ri ~f:(fun r -> r.ref_name = rname) in
+  let reference_sequence =
+    match rname with
+    | "*" -> `none
     | s ->
-      begin match tryfind s with
-      | None -> return (`name s)
-      | Some r -> return (`reference_sequence r)
+      begin match tryfind rname with
+      | Some r -> `reference_sequence r
+      | None -> `name s
       end
+  in
+  check (0 <= pos && pos <= 536870911) (`wrong_pos raw) >>= fun () ->
+  check (0 <= mapq && mapq <= 255) (`wrong_mapq raw) >>= fun () ->
+  parse_cigar_text cigar >>= fun cigar_operations ->
+  begin match rnext with
+  | "*" -> return `none
+  | "=" -> return `qname
+  | s ->
+    begin match tryfind s with
+    | None -> return (`name s)
+    | Some r -> return (`reference_sequence r)
     end
-    >>= fun next_reference_sequence ->
-    check (0 <= pnext && pnext <= 536870911) (`wrong_pnext raw) >>= fun () ->
-    check (-536870911 <= tlen && tlen <= 536870911) (`wrong_tlen raw)
-    >>= fun () ->
-    let sequence =
-      match seq with
-      | "*" -> `none
-      | "=" -> `reference
-      | s -> `string s in
-    (if qual = "*" then return [| |] else begin
+  end
+  >>= fun next_reference_sequence ->
+  check (0 <= pnext && pnext <= 536870911) (`wrong_pnext raw) >>= fun () ->
+  check (-536870911 <= tlen && tlen <= 536870911) (`wrong_tlen raw)
+  >>= fun () ->
+  let sequence =
+    match seq with
+    | "*" -> `none
+    | "=" -> `reference
+    | s -> `string s in
+  (if qual = "*" then return [| |] else begin
       try
         let quality =
           Array.create (String.length qual) Phred_score.(of_int_exn 0) in
@@ -412,29 +411,27 @@ module Low_level_parsing = struct
       with
       | e -> fail (`wrong_phred_scores raw)
     end)
-    >>= fun quality ->
-    parse_optional_content optional
-    >>= fun optional_content ->
+  >>= fun quality ->
+  parse_optional_content optional
+  >>= fun optional_content ->
 
-    return {
-      query_template_name = qname;
-      flags = flag;
-      reference_sequence;
-      position = if pos = 0 then None else Some pos;
-      mapping_quality =if mapq = 255 then None else Some mapq;
-      cigar_operations;
-      next_reference_sequence;
-      next_position = if pnext = 0 then None else Some pnext;
-      template_length  = if tlen = 0 then None else Some tlen;
-      sequence;
-      quality;
-      optional_content;
-    }
-end
+  return {
+    query_template_name = qname;
+    flags = flag;
+    reference_sequence;
+    position = if pos = 0 then None else Some pos;
+    mapping_quality =if mapq = 255 then None else Some mapq;
+    cigar_operations;
+    next_reference_sequence;
+    next_position = if pnext = 0 then None else Some pnext;
+    template_length  = if tlen = 0 then None else Some tlen;
+    sequence;
+    quality;
+    optional_content;
+  }
 
 module Transform = struct
 
-  open Low_level_parsing
 
   let rec next p =
     let open Biocaml_transform.Line_oriented in
