@@ -1,6 +1,6 @@
 open Biocaml_internal_pervasives
 
-type t = string
+type t = string with sexp
 
 let string_to_lines s =
   match String.split ~on:'\n' s with

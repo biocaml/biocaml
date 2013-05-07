@@ -15,8 +15,13 @@ val string_to_lines : string -> (t list * bool)
     line. *)
 val of_string_unsafe : string -> t
 
-(** {6 Standard String Operations} *)
+(** {2 Standard String Operations} *)
 
 val lstrip : ?drop:(char -> bool) -> t -> t
 val rstrip : ?drop:(char -> bool) -> t -> t
 val strip : ?drop:(char -> bool) -> t -> t
+
+(** {2 S-Expressions } *)
+
+val t_of_sexp: Sexplib.Sexp.t -> t
+val sexp_of_t: t -> Sexplib.Sexp.t
