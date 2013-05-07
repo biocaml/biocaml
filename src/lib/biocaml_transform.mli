@@ -95,13 +95,15 @@ val in_channel_strings_to_stream :
   ?buffer_size:int -> in_channel -> (string, 'output) t -> 'output Stream.t
 
 
-(** {6 Compose} Buffered transforms are mutable and one should not
-    expect nice mathematical properties from composing them. The
-    intention here is to provide building blocks that allow the
-    creation of more complex transforms from simpler ones. Only the
-    final resultant transform should be used. Feeding/reading the
-    transforms being composed is likely to lead to violations of the
-    stated behavior of the above operations. *)
+(** {2 Compose}
+
+    Buffered transforms are mutable and one should not expect nice
+    mathematical properties from composing them. The intention here is
+    to provide building blocks that allow the creation of more complex
+    transforms from simpler ones. Only the final resultant transform
+    should be used. Feeding/reading the transforms being composed is
+    likely to lead to violations of the stated behavior of the above
+    operations. *)
 
 (** [on_input f t] returns a transform that converts its inputs with
     [f] and feeds the results to [t]. *)
@@ -152,8 +154,10 @@ val split_and_merge:
     “Split” the inputs of two transforms and “merge” the outputs }     *)
 
 
-(** {6 Result.t Outputs} Operations analogous to those above, but for
-    transforms whose output types are [Result.t]s. *)
+(** {2 Result.t Outputs}
+
+    Operations analogous to those above, but for transforms whose
+    output types are [Result.t]s. *)
 
 (** Like {!make} but the output is a [Result.t]. Also,
     {!stop} is automatically called when an error occurs. *)
@@ -205,7 +209,7 @@ val compose_result_left:
     “Compose” two transforms when only the first one may fail }
 *)
 
-(** {3 Communication with other libraries} *)
+(** {2 Communication with other libraries} *)
 
 (** Generic transform type. *)
 class type ['input, 'output] object_t = object
@@ -216,7 +220,7 @@ end
 val to_object: ('a, 'b) t -> ('a, 'b) object_t
 val of_object: ('a, 'b) object_t -> ('a, 'b) t
 
-(** {3 Deprecated} *)
+(** {2 Deprecated} *)
 
 (** A generic buffering printer.  *)
 module Printer_queue: sig
@@ -241,7 +245,7 @@ module Printer_queue: sig
 end
 
 
-(** {6 Low-level API} *)
+(** {2 Low-level API} *)
 
 (** The most general way to make a transform. All make functions above
     are implemented with this one. *)
