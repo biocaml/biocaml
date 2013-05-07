@@ -128,3 +128,6 @@ module Transform : sig
     (string, ('a, 'b) Core.Result.t) Biocaml_transform.t
 
 end
+
+val item_of_sexp: Sexplib.Sexp.t -> item
+val sexp_of_item: item -> Sexplib.Sexp.t

@@ -3,7 +3,7 @@ open Result
 module Line = Biocaml_line
 module Pos = Biocaml_pos
 
-type item = Line.t
+type item = Line.t with sexp
 
 module Error = struct
 
