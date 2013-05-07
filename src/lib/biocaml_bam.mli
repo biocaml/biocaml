@@ -6,12 +6,13 @@ This module provides parsing from [string] buffers to [raw_item]s
 (higher-level constructs).
 *)
 
+(** {2 Item Types} *)
 
 type raw_alignment = {
   qname : string;
   flag : int;
   ref_id: int;
-  pos : int; (** 0-based, -1 if undefined*)
+  pos : int; (** Positions are 0-based, -1 if undefined*)
   mapq : int;
   bin: int;
   cigar : string;
@@ -28,18 +29,13 @@ type raw_alignment = {
     specification of the format (c.f.
     {{:http://samtools.sourceforge.net/SAM1.pdf}SAM1.pdf}). *)
 
-val raw_alignment_of_sexp : Sexplib.Sexp.t -> raw_alignment
-val sexp_of_raw_alignment : raw_alignment -> Sexplib.Sexp.t
-
 type raw_item =
 [ `alignment of raw_alignment
 | `header of string
 | `reference_information of (string * int) array ]
 (** The different kinds of items one can get from parsing a BAM file. *)
 
-val raw_item_of_sexp : Sexplib.Sexp.t -> raw_item
-val sexp_of_raw_item : raw_item -> Sexplib.Sexp.t
-
+(** {2 Error Types} *)
 
 module Error: sig
   (** The possible errors returned by parsing and printing functions. *)
@@ -54,9 +50,6 @@ module Error: sig
   (** The possible non-gzip-related errors encountered while parsing a
       BAM file. *)
 
-  val raw_bam_of_sexp : Sexplib.Sexp.t -> raw_bam
-  val sexp_of_raw_bam : raw_bam -> Sexplib.Sexp.t
-
   type parse_optional = [
   | `wrong_auxiliary_data of
       [ `array_size of int
@@ -69,17 +62,10 @@ module Error: sig
   (** The potential failures while parsing the optional content in BAM
       alignments. *)
 
-  val parse_optional_of_sexp : Sexplib.Sexp.t -> parse_optional
-  val sexp_of_parse_optional : parse_optional -> Sexplib.Sexp.t
-
   type parse_cigar = [
   | `wrong_cigar of string
   | `wrong_cigar_length of int ]
   (** The potential failures while parsing the so-called CIGAR operations *)
-
-  val parse_cigar_of_sexp : Sexplib.Sexp.t -> parse_cigar
-  val sexp_of_parse_cigar : parse_cigar -> Sexplib.Sexp.t
-
 
   type raw_to_item = [
   | `header_line_not_first of int
@@ -99,9 +85,6 @@ module Error: sig
   (** All the possible errors one can encounter while going from [raw_item]s to
       [Sam.item]s. *)
 
-  val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
-  val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
-
   type item_to_raw =
   [ `cannot_get_sequence of Biocaml_sam.alignment
   | `header_item_not_first of string
@@ -109,16 +92,28 @@ module Error: sig
   (** Inconsistency errors that may happen while trnasforming a
       [Sam.item] to a [raw_item]. *)
 
+  type t = [ raw_bam | raw_to_item | item_to_raw ]
+  (** The union of all the errors. *)
+
+  val raw_bam_of_sexp : Sexplib.Sexp.t -> raw_bam
+  val sexp_of_raw_bam : raw_bam -> Sexplib.Sexp.t
+
+  val parse_optional_of_sexp : Sexplib.Sexp.t -> parse_optional
+  val sexp_of_parse_optional : parse_optional -> Sexplib.Sexp.t
+  val parse_cigar_of_sexp : Sexplib.Sexp.t -> parse_cigar
+  val sexp_of_parse_cigar : parse_cigar -> Sexplib.Sexp.t
+  val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
+  val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
+
   val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
   val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
-
-  type t = [ raw_bam | raw_to_item | item_to_raw ]
-  (** The union of all the errors declared here. *)
 
   val t_of_sexp: Sexplib.Sexp.t -> t
   val sexp_of_t: t -> Sexplib.Sexp.t
 
 end
+
+(** {2 [In_channel] Functions} *)
 
 exception Error of [ `bam of Error.t | `unzip of Biocaml_zip.Transform.unzip_error ]
 (** The exception thrown by [*_exn] functions in this module. *)
@@ -156,6 +151,8 @@ val in_channel_to_item_stream_exn :
 (** Create a stream of [Sam.item]s from an input-channel (any call to
     [Stream.next] may throw an [Error _] exception). *)
 
+
+(** {2 [Transform.t] Creations } *)
 
 module Transform: sig
   (** The low-level [Transform.t] implementations. *)
@@ -200,3 +197,13 @@ val parse_cigar: ?pos:int -> ?len:int -> string ->
 val parse_optional: ?pos:int -> ?len:int -> string ->
   (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
 (** Parse optional content from a string (c.f. [raw_alignment.optional]). *)
+
+
+(** {2 S-Expressions} *)
+
+val raw_alignment_of_sexp : Sexplib.Sexp.t -> raw_alignment
+val sexp_of_raw_alignment : raw_alignment -> Sexplib.Sexp.t
+val raw_item_of_sexp : Sexplib.Sexp.t -> raw_item
+val sexp_of_raw_item : raw_item -> Sexplib.Sexp.t
+
+
