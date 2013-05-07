@@ -35,7 +35,8 @@ module Error : sig
       [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
       | `wrong_comment_line of Biocaml_pos.t * string
       | `wrong_name_line of Biocaml_pos.t * string
-      | `incomplete_input of Biocaml_pos.t * string list * string option
+      | `incomplete_input of
+          Biocaml_pos.t * Biocaml_lines.item list * string option
       ]
   (** Union of all possible errors. *)
 
