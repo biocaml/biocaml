@@ -29,12 +29,19 @@ h2 { font-size : 180% ;
      margin-top: 2em; margin-bottom: 1em;
      text-align: center;
      padding: 2px; }
-h3 { font-size : 150% ; border: 1px solid #000000; margin-top: 5px;
-     margin-bottom: 2px;text-align: center;
-     ;padding: 2px; }
-h4 { font-size : 130% ; border: 1px solid #000000; margin-top: 5px;
-     margin-bottom: 2px;text-align: center;
-     ;padding: 2px; }
+h3 { font-size : 150% ;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     /* text-align: center; */
+     /* padding: 2px; */
+     text-decoration: underline;
+   }
+h4 { font-size : 100% ;
+     font-weight: bold;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     text-align: center;
+     padding: 2px; }
 h5 { font-size : 100% ; border: 1px solid #000000; margin-top: 5px;
      margin-bottom: 2px;text-align: center;
      ;padding: 2px; }
