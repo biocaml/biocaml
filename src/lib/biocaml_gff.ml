@@ -185,9 +185,9 @@ module Transform = struct
     end
 
   let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
-    let open Biocaml_transform.Line_oriented in
+    let open Biocaml_lines.Buffer in
     let open Result in
-    match next_line p with
+    match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" ->
       if pedantic
@@ -203,8 +203,7 @@ module Transform = struct
     let version =
       List.find_map tags (function `version v -> Some v | _ -> None) in
     let next = next ~pedantic ?version in
-    Biocaml_transform.Line_oriented.make_merge_error
-      ~name ?filename ~next ()
+    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
   let item_to_string_pure version = (function
   | `comment c -> sprintf "#%s\n" c

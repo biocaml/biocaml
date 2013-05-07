@@ -434,8 +434,8 @@ module Transform = struct
 
 
   let rec next p =
-    let open Biocaml_transform.Line_oriented in
-    match next_line p with
+    let open Biocaml_lines.Buffer in
+    match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"@") ->
@@ -445,8 +445,7 @@ module Transform = struct
 
   let string_to_raw ?filename () =
     let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_merge_error
-      ~name ?filename ~next ()
+    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
   let reference_sequence_to_header rs =
     ("SN", rs.ref_name)

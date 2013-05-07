@@ -70,8 +70,8 @@ module Transform = struct
     return (`track (List.rev kv))
 
   let rec next p =
-    let open Biocaml_transform.Line_oriented in
-    match next_line p with
+    let open Biocaml_lines.Buffer in
+    match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
@@ -88,8 +88,7 @@ module Transform = struct
 
   let string_to_string_content ?filename () =
     let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_transform.Line_oriented.make_merge_error
-      ~name ?filename ~next ()
+    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
   let needs_escaping s =
     String.exists s

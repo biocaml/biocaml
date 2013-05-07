@@ -95,14 +95,14 @@ module Transform = struct
       Not_found -> Error (`cannot_parse_key_values (loc, s))
 
   let rec next ?(pedantic=true) ?(sharp_comments=true) p =
-    let open Biocaml_transform.Line_oriented in
+    let open Biocaml_lines.Buffer in
     let assoc_find ~missing l v =
       match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
     let assoc_find_map ~missing ~wrong ~f l v =
       match List.Assoc.find l v with
       | Some v -> (try Ok (f v) with e -> Error wrong)
       | None -> Error missing in
-    match next_line p with
+    match (next_line p :> string option) with
     | Some "" ->
       if pedantic
       then output_error (`empty_line (current_position p))
@@ -185,8 +185,7 @@ module Transform = struct
     let sharp_comments = List.mem tags `sharp_comments in
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next ~pedantic ~sharp_comments in
-    Biocaml_transform.Line_oriented.make_merge_error
-      ~name ?filename ~next ()
+    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
 
   let item_to_string ?(tags=default_tags) () =
