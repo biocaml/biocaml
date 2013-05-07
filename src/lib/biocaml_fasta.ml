@@ -93,7 +93,7 @@ end
 module Error = struct
   type string_to_raw_item = [
     | `empty_line of Pos.t
-    | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
+    | `incomplete_input of Pos.t * string list * string option
     | `malformed_partial_sequence of string
   ]
   with sexp

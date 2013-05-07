@@ -108,7 +108,7 @@ module Transform : sig
       [ `not_ready | `output of ('b, 'errnext) Core.Result.t ]) ->
     on_error:(
       [`next of 'errnext
-      | `incomplete_input of Biocaml_pos.t * item list * string option] ->
+      | `incomplete_input of Biocaml_pos.t * string list * string option] ->
         'err) ->
     unit ->
     (string, ('b, 'err) Core.Result.t) Biocaml_transform.t
@@ -122,7 +122,7 @@ module Transform : sig
       [ `not_ready
       | `output of ('a,
                    [> `incomplete_input of
-                     Biocaml_pos.t * item list * string option ]
+                     Biocaml_pos.t * string list * string option ]
                      as 'b) Core.Result.t ]) ->
     unit ->
     (string, ('a, 'b) Core.Result.t) Biocaml_transform.t

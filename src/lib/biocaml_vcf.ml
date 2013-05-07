@@ -208,7 +208,7 @@ type vcf_parse_error =
   | `malformed_row of Pos.t * vcf_parse_row_error * string
   | `malformed_header of Pos.t * string
   | `arbitrary_width_rows_not_supported of Pos.t
-  | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
+  | `incomplete_input of Pos.t * string list * string option
   | `not_ready
   ]
 

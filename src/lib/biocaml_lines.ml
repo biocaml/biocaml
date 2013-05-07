@@ -159,9 +159,10 @@ module Transform = struct
             else
               let l,o = Buffer.contents lo_parser in
               `output
-                (Error
-                    (on_error
-                        (`incomplete_input (Buffer.current_position lo_parser, l, o))))
+                (Error (on_error
+                          (`incomplete_input
+                             (Buffer.current_position lo_parser,
+                              (l :> string list), o))))
           ) else
             `not_ready)
 
