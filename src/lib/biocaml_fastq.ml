@@ -71,13 +71,13 @@ module Transform = struct
               ))
       ) ()
 
+  let item_to_string_pure r =
+    sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
 
   let item_to_string () =
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
-      Biocaml_transform.Printer_queue.make ~to_string:(fun r ->
-        sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
-      ) () in
+      Biocaml_transform.Printer_queue.make ~to_string:item_to_string_pure () in
     Biocaml_transform.make ~name:"fastq_printer" ()
       ~feed:(fun r -> PQ.feed printer r)
       ~next:(fun stopped ->
@@ -118,14 +118,13 @@ let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   Transform.string_to_item ?filename ()
   |! Biocaml_transform.in_channel_strings_to_stream ~buffer_size inp
 
-module Exceptionful = struct
-  exception Error of Error.t
+exception Error of Error.t
 
-  let error_to_exn err = Error err
+let error_to_exn err = Error err
 
-  let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
-    Stream.result_to_exn ~error_to_exn (
-      in_channel_to_item_stream ~buffer_size ?filename inp
-    )
+let in_channel_to_item_stream_exn ?(buffer_size=65536) ?filename inp =
+  Stream.result_to_exn ~error_to_exn (
+    in_channel_to_item_stream ~buffer_size ?filename inp
+  )
 
-end
+let item_to_string = Transform.item_to_string_pure
