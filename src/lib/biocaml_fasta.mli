@@ -345,25 +345,35 @@ module Transform: sig
       [comment_char] is omitted. *)
 end
 
+(** {2 Random Generation} *)
 module Random: sig
-  (** {3 Random Generation} *)
 
   type specification = [
     | `non_sequence_probability of float
     | `tags of Tags.t
   ]
+  (** The specification guiding the random generation of ['a raw_item]
+      values is a list of [specification] values. {ul
+        {li [`non_sequence_probability f] means that the output will {i
+          not} be a [`partial_sequence _] item with probability [f].}
+        {li [`tags t] specifies which [Tags.t] should be respected.}
+      }
+  *)
 
   val specification_of_string: string ->
     (specification list, [> `fasta of [> `parse_specification of exn]])
       Core.Std.Result.t
+  (** Parse a [specification] from a [string]. Right now, the DSL is
+      based on S-Expressions. *)
 
   val get_tags: [> specification] list -> Tags.t option
+  (** Get the first [Tags.t] in the specification, if any. *)
 
   val unit_to_random_char_seq_raw_item: [> specification] list ->
     ((unit, char_seq raw_item) Biocaml_transform.t,
      [> `inconsistent_tags of [> `int_sequence ]]) Core.Result.t
   (** Create a transformation that generates random [char_seq
-      raw_item] values according to the [tags]. *)
+      raw_item] values according to the specification. *)
 
 
 end
