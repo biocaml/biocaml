@@ -23,8 +23,10 @@ with sexp
 type item = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 with sexp
 
-type tag = [ `sharp_comments | `pedantic ] with sexp
-let default_tags = [ `sharp_comments; `pedantic ]
+module Tags = struct
+  type t = [ `sharp_comments | `pedantic ] list with sexp
+  let default = [ `sharp_comments; `pedantic ]
+end
 
 module Error = struct
   type parsing = [
@@ -180,7 +182,7 @@ module Transform = struct
       `not_ready
 
 
-  let string_to_item ?filename ?(tags=default_tags) () =
+  let string_to_item ?filename ?(tags=Tags.default) () =
     let pedantic = List.mem tags `pedantic in
     let sharp_comments = List.mem tags `sharp_comments in
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
@@ -188,7 +190,7 @@ module Transform = struct
     Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
 
-  let item_to_string ?(tags=default_tags) () =
+  let item_to_string ?(tags=Tags.default) () =
     let sharp_comments = List.mem tags `sharp_comments in
     let module PQ = Biocaml_transform.Printer_queue in
     let printer =
@@ -271,3 +273,18 @@ let in_channel_to_bed_graph_exn ?buffer_size ?filename ?tags inp =
   Stream.result_to_exn ~error_to_exn
     (in_channel_to_bed_graph ?filename ?buffer_size ?tags inp)
 
+
+let item_to_string ?(tags=Tags.default) =
+  let sharp_comments = List.mem tags `sharp_comments in
+  function
+  | `comment c -> if sharp_comments then sprintf "#%s\n" c else ""
+  | `variable_step_state_change (chrom, span) ->
+    sprintf "variableStep chrom=%s%s\n" chrom
+      Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
+  | `variable_step_value (pos, v) -> sprintf "%d %g\n" pos v
+  | `fixed_step_state_change (chrom, start, step, span) ->
+    sprintf "fixedStep chrom=%s start=%d step=%d%s\n" chrom start step
+      Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
+  | `fixed_step_value v -> sprintf "%g\n" v
+  | `bed_graph_value (chrom, start, stop, v) ->
+    sprintf "%s %d %d %g\n" chrom start stop v

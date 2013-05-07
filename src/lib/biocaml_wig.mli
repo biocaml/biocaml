@@ -55,8 +55,10 @@ type item = [comment | variable_step | fixed_step | `bed_graph_value of bed_grap
     ]}
 *)
 
+(** {2 Error Types} *)
+
 module Error: sig
-  (** The errors of the [ Wig ] module. *)
+  (** The errors of the [Wig] module. *)
 
 
   type parsing = [
@@ -94,41 +96,64 @@ module Error: sig
   val sexp_of_to_bed_graph : to_bed_graph -> Sexplib.Sexp.t
 end
 
-type tag = [ `sharp_comments | `pedantic ]
-(** Additional tags (c.f. {!Biocaml_tags}). *)
+(** {2  Tags} *)
 
-val default_tags: tag list
-(** Default tags ([[ `sharp_comments; `pedantic ]]). *)
+module Tags: sig
+
+  type t = [ `sharp_comments | `pedantic ] list
+  (** Additional tags (c.f. {!Biocaml_tags}). *)
+
+  val default: t
+  (** Default tags ([[ `sharp_comments; `pedantic ]]). *)
+
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
+end
+
+(** {2 [In_channel] Functions} *)
 
 exception Error of  Error.t
 (** The exceptions raised by the [Wig] module's [*_exn] functions. *)
 
-
 val in_channel_to_item_stream: ?buffer_size:int -> ?filename:string ->
-  ?tags:tag list -> in_channel -> (item, Error.t) Core.Result.t Biocaml_stream.t
+  ?tags:Tags.t -> in_channel -> (item, Error.t) Core.Result.t Biocaml_stream.t
 (** Get a stream of [item] values out of an input-channel. *)
 
 val in_channel_to_item_stream_exn: ?buffer_size:int -> ?filename:string ->
-  ?tags:tag list -> in_channel -> item Biocaml_stream.t
+  ?tags:Tags.t -> in_channel -> item Biocaml_stream.t
 (** Do like [in_channel_to_item_stream] but each call to [Stream.next]
     may throw an exception. *)
 
 val in_channel_to_bed_graph:  ?buffer_size:int -> ?filename:string ->
-  ?tags:tag list -> in_channel ->
+  ?tags:Tags.t -> in_channel ->
   (bed_graph_value, Error.t) Core.Result.t Biocaml_stream.t
 (** Get a stream of [bed_graph_value] values out of a WIG-file input-channel. *)
 
 val in_channel_to_bed_graph_exn: ?buffer_size:int -> ?filename:string ->
-  ?tags:tag list -> in_channel -> bed_graph_value Biocaml_stream.t
+  ?tags:Tags.t -> in_channel -> bed_graph_value Biocaml_stream.t
 (** Do like [in_channel_to_bed_graph] but each call to [Stream.next]
     may throw an exception. *)
+
+
+(** {2 [To_string] Functions} *)
+
+
+val item_to_string: ?tags: Tags.t -> item -> string
+(** Convert an [item] to a string (including new line characters).
+
+    Note: the parsing of the [Tags.t] is staged, so storing [let
+    to_string = item_to_string ~tags] only once could be slightly more
+    efficient than calling [item_to_string ~tags item] many times.
+*)
+
+(** {2 Transform Creations} *)
 
 module Transform: sig
   (** Low-level {!Biocaml_transform.t}. *)
 
   val string_to_item :
     ?filename:string ->
-    ?tags: tag list ->
+    ?tags: Tags.t ->
     unit ->
     (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create the parsing [Biocaml_transform.t]. The parser is
@@ -136,7 +161,7 @@ module Transform: sig
       will parsed succesfully as a [`variable_step_value (1000, 42.)]
       even if no ["variableStep"] was line present before). *)
 
-  val item_to_string: ?tags: tag list -> unit -> (item, string) Biocaml_transform.t
+  val item_to_string: ?tags: Tags.t -> unit -> (item, string) Biocaml_transform.t
   (** Create the transform that prints [item] values to strings. *)
 
   val item_to_bed_graph: unit ->
@@ -161,6 +186,4 @@ val bed_graph_value_of_sexp : Sexplib.Sexp.t -> bed_graph_value
 val sexp_of_bed_graph_value : bed_graph_value -> Sexplib.Sexp.t
 val item_of_sexp : Sexplib.Sexp.t -> item
 val sexp_of_item : item -> Sexplib.Sexp.t
-val tag_of_sexp : Sexplib.Sexp.t -> tag
-val sexp_of_tag : tag -> Sexplib.Sexp.t
 

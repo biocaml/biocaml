@@ -7,7 +7,7 @@ type t = [
 | `gzip of t
 | `raw_zip of t
 | `gff of Gff.tag list
-| `wig of Wig.tag list
+| `wig of Wig.Tags.t
 | `table of char
 | `bam
 | `sam
@@ -39,7 +39,7 @@ let rec guess_from_filename filename =
   | (_, Some term) ->
     begin match term with
     | "gff" -> return (`gff Gff.default_tags)
-    | "wig" -> return (`wig Wig.default_tags)
+    | "wig" -> return (`wig Wig.Tags.default)
     | "bam" -> return `bam
     | "sam" -> return `sam
     | "bed" -> return `bed
