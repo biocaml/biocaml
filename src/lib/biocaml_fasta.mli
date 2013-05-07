@@ -179,7 +179,7 @@ module Error : sig
 
   type string_to_raw_item = [
   | `empty_line of Biocaml_pos.t
-  | `incomplete_input of Biocaml_pos.t * string list * string option
+  | `incomplete_input of Biocaml_pos.t * Biocaml_lines.item list * string option
   | `malformed_partial_sequence of string
   ]
   (** Errors raised when converting a string to a {!type: raw_item}. *)

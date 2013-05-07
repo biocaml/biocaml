@@ -93,7 +93,7 @@ end
 module Error = struct
   type string_to_raw_item = [
     | `empty_line of Pos.t
-    | `incomplete_input of Pos.t * string list * string option
+    | `incomplete_input of Pos.t * Biocaml_lines.item list * string option
     | `malformed_partial_sequence of string
   ]
   with sexp
@@ -112,8 +112,8 @@ module Transform = struct
       [generic_parser]. *)
   let rec next ~parse_sequence
       ~forbid_empty_lines ~sharp_comments ~semicolon_comments p =
-    let open Biocaml_transform.Line_oriented in
-    match next_line p with
+    let open Biocaml_lines.Buffer in
+    match (next_line p :> string option) with
     | Some "" ->
       if forbid_empty_lines
       then output_error (`empty_line (current_position p))
@@ -140,7 +140,7 @@ module Transform = struct
     let next =
       next ~parse_sequence
         ~forbid_empty_lines ~sharp_comments ~semicolon_comments in
-    Biocaml_transform.Line_oriented.make ~name ?filename ~next ()
+    Biocaml_lines.Transform.make ~name ?filename ~next ()
       ~on_error:(function `next e -> e
       | `incomplete_input e -> `incomplete_input e)
 
