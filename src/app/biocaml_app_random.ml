@@ -379,7 +379,7 @@ let do_random ~output_file ~nb_items spec =
       | `bed args   -> (`bed,        args, [])
       | `sam args   -> (`sam,        args, [])
       | `bam args   -> (`bam,        args, [])
-      | `table args -> (`table '\t', args, [])
+      | `table args -> (`table Table.Row.Tags.default, args, [])
       | `fasta spec ->
         let tags =
           Fasta.Random.get_tags spec

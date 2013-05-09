@@ -8,7 +8,7 @@ type t = [
 | `raw_zip of t
 | `gff of Gff.tag list
 | `wig of Wig.Tags.t
-| `table of char
+| `table of Biocaml_table.Row.Tags.t
 | `bam
 | `sam
 | `bed
@@ -26,8 +26,7 @@ let rec default_extension = function
   | `bed     -> "bed"
   | `fastq   -> "fastq"
   | `fasta _ -> "fasta"
-  | `table '\t' -> "tsv"
-  | `table c -> "table"
+  | `table tags -> Biocaml_table.Row.Tags.default_extension tags
 
 
 let rec guess_from_filename filename =
@@ -45,7 +44,8 @@ let rec guess_from_filename filename =
     | "bed" -> return `bed
     | "fastq" -> return `fastq
     | "fasta" -> return (`fasta Biocaml_fasta.Tags.default)
-    | "tsv" -> return (`table '\t')
+    | "tsv" -> return (`table [`separator '\t'])
+    | "csv" -> return (`table [`separator ','])
     | u -> fail (`extension_unknown u)
     end
   | (_, None) -> fail (`extension_absent)

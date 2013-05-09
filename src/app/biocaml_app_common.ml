@@ -567,12 +567,15 @@ let output_transform_of_tags
     | `fasta (`int_sequence _ as tags) ->
       let t = Fasta.Transform.int_seq_raw_item_to_string ~tags () in
       return (`to_int_fasta (with_zip_no_error t) : output_transform)
-    | `table sep ->
+    | `table tags ->
       let t =
+        let sep =
+          List.hd (Table.Row.Tags.separators tags)
+          |> Option.value_map ~default:"\t" ~f:Char.to_string in
         Transform.on_input
           ~f:(fun row ->
             sprintf "%s\n"
-              (Table.Row.to_line ~sep:(Char.to_string sep) row : Line.t :> string))
+              (Table.Row.to_line ~sep row : Line.t :> string))
           (Transform.identity ())
       in
       return (`to_table (with_zip_no_error t) : output_transform)

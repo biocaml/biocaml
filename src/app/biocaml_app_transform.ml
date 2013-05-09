@@ -121,11 +121,12 @@ let rec input_transform ?with_unzip input_tags =
         (function Ok o -> Ok o | Error e -> Error (`fasta e))
     in
     return (`from_int_fasta (with_unzip t) : input_transform)
-  | `table sep ->
+  | `table tags ->
     let t =
       Transform.on_output
         ~f:begin fun s ->
-          Table.Row.of_line ~separators:[sep] (s : Lines.item :> Line.t)
+          Table.Row.of_line ~separators:(Table.Row.Tags.separators tags)
+            (s : Lines.item :> Line.t)
           |! begin function
           | Ok o -> Ok o
           | Error e -> Error (`table e)

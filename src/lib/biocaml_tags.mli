@@ -10,7 +10,7 @@ type t = [
 | `sam
 | `bed
 | `fastq
-| `table of char
+| `table of Biocaml_table.Row.Tags.t
 | `fasta of Biocaml_fasta.Tags.t
 ]
 (** Description of file formats. *)
