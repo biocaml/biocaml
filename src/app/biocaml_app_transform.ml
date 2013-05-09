@@ -16,11 +16,11 @@ type input_error = [
   | `bed of Bed.Error.parsing
   | `fastq of Fastq.Error.t
   | `fasta of Fasta.Error.t
-  | `table of [ `wrong_format of
-                [ `column_number
-                | `float_of_string of string
-                | `int_of_string of string ] *
-                  Biocaml.Table.Row.t_type * string ]
+  | `table_row of [ `wrong_format of
+                      [ `column_number
+                      | `float_of_string of string
+                      | `int_of_string of string ] *
+                        Biocaml.Table.Row.t_type * string ]
 
   ]
 with sexp_of
@@ -123,16 +123,9 @@ let rec input_transform ?with_unzip input_tags =
     return (`from_int_fasta (with_unzip t) : input_transform)
   | `table tags ->
     let t =
-      Transform.on_output
-        ~f:begin fun s ->
-          Table.Row.of_line ~separators:(Table.Row.Tags.separators tags)
-            (s : Lines.item :> Line.t)
-          |! begin function
-          | Ok o -> Ok o
-          | Error e -> Error (`table e)
-          end
-        end
+      Transform.compose
         (Lines.Transform.string_to_item ())
+        (Table.Row.Transform.line_to_item ~tags ())
     in
     return (`from_table (with_unzip t) : input_transform)
 
