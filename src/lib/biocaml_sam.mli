@@ -1,5 +1,9 @@
 (** SAM files and SAM-alignements high-level representation. *)
 
+(** {2 Basic Types} *)
+
+(** {3 Low-Level Items} *)
+
 type raw_alignment = {
   qname : string;
   flag : int;
@@ -22,6 +26,8 @@ type raw_item = [
 | `alignment of raw_alignment
 ]
 (** The "items" of a parsed SAM file stream. *)
+
+(** {3 High-Level Items} *)
 
 type reference_sequence = {
   ref_name: string;
@@ -123,6 +129,7 @@ type item = [
 ]
 (** High-level representation of a parsed entity. *)
 
+(** {2 Error Types} *)
 
 module Error : sig
   (** The possible errors. *)
@@ -281,7 +288,8 @@ val expand_header_line:
 
 module Transform: sig
 
-  (** Low-level, threading-model agnostic transforms. *)
+  (** Low-level, threading-model agnostic transforms
+      (c.f. {!Biocaml_transform}). *)
 
   val string_to_raw: ?filename:string -> unit ->
     (string, (raw_item, [> Error.string_to_raw]) Core.Result.t) Biocaml_transform.t
