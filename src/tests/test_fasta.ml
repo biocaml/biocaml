@@ -1,10 +1,15 @@
 open OUnit
 open Biocaml_internal_pervasives
 open Biocaml
+open Core.Std
 
-let make_stream file =
+let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
+
+let make_stream ?(more_tags=[]) file =
   let t =
-    Fasta.Transform.string_to_char_seq_raw_item () in
+    Fasta.Transform.string_to_char_seq_raw_item
+      ~tags:([`sharp_comments; `semicolon_comments; `forbid_empty_lines;]
+             @ more_tags) () in
   let ic = open_in file in
   Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
 
@@ -82,7 +87,7 @@ let test_printer () =
 
 let score_parser () =
   let t =
-    Fasta.Transform.string_to_int_seq_raw_item  () in
+    Fasta.Transform.string_to_int_seq_raw_item  ~tags:[`sharp_comments] () in
   let ic = open_in "src/tests/data/fasta_05.fa" in
   let stream = Transform.in_channel_strings_to_stream ~buffer_size:100 ic t in
   parse_comments stream;
@@ -101,7 +106,8 @@ let score_parser () =
 
 
 let sequence_aggregator_stream file =
-  let t = Fasta.Transform.string_to_char_seq_raw_item  () in
+  let t =
+    Fasta.Transform.string_to_char_seq_raw_item  ~tags:[`sharp_comments] () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
   let transform = Transform.compose_results_merge_error t aggregator in
   let ic = open_in file in
@@ -133,7 +139,7 @@ let sequence_aggregator () =
 
 let score_aggregator () =
   let t =
-    Fasta.Transform.string_to_int_seq_raw_item  () in
+    Fasta.Transform.string_to_int_seq_raw_item  ~tags:[`sharp_comments] () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let transform = Transform.compose_results_merge_error t aggregator in
   let ic = open_in "src/tests/data/fasta_05.fa" in
@@ -154,7 +160,8 @@ let score_aggregator () =
   ()
 
 let sequence_slicer_stream file =
-  let t = Fasta.Transform.string_to_char_seq_raw_item  () in
+  let t =
+    Fasta.Transform.string_to_char_seq_raw_item  ~tags:[`sharp_comments] () in
   let aggregator = Fasta.Transform.char_seq_raw_item_to_item () in
   let slicer =
     let tags = `char_sequence [`max_items_per_line 4] in
@@ -198,16 +205,17 @@ let sequence_slicer () =
 
 let score_slicer () =
   let t =
-    Fasta.Transform.string_to_int_seq_raw_item  () in
+    Fasta.Transform.string_to_int_seq_raw_item ~tags:[`sharp_comments] () in
   let aggregator = Fasta.Transform.int_seq_raw_item_to_item () in
   let slicer =
-    let tags = `int_sequence [`max_items_per_line 4] in
+    let tags = `int_sequence [`max_items_per_line 3; `sharp_comments] in
     Fasta.Transform.int_seq_item_to_raw_item ~tags () in
   let transform =
     Transform.(compose_result_left
                          (compose_results_merge_error t aggregator) slicer) in
   let ic = open_in "src/tests/data/fasta_05.fa" in
   let stream = Transform.in_channel_strings_to_stream ~buffer_size:10 ic transform in
+
   assert_bool "name 1" (check_next_ok stream (`header "sequence 1|sid=4"));
   assert_bool "sco: 1" (check_next_ok stream (`partial_sequence [42; 42; 224354;]));
   assert_bool "sco: 2" (check_next_ok stream (`partial_sequence [54325543; 54354544; 543554;]));
@@ -235,7 +243,10 @@ let test_parser () =
   parse_comments stream_03;
   get_empty_line_error_after_two stream_03;
 
-  let stream_04 = make_stream "src/tests/data/fasta_04.fa" in
+  let stream_04 =
+    make_stream
+      ~more_tags:[`impose_sequence_alphabet (function 'A' .. 'Z' -> true | _ -> false) ]
+      "src/tests/data/fasta_04.fa" in
   parse_comments stream_04;
   malformed stream_04;
 
