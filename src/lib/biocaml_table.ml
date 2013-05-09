@@ -4,11 +4,45 @@ open Biocaml_internal_pervasives
 
 
 module Row = struct
+
+  let module_error e = Error (`table_row e)
+
+
   type item_type = [`type_int | `type_float | `type_string ] with sexp
   type t_type = item_type array with sexp
 
   type item = [`int of int | `float of float | `string of string ] with sexp
   type t = item array with sexp
+
+  module Tags = struct
+
+    type t = [
+      | `separator of char
+      | `strict_about of [ `row_length | `cell_type ]
+      | `format of item_type array
+    ] list
+    with sexp
+
+    let separators tags =
+      List.filter_map tags (function
+        | `separator c -> Some c
+        | _ -> None)
+
+    let strict_row_length tags =
+      List.exists tags (function `strict_about `row_length -> true | _ -> false)
+
+    let strict_cell_type tags =
+      List.exists tags (function `strict_about `cell_type -> true | _ -> false)
+
+    let format tags =
+      List.find_map tags (function `format f -> Some f | _ -> None)
+
+    let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
+    let of_string s =
+      try Ok (Sexplib.Sexp.of_string s |> t_of_sexp)
+      with e -> module_error (`tags_of_string e)
+
+  end
 
   let of_line ?(separators=[' '; '\t']) ?(strict=false) ?format line =
     let l = (line : Biocaml_line.t :> string) in
