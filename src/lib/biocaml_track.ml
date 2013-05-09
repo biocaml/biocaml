@@ -14,10 +14,18 @@ type 'a content = [
 | `content of 'a
 ]
 type track = t
-type parse_error =
-[ `incomplete_input of Biocaml_pos.t * string list * string option
-| `wrong_browser_position of Biocaml_pos.t * string
-| `wrong_key_value_format of (string * string) list * string * string ]
+
+module Error = struct
+  type parsing =
+    [ `incomplete_input of Biocaml_pos.t * string list * string option
+    | `wrong_browser_position of Biocaml_pos.t * string
+    | `wrong_key_value_format of (string * string) list * string * string ]
+  with sexp
+
+  type t = [ parsing ] with sexp
+
+end
+
 
 module Transform = struct
 
@@ -129,7 +137,7 @@ module Transform = struct
       | Ok (`track _) | Ok (`browser _) | Ok (`comment _)
       | Error _ as n -> `bypass n)
 
-  type wig_parser_error = [ parse_error | Wig.Error.parsing ]
+  type wig_parser_error = [ Error.parsing | Wig.Error.parsing ]
   type wig_t = [ track | Wig.item]
 
   let string_to_wig ?filename () =
@@ -151,7 +159,7 @@ module Transform = struct
       | `transformed (Ok o) -> Ok (o :> wig_t)
       | `transformed (Error e) -> Error (e :> [> wig_parser_error]))
 
-  type gff_parse_error = [parse_error | Gff.Error.parsing]
+  type gff_parse_error = [Error.parsing | Gff.Error.parsing]
   type gff_t = [track | Gff.item]
   let string_to_gff ?filename ?tags () =
     let gff = Gff.Transform.string_to_item ?filename () in
@@ -162,7 +170,7 @@ module Transform = struct
       | `transformed (Ok o) -> Ok (o :> gff_t)
       | `transformed (Error e) -> Error (e :> [> gff_parse_error]))
 
-  type bed_parse_error = [parse_error| Bed.Error.parsing]
+  type bed_parse_error = [Error.parsing| Bed.Error.parsing]
   type bed_t = [track |  Bed.item content ]
 
   let string_to_bed ?filename  ?more_columns  () =
