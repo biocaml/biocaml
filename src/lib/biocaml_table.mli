@@ -44,8 +44,8 @@ module Row : sig
     (** Get the list of separators defined in [t]. *)
 
     val strict_row_length: t -> bool
-    (** Tell whether one should be strict about the length of the rows
-        (defined with [`format _]). *)
+    (** Tell whether one should be strict about the minimal number of
+        cells per row (defined with [`format _]). *)
 
     val strict_cell_type: t -> bool
     (** Tell whether one should be strict about the types of the cells
@@ -83,11 +83,11 @@ module Row : sig
      - If [format] is [None] (the default), then all the elements are
        put in [`string _] rows.
      - The default cell separators are [[' '; '\t']].
-     - If [strict] is [true] and [format] provided, the {b only} the
-       format will be accepted. If [strict] is [false], rows matching
-       only a prefix of the [format] will be accepted, and rows longer
-       that the [format] will be also accepted (using [`string _] for
-       the cells).
+     - If [strict_row_length] is [true] and [format] provided,
+       then check that the number of columns is {b at least} the one
+       of the [format].
+     - If [strict_cell_type] is [true] and [format] provided,
+       then check that each cell has the exactly right format.
   *)
 
   val to_line: sep:string -> t -> Biocaml_line.t
