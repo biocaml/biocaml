@@ -37,6 +37,14 @@ module Row = struct
     let format tags =
       List.find_map tags (function `format f -> Some f | _ -> None)
 
+    let default = [ `separator '\t' ]
+
+    let default_extension tags =
+      match separators tags with
+      | '\t' :: _ -> "tsv"
+      | ',' :: _ -> "csv"
+      | _ -> "table"
+
     let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
     let of_string s =
       try Ok (Sexplib.Sexp.of_string s |> t_of_sexp)

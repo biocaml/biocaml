@@ -54,6 +54,12 @@ module Row : sig
     val format: t -> t_type option
     (** Get the defined format if any. *)
 
+    val default: t
+    (** The default tags define a loose TSV format. *)
+
+    val default_extension: t -> string
+    (** Give a file extension (["tsv"], ["csv"], or ["table"]]). *)
+
     val to_string: t -> string
     (** Serialize tags. *)
 
