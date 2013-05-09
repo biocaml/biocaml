@@ -137,6 +137,13 @@ module Row = struct
         end
         (Biocaml_transform.identity ())
 
+    let item_to_line  ?(tags: Tags.t = Tags.default) () =
+      let sep =
+        Tags.separators tags |> List.hd |> Option.value ~default:'\t'
+        |> Char.to_string in
+      Biocaml_transform.on_output ~f:(to_line ~sep)
+        (Biocaml_transform.identity ())
+
   end
 
 end

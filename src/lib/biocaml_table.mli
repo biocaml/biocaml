@@ -110,14 +110,18 @@ module Row : sig
 
   module Transform: sig
 
-    val line_to_item :
-      ?tags:Tags.t ->
-      unit ->
+    val line_to_item : ?tags:Tags.t -> unit ->
       (Biocaml_lines.item,
        (t, [> `table_row of Error.line_parsing ]) Core.Result.t)
         Biocaml_transform.t
    (** Create a {!Biocaml_transform.t} that converts lines to
-       table items according to the [tags] (default: {!Tags.default}). *)
+       table-rows according to the [tags] (default: {!Tags.default}). *)
+
+    val item_to_line:  ?tags:Tags.t -> unit ->
+      (t, Biocaml_lines.item) Biocaml_transform.t
+   (** Create a {!Biocaml_transform.t} that converts rows to lines
+       using the first separator in the tags or ['\t'] if none
+       (default [tags]: {!Tags.default}). *)
 
   end
 
