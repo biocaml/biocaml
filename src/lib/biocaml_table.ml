@@ -52,7 +52,8 @@ module Row = struct
 
   end
 
-  let of_line ?(separators=[' '; '\t']) ?(strict=false) ?format line =
+  let of_line ?(separators=[' '; '\t']) ?(strict_row_length=false)
+      ?(strict_cell_type=false) ?format line =
     let l = (line : Biocaml_line.t :> string) in
     let module With_exns = struct
       exception Int_of_string of string
@@ -70,13 +71,13 @@ module Row = struct
           Ok (Array.map tokens ~f:(fun s -> `string s))
         | Some format ->
           begin try
-            if strict && Array.length format > Array.length tokens
+            if strict_row_length && Array.length format > Array.length tokens
             then Error (`wrong_format (`column_number, format, l))
             else begin
               let row =
                 Array.mapi tokens ~f:(fun i tok ->
                   let typ =
-                    if strict then format.(i)
+                    if strict_cell_type then format.(i)
                     else (try format.(i) with _ -> `type_string) in
                   match typ with
                 | `type_int -> `int (int tok)

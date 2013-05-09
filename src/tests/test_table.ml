@@ -58,13 +58,13 @@ let test_row () =
   | e -> fail_test "wrong parsing of '42 42 some more'"
   end;
 
-  test_tol ~strict:true (line "42")
+  test_tol ~strict_row_length:true (line "42")
   >>< begin function
   | Error (`wrong_format (`column_number, _, _)) -> ()
   | e -> fail_test "wrong strict parsing of 42"
   end;
 
-  test_tol ~strict:true (line "42 42 some more")
+  test_tol ~strict_row_length:true (line "42 42 some more")
   >>< begin function
   | Error (`wrong_format (`column_number, _, _)) -> ()
   | e -> fail_test "wrong string parsing of '42 42 some more'"

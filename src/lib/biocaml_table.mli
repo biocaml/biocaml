@@ -72,7 +72,8 @@ module Row : sig
 
   end
 
-  val of_line: ?separators:char list -> ?strict:bool -> ?format:t_type ->
+  val of_line: ?separators:char list ->
+    ?strict_row_length:bool -> ?strict_cell_type:bool -> ?format:t_type ->
     Biocaml_line.t ->
     (t, [> `wrong_format of
              [> `column_number
