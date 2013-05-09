@@ -22,6 +22,7 @@
     }
 *)
 
+(** {2 GFF Item Types} *)
 
 type record = {
   seqname: string;
@@ -37,6 +38,8 @@ type record = {
 
 type item = [ `comment of string | `record of record ]
 (** The items being output by the parser. *)
+
+(** {2 Error Types} *)
 
 module Error: sig
   (** The errors of the [Gff] module. *)
@@ -63,6 +66,8 @@ module Error: sig
   val sexp_of_t : t -> Sexplib.Sexp.t
 end
 
+(** {2 {!Biocaml_tags.t} } *)
+
 module Tags: sig
 
   type t = [ `version of [`two | `three] | `pedantic ] list
@@ -73,12 +78,16 @@ module Tags: sig
 
   val of_string: string ->
     (t, [> `gff of [> `tags_of_string of exn ] ]) Core.Result.t
+  (** Parse tags (for now S-Expressions). *)
+
   val to_string: t -> string
+  (** Serialize tags (for now S-Expressions). *)
 
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
 end
 
+(** {2 [In_channel.t] Functions } *)
 
 exception Error of  Error.t
 (** The exception raised by the [*_exn] functions. *)
@@ -93,8 +102,12 @@ val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:Tags.t ->
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
+(** {2 [To_string] Function } *)
+
 val item_to_string: ?tags:Tags.t -> item -> string
 (** Convert an item to a string. *)
+
+(** {2 {!Biocaml_transform.t} } *)
 
 module Transform: sig
   (** Lower-level stream transformations. *)
