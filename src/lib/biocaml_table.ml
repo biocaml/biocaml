@@ -52,6 +52,19 @@ module Row = struct
 
   end
 
+  module Error = struct
+
+    type line_parsing =
+      [ `wrong_format of
+          [ `column_number
+          | `float_of_string of string
+          | `int_of_string of string ] * t_type * string ]
+    with sexp
+
+    type t = [ line_parsing ] with sexp
+
+  end
+
   let of_line ?(separators=[' '; '\t']) ?(strict_row_length=false)
       ?(strict_cell_type=false) ?format line =
     let l = (line : Biocaml_line.t :> string) in

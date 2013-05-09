@@ -72,13 +72,26 @@ module Row : sig
 
   end
 
+  module Error: sig
+
+    type line_parsing =
+      [ `wrong_format of
+          [ `column_number
+          | `float_of_string of string
+          | `int_of_string of string ] * t_type * string ]
+
+    type t = [ line_parsing ]
+
+    val line_parsing_of_sexp: Sexplib.Sexp.t -> line_parsing
+    val sexp_of_line_parsing: line_parsing -> Sexplib.Sexp.t
+    val t_of_sexp: Sexplib.Sexp.t -> t
+    val sexp_of_t: t -> Sexplib.Sexp.t
+  end
+
   val of_line: ?separators:char list ->
     ?strict_row_length:bool -> ?strict_cell_type:bool -> ?format:t_type ->
     Biocaml_line.t ->
-    (t, [> `wrong_format of
-             [> `column_number
-             | `float_of_string of string
-             | `int_of_string of string ] * t_type * string ]) Core.Result.t
+    (t, [> Error.line_parsing ]) Core.Result.t
   (** Parse a [Line.t] into a row while specifying a [format].
      - If [format] is [None] (the default), then all the elements are
        put in [`string _] rows.
