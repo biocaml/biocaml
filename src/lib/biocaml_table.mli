@@ -58,7 +58,7 @@ module Row : sig
     (** The default tags define a loose TSV format. *)
 
     val default_extension: t -> string
-    (** Give a file extension (["tsv"], ["csv"], or ["table"]]). *)
+    (** Give a file extension (["tsv"], ["csv"], or ["table"]). *)
 
     val to_string: t -> string
     (** Serialize tags. *)
@@ -106,7 +106,7 @@ module Row : sig
   val to_line: sep:string -> t -> Biocaml_line.t
   (** Write the row to a [Line.t]. *)
 
-  (** {3 [Transform.t] Creations *)
+  (** {3 [Transform.t] Creations} *)
 
   module Transform: sig
 
@@ -124,6 +124,8 @@ module Row : sig
        (default [tags]: {!Tags.default}). *)
 
   end
+
+  (** {3 S-Expressions } *)
 
   val item_of_sexp : Sexplib.Sexp.t -> item
   val sexp_of_item : item -> Sexplib.Sexp.t
