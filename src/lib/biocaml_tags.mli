@@ -4,7 +4,7 @@
 type t = [
 | `gzip of t
 | `raw_zip of t
-| `gff of Biocaml_gff.tag list
+| `gff of Biocaml_gff.Tags.t
 | `wig of Biocaml_wig.Tags.t
 | `bam
 | `sam

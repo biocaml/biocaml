@@ -63,26 +63,37 @@ module Error: sig
   val sexp_of_t : t -> Sexplib.Sexp.t
 end
 
-type tag = [ `version of [`two | `three] | `pedantic ]
-(** Additional format-information tags (c.f. {!Biocaml_tags}). *)
+module Tags: sig
 
-val default_tags: tag list
-(** Default tags for a random Gff file: [[`version `three; `pedantic]]. *)
+  type t = [ `version of [`two | `three] | `pedantic ] list
+  (** Additional format-information tags (c.f. {!Biocaml_tags}). *)
+
+  val default: t
+  (** Default tags for a random Gff file: [[`version `three; `pedantic]]. *)
+
+  val of_string: string ->
+    (t, [> `gff of [> `tags_of_string of exn ] ]) Core.Result.t
+  val to_string: t -> string
+
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
+end
+
 
 exception Error of  Error.t
 (** The exception raised by the [*_exn] functions. *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string ->
-  ?tags:tag list -> in_channel ->
+  ?tags:Tags.t -> in_channel ->
   (item, [> Error.parsing]) Core.Result.t Biocaml_stream.t
 (** Parse an input-channel into [item] values. *)
 
-val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:tag list ->
+val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:Tags.t ->
   in_channel -> item Biocaml_stream.t
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
-val item_to_string: ?tags:tag list -> item -> string
+val item_to_string: ?tags:Tags.t -> item -> string
 (** Convert an item to a string. *)
 
 module Transform: sig
@@ -90,12 +101,12 @@ module Transform: sig
 
   val string_to_item:
     ?filename:string ->
-    ?tags: tag list ->
+    ?tags: Tags.t ->
     unit ->
     (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
-  val item_to_string: ?tags: tag list -> unit ->
+  val item_to_string: ?tags: Tags.t -> unit ->
     (item, string) Biocaml_transform.t
   (** Create a printer for a given version. *)
 
@@ -104,8 +115,6 @@ end
 
 (** {2 S-Expressions } *)
 
-val tag_of_sexp : Sexplib.Sexp.t -> tag
-val sexp_of_tag : tag -> Sexplib.Sexp.t
 val record_of_sexp : Sexplib.Sexp.t -> record
 val sexp_of_record : record -> Sexplib.Sexp.t
 val item_of_sexp : Sexplib.Sexp.t -> item

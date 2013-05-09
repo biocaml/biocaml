@@ -26,8 +26,21 @@ with sexp
 type item = [ `comment of string | `record of record ]
 with sexp
 
-type tag = [ `version of [`two | `three] | `pedantic ] with sexp
-let default_tags = [`version `three; `pedantic]
+(* `module_error` should progressively allow to “tag” error values. *)
+let module_error e = Error (`gff e)
+
+module Tags = struct
+
+  type t = [ `version of [`two | `three] | `pedantic ] list with sexp
+  let default = [`version `three; `pedantic]
+
+
+  let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
+  let of_string s =
+    try Ok (Sexplib.Sexp.of_string s |> t_of_sexp)
+    with e -> module_error (`tags_of_string e)
+
+end
 
 module Error = struct
   type parsing =
@@ -197,7 +210,7 @@ module Transform = struct
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l -> parse_row ~version (current_position p) l
 
-  let string_to_item ?filename ?(tags=default_tags) () =
+  let string_to_item ?filename ?(tags=Tags.default) () =
     let name = sprintf "gff_parser:%s" Option.(value ~default:"<>" filename) in
     let pedantic = List.mem tags  `pedantic in
     let version =
@@ -234,7 +247,7 @@ module Transform = struct
     ] ^ "\n"
   )
 
-  let item_to_string ?(tags=default_tags) () =
+  let item_to_string ?(tags=Tags.default) () =
     let module PQ = Biocaml_transform.Printer_queue in
     let version =
       List.find_map tags (function `version v -> Some v | _ -> None)
@@ -259,7 +272,7 @@ let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
   Stream.result_to_exn ~error_to_exn
     (in_channel_to_item_stream ?buffer_size ?tags inp)
 
-let item_to_string ?(tags=default_tags) item =
+let item_to_string ?(tags=Tags.default) item =
   let version =
     List.find_map tags (function `version v -> Some v | _ -> None)
     |! Option.value ~default:`three in

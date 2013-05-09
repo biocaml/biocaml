@@ -6,7 +6,7 @@ module Wig = Biocaml_wig
 type t = [
 | `gzip of t
 | `raw_zip of t
-| `gff of Gff.tag list
+| `gff of Gff.Tags.t
 | `wig of Wig.Tags.t
 | `table of Biocaml_table.Row.Tags.t
 | `bam
@@ -37,7 +37,7 @@ let rec guess_from_filename filename =
     return (`gzip t)
   | (_, Some term) ->
     begin match term with
-    | "gff" -> return (`gff Gff.default_tags)
+    | "gff" -> return (`gff Gff.Tags.default)
     | "wig" -> return (`wig Wig.Tags.default)
     | "bam" -> return `bam
     | "sam" -> return `sam
