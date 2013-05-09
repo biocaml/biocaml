@@ -30,11 +30,12 @@
     [any_overlap] to verify this property when needed.
 *)
 
+(** {2 Item Types} *)
+
 type item = string * int * int * Biocaml_table.Row.t
 (** The type of BED data stream items. *)
 
-val item_of_sexp : Sexplib.Sexp.t -> item
-val sexp_of_item : item -> Sexplib.Sexp.t
+(** {2 Tags: Describe The Format: TODO } *)
 
 type parsing_spec = [
   | `enforce of Biocaml_table.Row.t_type
@@ -42,11 +43,11 @@ type parsing_spec = [
 ]
 (** The specification of how to parse the remaining columns. *)
 
-val parsing_spec_of_sexp : Sexplib.Sexp.t -> parsing_spec
-val sexp_of_parsing_spec : parsing_spec -> Sexplib.Sexp.t
 
+(** {2 Error Types} *)
 
 module Error: sig
+
   (** Definitions of error types ([with sexp]) *)
 
   type parsing_base = [
@@ -56,10 +57,13 @@ module Error: sig
         | `int_of_string of string ] *
           Biocaml_table.Row.t_type * string
     | `wrong_number_of_columns of Biocaml_table.Row.t ]
+  (** The parsing errors. *)
 
   type parsing = [ `bed of parsing_base ]
+  (** The parsing errors. *)
 
   type t = parsing
+  (** The union of all the errors. *)
 
   val parsing_base_of_sexp : Sexplib.Sexp.t -> parsing_base
   val sexp_of_parsing_base : parsing_base -> Sexplib.Sexp.t
@@ -69,6 +73,8 @@ module Error: sig
   val sexp_of_t : t -> Sexplib.Sexp.t
 
 end
+
+(** {2 [In_channel] Functions } *)
 
 exception Error of  Error.t
 (** The exception raised by the [*_exn] functions. *)
@@ -82,6 +88,10 @@ val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spe
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
+(** {2 Conversions to/from [Line.t] }
+
+    See also {!Biocaml_line.t}.
+*)
 
 val item_of_line: how:parsing_spec -> Biocaml_lines.item ->
   (item, [> Error.parsing]) Core.Result.t
@@ -89,6 +99,8 @@ val item_of_line: how:parsing_spec -> Biocaml_lines.item ->
 
 val item_to_line: item -> Biocaml_lines.item
 (** Basic “printing” of one single [item]. *)
+
+(** {2 Transforms } *)
 
 module Transform: sig
   (** Lower-level transforms of BED data-streams. *)
@@ -108,3 +120,11 @@ module Transform: sig
      (reminder: includes ends-of-line). *)
 
 end
+
+(** {2 S-Expressions} *)
+
+val item_of_sexp : Sexplib.Sexp.t -> item
+val sexp_of_item : item -> Sexplib.Sexp.t
+val parsing_spec_of_sexp : Sexplib.Sexp.t -> parsing_spec
+val sexp_of_parsing_spec : parsing_spec -> Sexplib.Sexp.t
+
