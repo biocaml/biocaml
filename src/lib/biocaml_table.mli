@@ -106,6 +106,20 @@ module Row : sig
   val to_line: sep:string -> t -> Biocaml_line.t
   (** Write the row to a [Line.t]. *)
 
+  (** {3 [Transform.t] Creations *)
+
+  module Transform: sig
+
+    val line_to_item :
+      ?tags:Tags.t ->
+      unit ->
+      (Biocaml_lines.item,
+       (t, [> `table_row of Error.line_parsing ]) Core.Result.t)
+        Biocaml_transform.t
+   (** Create a {!Biocaml_transform.t} that converts lines to
+       table items according to the [tags] (default: {!Tags.default}). *)
+
+  end
 
   val item_of_sexp : Sexplib.Sexp.t -> item
   val sexp_of_item : item -> Sexplib.Sexp.t

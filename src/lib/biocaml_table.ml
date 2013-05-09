@@ -117,4 +117,26 @@ module Row = struct
       | `string s -> s in
     Biocaml_line.of_string_unsafe
       (String.concat_array ~sep (Array.map t ~f:item_to_string))
+
+
+  module Transform = struct
+
+    let line_to_item ?(tags: Tags.t = Tags.default) () =
+      let separators = Tags.separators tags in
+      let strict_row_length = Tags.strict_row_length tags in
+      let strict_cell_type = Tags.strict_cell_type tags in
+      let format = Tags.format tags in
+      Biocaml_transform.on_output
+        ~f:begin fun s ->
+          of_line ~separators ~strict_row_length ~strict_cell_type ?format
+            (s : Biocaml_lines.item)
+          |! begin function
+          | Ok o -> Ok o
+          | Error e -> Error (`table_row (e : Error.line_parsing))
+          end
+        end
+        (Biocaml_transform.identity ())
+
+  end
+
 end
