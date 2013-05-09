@@ -569,15 +569,9 @@ let output_transform_of_tags
       return (`to_int_fasta (with_zip_no_error t) : output_transform)
     | `table tags ->
       let t =
-        let sep =
-          List.hd (Table.Row.Tags.separators tags)
-          |> Option.value_map ~default:"\t" ~f:Char.to_string in
-        Transform.on_input
-          ~f:(fun row ->
-            sprintf "%s\n"
-              (Table.Row.to_line ~sep row : Line.t :> string))
-          (Transform.identity ())
-      in
+        Transform.compose
+          (Table.Row.Transform.item_to_line ~tags ())
+          (Lines.Transform.item_to_string ()) in
       return (`to_table (with_zip_no_error t) : output_transform)
   in
   output_transform output_tags
