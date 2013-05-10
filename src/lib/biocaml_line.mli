@@ -20,6 +20,7 @@ val of_string_unsafe : string -> t
 val lstrip : ?drop:(char -> bool) -> t -> t
 val rstrip : ?drop:(char -> bool) -> t -> t
 val strip : ?drop:(char -> bool) -> t -> t
+val split : t -> on:char -> string list
 
 (** {2 S-Expressions } *)
 

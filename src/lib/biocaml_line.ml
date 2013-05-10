@@ -18,3 +18,4 @@ let of_string_unsafe = Fn.id
 let lstrip = String.lstrip
 let rstrip = String.rstrip
 let strip = String.strip
+let split = String.split
