@@ -247,3 +247,20 @@ module Transform = struct
     Biocaml_transform.make ()
       ~feed:(fun string -> Buffer.add_string in_buffer string;) ~next
 end
+
+let unzip_in_channel ?format ?zlib_buffer_size ?buffer_size inp =
+  let t = Transform.unzip ?format ?zlib_buffer_size () in
+  Biocaml_transform.in_channel_strings_to_stream ?buffer_size inp t
+
+let zip_in_channel ?format ?zlib_buffer_size ?level ?buffer_size inp =
+  let t = Transform.zip ?format ?zlib_buffer_size ?level () in
+  Biocaml_transform.in_channel_strings_to_stream ?buffer_size inp t
+
+exception Error of Error.unzip
+
+let error_to_exn e = Error e
+
+let unzip_in_channel_exn ?format ?zlib_buffer_size ?buffer_size inp =
+  Stream.result_to_exn ~error_to_exn
+    (unzip_in_channel ?format  ?zlib_buffer_size ?buffer_size inp)
+

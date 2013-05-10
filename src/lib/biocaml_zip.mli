@@ -50,6 +50,31 @@ module Error: sig
   val sexp_of_t: t -> Sexplib.Sexp.t
 end
 
+(** {2 [In_chanel.t] Functions} *)
+
+
+val unzip_in_channel :
+  ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int ->
+  ?buffer_size:int -> in_channel ->
+  (string, [> Error.t]) Core.Result.t Stream.t
+(** Decompress an Input Channel. *)
+
+val zip_in_channel :
+  ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int -> ?level:int ->
+  ?buffer_size:int -> in_channel ->
+  string Stream.t
+(** Compress an Input Channel. *)
+
+exception Error of Error.unzip
+(** The exception raise by the [*_exn] functions of this module. *)
+
+val unzip_in_channel_exn :
+  ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int ->
+  ?buffer_size:int -> in_channel ->
+  string Stream.t
+(** Like [unzip_in_channel] but calls to [Stream.next] may raise
+    [Error e] exceptions. *)
+
 (** {2 [Transform.t] Implementations} *)
 
 module Transform: sig
