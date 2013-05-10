@@ -9,13 +9,20 @@ module Default = struct
 
 end
 
-module Transform = struct
-  type unzip_error =
+module Error = struct
+
+  type unzip =
   [ `garbage_at_end_of_compressed_data of string
   | `zlib of string
   | `wrong_gzip_header of
       [ `compression_method | `flags | `magic_number ] * int ]
   with sexp
+  (** The possible unzipping errors. *)
+
+  type t = [unzip] with sexp
+end
+
+module Transform = struct
 
   open Result
   let try_skip_gzip_header_exn buffer =

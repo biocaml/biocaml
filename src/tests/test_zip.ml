@@ -3,7 +3,7 @@ open Biocaml_internal_pervasives
 open Biocaml
 
 type error =
-[ `left of Zip.Transform.unzip_error
+[ `left of Zip.Error.unzip
 | `right of Bed.Error.parsing
 ]
 

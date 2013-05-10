@@ -411,7 +411,7 @@ let go_through_input ~transform ~max_read_bytes filename =
             (Biocaml_sam.Error.sexp_of_string_to_raw s |! Sexp.to_string_hum)
         | `output (Error (`unzip s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_zip.Transform.sexp_of_unzip_error s |! Sexp.to_string_hum)
+            (Biocaml_zip.Error.sexp_of_unzip s |! Sexp.to_string_hum)
         | `output (Error (`bam_to_item s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
             (Biocaml_bam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)

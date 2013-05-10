@@ -133,7 +133,7 @@ let bam_to_sam input_buffer_size: (_, _) Biocaml_transform.t =
       | Error (`left (`left (`bam e))) ->
         err_to_string Biocaml_bam.Error.sexp_of_raw_bam e
       | Error (`left (`left (`unzip e))) ->
-        err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+        err_to_string Biocaml_zip.Error.sexp_of_unzip e
       | Error (`left (`right e)) ->
         err_to_string Biocaml_bam.Error.sexp_of_raw_to_item e
       | Error (`right  e) ->
@@ -253,7 +253,7 @@ let cmd_just_parse_bam =
                   | Error ( (`bam e)) ->
                     err_to_string Biocaml_bam.Error.sexp_of_raw_bam e
                   | Error ( (`unzip e)) ->
-                    err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+                    err_to_string Biocaml_zip.Error.sexp_of_unzip e
                   )) in
             lwt_go_through_input ~transform ~max_read_bytes:Int.max_value
               ~input_buffer_size bam |! Lwt_main.run
@@ -276,7 +276,7 @@ let cmd_just_parse_bam =
                   | Error (`left (`bam e)) ->
                     err_to_string Biocaml_bam.Error.sexp_of_raw_bam e
                   | Error (`left (`unzip e)) ->
-                    err_to_string Biocaml_zip.Transform.sexp_of_unzip_error e
+                    err_to_string Biocaml_zip.Error.sexp_of_unzip e
                   | Error (`right e) ->
                     err_to_string Biocaml_bam.Error.sexp_of_raw_to_item e
                   )) in

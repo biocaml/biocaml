@@ -846,7 +846,7 @@ let in_channel_to_item_stream ?zlib_buffer_size ?buffer_size inp =
       (compose_results t1 t2 ~on_error:(function `left x -> x | `right x -> `bam x))
   )
 
-exception Error of [ `bam of Error.t | `unzip of Zip.Transform.unzip_error ]
+exception Error of [ `bam of Error.t | `unzip of Zip.Error.unzip ]
 let error_to_exn e = Error e
 
 let in_channel_to_raw_item_stream_exn ?zlib_buffer_size ?buffer_size inp =

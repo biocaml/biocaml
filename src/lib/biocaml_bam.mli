@@ -115,7 +115,8 @@ end
 
 (** {2 [In_channel] Functions} *)
 
-exception Error of [ `bam of Error.t | `unzip of Biocaml_zip.Transform.unzip_error ]
+exception Error of [ `bam of Error.t
+                   | `unzip of Biocaml_zip.Error.unzip ]
 (** The exception thrown by [*_exn] functions in this module. *)
 
 val in_channel_to_raw_item_stream :
@@ -124,7 +125,7 @@ val in_channel_to_raw_item_stream :
   in_channel ->
   (raw_item,
    [> `bam of [> Error.raw_bam ]
-   | `unzip of [> Biocaml_zip.Transform.unzip_error ] ])
+   | `unzip of [> Biocaml_zip.Error.unzip ] ])
     Core.Result.t Stream.t
 (** Create a stream of raw_item results from an input-channel. *)
 
@@ -141,7 +142,7 @@ val in_channel_to_item_stream :
   in_channel ->
   (Biocaml_sam.item,
    [> `bam of [> Error.t ]
-   | `unzip of [> Biocaml_zip.Transform.unzip_error ] ])
+   | `unzip of [> Biocaml_zip.Error.unzip ] ])
     Core.Result.t Stream.t
 (** Create a stream of full [Sam.item] results from an input-channel. *)
 
@@ -167,7 +168,7 @@ module Transform: sig
     ?zlib_buffer_size:int ->
     unit ->
     (string,
-     (raw_item, [> `unzip of Biocaml_zip.Transform.unzip_error
+     (raw_item, [> `unzip of Biocaml_zip.Error.unzip
                 | `bam of Error.raw_bam ] )
        Core.Result.t)
       Biocaml_transform.t
