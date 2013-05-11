@@ -57,6 +57,7 @@ Library biocaml
            , Biocaml_lines
            , Biocaml_math
            , Biocaml_phred_score
+           , Biocaml_psl
            , Biocaml_pwm
            , Biocaml_range
            , Biocaml_roc

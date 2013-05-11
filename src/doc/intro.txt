@@ -19,6 +19,7 @@ Biocaml_jaspar
 Biocaml_line
 Biocaml_lines
 Biocaml_mzData
+Biocaml_psl
 Biocaml_sam
 Biocaml_sgr
 Biocaml_track

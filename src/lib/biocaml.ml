@@ -21,6 +21,7 @@ module MzData         = Biocaml_mzData
 module Msg            = Biocaml_msg
 module Phred_score    = Biocaml_phred_score
 module Pos            = Biocaml_pos
+module Psl            = Biocaml_psl
 module Pwm            = Biocaml_pwm
 module Range          = Biocaml_range
 module Roc            = Biocaml_roc
