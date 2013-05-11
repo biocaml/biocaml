@@ -19,3 +19,4 @@ let lstrip = String.lstrip
 let rstrip = String.rstrip
 let strip = String.strip
 let split = String.split
+let for_all = String.for_all

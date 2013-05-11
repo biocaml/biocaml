@@ -21,6 +21,7 @@ val lstrip : ?drop:(char -> bool) -> t -> t
 val rstrip : ?drop:(char -> bool) -> t -> t
 val strip : ?drop:(char -> bool) -> t -> t
 val split : t -> on:char -> string list
+val for_all : string -> f:(char -> bool) -> bool
 
 (** {2 S-Expressions } *)
 
