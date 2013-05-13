@@ -16,7 +16,6 @@ Biocaml_fasta
 Biocaml_fastq
 Biocaml_gff
 Biocaml_jaspar
-Biocaml_line
 Biocaml_lines
 Biocaml_mzData
 Biocaml_psl
