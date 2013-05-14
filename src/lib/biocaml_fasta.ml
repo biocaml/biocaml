@@ -189,16 +189,10 @@ module Transform = struct
       a function [to_string] for converting either [char_seq]s or
       [int_seq]s. *)
   let generic_printer ~to_string ~tags () =
-    let module PQ = Biocaml_transform.Printer_queue in
     let comment_char = Tags.comment_char tags in
-    let printer =
-    PQ.make ~to_string:(raw_item_to_string_pure ?comment_char to_string) () in
-    Biocaml_transform.make ~name:"fasta_printer" ()
-      ~feed:(fun r -> PQ.feed printer r)
-      ~next:(fun stopped ->
-        match (PQ.flush printer) with
-        | "" -> if stopped then `end_of_stream else `not_ready
-        | s -> `output s)
+    Biocaml_transform.(
+      on_output (identity ())
+        ~f:(raw_item_to_string_pure ?comment_char to_string))
 
   let char_seq_raw_item_to_string  ?(tags=Tags.default) =
     generic_printer ~to_string:ident ~tags
