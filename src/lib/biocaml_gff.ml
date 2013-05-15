@@ -248,17 +248,12 @@ module Transform = struct
   )
 
   let item_to_string ?(tags=Tags.default) () =
-    let module PQ = Biocaml_transform.Printer_queue in
     let version =
       List.find_map tags (function `version v -> Some v | _ -> None)
       |! Option.value ~default:`three in
-    let printer = PQ.make () ~to_string:(item_to_string_pure version) in
-    Biocaml_transform.make ~name:"gff_printer" ()
-      ~feed:(fun r -> PQ.feed printer r)
-      ~next:(fun stopped ->
-        match (PQ.flush printer) with
-        | "" -> if stopped then `end_of_stream else `not_ready
-        | s -> `output s)
+    Biocaml_transform.of_function ~name:"gff_to_string"
+      (item_to_string_pure version)
+
 end
 
 exception Error of  Error.t
