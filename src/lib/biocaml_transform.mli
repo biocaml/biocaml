@@ -80,8 +80,13 @@ val stop: ('input, 'output) t -> unit
 val name: ('input, 'output) t -> string option
 
 (** [identity ()] returns a transform that simply returns its inputs
-    as outputs without modification. *)
+    as outputs without modification (it can be seen as a
+    simple [Queue.t]). *)
 val identity: ?name:string -> unit -> ('a, 'a) t
+
+(** [of_function f] is like [identity ()] but the transform outputs
+    are passed to the function [f]. *)
+val of_function: ?name:string -> ('a -> 'b) -> ('a, 'b) t
 
 (** [to_stream_fun t] returns a function [f] that behaves like
     [t] but the inputs and outputs are on standard OCaml streams. *)

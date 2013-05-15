@@ -47,13 +47,15 @@ let make_result ?name ~feed ~next () =
         end)
     ~stop:(fun () -> stopped := true)
 
-let identity ?name () =
+let of_function ?name f =
   let q = Queue.create () in
   make ?name ~feed:(Queue.enqueue q) ()
     ~next:(fun stopped ->
       match Queue.dequeue q with
-      | Some o -> `output o
+      | Some o -> `output (f o)
       | None -> if stopped then `end_of_stream else `not_ready)
+
+let identity ?name () = of_function ?name ident
 
 let to_stream_fun tr en =
   let rec loop_until_ready tr en =
