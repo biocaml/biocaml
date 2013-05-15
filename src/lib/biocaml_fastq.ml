@@ -75,15 +75,7 @@ module Transform = struct
     sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
 
   let item_to_string () =
-    let module PQ = Biocaml_transform.Printer_queue in
-    let printer =
-      Biocaml_transform.Printer_queue.make ~to_string:item_to_string_pure () in
-    Biocaml_transform.make ~name:"fastq_printer" ()
-      ~feed:(fun r -> PQ.feed printer r)
-      ~next:(fun stopped ->
-        match (PQ.flush printer) with
-        | "" -> if stopped then `end_of_stream else `not_ready
-        | s -> `output s)
+    Biocaml_transform.of_function ~name:"fastq_to_string" item_to_string_pure
 
   let trim (specification: [`beginning of int|`ending of int]) =
     let items =  Queue.create () in
