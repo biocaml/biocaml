@@ -206,6 +206,21 @@ let sam_item_to_fastq_item () : (Sam.item, Fastq.item) Transform.t =
 
 let transforms_to_do
     input_files_tags_and_transforms meta_output_transform output_tags =
+  let any_fasta_transform
+      filename itags tr_in raw_to_item otags item_to_raw tr_out =
+    let transfo =
+      Transform.(
+        on_error ~f:(fun e -> `input e)
+          (compose_result_left
+             (compose_results
+                ~on_error:(function `left e ->  e | `right e -> e)
+                    tr_in (on_error ~f:(fun e -> `fasta e) raw_to_item))
+             (compose item_to_raw tr_out))
+      ) |> transform_stringify_errors in
+    let out_extension = Tags.default_extension output_tags in
+    let base = filename_chop_all_extensions filename in
+    `file_to_file (filename, transfo, filename_make_new base out_extension)
+  in
   let rec loop acc l =
     match l, (meta_output_transform : output_transform) with
     | [], _ -> return acc
@@ -261,26 +276,22 @@ let transforms_to_do
       loop (m :: acc) t
     | (filename, itags, `from_char_fasta tri) :: t, `to_char_fasta (tro, otags) ->
       let m =
-        let transfo =
-          Transform.(
-            on_error ~f:(fun e -> `input e)
-              (compose_result_left
-                 (compose_results
-                    ~on_error:(function `left e ->  e | `right e -> e)
-                    tri (on_error
-                          ~f:(fun e -> `fasta e)
-                          (Fasta.Transform.char_seq_raw_item_to_item  ())))
-                 (compose
-                    (Fasta.Transform.char_seq_item_to_raw_item ~tags:otags ())
-                    tro))
-          ) |> transform_stringify_errors in
-        let out_extension = Tags.default_extension output_tags in
-        let base = filename_chop_all_extensions filename in
-        `file_to_file (filename, transfo, filename_make_new base out_extension)
+        any_fasta_transform
+          filename
+          itags tri (Fasta.Transform.char_seq_raw_item_to_item  ())
+          otags (Fasta.Transform.char_seq_item_to_raw_item ~tags:otags ()) tro
+      in
+      loop (m :: acc) t
+    | (filename, itags, `from_int_fasta tri) :: t, `to_int_fasta (tro, otags) ->
+      let m =
+        any_fasta_transform
+          filename
+          itags tri (Fasta.Transform.int_seq_raw_item_to_item  ())
+          otags (Fasta.Transform.int_seq_item_to_raw_item ~tags:otags ()) tro
       in
       loop (m :: acc) t
     | _ ->
-      error (`not_implemented)
+      error (`not_implemented "transform")
   in
   loop [] input_files_tags_and_transforms
 
@@ -335,7 +346,7 @@ let run_transform ~output_tags files =
                      [ `io_exn of exn
                      | `stopped_before_end_of_stream
                      | `transform_error of [ `string of string ] ] ] list
-                 | `not_implemented
+                 | `not_implemented of string
                  | `extension_unknown of string
                  | `parse_tags of exn ] >> e
       |! Sexp.to_string_hum)

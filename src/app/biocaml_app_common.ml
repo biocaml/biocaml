@@ -498,7 +498,8 @@ type output_transform = [
 | `to_fastq of (Fastq.item, string) Transform.t
 | `to_char_fasta of
     (Fasta.char_seq Fasta.raw_item, string) Transform.t * Fasta.Tags.t
-| `to_int_fasta of (Fasta.int_seq Fasta.raw_item, string) Transform.t
+| `to_int_fasta of
+    (Fasta.int_seq Fasta.raw_item, string) Transform.t * Fasta.Tags.t
 | `to_table of (Table.Row.t, string) Biocaml.Transform.t
 ]
 let output_transform_name = function
@@ -567,7 +568,7 @@ let output_transform_of_tags
       return (`to_char_fasta (with_zip_no_error t, tags) : output_transform)
     | `fasta (`int_sequence _ as tags) ->
       let t = Fasta.Transform.int_seq_raw_item_to_string ~tags () in
-      return (`to_int_fasta (with_zip_no_error t) : output_transform)
+      return (`to_int_fasta (with_zip_no_error t, tags) : output_transform)
     | `table tags ->
       let t =
         Transform.compose
