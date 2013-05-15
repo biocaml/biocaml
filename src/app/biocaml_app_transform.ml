@@ -259,6 +259,26 @@ let transforms_to_do
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
       loop (m :: acc) t
+    | (filename, itags, `from_char_fasta tri) :: t, `to_char_fasta (tro, otags) ->
+      let m =
+        let transfo =
+          Transform.(
+            on_error ~f:(fun e -> `input e)
+              (compose_result_left
+                 (compose_results
+                    ~on_error:(function `left e ->  e | `right e -> e)
+                    tri (on_error
+                          ~f:(fun e -> `fasta e)
+                          (Fasta.Transform.char_seq_raw_item_to_item  ())))
+                 (compose
+                    (Fasta.Transform.char_seq_item_to_raw_item ~tags:otags ())
+                    tro))
+          ) |> transform_stringify_errors in
+        let out_extension = Tags.default_extension output_tags in
+        let base = filename_chop_all_extensions filename in
+        `file_to_file (filename, transfo, filename_make_new base out_extension)
+      in
+      loop (m :: acc) t
     | _ ->
       error (`not_implemented)
   in

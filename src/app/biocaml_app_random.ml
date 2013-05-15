@@ -421,7 +421,7 @@ let do_random ~output_file ~nb_items spec =
       ) in
  *)
     do_output output_meta_channel transform nb_items
-  | `to_char_fasta tr ->
+  | `to_char_fasta (tr, _) ->
     of_result
       (Fasta.Random.unit_to_random_char_seq_raw_item fasta_tags)
     >>= fun random_transform ->
