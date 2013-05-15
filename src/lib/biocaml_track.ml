@@ -105,9 +105,7 @@ module Transform = struct
     if needs_escaping s then sprintf "%S" s else s
 
   let string_content_to_string ?(add_content_new_line=true) () =
-    let module PQ = Biocaml_transform.Printer_queue in
-    let printer =
-      PQ.make ~to_string:(function
+    let to_string = function
       | `comment c -> sprintf "#%s\n" c
       | `track l ->
         sprintf "track %s\n"
@@ -120,13 +118,8 @@ module Transform = struct
         sprintf "browser position %s:%d-%d\n" n s e
       | `browser (`unknown s) -> sprintf "browser %s\n" s
       | `content s ->
-        if add_content_new_line then s ^ "\n" else s) () in
-    Biocaml_transform.make ~name:"string_track_printer" ()
-      ~feed:(fun r -> PQ.feed printer r)
-      ~next:(fun stopped ->
-        match (PQ.flush printer) with
-        | "" -> if stopped then `end_of_stream else `not_ready
-        | s -> `output s)
+        if add_content_new_line then s ^ "\n" else s in
+    Biocaml_transform.of_function ~name:"track_to_string" to_string
 
   let embed_parser ?filename =
     let track_parser = string_to_string_content ?filename () in
