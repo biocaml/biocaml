@@ -192,26 +192,19 @@ module Transform = struct
 
   let item_to_string ?(tags=Tags.default) () =
     let sharp_comments = List.mem tags `sharp_comments in
-    let module PQ = Biocaml_transform.Printer_queue in
-    let printer =
-      PQ.make ~to_string:(function
-      | `comment c -> if sharp_comments then sprintf "#%s\n" c else ""
-      | `variable_step_state_change (chrom, span) ->
-        sprintf "variableStep chrom=%s%s\n" chrom
-          Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
-      | `variable_step_value (pos, v) -> sprintf "%d %g\n" pos v
-      | `fixed_step_state_change (chrom, start, step, span) ->
-        sprintf "fixedStep chrom=%s start=%d step=%d%s\n" chrom start step
-          Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
-      | `fixed_step_value v -> sprintf "%g\n" v
-      | `bed_graph_value (chrom, start, stop, v) ->
-        sprintf "%s %d %d %g\n" chrom start stop v) () in
-    Biocaml_transform.make ~name:"wig_printer" ()
-      ~feed:(fun r -> PQ.feed printer r)
-      ~next:(fun stopped ->
-        match (PQ.flush printer) with
-        | "" -> if stopped then `end_of_stream else `not_ready
-        | s -> `output s)
+    let to_string = function
+    | `comment c -> if sharp_comments then sprintf "#%s\n" c else ""
+    | `variable_step_state_change (chrom, span) ->
+      sprintf "variableStep chrom=%s%s\n" chrom
+        Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
+    | `variable_step_value (pos, v) -> sprintf "%d %g\n" pos v
+    | `fixed_step_state_change (chrom, start, step, span) ->
+      sprintf "fixedStep chrom=%s start=%d step=%d%s\n" chrom start step
+        Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
+    | `fixed_step_value v -> sprintf "%g\n" v
+    | `bed_graph_value (chrom, start, stop, v) ->
+      sprintf "%s %d %d %g\n" chrom start stop v in
+    Biocaml_transform.of_function ~name:"wig_to_string" to_string
 
   let item_to_bed_graph () =
     let queue = Queue.create () in
