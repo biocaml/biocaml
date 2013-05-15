@@ -685,19 +685,16 @@ module Transform = struct
           String.concat ~sep:"\t")
 
   let raw_to_string () =
-    let module PQ = Biocaml_transform.Printer_queue in
-    let printer =
-      PQ.make ~to_string:(function | `comment c -> sprintf "@CO\t%s\n" c
-      | `header (t, l) -> sprintf "@%s\t%s\n" t
-        (List.map l (fun (a,b) -> sprintf "%s:%s" a b) |! String.concat ~sep:"\t")
-      | `alignment a -> alignment_to_string a
-      ) () in
-    Biocaml_transform.make ~name:"sam_printer" ()
-      ~feed:(fun r -> PQ.feed printer r)
-      ~next:(fun stopped ->
-        match (PQ.flush printer) with
-        | "" -> if stopped then `end_of_stream else `not_ready
-        | s -> `output s)
+    let to_string = function
+    | `comment c -> sprintf "@CO\t%s\n" c
+    | `header (t, l) ->
+      sprintf "@%s\t%s\n" t
+        (List.map l (fun (a,b) -> sprintf "%s:%s" a b)
+         |> String.concat ~sep:"\t")
+    | `alignment a -> alignment_to_string a
+    in
+    Biocaml_transform.of_function ~name:"sam_to_string" to_string
+
 end
 
 exception Error of  Error.t
