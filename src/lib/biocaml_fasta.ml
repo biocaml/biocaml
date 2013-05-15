@@ -190,9 +190,8 @@ module Transform = struct
       [int_seq]s. *)
   let generic_printer ~to_string ~tags () =
     let comment_char = Tags.comment_char tags in
-    Biocaml_transform.(
-      on_output (identity ())
-        ~f:(raw_item_to_string_pure ?comment_char to_string))
+    Biocaml_transform.of_function
+      (raw_item_to_string_pure ?comment_char to_string)
 
   let char_seq_raw_item_to_string  ?(tags=Tags.default) =
     generic_printer ~to_string:ident ~tags
