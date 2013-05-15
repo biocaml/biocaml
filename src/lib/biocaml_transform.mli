@@ -225,31 +225,6 @@ end
 val to_object: ('a, 'b) t -> ('a, 'b) object_t
 val of_object: ('a, 'b) object_t -> ('a, 'b) t
 
-(** {2 Deprecated} *)
-
-(** A generic buffering printer.  *)
-module Printer_queue: sig
-
-  type 'a t
-
-  val make: ?buffer:[`clear of int | `reset of int] ->
-    to_string:('a -> string) -> unit -> 'a t
-  (** Create a printer-queue with a [to_string] function. The [buffer]
-      argument tells whether to use [Buffer.clear] or [Buffer.reset] after
-      flushing the buffer. *)
-
-  val feed: 'a t -> 'a -> unit
-  (** Enqueue something in the printer. *)
-
-  val flush: 'a t -> string
-  (** Get the current transformed content. *)
-
-  val is_empty: 'a t -> bool
-  (** Check if the printer-queue is empty. *)
-
-end
-
-
 (** {2 Low-level API} *)
 
 (** The most general way to make a transform. All make functions above

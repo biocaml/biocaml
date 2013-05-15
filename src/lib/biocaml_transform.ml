@@ -258,39 +258,3 @@ let of_object o =
     ~stop:(fun () -> o#stop) ()
 
 
-module Printer_queue = struct
-
-  type 'a t = {
-    records : 'a Queue.t;
-    buffer : Buffer.t;
-    clear_buffer: Buffer.t -> unit;
-    to_string: 'a -> string;
-  }
-
-  let make ?(buffer:[`clear of int | `reset of int]= `reset 1024) ~to_string () =
-    let buffer, clear_buffer =
-      match buffer with
-      | `clear s -> (Buffer.create s, Buffer.clear)
-      | `reset s -> (Buffer.create s, Buffer.reset) in
-    {
-      records = Queue.create ();
-      buffer; clear_buffer;
-      to_string;
-    }
-
-  let feed p r = Queue.enqueue p.records r
-
-  let flush p =
-    let rec faux () =
-      match Queue.dequeue p.records with
-      | Some r ->
-        Buffer.add_string p.buffer (p.to_string r);
-        faux ()
-      | None -> () in
-    faux ();
-    let ret = Buffer.contents p.buffer in
-    p.clear_buffer p.buffer;
-    ret
-
-  let is_empty p = Queue.is_empty p.records
-end
