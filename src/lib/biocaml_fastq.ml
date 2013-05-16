@@ -104,6 +104,35 @@ module Transform = struct
           end
         | None -> if stopped then `end_of_stream else `not_ready
         end)
+
+
+  let fasta_pair_to_fastq ?(phred_score_offset=`offset33) () =
+    let open Result in
+    let module Fasta = Biocaml_fasta in
+    Biocaml_transform.of_function begin fun (char_item, int_item) ->
+      if char_item.Fasta.header = int_item.Fasta.header then
+        begin
+          begin try
+            List.map int_item.Fasta.sequence (fun int ->
+                Biocaml_phred_score.(
+                  of_int_exn int
+                  |> to_ascii_exn ~offset:phred_score_offset
+                  |> Char.to_string))
+            |> String.concat ~sep:"" |> return
+          with _ ->
+            fail (`cannot_convert_to_phred_score int_item.Fasta.sequence)
+          end
+          >>= fun qualities ->
+          return {name = char_item.Fasta.header;
+                  sequence = char_item.Fasta.sequence;
+                  comment = char_item.Fasta.header;
+                  qualities}
+        end
+      else
+        fail (`sequence_names_mismatch (char_item.Fasta.header,
+                                        int_item.Fasta.header))
+    end
+
 end
 
 let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =

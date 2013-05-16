@@ -91,6 +91,22 @@ module Transform: sig
     [ `beginning of int | `ending of int ] ->
     (item, (item, [> `invalid_size of int]) Core.Result.t) Biocaml_transform.t
   (** Create a [Biocaml_transform.t] that trims FASTQ items. *)
+
+  val fasta_pair_to_fastq:
+    ?phred_score_offset:[ `offset33 | `offset64 ] ->
+    unit ->
+    (Biocaml_fasta.char_seq Biocaml_fasta.item *
+       Biocaml_fasta.int_seq Biocaml_fasta.item,
+     (item,
+      [> `cannot_convert_to_phred_score of int list
+      | `sequence_names_mismatch of string * string ]) Core.Result.t)
+      Biocaml_transform.t
+  (** Create a transform that builds [item] records thanks
+      to sequences from [Fasta.(char_seq item)] values
+      and qualities converted from
+      [Fasta.(int_seq item)] values. The default Phred score encoding
+      is [`offset33] (like in {!Biocaml_phred_score}). *)
+
 end
 
 
