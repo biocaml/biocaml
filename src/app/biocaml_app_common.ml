@@ -545,11 +545,12 @@ let two_files_to_file
     end
   in
   loop ()
-  >>= fun () ->
-  wrap_deferred_lwt (fun () -> Lwt_io.close a_input) >>= fun () ->
-  wrap_deferred_lwt (fun () -> Lwt_io.close b_input) >>= fun () ->
-  wrap_deferred_lwt (fun () -> Lwt_io.close out_channel) >>= fun () ->
-  return ()
+  >>< begin fun r ->
+    wrap_deferred_lwt (fun () -> Lwt_io.close a_input) >>< fun _ ->
+    wrap_deferred_lwt (fun () -> Lwt_io.close b_input) >>< fun _ ->
+    wrap_deferred_lwt (fun () -> Lwt_io.close out_channel) >>< fun _ ->
+    of_result r
+  end
 
 
 
