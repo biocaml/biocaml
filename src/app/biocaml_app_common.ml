@@ -477,6 +477,22 @@ let flush_transform
   in
   loop ()
 
+(** Output the outputs of transform until its finished or not-ready. *)
+let flush_result_transform
+    ~out_channel ~(transform : ('a, (string, 'err) Result.t) Transform.t) :
+  (unit, _) Flow.t =
+  let rec loop () =
+    match Biocaml_transform.next transform with
+    | `output (Ok o) ->
+      Lwt_io.(wrap_deferred_lwt (fun () -> write out_channel o))
+      >>= fun () ->
+      loop ()
+    | `output (Error o) -> error o
+    | `end_of_stream -> return ()
+    | `not_ready -> return ()
+  in
+  loop ()
+
 (** Feed a transform and then flush it (with [flush_transform]). *)
 let push_to_the_max ~out_channel ~transform input =
   Biocaml_transform.feed transform input;
