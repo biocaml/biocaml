@@ -290,6 +290,61 @@ let transforms_to_do
           otags (Fasta.Transform.int_seq_item_to_raw_item ~tags:otags ()) tro
       in
       loop (m :: acc) t
+    | (   a_filename, a_itags, `from_char_fasta a_tri)
+      :: (b_filename, b_itags, `from_int_fasta  b_tri) :: t,
+      `to_fastq tro ->
+      let a_transfo =
+        Transform.(
+          on_error ~f:(fun e -> `input e)
+            (compose_results
+               ~on_error:(function `left e ->  e | `right e -> e)
+               a_tri (on_error ~f:(fun e -> `fasta e)
+                        (Fasta.Transform.char_seq_raw_item_to_item  ()))))
+      in
+      let b_transfo =
+        Transform.(
+          on_error ~f:(fun e -> `input e)
+            (compose_results
+               ~on_error:(function `left e ->  e | `right e -> e)
+               b_tri (on_error ~f:(fun e -> `fasta e)
+                        (Fasta.Transform.int_seq_raw_item_to_item  ()))))
+      in
+      let two_fastas_to_fastq =
+        let open Result in
+        Transform.of_function begin fun (char_item, int_item) ->
+          if char_item.Fasta.header = int_item.Fasta.header then
+            begin
+              begin try
+                List.map int_item.Fasta.sequence
+                  (fun int ->
+                     Phred_score.(of_int_exn int
+                                  |> to_ascii_exn ~offset:`offset33
+                                  |> Char.to_string))
+                |> String.concat ~sep:"" |> return
+              with _ ->
+                fail (`cannot_convert_to_phred_score int_item.Fasta.sequence)
+              end
+              >>= fun qualities ->
+              return { Fastq.
+                       name = char_item.Fasta.header;
+                       sequence = char_item.Fasta.sequence;
+                       comment = char_item.Fasta.header;
+                       qualities}
+            end
+          else
+            fail (`sequence_names_mismatch (char_item.Fasta.header,
+                                            int_item.Fasta.header))
+        end in
+      let out_extension = Tags.default_extension output_tags in
+      let base = filename_chop_all_extensions a_filename in
+      let m =
+      `two_files_to_file (a_filename, a_transfo,
+                          b_filename, b_transfo,
+                          filename_make_new base out_extension,
+                          Transform.compose_result_left
+                            two_fastas_to_fastq tro) in
+      loop (m :: acc) t
+
     | _ ->
       error (`not_implemented "transform")
   in
@@ -330,6 +385,50 @@ let run_transform ~output_tags files =
     | `file_to_file (filein, tr, fileout) ->
       Say.dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
       IO.Transform.file_to_file (Transform.to_object tr) filein  fileout
+    | `two_files_to_file (a_filename, a_transfo,
+                          b_filename, b_transfo,
+                          out_file, out_transfo) ->
+      let input_buffer_size = !Global_configuration.input_buffer_size in
+      let output_buffer_size = !Global_configuration.output_buffer_size in
+      wrap_deferred_lwt (fun () ->
+          Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size
+                    a_filename))
+      >>= fun a_input ->
+      wrap_deferred_lwt (fun () ->
+          Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size
+                    b_filename))
+      >>= fun b_input ->
+      wrap_deferred_lwt (fun () ->
+          Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
+                    out_file))
+      >>= fun out_channel ->
+      let rec loop () =
+        (* for_concurrent [a_input, a_transfo; b_input, b_transfo] (fun (inp, tr) ->; *)
+        (* TODO: find a way to do this concurrently but not too heavily … *)
+        pull_next a_input a_transfo
+        >>= fun a_item_opt ->
+        pull_next b_input b_transfo
+        >>= fun b_item_opt ->
+        begin match a_item_opt, b_item_opt with
+        | Some (Ok a_item), Some (Ok b_item) ->
+          Transform.feed out_transfo (a_item, b_item);
+          flush_result_transform ~out_channel ~transform:out_transfo
+          >>= fun () ->
+          loop ()
+        | None, None -> (* good ending *) return ()
+        | Some (Error e), _
+        | _, Some (Error e) -> error e
+        | Some _, None
+        | None, Some _ ->
+          error (`fastas_of_incompatible_length (a_filename, b_filename))
+        end
+      in
+      loop ()
+      >>= fun () ->
+      wrap_deferred_lwt (fun () -> Lwt_io.close a_input) >>= fun () ->
+      wrap_deferred_lwt (fun () -> Lwt_io.close b_input) >>= fun () ->
+      wrap_deferred_lwt (fun () -> Lwt_io.close out_channel) >>= fun () ->
+      return ()
     end
     >>= fun (results, errors) ->
     begin match errors with
@@ -341,14 +440,24 @@ let run_transform ~output_tags files =
   | Ok () -> return ()
   | Error e ->
     error (
-      <:sexp_of< [ `extension_absent
-                 | `errors of [ `transform of
-                     [ `io_exn of exn
-                     | `stopped_before_end_of_stream
-                     | `transform_error of [ `string of string ] ] ] list
-                 | `not_implemented of string
-                 | `extension_unknown of string
-                 | `parse_tags of exn ] >> e
+      <:sexp_of<
+       [> `errors of
+              [> `cannot_convert_to_phred_score of int Core.Std.List.t
+               | `lwt_exn of exn
+               | `sequence_names_mismatch of string * string
+               | `input of input_error
+               | `fastas_of_incompatible_length of
+                   Core.Std.String.t * Core.Std.String.t
+               | `transform of
+                   [> `io_exn of exn
+                    | `stopped_before_end_of_stream
+                    | `transform_error of [> `string of string ] ] ]
+              list
+          | `extension_absent
+          | `extension_unknown of string
+          | `not_implemented of string
+          | `parse_tags of Core.Exn.t ]
+      >> e
       |! Sexp.to_string_hum)
   end
 
