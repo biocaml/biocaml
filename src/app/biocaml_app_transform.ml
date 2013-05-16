@@ -363,47 +363,9 @@ let run_transform ~output_tags files =
     | `two_files_to_file (a_filename, a_transfo,
                           b_filename, b_transfo,
                           out_file, out_transfo) ->
-      let input_buffer_size = !Global_configuration.input_buffer_size in
-      let output_buffer_size = !Global_configuration.output_buffer_size in
-      wrap_deferred_lwt (fun () ->
-          Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size
-                    a_filename))
-      >>= fun a_input ->
-      wrap_deferred_lwt (fun () ->
-          Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size
-                    b_filename))
-      >>= fun b_input ->
-      wrap_deferred_lwt (fun () ->
-          Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
-                    out_file))
-      >>= fun out_channel ->
-      let rec loop () =
-        (* for_concurrent [a_input, a_transfo; b_input, b_transfo] (fun (inp, tr) ->; *)
-        (* TODO: find a way to do this concurrently but not too heavily … *)
-        pull_next a_input a_transfo
-        >>= fun a_item_opt ->
-        pull_next b_input b_transfo
-        >>= fun b_item_opt ->
-        begin match a_item_opt, b_item_opt with
-        | Some (Ok a_item), Some (Ok b_item) ->
-          Transform.feed out_transfo (a_item, b_item);
-          flush_result_transform ~out_channel ~transform:out_transfo
-          >>= fun () ->
-          loop ()
-        | None, None -> (* good ending *) return ()
-        | Some (Error e), _
-        | _, Some (Error e) -> error e
-        | Some _, None
-        | None, Some _ ->
-          error (`fastas_of_incompatible_length (a_filename, b_filename))
-        end
-      in
-      loop ()
-      >>= fun () ->
-      wrap_deferred_lwt (fun () -> Lwt_io.close a_input) >>= fun () ->
-      wrap_deferred_lwt (fun () -> Lwt_io.close b_input) >>= fun () ->
-      wrap_deferred_lwt (fun () -> Lwt_io.close out_channel) >>= fun () ->
-      return ()
+      two_files_to_file
+        ~left:(a_filename, a_transfo) ~right:(b_filename, b_transfo)
+        (out_file, out_transfo)
     end
     >>= fun (results, errors) ->
     begin match errors with
