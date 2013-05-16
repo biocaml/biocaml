@@ -309,32 +309,7 @@ let transforms_to_do
                b_tri (on_error ~f:(fun e -> `fasta e)
                         (Fasta.Transform.int_seq_raw_item_to_item  ()))))
       in
-      let two_fastas_to_fastq =
-        let open Result in
-        Transform.of_function begin fun (char_item, int_item) ->
-          if char_item.Fasta.header = int_item.Fasta.header then
-            begin
-              begin try
-                List.map int_item.Fasta.sequence
-                  (fun int ->
-                     Phred_score.(of_int_exn int
-                                  |> to_ascii_exn ~offset:`offset33
-                                  |> Char.to_string))
-                |> String.concat ~sep:"" |> return
-              with _ ->
-                fail (`cannot_convert_to_phred_score int_item.Fasta.sequence)
-              end
-              >>= fun qualities ->
-              return { Fastq.
-                       name = char_item.Fasta.header;
-                       sequence = char_item.Fasta.sequence;
-                       comment = char_item.Fasta.header;
-                       qualities}
-            end
-          else
-            fail (`sequence_names_mismatch (char_item.Fasta.header,
-                                            int_item.Fasta.header))
-        end in
+      let two_fastas_to_fastq = Fastq.Transform.fasta_pair_to_fastq () in
       let out_extension = Tags.default_extension output_tags in
       let base = filename_chop_all_extensions a_filename in
       let m =
