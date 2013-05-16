@@ -417,26 +417,28 @@ let more_help original_help : string =
         (c.f. [Biocaml_tags]).";
     par buf "The transformations are based on the idea of parsing
         *semantically similar* formats to a common representation and
-        printing that representation to compatible formats. The *FASTQ*
-        and *SAM-Item* representations are partially implemented so
-        far. Here are the *half-transformations* available:";
+        printing that representation to compatible formats. The
+        *FASTQ*, *FASTA*, and *SAM-Item* representations are partially
+        implemented so far. Here are the *half-transformations*
+        available:";
     ul buf [
+      "Parse `(gzip ANY)` -> *ANY*";
+      "Print *ANY* -> `(gzip ANY)`";
       "Parse `fastq` → *FASTQ*";
-      "Parse `(gzip fastq)` → *FASTQ*";
-      "Print *FASTQ* -> `(gzip fastq)`";
       "Print *FASTQ* -> `fastq`";
       "Print *FASTQ* -> `sam` (so-called non-aligned SAM/BAM files)";
-      "Print *FASTQ* -> `(gzip sam)`";
       "Print *FASTQ* -> `bam`";
       "Parse `sam` → *SAM-Item*";
-      "Parse `(gzip sam)` → *SAM-Item*";
       "Parse `bam` → *SAM-Item*";
       "Print *SAM-Item* -> `sam`";
-      "Print *SAM-Item* -> `(gzip sam)`";
       "Print *SAM-Item* -> `bam`";
       "Print *SAM-Item* -> `fastq` (gets the name, sequences and qualities \
                                 from alignments and discards any other info)";
-      "Print *SAM-Item* -> `(gzip fastq)`";
+      "Parse/Print *{int, char} FASTA* <-> `{int, char} fasta` \
+       (can do some clean-up of FASTA files, more to come …)";
+      "Parse (char fasta × int fasta) -> *FASTQ* (take the sequences \
+       from the first file and the qualities from the second and merge \
+       them into a FASTQ record)";
     ];
     par buf "Note that other meaningless file-formats are *not forbidden* like
        `(gzip (gzip fastq))` or `(gzip bam)`.";
