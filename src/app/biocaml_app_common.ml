@@ -552,7 +552,122 @@ let two_files_to_file
     of_result r
   end
 
+(**
 
+This like a generic demultiplexer:
+
+{v
+
+file1 ---transform1-->                              ----> out1
+                        \                         /
+file2 ---transform2--> --\                       /------> out2
+                          \                     /
+file3 ---transform3--> ----\                   /--------> out3
+                            \                 /
+...                          -----> mixer -->
+                            /                 \
+fileN ---transformN--> ____/                   `--------> outN
+
+v}
+
+The lengths of the [inputs] and [outputs] list must be the same as
+well as the expected length of the input of the [mixer] transform.
+
+*)
+let files_to_files
+    ~(inputs:(string * (string, ('a, 'err) Result.t) Transform.t) list)
+    ~(mixer:('a list, (int * string, 'err) Result.t) Transform.t)
+    (outputs: string list) =
+  let input_buffer_size = !Global_configuration.input_buffer_size in
+  let output_buffer_size = !Global_configuration.output_buffer_size in
+  for_concurrent inputs begin fun (filename, transform) ->
+      wrap_deferred_lwt (fun () ->
+          Lwt_io.(open_file ~mode:input ~buffer_size:input_buffer_size
+                    filename))
+      >>= fun in_chan ->
+      return (in_chan, IO.Transform.to_stream_fun (Transform.to_object transform)
+                (Lwt_stream.from (fun () ->
+                     Lwt.(
+                       Lwt_io.read in_chan
+                       >>= function
+                       | "" -> return None
+                       | other -> return (Some other)))))
+  end
+  >>= fun (transformed_streams, errors) ->
+  begin if errors <> []
+    then (for_concurrent transformed_streams (fun (c, _) ->
+        wrap_deferred_lwt (fun () -> Lwt_io.close c))
+       >>= fun _ ->
+       error (`multi_files_errors errors))
+    else  return ()
+  end
+  >>= fun () ->
+  for_concurrent outputs begin fun filename ->
+    wrap_deferred_lwt (fun () ->
+        Lwt_io.(open_file ~mode:output ~buffer_size:output_buffer_size
+                  filename))
+  end
+  >>= fun (outputs, errors) ->
+
+  let close_all () = (* Closing ignores errors. *)
+    for_concurrent transformed_streams (fun (c, _) ->
+        wrap_deferred_lwt (fun () -> Lwt_io.close c))
+    >>= fun _ ->
+    for_concurrent outputs (fun c ->
+        wrap_deferred_lwt (fun () -> Lwt_io.close c))
+    >>= fun _ ->
+    return () in
+
+  let treat_errors errors =
+    if errors <> []
+    then (close_all () >>= fun () -> error (`multi_files_errors errors))
+    else  return ()
+  in
+  treat_errors errors
+  >>= fun () ->
+
+  let rec loop () =
+    begin match Transform.next mixer with
+    | `output o ->
+      of_result o
+      >>= fun (nth, buf) ->
+      let may_out = List.nth outputs nth in
+      begin match may_out with
+      | Some out ->
+        IO.write out buf
+        >>= fun () ->
+        loop ()
+      | None ->
+        treat_errors [ `result_out_for_bounds (nth, List.length outputs) ]
+      end
+    | `end_of_stream -> return ()
+    | `not_ready ->
+      for_concurrent transformed_streams (fun (_, stream) ->
+          wrap_deferred_lwt (fun () -> Lwt_stream.get stream))
+      >>= fun (option_list, errors) ->
+      treat_errors errors
+      >>= fun () ->
+      begin match List.for_all option_list ((=) None) with
+      | true -> (* They all finish “right” *)
+        Transform.stop mixer; (* we tell the transform  *)
+        loop () (* and we loop to get the rest *)
+      | false when List.for_all option_list ((<>) None) ->
+        (* They all have data. *)
+        let v = Option.value_exn ~message:"None after for_all ((<>) None)" in
+        for_concurrent (List.map option_list ~f:(fun o -> v o)) of_result
+        >>= fun (to_feed, errors) ->
+        treat_errors errors
+        >>= fun () ->
+        Transform.feed mixer to_feed;
+        loop ()
+      | false ->
+        treat_errors [ `input_stream_length_mismatch ]
+      end
+    end
+  in
+  loop ()
+  >>= fun () ->
+  close_all ()
 
 
 (** Merge of the possible output errors of transforms of type
