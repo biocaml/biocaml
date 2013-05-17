@@ -377,25 +377,30 @@ let run_transform ~output_tags files =
   | Ok () -> return ()
   | Error e ->
     error (
-      <:sexp_of<
-       [> `errors of
-              [> `cannot_convert_to_phred_score of int Core.Std.List.t
-               | `lwt_exn of exn
-               | `sequence_names_mismatch of string * string
-               | `input of input_error
-               | `fastas_of_incompatible_length of
-                   Core.Std.String.t * Core.Std.String.t
-               | `transform of
-                   [> `io_exn of exn
-                    | `stopped_before_end_of_stream
-                    | `transform_error of [> `string of string ] ] ]
-              list
+      let module M = struct
+        type s =
+          [ `cannot_convert_to_phred_score of int list
+          | `input of input_error
+          | `input_stream_length_mismatch
+          | `io_exn of exn
+          | `lwt_exn of exn
+          | `multi_files_errors of s list
+          | `result_out_for_bounds of int * int
+          | `sequence_names_mismatch of string * string
+          | `transform of
+              [ `io_exn of exn
+              | `stopped_before_end_of_stream
+              | `transform_error of [ `string of string ] ] ]
+        with sexp_of
+        type t =
+          [ `errors of s list
           | `extension_absent
           | `extension_unknown of string
           | `not_implemented of string
-          | `parse_tags of Core.Exn.t ]
-      >> e
-      |! Sexp.to_string_hum)
+          | `parse_tags of exn ]
+        with sexp_of
+      end in
+      M.sexp_of_t e |> Sexp.to_string_hum)
   end
 
 
