@@ -3,9 +3,9 @@ open Result
 module Gff = Biocaml_gff
 module Wig = Biocaml_wig
 
-type t = [
-| `gzip of t
-| `raw_zip of t
+type file_format = [
+| `gzip of file_format
+| `raw_zip of file_format
 | `gff of Gff.Tags.t
 | `wig of Wig.Tags.t
 | `table of Biocaml_table.Row.Tags.t
@@ -16,7 +16,12 @@ type t = [
 | `fasta of Biocaml_fasta.Tags.t
 ] with sexp
 
-let rec default_extension = function
+type t = [
+| file_format
+| `list of t list
+] with sexp
+
+let rec default_extension: file_format -> string = function
   | `gzip t -> sprintf "%s.gz" (default_extension t)
   | `raw_zip t -> sprintf "%s.rawzip" (default_extension t)
   | `gff _ -> "gff"
@@ -28,6 +33,7 @@ let rec default_extension = function
   | `fasta _ -> "fasta"
   | `table tags -> Biocaml_table.Row.Tags.default_extension tags
 
+let to_tag (f : file_format) = (f :> t)
 
 let rec guess_from_filename filename =
   match Filename.split_extension filename with

@@ -675,7 +675,7 @@ let output_transform_name = function
 (** Guess the [output_transform] from file tags. *)
 let output_transform_of_tags
     (output_tags: Tags.t) : (output_transform, _) Flow.t =
-  let rec output_transform ?with_zip output_tags =
+  let rec output_transform ?with_zip (output_tags : Tags.file_format) =
     let with_zip_result t =
       match with_zip with
       | Some z -> Transform.compose_result_left t z
@@ -690,10 +690,10 @@ let output_transform_of_tags
     let zlib_buffer_size = Global_configuration.zlib_buffer_size () in
     let gzip_level = Global_configuration.gzip_level () in
     match output_tags with
-    | `raw_zip tags ->
+    | `raw_zip (tags: Tags.file_format) ->
       output_transform
         ~with_zip:(Zip.Transform.zip ~zlib_buffer_size ~format:`raw ()) tags
-    | `gzip tags ->
+    | `gzip (tags: Tags.file_format) ->
       output_transform
         ?with_zip:(Global_configuration.gzip_output_transform ()) tags
     | `bam ->
@@ -736,5 +736,9 @@ let output_transform_of_tags
           (Lines.Transform.item_to_string ()) in
       return (`to_table (with_zip_no_error t) : output_transform)
   in
-  output_transform output_tags
+  match output_tags with
+  | `list (tags : Tags.t list) ->
+    error (`not_implemented "list output_tags")
+  | #Tags.file_format as file_output_tags ->
+    output_transform file_output_tags
 

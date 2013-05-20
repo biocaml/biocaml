@@ -49,85 +49,92 @@ let input_transform_name = function
   | `from_table _ -> "from_table"
 
 
-let rec input_transform ?with_unzip input_tags =
-  let zlib_buffer_size = Global_configuration.zlib_buffer_size () in
-  let with_unzip t =
-    match with_unzip with
-    | Some z ->
-      Transform.compose_results
-        ~on_error:(function `left l -> `unzip l | `right r -> r)
-        z t
-    | None -> t
+let input_transform (input_tags: Tags.t) =
+  let rec input_transform ?with_unzip input_tags =
+    let zlib_buffer_size = Global_configuration.zlib_buffer_size () in
+    let with_unzip t =
+      match with_unzip with
+      | Some z ->
+        Transform.compose_results
+          ~on_error:(function `left l -> `unzip l | `right r -> r)
+          z t
+      | None -> t
+    in
+    let from_sam_item t = return (`from_sam_item (with_unzip t) : input_transform) in
+    match (input_tags : Tags.file_format) with
+    | `raw_zip tags ->
+      input_transform
+        ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`raw ()) tags
+    | `gzip tags ->
+      input_transform
+        ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`gzip ()) tags
+    | `bam ->
+      from_sam_item (
+        Transform.compose_results
+          ~on_error:(function `left l -> l | `right r -> `bam_to_item r)
+          (Bam.Transform.string_to_raw ~zlib_buffer_size ())
+          (Bam.Transform.raw_to_item ()))
+    | `sam ->
+      from_sam_item (
+        Transform.compose_results
+          ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
+          (Sam.Transform.string_to_raw ())
+          (Sam.Transform.raw_to_item ()))
+    | `gff gff_tag_list ->
+      let t =
+        Transform.on_output
+          (Gff.Transform.string_to_item ~tags:gff_tag_list ())
+          (function Ok o -> Ok o | Error e -> Error (`gff e))
+      in
+      return (`from_gff (with_unzip t) : input_transform)
+    | `wig wig_tag_list ->
+      let t =
+        Transform.on_output
+          (Wig.Transform.string_to_item ~tags:wig_tag_list ())
+          (function Ok o -> Ok o | Error e -> Error (`wig e))
+      in
+      return (`from_wig (with_unzip t) : input_transform)
+    | `bed ->
+      let t =
+        Transform.on_output
+          (Bed.Transform.string_to_item ())
+          (function Ok o -> Ok o | Error e -> Error (`bed e))
+      in
+      return (`from_bed (with_unzip t) : input_transform)
+    | `fastq ->
+      let t =
+        Transform.on_output
+          (Fastq.Transform.string_to_item ())
+          (function Ok o -> Ok o | Error e -> Error (`fastq e))
+      in
+      return (`from_fastq (with_unzip t) : input_transform)
+    | `fasta (`char_sequence  tags) ->
+      let t =
+        Transform.on_output
+          (Fasta.Transform.string_to_char_seq_raw_item ~tags ())
+          (function Ok o -> Ok o | Error e -> Error (`fasta e))
+      in
+      return (`from_char_fasta (with_unzip t) : input_transform)
+    | `fasta (`int_sequence tags) ->
+      let t =
+        Transform.on_output
+          (Fasta.Transform.string_to_int_seq_raw_item ~tags ())
+          (function Ok o -> Ok o | Error e -> Error (`fasta e))
+      in
+      return (`from_int_fasta (with_unzip t) : input_transform)
+    | `table tags ->
+      let t =
+        Transform.compose
+          (Lines.Transform.string_to_item ())
+          (Table.Row.Transform.line_to_item ~tags ())
+      in
+      return (`from_table (with_unzip t) : input_transform)
   in
-  let from_sam_item t = return (`from_sam_item (with_unzip t) : input_transform) in
   match input_tags with
-  | `raw_zip tags ->
-    input_transform
-      ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`raw ()) tags
-  | `gzip tags ->
-    input_transform
-      ~with_unzip:(Zip.Transform.unzip ~zlib_buffer_size ~format:`gzip ()) tags
-  | `bam ->
-    from_sam_item (
-      Transform.compose_results
-        ~on_error:(function `left l -> l | `right r -> `bam_to_item r)
-        (Bam.Transform.string_to_raw ~zlib_buffer_size ())
-        (Bam.Transform.raw_to_item ()))
-  | `sam ->
-    from_sam_item (
-      Transform.compose_results
-        ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
-        (Sam.Transform.string_to_raw ())
-        (Sam.Transform.raw_to_item ()))
-  | `gff gff_tag_list ->
-    let t =
-      Transform.on_output
-        (Gff.Transform.string_to_item ~tags:gff_tag_list ())
-        (function Ok o -> Ok o | Error e -> Error (`gff e))
-    in
-    return (`from_gff (with_unzip t) : input_transform)
-  | `wig wig_tag_list ->
-    let t =
-      Transform.on_output
-        (Wig.Transform.string_to_item ~tags:wig_tag_list ())
-        (function Ok o -> Ok o | Error e -> Error (`wig e))
-    in
-    return (`from_wig (with_unzip t) : input_transform)
-  | `bed ->
-    let t =
-      Transform.on_output
-        (Bed.Transform.string_to_item ())
-        (function Ok o -> Ok o | Error e -> Error (`bed e))
-    in
-    return (`from_bed (with_unzip t) : input_transform)
-  | `fastq ->
-    let t =
-      Transform.on_output
-        (Fastq.Transform.string_to_item ())
-        (function Ok o -> Ok o | Error e -> Error (`fastq e))
-    in
-    return (`from_fastq (with_unzip t) : input_transform)
-  | `fasta (`char_sequence  tags) ->
-    let t =
-      Transform.on_output
-        (Fasta.Transform.string_to_char_seq_raw_item ~tags ())
-        (function Ok o -> Ok o | Error e -> Error (`fasta e))
-    in
-    return (`from_char_fasta (with_unzip t) : input_transform)
-  | `fasta (`int_sequence tags) ->
-    let t =
-      Transform.on_output
-        (Fasta.Transform.string_to_int_seq_raw_item ~tags ())
-        (function Ok o -> Ok o | Error e -> Error (`fasta e))
-    in
-    return (`from_int_fasta (with_unzip t) : input_transform)
-  | `table tags ->
-    let t =
-      Transform.compose
-        (Lines.Transform.string_to_item ())
-        (Table.Row.Transform.line_to_item ~tags ())
-    in
-    return (`from_table (with_unzip t) : input_transform)
+  | `list (tags : Tags.t list) ->
+    error (`not_implemented "list input_tags")
+  | #Tags.file_format as file_input_tags ->
+    input_transform file_input_tags
 
 let filename_chop_all_extensions filename =
   let rec f filename =
@@ -205,7 +212,12 @@ let sam_item_to_fastq_item () : (Sam.item, Fastq.item) Transform.t =
     end
 
 let transforms_to_do
-    input_files_tags_and_transforms meta_output_transform output_tags =
+    input_files_tags_and_transforms meta_output_transform general_output_tags =
+  begin match general_output_tags with
+  | `list _ -> error (`not_implemented "transforms_to_do: `list _")
+  | #Tags.file_format as f -> return f
+  end
+  >>= fun output_tags ->
   let any_fasta_transform
       filename itags tr_in raw_to_item otags item_to_raw tr_out =
     let transfo =
@@ -332,6 +344,7 @@ let run_transform ~output_tags files =
       match String.lsplit2 ~on:':' file_optionally_tagged with
       | None ->
         of_result (Tags.guess_from_filename file_optionally_tagged)
+        >>| Tags.to_tag
         >>= fun tags ->
         input_transform tags
         >>= fun meta_transform ->

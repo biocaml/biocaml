@@ -428,7 +428,7 @@ let do_random ~output_file ~nb_items spec =
     let transform = Transform.compose random_transform tr in
     do_output output_meta_channel transform nb_items
 
-  | _ -> error (`not_implemented)
+  | _ -> error (`not_implemented "Random: do_random")
   end
   >>= fun () ->
 
@@ -444,7 +444,7 @@ let stringify m =
   | Error e ->
     error (<:sexp_of< [
     | `io_exn of exn
-    | `not_implemented
+    | `not_implemented of string
     | `inconsistent_tags of [ `int_sequence ]
     | `file_exists of string
     | `wrong_path of string

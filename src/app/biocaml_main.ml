@@ -19,7 +19,7 @@ let cmd_info =
           begin match Biocaml_tags.guess_from_filename s with
           | Ok tags ->
             say "  Inferred Tags: %s\n"
-              (Biocaml_tags.sexp_of_t tags |! Sexp.to_string_hum)
+              (Biocaml_tags.sexp_of_file_format tags |! Sexp.to_string_hum)
           | Error e ->
             say "  Cannot retrieve tags: %s\n"
               begin match e with
