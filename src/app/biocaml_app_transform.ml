@@ -148,9 +148,9 @@ let filename_make_new base extension =
   sprintf "%s-%s.%s" base Time.(now () |! to_filename_string) extension
 
 let transform_stringify_errors t =
-  Transform.on_error t
-    ~f:(function
-    | `input e -> `string (Sexp.to_string_hum (sexp_of_input_error e))
+  Transform.on_error t ~f:(function
+    | `input e ->
+      `string (Sexp.to_string_hum (Tags.Input_transform.sexp_of_input_error e))
     | `output e ->
       `string (Sexp.to_string_hum
                  (Tags.Output_transform.sexp_of_sam_output_error e))
@@ -353,13 +353,13 @@ let run_transform ~output_tags files =
         of_result (Tags.guess_from_filename file_optionally_tagged)
         >>| Tags.to_tag
         >>= fun tags ->
-        input_transform tags
+        of_result (Tags.Input_transform.from_tags tags)
         >>= fun meta_transform ->
         return (file_optionally_tagged, tags, meta_transform)
       | Some (one, two) ->
         of_result (Tags.of_string two)
         >>= fun tags ->
-        input_transform tags
+        of_result (Tags.Input_transform.from_tags tags)
         >>= fun meta_transform ->
         return (one, tags, meta_transform))
     >>= fun input_files_tags_and_transforms ->
@@ -371,7 +371,7 @@ let run_transform ~output_tags files =
     >>= fun meta_output_transform ->
     while_sequential input_files_tags_and_transforms (fun (filename, tags, tr) ->
       Say.dbg "Convert %s (%s) %s %s"
-        filename (Tags.to_string tags) (input_transform_name tr)
+        filename (Tags.to_string tags) (Tags.Input_transform.name tr)
         (Tags.Output_transform.name meta_output_transform)
     )
     >>= fun _ ->
@@ -402,7 +402,7 @@ let run_transform ~output_tags files =
       let module M = struct
         type s =
           [ `cannot_convert_to_phred_score of int list
-          | `input of input_error
+          | `input of Tags.Input_transform.input_error
           | `input_stream_length_mismatch
           | `io_exn of exn
           | `lwt_exn of exn
