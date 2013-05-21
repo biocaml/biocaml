@@ -87,6 +87,65 @@ module Output_transform: sig
 end
 
 
+module Input_transform: sig
+
+
+  type input_error = [
+    | `bam of Biocaml_bam.Error.raw_bam
+    | `bam_to_item of [ Biocaml_bam.Error.raw_to_item ]
+    | `sam of [ Biocaml_sam.Error.string_to_raw ]
+    | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
+    | `unzip of Biocaml_zip.Error.unzip
+    | `gff of Biocaml_gff.Error.parsing
+    | `wig of Biocaml_wig.Error.parsing
+    | `bed of Biocaml_bed.Error.parsing
+    | `fastq of Biocaml_fastq.Error.t
+    | `fasta of Biocaml_fasta.Error.t
+    | `table_row of Biocaml_table.Row.Error.t
+  ]
+  (** An union of all possible input errors. *)
+
+  type tags = t
+  (** An alias of the type [Tags.t]. *)
+
+  type t = [
+    | `from_sam_item of
+        (string, (Biocaml_sam.item, input_error) Core.Result.t) Biocaml_transform.t
+    | `from_gff of
+        (string, (Biocaml_gff.item, input_error) Core.Result.t) Biocaml_transform.t
+    | `from_wig of
+        (string, (Biocaml_wig.item, input_error) Core.Result.t) Biocaml_transform.t
+    | `from_bed of
+        (string, (Biocaml_bed.item, input_error) Core.Result.t) Biocaml_transform.t
+    | `from_fastq
+      of (string, (Biocaml_fastq.item, input_error) Core.Result.t) Biocaml_transform.t
+    | `from_char_fasta
+      of (string, (Biocaml_fasta.char_seq Biocaml_fasta.raw_item,
+                   input_error) Core.Result.t) Biocaml_transform.t
+    | `from_int_fasta of
+        (string, (Biocaml_fasta.int_seq Biocaml_fasta.raw_item,
+                  input_error) Core.Result.t) Biocaml_transform.t
+    | `from_table of
+        (string, (Biocaml_table.Row.t, input_error) Core.Result.t) Biocaml_transform.t
+  ]
+  (** The general input transformation. *)
+
+  val name: t -> string
+  (** Get a string describing and input transform (for debug/display
+      purposes). *)
+
+  val from_tags :
+    ?zlib_buffer_size:int ->
+    tags ->
+    (t, [> `not_implemented of string ]) Core.Result.t
+  (** Create an [Input_transform.t] from [tags] describing the format. *)
+
+  val sexp_of_input_error: input_error -> Sexplib.Sexp.t
+
+end
+
+
+
 (** {2 S-Expression Conversions} *)
 
 val file_format_of_sexp: Sexplib.Sexp.t -> file_format

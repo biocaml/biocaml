@@ -173,3 +173,147 @@ module Output_transform = struct
 
 
 end
+
+module Input_transform = struct
+
+
+  type input_error = [
+    | `bam of Biocaml_bam.Error.raw_bam
+    | `bam_to_item of [ Biocaml_bam.Error.raw_to_item ]
+    | `sam of [ Biocaml_sam.Error.string_to_raw ]
+    | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
+    | `unzip of Biocaml_zip.Error.unzip
+    | `gff of Biocaml_gff.Error.parsing
+    | `wig of Biocaml_wig.Error.parsing
+    | `bed of Biocaml_bed.Error.parsing
+    | `fastq of Biocaml_fastq.Error.t
+    | `fasta of Biocaml_fasta.Error.t
+    | `table_row of Biocaml_table.Row.Error.t
+  ]
+  with sexp_of
+
+  type tags = t
+
+  type t = [
+    | `from_sam_item of
+        (string, (Biocaml_sam.item, input_error) Result.t) Biocaml_transform.t
+    | `from_gff of
+        (string, (Biocaml_gff.item, input_error) Result.t) Biocaml_transform.t
+    | `from_wig of
+        (string, (Biocaml_wig.item, input_error) Result.t) Biocaml_transform.t
+    | `from_bed of
+        (string, (Biocaml_bed.item, input_error) Result.t) Biocaml_transform.t
+    | `from_fastq
+      of (string, (Biocaml_fastq.item, input_error) Result.t) Biocaml_transform.t
+    | `from_char_fasta
+      of (string, (Biocaml_fasta.char_seq Biocaml_fasta.raw_item,
+                   input_error) Result.t) Biocaml_transform.t
+    | `from_int_fasta of
+        (string, (Biocaml_fasta.int_seq Biocaml_fasta.raw_item,
+                  input_error) Result.t) Biocaml_transform.t
+    | `from_table of
+        (string, (Biocaml_table.Row.t, input_error) Result.t) Biocaml_transform.t
+  ]
+
+  let name = function
+  | `from_sam_item _ -> "from_sam_item"
+  | `from_gff _ -> "from_gff"
+  | `from_wig _ -> "from_wig"
+  | `from_bed _ -> "from_bed"
+  | `from_fastq _ -> "from_fastq"
+  | `from_char_fasta _ -> "from_char_fasta"
+  | `from_int_fasta _ -> "from_int_fasta"
+  | `from_table _ -> "from_table"
+
+
+  let from_tags ?zlib_buffer_size (input_tags: tags) =
+    let rec input_transform ?with_unzip input_tags =
+      let with_unzip t =
+        match with_unzip with
+        | Some z ->
+          Biocaml_transform.compose_results
+            ~on_error:(function `left l -> `unzip l | `right r -> r)
+            z t
+        | None -> t
+      in
+      let from_sam_item t = return (`from_sam_item (with_unzip t) : t) in
+      match (input_tags : file_format) with
+      | `raw_zip tags ->
+        input_transform
+          ~with_unzip:(Biocaml_zip.Transform.unzip
+                         ?zlib_buffer_size ~format:`raw ()) tags
+      | `gzip tags ->
+        input_transform
+          ~with_unzip:(Biocaml_zip.Transform.unzip
+                         ?zlib_buffer_size ~format:`gzip ()) tags
+      | `bam ->
+        from_sam_item (
+          Biocaml_transform.compose_results
+            ~on_error:(function `left l -> l | `right r -> `bam_to_item r)
+            (Biocaml_bam.Transform.string_to_raw ?zlib_buffer_size ())
+            (Biocaml_bam.Transform.raw_to_item ()))
+      | `sam ->
+        from_sam_item (
+          Biocaml_transform.compose_results
+            ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
+            (Biocaml_sam.Transform.string_to_raw ())
+            (Biocaml_sam.Transform.raw_to_item ()))
+      | `gff gff_tag_list ->
+        let t =
+          Biocaml_transform.on_output
+            (Biocaml_gff.Transform.string_to_item ~tags:gff_tag_list ())
+            (function Ok o -> Ok o | Error e -> Error (`gff e))
+        in
+        return (`from_gff (with_unzip t) : t)
+      | `wig wig_tag_list ->
+        let t =
+          Biocaml_transform.on_output
+            (Biocaml_wig.Transform.string_to_item ~tags:wig_tag_list ())
+            (function Ok o -> Ok o | Error e -> Error (`wig e))
+        in
+        return (`from_wig (with_unzip t) : t)
+      | `bed ->
+        let t =
+          Biocaml_transform.on_output
+            (Biocaml_bed.Transform.string_to_item ())
+            (function Ok o -> Ok o | Error e -> Error (`bed e))
+        in
+        return (`from_bed (with_unzip t) : t)
+      | `fastq ->
+        let t =
+          Biocaml_transform.on_output
+            (Biocaml_fastq.Transform.string_to_item ())
+            (function Ok o -> Ok o | Error e -> Error (`fastq e))
+        in
+        return (`from_fastq (with_unzip t) : t)
+      | `fasta (`char_sequence  tags) ->
+        let t =
+          Biocaml_transform.on_output
+            (Biocaml_fasta.Transform.string_to_char_seq_raw_item ~tags ())
+            (function Ok o -> Ok o | Error e -> Error (`fasta e))
+        in
+        return (`from_char_fasta (with_unzip t) : t)
+      | `fasta (`int_sequence tags) ->
+        let t =
+          Biocaml_transform.on_output
+            (Biocaml_fasta.Transform.string_to_int_seq_raw_item ~tags ())
+            (function Ok o -> Ok o | Error e -> Error (`fasta e))
+        in
+        return (`from_int_fasta (with_unzip t) : t)
+      | `table tags ->
+        let t =
+          Biocaml_transform.compose
+            (Biocaml_lines.Transform.string_to_item ())
+            (Biocaml_table.Row.Transform.line_to_item ~tags ())
+        in
+        return (`from_table (with_unzip t) : t)
+    in
+    match input_tags with
+    | `list (tags : tags list) ->
+      fail (`not_implemented "list input_tags")
+    | #file_format as file_input_tags ->
+      input_transform file_input_tags
+
+
+
+end
