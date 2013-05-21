@@ -151,7 +151,9 @@ let transform_stringify_errors t =
   Transform.on_error t
     ~f:(function
     | `input e -> `string (Sexp.to_string_hum (sexp_of_input_error e))
-    | `output e -> `string (Sexp.to_string_hum (sexp_of_output_error e))
+    | `output e ->
+      `string (Sexp.to_string_hum
+                 (Tags.Output_transform.sexp_of_sam_output_error e))
     )
 
 let fastq_item_to_sam_item () =
@@ -234,7 +236,7 @@ let transforms_to_do
     `file_to_file (filename, transfo, filename_make_new base out_extension)
   in
   let rec loop acc l =
-    match l, (meta_output_transform : output_transform) with
+    match l, (meta_output_transform : Tags.Output_transform.t) with
     | [], _ -> return acc
     | (filename, tags, `from_fastq tri) :: t, `to_fastq tro ->
       let m =
@@ -286,16 +288,21 @@ let transforms_to_do
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
       loop (m :: acc) t
-    | (filename, itags, `from_char_fasta tri) :: t, `to_char_fasta (tro, otags) ->
+    | (filename, itags, `from_char_fasta tri) :: t, `to_char_fasta tro ->
       let m =
+        let otags =
+          match general_output_tags with `fasta t -> t | _ -> assert false in
         any_fasta_transform
           filename
           itags tri (Fasta.Transform.char_seq_raw_item_to_item  ())
-          otags (Fasta.Transform.char_seq_item_to_raw_item ~tags:otags ()) tro
+          otags (Fasta.Transform.char_seq_item_to_raw_item ~tags:otags ())
+          tro
       in
       loop (m :: acc) t
-    | (filename, itags, `from_int_fasta tri) :: t, `to_int_fasta (tro, otags) ->
+    | (filename, itags, `from_int_fasta tri) :: t, `to_int_fasta tro ->
       let m =
+        let otags =
+          match general_output_tags with `fasta t -> t | _ -> assert false in
         any_fasta_transform
           filename
           itags tri (Fasta.Transform.int_seq_raw_item_to_item  ())
@@ -358,12 +365,14 @@ let run_transform ~output_tags files =
     >>= fun input_files_tags_and_transforms ->
     of_result (Tags.of_string output_tags)
     >>= fun tags ->
-    output_transform_of_tags tags
+    of_result (Tags.Output_transform.from_tags tags
+                 ~zip_level:(Global_configuration.gzip_level ())
+                 ~zlib_buffer_size:(Global_configuration.zlib_buffer_size ()))
     >>= fun meta_output_transform ->
     while_sequential input_files_tags_and_transforms (fun (filename, tags, tr) ->
       Say.dbg "Convert %s (%s) %s %s"
         filename (Tags.to_string tags) (input_transform_name tr)
-        (output_transform_name meta_output_transform)
+        (Tags.Output_transform.name meta_output_transform)
     )
     >>= fun _ ->
     transforms_to_do input_files_tags_and_transforms meta_output_transform tags
