@@ -390,7 +390,9 @@ let do_random ~output_file ~nb_items spec =
     then (`gzip t, a, ft)
     else (t, a, ft)
   in
-  output_transform_of_tags tags
+  of_result (Tags.Output_transform.from_tags tags
+               ~zip_level:(Global_configuration.gzip_level ())
+               ~zlib_buffer_size:(Global_configuration.zlib_buffer_size ()))
   >>= begin function
   | `to_fastq tr ->
     let transform = Transform.compose (random_fastq_transform ~args ()) tr in
@@ -421,7 +423,7 @@ let do_random ~output_file ~nb_items spec =
       ) in
  *)
     do_output output_meta_channel transform nb_items
-  | `to_char_fasta (tr, _) ->
+  | `to_char_fasta tr ->
     of_result
       (Fasta.Random.unit_to_random_char_seq_raw_item fasta_tags)
     >>= fun random_transform ->
