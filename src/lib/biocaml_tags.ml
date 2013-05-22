@@ -68,9 +68,10 @@ let to_string t =
 
 module Output_transform = struct
 
-  type sam_output_error = [
+  type output_error = [
     | `bam of Biocaml_bam.Error.item_to_raw
     | `sam of Biocaml_sam.Error.item_to_raw
+    | `fastq of [ `cannot_convert_ascii_phred_score of string ]
   ] with sexp_of
 
   type tags = t
@@ -78,12 +79,14 @@ module Output_transform = struct
   (** Generic union of possible output transforms. *)
   type t = [
     | `sam_item_to_file of
-        (Biocaml_sam.item, (string, sam_output_error) Result.t)
+        (Biocaml_sam.item, (string, output_error) Result.t)
           Biocaml_transform.t
     | `gff_to_file of(Biocaml_gff.item, string) Biocaml_transform.t
     | `wig_to_file of (Biocaml_wig.item, string) Biocaml_transform.t
     | `bed_to_file of (Biocaml_bed.item, string) Biocaml_transform.t
     | `fastq_to_file of (Biocaml_fastq.item, string) Biocaml_transform.t
+    | `fastq_to_two_files of
+        (Biocaml_fastq.item, (string * string, output_error) Result.t) Biocaml_transform.t
     | `char_fasta_to_file of
         (Biocaml_fasta.char_seq Biocaml_fasta.raw_item, string)
           Biocaml_transform.t
@@ -102,6 +105,7 @@ module Output_transform = struct
   | `char_fasta_to_file _ -> "char_fasta_to_file"
   | `int_fasta_to_file _ -> "int_fasta_to_file"
   | `table_to_file _ -> "table_to_file"
+  | `fastq_to_two_files _ -> "fastq_to_two_files"
 
   let from_tags ?zip_level ?zlib_buffer_size
       (output_tags: tags) : (t, _) Result.t =
@@ -154,7 +158,6 @@ module Output_transform = struct
         let t = Biocaml_fastq.Transform.item_to_string () in
         return (`fastq_to_file (with_zip_no_error t) : t)
       | `fasta (`char_sequence _ as tags) ->
-        (* TODO output warning? if `unknown *)
         let t = Biocaml_fasta.Transform.char_seq_raw_item_to_string ~tags () in
         return (`char_fasta_to_file (with_zip_no_error t) : t)
       | `fasta (`int_sequence _ as tags) ->
@@ -168,6 +171,27 @@ module Output_transform = struct
         return (`table_to_file (with_zip_no_error t) : t)
     in
     match output_tags with
+    | `list [#file_format as left; #file_format as right ] ->
+      output_transform left
+      >>= fun left_tr ->
+      output_transform right
+      >>= fun right_tr ->
+      begin match left_tr, right_tr with
+      | `char_fasta_to_file t1, `int_fasta_to_file t2 ->
+        Biocaml_transform.(
+          let tleft =
+            compose (Biocaml_fasta.Transform.char_seq_item_to_raw_item ()) t1 in
+          let tright =
+            compose (Biocaml_fasta.Transform.int_seq_item_to_raw_item ()) t2 in
+          return (`fastq_to_two_files (
+              on_error ~f:(fun e -> `fastq e)
+                (compose_result_left
+                   (Biocaml_fastq.Transform.fastq_to_fasta_pair ())
+                   (mix tleft tright (fun a b -> (a, b))))
+            )))
+      | _ ->
+        fail (`not_implemented "list output_tags")
+      end
     | `list (tags : tags list) -> fail (`not_implemented "list output_tags")
     | #file_format as file_output_tags -> output_transform file_output_tags
 

@@ -22,7 +22,7 @@ let transform_stringify_errors t =
       `string (Sexp.to_string_hum (Tags.Input_transform.sexp_of_input_error e))
     | `output e ->
       `string (Sexp.to_string_hum
-                 (Tags.Output_transform.sexp_of_sam_output_error e))
+                 (Tags.Output_transform.sexp_of_output_error e))
     )
 
 let fastq_item_to_sam_item () =

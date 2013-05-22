@@ -46,9 +46,10 @@ val to_string: t -> string
 module Output_transform: sig
 
 
-  type sam_output_error = [
+  type output_error = [
     | `bam of Biocaml_bam.Error.item_to_raw
     | `sam of Biocaml_sam.Error.item_to_raw
+    | `fastq of [ `cannot_convert_ascii_phred_score of string ]
   ]
   (** Union possible output errors of the transforms
       leading to {!Biocaml_sam.item} values.
@@ -59,12 +60,15 @@ module Output_transform: sig
 
   type t = [
     | `sam_item_to_file of
-        (Biocaml_sam.item, (string, sam_output_error) Core.Result.t)
+        (Biocaml_sam.item, (string, output_error) Core.Result.t)
           Biocaml_transform.t
     | `gff_to_file of(Biocaml_gff.item, string) Biocaml_transform.t
     | `wig_to_file of (Biocaml_wig.item, string) Biocaml_transform.t
     | `bed_to_file of (Biocaml_bed.item, string) Biocaml_transform.t
     | `fastq_to_file of (Biocaml_fastq.item, string) Biocaml_transform.t
+    | `fastq_to_two_files of
+        (Biocaml_fastq.item, (string * string, output_error) Core.Result.t)
+          Biocaml_transform.t
     | `char_fasta_to_file of
         (Biocaml_fasta.char_seq Biocaml_fasta.raw_item, string)
           Biocaml_transform.t
@@ -82,7 +86,7 @@ module Output_transform: sig
     (t, [> `not_implemented of string ]) Biocaml_internal_pervasives.Result.t
   (** Guess the [Output_transform.t] from file tags. *)
 
-  val sexp_of_sam_output_error: sam_output_error -> Sexplib.Sexp.t
+  val sexp_of_output_error: output_error -> Sexplib.Sexp.t
 
 end
 
