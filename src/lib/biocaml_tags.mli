@@ -58,20 +58,20 @@ module Output_transform: sig
   (** Alias to [Tags.t] for this module. *)
 
   type t = [
-    | `to_sam_item of
+    | `sam_item_to_file of
         (Biocaml_sam.item, (string, sam_output_error) Core.Result.t)
           Biocaml_transform.t
-    | `to_gff of(Biocaml_gff.item, string) Biocaml_transform.t
-    | `to_wig of (Biocaml_wig.item, string) Biocaml_transform.t
-    | `to_bed of (Biocaml_bed.item, string) Biocaml_transform.t
-    | `to_fastq of (Biocaml_fastq.item, string) Biocaml_transform.t
-    | `to_char_fasta of
+    | `gff_to_file of(Biocaml_gff.item, string) Biocaml_transform.t
+    | `wig_to_file of (Biocaml_wig.item, string) Biocaml_transform.t
+    | `bed_to_file of (Biocaml_bed.item, string) Biocaml_transform.t
+    | `fastq_to_file of (Biocaml_fastq.item, string) Biocaml_transform.t
+    | `char_fasta_to_file of
         (Biocaml_fasta.char_seq Biocaml_fasta.raw_item, string)
           Biocaml_transform.t
-    | `to_int_fasta of
+    | `int_fasta_to_file of
         (Biocaml_fasta.int_seq Biocaml_fasta.raw_item, string)
           Biocaml_transform.t
-    | `to_table of (Biocaml_table.Row.t, string) Biocaml_transform.t
+    | `table_to_file of (Biocaml_table.Row.t, string) Biocaml_transform.t
   ]
   (** Generic union of possible output transforms. *)
 

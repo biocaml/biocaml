@@ -107,7 +107,7 @@ let transforms_to_do
   let rec loop acc l =
     match l, (meta_output_transform : Tags.Output_transform.t) with
     | [], _ -> return acc
-    | (filename, tags, `from_fastq tri) :: t, `to_fastq tro ->
+    | (filename, tags, `from_fastq tri) :: t, `fastq_to_file tro ->
       let m =
         let transfo =
           Transform.(
@@ -119,7 +119,7 @@ let transforms_to_do
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
       loop (m :: acc) t
-    | (filename, tags, `from_sam_item tri) :: t, `to_sam_item tro ->
+    | (filename, tags, `from_sam_item tri) :: t, `sam_item_to_file tro ->
       let m =
         let transfo =
           Transform.compose_results
@@ -131,7 +131,7 @@ let transforms_to_do
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
       loop (m :: acc) t
-    | (filename, tags, `from_fastq tri) :: t, `to_sam_item tro ->
+    | (filename, tags, `from_fastq tri) :: t, `sam_item_to_file tro ->
       let m =
         let transfo =
           Transform.(compose_results
@@ -143,7 +143,7 @@ let transforms_to_do
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
       loop (m :: acc) t
-    | (filename, tags, `from_sam_item tri) :: t, `to_fastq tro ->
+    | (filename, tags, `from_sam_item tri) :: t, `fastq_to_file tro ->
       let m =
         let transfo =
           Transform.(
@@ -157,7 +157,7 @@ let transforms_to_do
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
       loop (m :: acc) t
-    | (filename, itags, `from_char_fasta tri) :: t, `to_char_fasta tro ->
+    | (filename, itags, `from_char_fasta tri) :: t, `char_fasta_to_file tro ->
       let m =
         let otags =
           match general_output_tags with `fasta t -> t | _ -> assert false in
@@ -168,7 +168,7 @@ let transforms_to_do
           tro
       in
       loop (m :: acc) t
-    | (filename, itags, `from_int_fasta tri) :: t, `to_int_fasta tro ->
+    | (filename, itags, `from_int_fasta tri) :: t, `int_fasta_to_file tro ->
       let m =
         let otags =
           match general_output_tags with `fasta t -> t | _ -> assert false in
@@ -180,7 +180,7 @@ let transforms_to_do
       loop (m :: acc) t
     | (   a_filename, a_itags, `from_char_fasta a_tri)
       :: (b_filename, b_itags, `from_int_fasta  b_tri) :: t,
-      `to_fastq tro ->
+      `fastq_to_file tro ->
       let a_transfo =
         Transform.(
           on_error ~f:(fun e -> `input e)

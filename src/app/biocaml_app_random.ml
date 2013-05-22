@@ -394,13 +394,13 @@ let do_random ~output_file ~nb_items spec =
                ~zip_level:(Global_configuration.gzip_level ())
                ~zlib_buffer_size:(Global_configuration.zlib_buffer_size ()))
   >>= begin function
-  | `to_fastq tr ->
+  | `fastq_to_file tr ->
     let transform = Transform.compose (random_fastq_transform ~args ()) tr in
     do_output output_meta_channel transform nb_items
-  | `to_bed tr ->
+  | `bed_to_file tr ->
     let transform = Transform.compose (random_bed_transform ~args ()) tr in
     do_output output_meta_channel transform nb_items
-  | `to_sam_item tr ->
+  | `sam_item_to_file tr ->
     let transform =
       Transform.(
         compose (random_sam_item_transform ~args ()) tr
@@ -410,7 +410,7 @@ let do_random ~output_file ~nb_items spec =
             failwith "ERROR in SAM/BAM OUTPUT")
       ) in
     do_output output_meta_channel transform nb_items
-  | `to_table tr ->
+  | `table_to_file tr ->
     let transform = Transform.compose (random_table_transform ~args ()) tr in
     (*
     let transform =
@@ -423,7 +423,7 @@ let do_random ~output_file ~nb_items spec =
       ) in
  *)
     do_output output_meta_channel transform nb_items
-  | `to_char_fasta tr ->
+  | `char_fasta_to_file tr ->
     of_result
       (Fasta.Random.unit_to_random_char_seq_raw_item fasta_tags)
     >>= fun random_transform ->
