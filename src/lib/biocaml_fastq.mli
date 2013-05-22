@@ -107,6 +107,17 @@ module Transform: sig
       [Fasta.(int_seq item)] values. The default Phred score encoding
       is [`offset33] (like in {!Biocaml_phred_score}). *)
 
+  val fastq_to_fasta_pair :
+    ?phred_score_offset:[ `offset33 | `offset64 ] ->
+    unit ->
+    (item,
+     (Biocaml_fasta.char_seq Biocaml_fasta.item *
+        Biocaml_fasta.int_seq Biocaml_fasta.item,
+      [> `cannot_convert_ascii_phred_score of string ]) Core.Result.t)
+      Biocaml_transform.t
+  (** Create a transform that split a FASTQ item into to FASTA items
+      (i.e. the inverse of {!fasta_pair_to_fastq}). *)
+
 end
 
 
@@ -114,6 +125,3 @@ end
 
 val item_of_sexp : Sexplib.Sexp.t -> item
 val sexp_of_item : item -> Sexplib.Sexp.t
-
-
-

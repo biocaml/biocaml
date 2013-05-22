@@ -133,6 +133,23 @@ module Transform = struct
                                         int_item.Fasta.header))
     end
 
+  let fastq_to_fasta_pair  ?(phred_score_offset=`offset33) () =
+    let open Result in
+    Biocaml_transform.of_function begin fun {name; sequence; qualities; _} ->
+      begin try
+        let scores =
+          String.fold ~init:[] sequence ~f:(fun prev c ->
+              Biocaml_phred_score.(
+                of_ascii_exn ~offset:phred_score_offset c |> to_int) :: prev)
+          |> List.rev in
+        return Biocaml_fasta.({ header = name; sequence },
+                              { header = name; sequence = scores })
+      with e -> (* from the Phred-score convertions *)
+        fail (`cannot_convert_ascii_phred_score qualities)
+      end
+    end
+
+
 end
 
 let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
