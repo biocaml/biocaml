@@ -83,12 +83,12 @@ let sam_item_to_fastq_item () : (Sam.item, Fastq.item) Transform.t =
     end
 
 let transforms_to_do
-    input_files_tags_and_transforms meta_output_transform general_output_tags =
-  begin match general_output_tags with
-  | `list _ -> error (`not_implemented "transforms_to_do: `list _")
-  | #Tags.file_format as f -> return f
-  end
-  >>= fun output_tags ->
+    input_files_tags_and_transforms meta_output_transform output_tags =
+  (* begin match general_output_tags with *)
+  (* | `list _ -> error (`not_implemented "transforms_to_do: `list _") *)
+  (* | #Tags.file_format as f -> return f *)
+  (* end *)
+  (* >>= fun output_tags -> *)
   let any_fasta_transform
       filename itags tr_in raw_to_item otags item_to_raw tr_out =
     let transfo =
@@ -100,7 +100,10 @@ let transforms_to_do
                     tr_in (on_error ~f:(fun e -> `fasta e) raw_to_item))
              (compose item_to_raw tr_out))
       ) |> transform_stringify_errors in
-    let out_extension = Tags.default_extension output_tags in
+    let out_extension =
+      match Tags.default_extensions output_tags with
+      | [one] -> one (* we know the output_tags correspond to a FASTA file *)
+      | other -> assert false in
     let base = filename_chop_all_extensions filename in
     `file_to_file (filename, transfo, filename_make_new base out_extension)
   in
@@ -114,7 +117,8 @@ let transforms_to_do
             compose_result_left
               (on_error tri (fun e -> `input e)) tro)
           |! transform_stringify_errors in
-        let out_extension = Tags.default_extension output_tags in
+        let out_extension =
+          Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
@@ -126,7 +130,8 @@ let transforms_to_do
             ~on_error:(function `left e -> `input e | `right e -> `output e)
             tri tro
           |! transform_stringify_errors in
-        let out_extension = Tags.default_extension output_tags in
+        let out_extension =
+          Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
@@ -138,7 +143,8 @@ let transforms_to_do
             ~on_error:(function `left e -> `input e | `right e -> `output e)
             tri (compose (fastq_item_to_sam_item ()) tro))
           |! transform_stringify_errors in
-        let out_extension = Tags.default_extension output_tags in
+        let out_extension =
+          Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
@@ -152,7 +158,8 @@ let transforms_to_do
                  tri
                  (compose (sam_item_to_fastq_item ()) tro))
           ) |> transform_stringify_errors in
-        let out_extension = Tags.default_extension output_tags in
+        let out_extension =
+          Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in
         `file_to_file (filename, transfo, filename_make_new base out_extension)
       in
@@ -160,7 +167,7 @@ let transforms_to_do
     | (filename, itags, `from_char_fasta tri) :: t, `char_fasta_to_file tro ->
       let m =
         let otags =
-          match general_output_tags with `fasta t -> t | _ -> assert false in
+          match output_tags with `fasta t -> t | _ -> assert false in
         any_fasta_transform
           filename
           itags tri (Fasta.Transform.char_seq_raw_item_to_item  ())
@@ -171,7 +178,7 @@ let transforms_to_do
     | (filename, itags, `from_int_fasta tri) :: t, `int_fasta_to_file tro ->
       let m =
         let otags =
-          match general_output_tags with `fasta t -> t | _ -> assert false in
+          match output_tags with `fasta t -> t | _ -> assert false in
         any_fasta_transform
           filename
           itags tri (Fasta.Transform.int_seq_raw_item_to_item  ())
@@ -198,7 +205,7 @@ let transforms_to_do
                         (Fasta.Transform.int_seq_raw_item_to_item  ()))))
       in
       let two_fastas_to_fastq = Fastq.Transform.fasta_pair_to_fastq () in
-      let out_extension = Tags.default_extension output_tags in
+      let out_extension = Tags.default_extensions output_tags |> List.hd_exn in
       let base = filename_chop_all_extensions a_filename in
       let m =
       `two_files_to_file (a_filename, a_transfo,
@@ -207,9 +214,28 @@ let transforms_to_do
                           Transform.compose_result_left
                             two_fastas_to_fastq tro) in
       loop (m :: acc) t
+    | (filename, tags, `from_fastq tri) :: t, `fastq_to_two_files tro ->
+      (* tri: (string, (Fastq.item, _) result)
+         tro: (Fastq.item, (string * string, output_error) result) *)
+      Say.dbg "file %s should go to two FASTAs…" filename
+      >>= fun () ->
+      let tr =
+        Transform.compose_results tri tro
+          ~on_error:(function `left e -> `input e | `right e -> `output e) in
+      let base = filename_chop_all_extensions filename in
+      let ext_left, ext_right =
+        match Tags.default_extensions output_tags with
+        | [one; two] -> (one, two)
+        | _ -> assert false in
+      let char_seq = filename_make_new (base ^ "-seq") ext_left in
+      let int_seq = filename_make_new (base ^ "-qual") ext_right in
+      let m = `file_to_two_files (filename, tr, char_seq, int_seq) in
+      loop (m :: acc) t
 
-    | _ ->
-      error (`not_implemented "transform")
+    | (filename, tags, input_t) :: t, output_t ->
+      ksprintf (fun s -> error (`not_implemented s)) "transform: %s → %s"
+        (Tags.Input_transform.name input_t)
+        (Tags.Output_transform.name output_t)
   in
   loop [] input_files_tags_and_transforms
 
@@ -257,6 +283,9 @@ let run_transform ~output_tags files =
       two_files_to_file
         ~left:(a_filename, a_transfo) ~right:(b_filename, b_transfo)
         (out_file, out_transfo)
+    | `file_to_two_files (filename, t, char_seq, int_seq) ->
+      file_to_two_files
+        ~input:filename t ~output_left:char_seq ~output_right:int_seq
     end
     >>= fun (results, errors) ->
     begin match errors with
@@ -273,6 +302,7 @@ let run_transform ~output_tags files =
           [ `cannot_convert_to_phred_score of int list
           | `input of Tags.Input_transform.input_error
           | `input_stream_length_mismatch
+          | `output of Biocaml.Tags.Output_transform.output_error
           | `io_exn of exn
           | `lwt_exn of exn
           | `multi_files_errors of s list
