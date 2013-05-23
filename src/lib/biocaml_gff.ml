@@ -155,9 +155,10 @@ module Transform = struct
     let tokens =
       Stream.(from (fun _ -> parse_string inch) |! Fn.flip npeek Int.max_value) in
     let rec go_3_by_3 acc = function
-      | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
-      | [] | [";"] -> return (List.rev acc)
-      | problem -> fail (`wrong_attributes (position, whole_thing))
+    | k  :: v :: [] -> return (List.rev ((k, [v]) :: acc))
+    | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
+    | [] | [";"] -> return (List.rev acc)
+    | problem -> fail (`wrong_attributes (position, whole_thing))
     in
     go_3_by_3 [] tokens
 
