@@ -1,4 +1,4 @@
-(** Chromosome names. A chromosome name, as defined by this module, consists of two parts. An optional prefix "chr", "Chr", or "CHR", followed by a suffix identifying the chromosome. The possible suffixes are:
+(** Chromosome names. A chromosome name, as defined by this module, consists of two parts. An optional prefix "chr" (case-insensitive), followed by a suffix identifying the chromosome. The possible suffixes are:
     - "X" representing the maternal chromosome
     - "Y" representing the paternal chromosome
     - "M", "Mt", or "MtDNA" representing mitochondrial DNA
