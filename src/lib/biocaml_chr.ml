@@ -44,7 +44,29 @@ let of_string s =
             with Failure _ -> Unknown s
   with
       Not_found -> Unknown s
-  
+
+let of_string s =
+  let c =
+    if String.(is_prefix (lowercase s) ~prefix:"chr") then
+      String.(sub s 3 (length s - 3))
+    else
+      s
+  in
+  if c = Alpha.x then
+    ChrX
+  else if c = Alpha.y then
+    ChrY
+  else if c = Alpha.m || c = Alpha.mt || c = Alpha.mtdna then
+    ChrM
+  else
+    match RomanNum.of_string c with
+      | Some n -> ChrN (RomanNum.to_int n)
+      | None ->
+        try
+          let n = int_of_string c in
+          if n > 0 then ChrN n else Unknown s
+        with Failure _ -> Unknown s
+
 let non_num_to_string = function
   | ChrX -> Alpha.x | ChrY -> Alpha.y | ChrM -> Alpha.m
   | Unknown s -> s
