@@ -23,10 +23,10 @@
     number 10 because there would be an ambiguity with the maternal
     chromosome "chrX". *)
 
-val arabic : string -> string
+val to_arabic : string -> string
 (** [arabic s] returns the canonical Arabic representation of [s]. *)
 
-val roman : string -> string
+val to_roman : string -> string
 (** [roman s] returns the canonical Roman representation of
     [s]. Raises [Failure] if [s] represents chromosome number 10, or any
     other chromosome that would cause an ambiguity. *)
