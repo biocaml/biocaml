@@ -19,32 +19,6 @@ module Alpha = struct
   let all = [x;y;m;mt;mtdna]
 end
 
-(* let rex = Pcre.regexp "^(chr|CHR|Chr)?(.*\)$" *)
-let of_string s =
-  try
-    (* let ss = Pcre.extract ~full_match:false ~rex s in *)
-    let c =
-      if String.(is_prefix (lowercase s) ~prefix:"chr") then
-        String.(sub s 3 (length s -3))
-      else
-        raise Not_found in
-    if c = Alpha.x then
-      ChrX
-    else if c = Alpha.y then
-      ChrY
-    else if c = Alpha.m || c = Alpha.mt || c = Alpha.mtdna then
-      ChrM
-    else
-      match RomanNum.of_string c with
-        | Some n -> ChrN (RomanNum.to_int n)
-        | None ->
-            try
-              let n = int_of_string c in
-              if n > 0 then ChrN n else Unknown s
-            with Failure _ -> Unknown s
-  with
-      Not_found -> Unknown s
-
 let of_string s =
   let c =
     if String.(is_prefix (lowercase s) ~prefix:"chr") then
