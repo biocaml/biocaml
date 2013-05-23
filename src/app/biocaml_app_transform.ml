@@ -362,9 +362,9 @@ let more_help original_help : string =
                                 from alignments and discards any other info)";
       "Parse/Print *{int, char} FASTA* <-> `{int, char} fasta` \
        (can do some clean-up of FASTA files, more to come …)";
-      "Parse (char fasta × int fasta) -> *FASTQ* (take the sequences \
+      "Parse/Print (char fasta × int fasta) <-> *FASTQ* (take the sequences \
        from the first file and the qualities from the second and merge \
-       them into a FASTQ record)";
+       them into a FASTQ record, and vice-versa)";
     ];
     par buf "Note that other meaningless file-formats are *not forbidden* like
        `(gzip (gzip fastq))` or `(gzip bam)`.";
