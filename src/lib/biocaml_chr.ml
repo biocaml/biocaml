@@ -4,12 +4,12 @@ module Msg = Biocaml_msg
 module Pos = Biocaml_pos
 module RomanNum = Biocaml_romanNum
 
-type t = 
-    | ChrX | ChrY | ChrM 
-    | ChrN of int (* Invariant: int is strictly greater than 0 *)
-    | Unknown of string
+type t =
+| ChrX | ChrY | ChrM
+| ChrN of int (* Invariant: int is strictly greater than 0 *)
+| Unknown of string
 
-(* Container for alphabetic suffixes. *)    
+(* Container for alphabetic suffixes. *)
 module Alpha = struct
   let x = "X"
   let y = "Y"
@@ -34,31 +34,31 @@ let of_string s =
     ChrM
   else
     match RomanNum.of_string c with
-      | Some n -> ChrN (RomanNum.to_int n)
-      | None ->
-        try
-          let n = int_of_string c in
-          if n > 0 then ChrN n else Unknown s
-        with Failure _ -> Unknown s
+    | Some n -> ChrN (RomanNum.to_int n)
+    | None ->
+      try
+        let n = int_of_string c in
+        if n > 0 then ChrN n else Unknown s
+      with Failure _ -> Unknown s
 
 let non_num_to_string = function
   | ChrX -> Alpha.x | ChrY -> Alpha.y | ChrM -> Alpha.m
   | Unknown s -> s
   | ChrN n -> invalid_arg (Msg.bug (sprintf "non_num_to_string called on numeric chromosome %d" n))
-      
+
 let to_arabic t =
   match t with
-    | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
-    | ChrN n -> string_of_int n
-        
+  | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
+  | ChrN n -> string_of_int n
+
 let to_roman t =
   match t with
-    | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
-    | ChrN n ->
-        let n = RomanNum.to_string (RomanNum.of_int_exn n) in
-        if List.mem Alpha.all n
-        then failwith (sprintf "chromosome %s cannot be represented in Roman form" (to_arabic t))
-        else n
-          
+  | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
+  | ChrN n ->
+    let n = RomanNum.to_string (RomanNum.of_int_exn n) in
+    if List.mem Alpha.all n
+    then failwith (sprintf "chromosome %s cannot be represented in Roman form" (to_arabic t))
+    else n
+
 let arabic s = of_string s |! to_arabic
 let roman s = of_string s |! to_roman
