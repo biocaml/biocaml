@@ -640,3 +640,21 @@ let two_files_to_file
       |> Transform.on_output ~f:(Result.map ~f:(fun s -> (0, s)))
     )
     [out_file]
+
+let file_to_two_files ~input t ~output_left ~output_right =
+  let tuple_to_queue =
+    let queue = Queue.create () in
+    Transform.make ()
+      ~feed:(fun (left, right) ->
+          Queue.enqueue queue (0, left);
+          Queue.enqueue queue (1, right))
+      ~next:(fun stopped ->
+          match Queue.dequeue queue with
+          | Some e -> `output e
+          | None when stopped -> `end_of_stream
+          | None -> `not_ready) in
+  files_to_files
+    ~inputs:[input, Transform.of_function Result.return]
+    ~mixer:Transform.(compose_result_left t tuple_to_queue
+                      |> on_input ~f:List.hd_exn)
+    [output_left; output_right]
