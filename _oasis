@@ -43,7 +43,7 @@ Library biocaml
            , Biocaml_bed
            , Biocaml_bpmap
            , Biocaml_cel
-           , Biocaml_chrName
+           , Biocaml_chr
            , Biocaml_entrez
            , Biocaml_fasta
            , Biocaml_fastq

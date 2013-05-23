@@ -41,7 +41,7 @@ type vcf_format = [ `integer of int
 type vcf_info = [ vcf_format | `flag of string ]
 
 type vcf_row = {
-  vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chrName.t *)
+  vcfr_chrom : string; (* FIXME(superbobry): Biocaml_chr.t *)
   vcfr_pos   : int;
   vcfr_ids   : string list;
   vcfr_ref   : string;
