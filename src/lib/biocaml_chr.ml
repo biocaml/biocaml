@@ -60,13 +60,14 @@ module I = struct
     | ChrN n -> string_of_int n
 
   let to_string_roman t =
-    match t with
-    | ChrX | ChrY | ChrM | Unknown _ -> Ok (non_num_to_string t)
-    | ChrN n ->
-      let n = RomanNum.to_string (RomanNum.of_int_exn n) in
-      if List.mem Alpha.all n
-      then Result.Error (`chromosome_ambiguous_in_roman_form (to_string_arabic t))
-      else Ok n
+    let ans = match t with
+      | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
+      | ChrN n -> RomanNum.to_string (RomanNum.of_int_exn n)
+    in
+    if List.mem Alpha.all ans
+    then Result.Error (`chromosome_ambiguous_in_roman_form (to_string_arabic t))
+    else Ok ans
+
 end
 
 let to_arabic s = I.(s |> of_string |> to_string_arabic)
