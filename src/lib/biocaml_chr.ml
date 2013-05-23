@@ -4,6 +4,14 @@ module Msg = Biocaml_msg
 module Pos = Biocaml_pos
 module RomanNum = Biocaml_romanNum
 
+module Error = struct
+  type t = [
+  | `chromosome_ambiguous_in_roman_form of string
+  ]
+end
+
+exception Error of Error.t
+
 (* Container for alphabetic suffixes. *)
 module Alpha = struct
   let x = "X"
@@ -55,13 +63,17 @@ module I = struct
 
   let to_string_roman t =
     match t with
-    | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
+    | ChrX | ChrY | ChrM | Unknown _ -> Ok (non_num_to_string t)
     | ChrN n ->
       let n = RomanNum.to_string (RomanNum.of_int_exn n) in
       if List.mem Alpha.all n
-      then failwith (sprintf "chromosome %s cannot be represented in Roman form" (to_string_arabic t))
-      else n
+      then Result.Error (`chromosome_ambiguous_in_roman_form (to_string_arabic t))
+      else Ok n
 end
 
 let to_arabic s = I.(s |> of_string |> to_string_arabic)
 let to_roman s = I.(s |> of_string |> to_string_roman)
+
+let to_roman_exn s = match to_roman s with
+  | Ok x -> x
+  | Result.Error x -> raise (Error x)

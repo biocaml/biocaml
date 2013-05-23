@@ -23,10 +23,25 @@
     number 10 because there would be an ambiguity with the maternal
     chromosome "chrX". *)
 
+module Error : sig
+
+  (** Possible errors:
+
+      - `chromosome_ambiguous_in_roman_form chr - [chr]'s Roman
+      representation is ambiguous, e.g. "chr10" and "chrX" both lead
+      to "X" *)
+  type t = [
+  | `chromosome_ambiguous_in_roman_form of string
+  ]
+
+end
+
+exception Error of Error.t
+
 val to_arabic : string -> string
 (** [arabic s] returns the canonical Arabic representation of [s]. *)
 
-val to_roman : string -> string
-(** [roman s] returns the canonical Roman representation of
-    [s]. Raises [Failure] if [s] represents chromosome number 10, or any
-    other chromosome that would cause an ambiguity. *)
+val to_roman : string -> (string, Error.t) Core.Std.Result.t
+(** [roman s] returns the canonical Roman representation of [s]. *)
+
+val to_roman_exn : string -> string
