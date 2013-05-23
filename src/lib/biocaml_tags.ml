@@ -33,6 +33,25 @@ let rec default_extension: file_format -> string = function
   | `fasta _ -> "fasta"
   | `table tags -> Biocaml_table.Row.Tags.default_extension tags
 
+let rec default_extensions: t -> string list =
+  function
+  | #file_format as f -> [default_extension f]
+  | `list l -> List.concat_map ~f:default_extensions l
+
+let add_extensions tags files =
+  let open Result in
+  let extensions = default_extensions tags in
+  let rec loop exts fnames acc =
+    match exts, fnames with
+    | [], _ -> return (List.rev acc, fnames)
+    | at_least_one :: _, [] -> fail (`tags `not_enough_filenames)
+    | ext :: more_exts, file :: more_files ->
+      loop more_exts more_files (sprintf "%s.%s" file ext :: acc)
+  in
+  loop extensions files []
+
+
+
 let to_tag (f : file_format) = (f :> t)
 
 let rec guess_from_filename filename =

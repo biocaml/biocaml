@@ -29,6 +29,21 @@ val default_extension: file_format -> string
     format. E.g. [default_extension (`gzip (`fasta `char))] will be
     ["fasta.gz"]. *)
 
+val default_extensions: t -> string list
+(** Do like [default_extension] but for potentially multiple file-formats. *)
+
+val add_extensions: t -> string list ->
+  (string list * string list, [> `tags of [> `not_enough_filenames ] ]) Core.Result.t
+(** For a given [tags] value and a list of {i file-base-names} add
+    extensions to the files, and return also the base-names not touched.
+    If [t] involves {i n} file-formats, [add_extensions t fl] will add
+    extensions to the first {i n} files of [fl] and return also the
+    untouched base-names:
+    [(files_with_extensions, remaingin_base_names)].
+    If there are not enough base-names, the result is the error
+    [`tags `not_enough_filenames]. *)
+
+
 val guess_from_filename: string ->
   (file_format, [> `extension_absent | `extension_unknown of string ]) Core.Result.t
 (** Get a tag as precise as possible for a given filename. *)
