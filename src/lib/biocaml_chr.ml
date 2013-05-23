@@ -1,7 +1,5 @@
 open Biocaml_internal_pervasives
 
-module Msg = Biocaml_msg
-module Pos = Biocaml_pos
 module RomanNum = Biocaml_romanNum
 
 module Error = struct
@@ -54,7 +52,7 @@ module I = struct
   let non_num_to_string = function
     | ChrX -> Alpha.x | ChrY -> Alpha.y | ChrM -> Alpha.m
     | Unknown s -> s
-    | ChrN n -> invalid_arg (Msg.bug (sprintf "non_num_to_string called on numeric chromosome %d" n))
+    | ChrN n -> assert false
 
   let to_string_arabic t =
     match t with
