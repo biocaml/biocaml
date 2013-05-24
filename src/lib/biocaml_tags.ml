@@ -190,7 +190,7 @@ module Output_transform = struct
         return (`table_to_file (with_zip_no_error t) : t)
     in
     match output_tags with
-    | `list [#file_format as left; #file_format as right ] ->
+    | `list [`fasta lftags as left; `fasta rftags as right ] ->
       output_transform left
       >>= fun left_tr ->
       output_transform right
@@ -199,9 +199,13 @@ module Output_transform = struct
       | `char_fasta_to_file t1, `int_fasta_to_file t2 ->
         Biocaml_transform.(
           let tleft =
-            compose (Biocaml_fasta.Transform.char_seq_item_to_raw_item ()) t1 in
+            compose
+              (Biocaml_fasta.Transform.char_seq_item_to_raw_item ~tags:lftags ())
+              t1 in
           let tright =
-            compose (Biocaml_fasta.Transform.int_seq_item_to_raw_item ()) t2 in
+            compose
+              (Biocaml_fasta.Transform.int_seq_item_to_raw_item ~tags:rftags ())
+              t2 in
           return (`fastq_to_two_files (
               on_error ~f:(fun e -> `fastq e)
                 (compose_result_left
@@ -256,6 +260,9 @@ module Input_transform = struct
                   input_error) Result.t) Biocaml_transform.t
     | `file_to_table of
         (string, (Biocaml_table.Row.t, input_error) Result.t) Biocaml_transform.t
+    | `two_files_to_fastq of
+        (string * string,
+         (Biocaml_fastq.item, input_error) Core.Result.t) Biocaml_transform.t
   ]
 
   let name = function
@@ -267,6 +274,7 @@ module Input_transform = struct
   | `file_to_char_fasta _ -> "from_char_fasta"
   | `file_to_int_fasta _ -> "from_int_fasta"
   | `file_to_table _ -> "from_table"
+  | `two_files_to_fastq _ -> "two_files_to_fastq"
 
 
   let from_tags ?zlib_buffer_size (input_tags: tags) =
@@ -352,8 +360,45 @@ module Input_transform = struct
         return (`file_to_table (with_unzip t) : t)
     in
     match input_tags with
-    | `list (tags : tags list) ->
-      fail (`not_implemented "list input_tags")
+    | `list [#file_format as left; #file_format as right ] ->
+      input_transform left
+      >>= fun left_tr ->
+      input_transform right
+      >>= fun right_tr ->
+      begin match left_tr, right_tr with
+      | `file_to_char_fasta t1, `file_to_int_fasta t2 ->
+        Biocaml_transform.(
+          let tleft =
+            let t =
+              (t1:  (string, (Biocaml_fasta.char_seq Biocaml_fasta.raw_item,
+                              [> input_error]) Result.t) Biocaml_transform.t)
+            in
+            compose_results
+              ~on_error:(function `left e -> e | `right e -> `fasta e)
+              t (Biocaml_fasta.Transform.char_seq_raw_item_to_item ()) in
+          let tright =
+            let t =
+              (t2:  (string, (Biocaml_fasta.int_seq Biocaml_fasta.raw_item,
+                              [> input_error]) Result.t) Biocaml_transform.t)
+            in
+            compose_results
+              ~on_error:(function `left e -> e | `right e -> `fasta e)
+              t (Biocaml_fasta.Transform.int_seq_raw_item_to_item ()) in
+          return (
+            `two_files_to_fastq (
+              (compose_results
+                 ~on_error:(function `left e -> e | `right e -> `fastq e)
+                 (mix tleft tright
+                    (fun a b ->
+                       match a, b with
+                       | Ok a, Ok b -> Ok (a, b)
+                       | Error e, _  | _, Error e -> Error e))
+                 (Biocaml_fastq.Transform.fasta_pair_to_fastq ()))
+            )))
+      | _ ->
+        fail (`not_implemented "list output_tags")
+      end
+    | `list (tags : tags list) -> fail (`not_implemented "list input_tags")
     | #file_format as file_input_tags ->
       input_transform file_input_tags
 

@@ -127,6 +127,7 @@ module Input_transform: sig
   type tags = t
   (** An alias of the type [Tags.t]. *)
 
+
   type t = [
     | `file_to_sam_item of
         (string, (Biocaml_sam.item, input_error) Core.Result.t) Biocaml_transform.t
@@ -146,6 +147,9 @@ module Input_transform: sig
                   input_error) Core.Result.t) Biocaml_transform.t
     | `file_to_table of
         (string, (Biocaml_table.Row.t, input_error) Core.Result.t) Biocaml_transform.t
+    | `two_files_to_fastq of
+        (string * string,
+         (Biocaml_fastq.item, input_error) Core.Result.t) Biocaml_transform.t
   ]
   (** The general input transformation. *)
 
