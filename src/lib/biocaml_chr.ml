@@ -10,16 +10,6 @@ end
 
 exception Error of Error.t
 
-(* Container for alphabetic suffixes. *)
-module Alpha = struct
-  let x = "X"
-  let y = "Y"
-  let m = "M"
-  let mt = "Mt"
-  let mtdna = "MtDNA"
-  let all = [x;y;m;mt;mtdna]
-end
-
 (* Use stronger type t internally. *)
 module I = struct
   type t =
@@ -28,19 +18,18 @@ module I = struct
   | Unknown of string
 
   let of_string s =
+    let s' = String.lowercase s in
     let c =
-      if String.(is_prefix (lowercase s) ~prefix:"chr") then
-        String.(sub s 3 (length s - 3))
+      if String.(is_prefix s' ~prefix:"chr") then
+        String.(sub s' 3 (length s' - 3))
       else
-        s
+        s'
     in
-    if c = Alpha.x then
-      ChrX
-    else if c = Alpha.y then
-      ChrY
-    else if c = Alpha.m || c = Alpha.mt || c = Alpha.mtdna then
-      ChrM
-    else
+    match c with
+    | "x" -> ChrX
+    | "y" -> ChrY
+    | "m" | "mt" | "mtdna" -> ChrM
+    | _ ->
       match RomanNum.of_string c with
       | Some n -> ChrN (RomanNum.to_int n)
       | None ->
@@ -50,7 +39,7 @@ module I = struct
         with Failure _ -> Unknown s
 
   let non_num_to_string = function
-    | ChrX -> Alpha.x | ChrY -> Alpha.y | ChrM -> Alpha.m
+    | ChrX -> "X" | ChrY -> "Y" | ChrM -> "M"
     | Unknown s -> s
     | ChrN n -> assert false
 
@@ -64,7 +53,7 @@ module I = struct
       | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
       | ChrN n -> RomanNum.to_string (RomanNum.of_int_exn n)
     in
-    if List.mem Alpha.all ans
+    if List.mem ["x"; "y"; "m"; "mt"; "mtdna"] (String.lowercase ans)
     then Result.Error (`chromosome_ambiguous_in_roman_form (to_string_arabic t))
     else Ok ans
 

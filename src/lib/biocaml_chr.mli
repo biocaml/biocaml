@@ -1,7 +1,7 @@
 (** Chromosome names. A chromosome name, as defined by this module,
-    consists of two parts. An optional prefix "chr" (case-insensitive),
-    followed by a suffix identifying the chromosome. The possible suffixes
-    are:
+    consists of two parts. An optional prefix "chr"
+    (case-insensitive), followed by a suffix identifying the
+    chromosome. The possible suffixes (case-insensitive) are:
 
     - "X" representing the maternal chromosome
     - "Y" representing the paternal chromosome
