@@ -11,11 +11,21 @@ type item = {
 with sexp
 
 module Error = struct
-  type t =
-      [ `sequence_and_qualities_do_not_match of Pos.t * string * string
-      | `wrong_comment_line of Pos.t * string
-      | `wrong_name_line of Pos.t * string
-      | `incomplete_input of Pos.t * string list * string option]
+
+  type fasta_pair_to_fastq =
+    [ `cannot_convert_to_phred_score of int list
+    | `sequence_names_mismatch of string * string ]
+  with sexp
+
+  type parsing =
+      [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
+      | `wrong_comment_line of Biocaml_pos.t * string
+      | `wrong_name_line of Biocaml_pos.t * string
+      | `incomplete_input of Biocaml_pos.t * string list * string option
+      ]
+  with sexp
+
+  type t = [ parsing | fasta_pair_to_fastq ]
   with sexp
 
   let string_sample s n =
@@ -37,6 +47,8 @@ module Error = struct
         sprintf "[%s]: end-of-stream reached with incomplete input: %S"
           (Pos.to_string pos)
           (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
+    | other ->
+      sexp_of_t other |> Sexplib.Sexp.to_string_hum
 
 end
 
