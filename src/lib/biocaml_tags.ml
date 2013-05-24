@@ -68,7 +68,7 @@ let rec guess_from_filename filename =
     | "sam" -> return `sam
     | "bed" -> return `bed
     | "fastq" -> return `fastq
-    | "fasta" -> return (`fasta Biocaml_fasta.Tags.default)
+    | "fasta" -> return (`fasta Biocaml_fasta.Tags.char_sequence_default)
     | "tsv" -> return (`table [`separator '\t'])
     | "csv" -> return (`table [`separator ','])
     | u -> fail (`extension_unknown u)
@@ -176,10 +176,10 @@ module Output_transform = struct
       | `fastq ->
         let t = Biocaml_fastq.Transform.item_to_string () in
         return (`fastq_to_file (with_zip_no_error t) : t)
-      | `fasta (`char_sequence _ as tags) ->
+      | `fasta tags when Biocaml_fasta.Tags.is_char_sequence tags ->
         let t = Biocaml_fasta.Transform.char_seq_raw_item_to_string ~tags () in
         return (`char_fasta_to_file (with_zip_no_error t) : t)
-      | `fasta (`int_sequence _ as tags) ->
+      | `fasta tags (* must be int-sequence *) ->
         let t = Biocaml_fasta.Transform.int_seq_raw_item_to_string ~tags () in
         return (`int_fasta_to_file (with_zip_no_error t) : t)
       | `table tags ->
@@ -337,14 +337,14 @@ module Input_transform = struct
             (function Ok o -> Ok o | Error e -> Error (`fastq e))
         in
         return (`file_to_fastq (with_unzip t) : t)
-      | `fasta (`char_sequence  tags) ->
+      | `fasta tags when Biocaml_fasta.Tags.is_char_sequence tags ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_fasta.Transform.string_to_char_seq_raw_item ~tags ())
             (function Ok o -> Ok o | Error e -> Error (`fasta e))
         in
         return (`file_to_char_fasta (with_unzip t) : t)
-      | `fasta (`int_sequence tags) ->
+      | `fasta tags (* must be int-sequence because of previous case *) ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_fasta.Transform.string_to_int_seq_raw_item ~tags ())

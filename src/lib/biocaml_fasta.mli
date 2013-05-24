@@ -111,33 +111,43 @@ type 'a raw_item = [
 module Tags: sig
   (** Additional format-information tags (c.f. {!Biocaml_tags}). *)
 
-  type common = [
-    | `forbid_empty_lines
-    | `only_header_comment
-    | `sharp_comments
-    | `semicolon_comments
-    | `max_items_per_line of int
-  ]
-  (** The format details for any kind of FASTA file. *)
 
-  type int_seq = [ common ] list
-  (** The format details for [int_seq] FASTA files. *)
-
-  type char_seq = [ common | `impose_sequence_alphabet of (char -> bool) ] list
+  type char_sequence = {
+    impose_sequence_alphabet: char list option;
+  }
   (** The format details for [char_seq] FASTA files. *)
 
-  type t = [
-    | `int_sequence of int_seq
-    | `char_sequence of char_seq
-  ]
+  type common = {
+    forbid_empty_lines: bool;
+    only_header_comment: bool;
+    sharp_comments: bool;
+    semicolon_comments: bool;
+    max_items_per_line: int option;
+  }
+  (** The format details for any kind of FASTA file. *)
+
+  type t = {
+    common: common;
+    sequence: [ `int_sequence | `char_sequence of char_sequence ]
+  }
   (** The tags describing as much information as possible a given
       FASTA “sub-format” *)
 
-  val default: t
+
+  val char_sequence_default: t
   (** The default tags (for [char_seq]). *)
+
+  val int_sequence_default: t
+  (** The default tags (for [int_seq]). *)
 
   val pedantic_with: t -> t
   (** For a given set of tags [base], add pedantry.  *)
+
+  val is_char_sequence: t -> bool
+  (** Test the value of [t.sequence]. *)
+
+  val is_int_sequence: t -> bool
+  (** Test the value of [t.sequence]. *)
 
   val to_string: t -> string
   (** Serialize tags (for now S-Expressions). *)
@@ -206,7 +216,7 @@ exception Error of Error.t
 val in_channel_to_char_seq_item_stream :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.char_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   (char_seq item, [> Error.t]) Core.Result.t Stream.t
 (** Parse an input-channel into a stream of [char_seq item] results. *)
@@ -214,7 +224,7 @@ val in_channel_to_char_seq_item_stream :
 val in_channel_to_int_seq_item_stream :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.int_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   (int_seq item, [> Error.t]) Core.Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq item] results. *)
@@ -223,7 +233,7 @@ val in_channel_to_int_seq_item_stream :
 val in_channel_to_char_seq_item_stream_exn :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.char_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   char_seq item Stream.t
 (** Returns a stream of [char_seq item]s. Comments are
@@ -232,7 +242,7 @@ val in_channel_to_char_seq_item_stream_exn :
 val in_channel_to_int_seq_item_stream_exn :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.int_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   int_seq item Stream.t
 (** Returns a stream of [int_seq item]s. Comments are
@@ -241,7 +251,7 @@ val in_channel_to_int_seq_item_stream_exn :
 val in_channel_to_char_seq_raw_item_stream :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.char_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   (char_seq raw_item, [> Error.t]) Core.Result.t Stream.t
 (** Parse an input-channel into a stream of [char_seq raw_item] results. *)
@@ -249,7 +259,7 @@ val in_channel_to_char_seq_raw_item_stream :
 val in_channel_to_int_seq_raw_item_stream :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.int_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   (int_seq raw_item, [> Error.t]) Core.Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq raw_item] results. *)
@@ -258,7 +268,7 @@ val in_channel_to_int_seq_raw_item_stream :
 val in_channel_to_char_seq_raw_item_stream_exn :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.char_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   char_seq raw_item Stream.t
 (** Returns a stream of [char_seq raw_item]s.  Comments are
@@ -267,7 +277,7 @@ val in_channel_to_char_seq_raw_item_stream_exn :
 val in_channel_to_int_seq_raw_item_stream_exn :
   ?buffer_size:int ->
   ?filename:string ->
-  ?tags:Tags.int_seq ->
+  ?tags:Tags.t ->
   in_channel ->
   int_seq raw_item Stream.t
 (** Returns a stream of [int_seq raw_item]s. Comments are discarded.
@@ -296,7 +306,7 @@ module Transform: sig
 
   val string_to_char_seq_raw_item:
     ?filename:string ->
-    ?tags:Tags.char_seq ->
+    ?tags:Tags.t ->
     unit ->
     (string, (char_seq raw_item, [> Error.t]) Core.Result.t) Biocaml_transform.t
   (** Parse a stream of strings as a char_seq FASTA file. *)
@@ -333,7 +343,7 @@ module Transform: sig
 
   val string_to_int_seq_raw_item:
     ?filename:string ->
-    ?tags:Tags.int_seq ->
+    ?tags:Tags.t ->
     unit ->
     (string, (int_seq raw_item, [> Error.t]) Core.Result.t) Biocaml_transform.t
   (** Parse a stream of strings as an int_seq FASTA file. *)
@@ -408,5 +418,3 @@ val sexp_of_item : ('a -> Sexplib.Sexp.t) -> 'a item -> Sexplib.Sexp.t
 val item_of_sexp : (Sexplib.Sexp.t -> 'a) -> Sexplib.Sexp.t -> 'a item
 val sexp_of_raw_item : ('a -> Sexplib.Sexp.t) -> 'a raw_item -> Sexplib.Sexp.t
 val raw_item_of_sexp : (Sexplib.Sexp.t -> 'a) -> Sexplib.Sexp.t -> 'a raw_item
-
-

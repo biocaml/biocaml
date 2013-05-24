@@ -19,68 +19,85 @@ with sexp
 
 module Tags = struct
 
-  type common = [
-    | `forbid_empty_lines
-    | `only_header_comment
-    | `sharp_comments
-    | `semicolon_comments
-    | `max_items_per_line of int
-  ]
+  type char_sequence = {
+    impose_sequence_alphabet: char list option;
+  }
   with sexp
 
-  type int_seq = [ common ] list with sexp
-  type char_seq_item = [ common | `impose_sequence_alphabet of (char -> bool) ]
-  with sexp
-  type char_seq = char_seq_item list
-  with sexp
-
-  type t = [
-    | `int_sequence of int_seq
-    | `char_sequence of char_seq
-  ]
+  type common = {
+    forbid_empty_lines: bool;
+    only_header_comment: bool;
+    sharp_comments: bool;
+    semicolon_comments: bool;
+    max_items_per_line: int option;
+  }
   with sexp
 
+  type t = {
+    common: common;
+    sequence: [ `int_sequence | `char_sequence of char_sequence ]
+  }
+  with sexp
 
-  let default = `char_sequence []
-  let int_seq_default = `int_sequence []
+  let common_default = {
+    forbid_empty_lines = false;
+    only_header_comment = false;
+    sharp_comments = true;
+    semicolon_comments = true;
+    max_items_per_line = None;
+  }
 
-  let common_pedantry = [`forbid_empty_lines; `only_header_comment ]
+  let char_sequence_default =
+    { common = common_default;
+      sequence = `char_sequence {impose_sequence_alphabet = None} }
 
-  let pedantic_with (base: t) =
-    match base with
-    | `int_sequence l -> `int_sequence (common_pedantry @ l)
-    | `char_sequence l ->
-      `char_sequence (common_pedantry @ [
-                        `impose_sequence_alphabet (function
-                        | 'A' .. 'Z' -> true
-                        | _ -> false)
-                      ] @ l)
+  let int_sequence_default = { common = common_default; sequence = `int_sequence }
 
-  let forbid_empty_lines  tags = List.mem tags `forbid_empty_lines
-  let only_header_comment tags = List.mem tags `only_header_comment
-  let sharp_comments      tags = List.mem tags `sharp_comments
-  let semicolon_comments  tags = List.mem tags `semicolon_comments
+  let common_pedantry c =
+    {c with forbid_empty_lines = true; only_header_comment = true }
+
+
+  let pedantic_with (tags: t) =
+    let capitals =
+      List.init 26 (fun i -> Char.of_int_exn (i + Char.to_int 'A')) in
+    {
+      common = common_pedantry tags.common;
+      sequence =
+        match tags.sequence with
+        | `int_sequence -> `int_sequence
+        | `char_sequence c ->
+          `char_sequence { impose_sequence_alphabet = Some capitals }
+    }
+
+  let is_char_sequence t = t.sequence <> `int_sequence
+  let is_int_sequence t = t.sequence = `int_sequence
+
+  let forbid_empty_lines  tags = tags.common.forbid_empty_lines
+  let only_header_comment tags = tags.common.only_header_comment
+  let sharp_comments      tags = tags.common.sharp_comments
+  let semicolon_comments  tags = tags.common.semicolon_comments
   let impose_sequence_alphabet tags =
-    List.find_map tags ~f:(function
-    | `impose_sequence_alphabet f -> Some f
-    | _ -> None)
+    match tags.sequence with
+    | `int_sequence -> None
+    | `char_sequence c ->
+      begin match c.impose_sequence_alphabet with
+      | Some alphb -> Some (fun c -> List.mem alphb c)
+      | None -> None
+      end
 
   let max_items_per_line (t: t) =
-    let find default tags =
-      List.find_map tags (function `max_items_per_line i -> Some i | _ -> None)
-      |> Option.value ~default in
-    match t with
-    | `int_sequence tags -> find 25 tags
-    | `char_sequence tags -> find 72 tags
+    let default =
+      match t.sequence with
+      | `int_sequence -> 25
+      | `char_sequence _ -> 72 in
+    Option.value ~default t.common.max_items_per_line
 
   let comment_char (t: t) =
-    let find tags =
-      List.find_map tags (function `sharp_comments -> Some '#'
-                                 | `semicolon_comments -> Some ';'
-                                 | _ -> None) in
-    match t with
-    | `int_sequence tags -> find tags
-    | `char_sequence tags -> find tags
+    if t.common.sharp_comments
+    then Some '#'
+    else if t.common.semicolon_comments
+    then Some ';'
+    else None
 
   let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
   let of_string s =
@@ -145,7 +162,7 @@ module Transform = struct
       | `incomplete_input e -> `incomplete_input e)
 
   let string_to_char_seq_raw_item
-      ?filename ?(tags=[]) () =
+      ?filename ?(tags=Tags.char_sequence_default) () =
       (* ?pedantic ?sharp_comments ?semicolon_comments () = *)
     let sharp_comments = Tags.sharp_comments tags in
     let semicolon_comments = Tags.semicolon_comments tags in
@@ -153,7 +170,7 @@ module Transform = struct
     let impose_sequence_alphabet = Tags.impose_sequence_alphabet tags in
     generic_parser ~parse_sequence:(fun l ->
       match impose_sequence_alphabet with
-      | Some f when String.exists l ~f ->
+      | Some f when not (String.for_all l ~f) ->
         output_error (`malformed_partial_sequence l)
       | _ ->
       (* if impose_sequence_alphabet && String.exists l ~f:(filter_fun) *)
@@ -162,7 +179,7 @@ module Transform = struct
     ) ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments ()
 
   let string_to_int_seq_raw_item
-      ?filename ?(tags=[]) () =
+      ?filename ?(tags=Tags.int_sequence_default) () =
     let sharp_comments = Tags.sharp_comments tags in
     let semicolon_comments = Tags.semicolon_comments tags in
     let forbid_empty_lines = Tags.forbid_empty_lines tags in
@@ -193,13 +210,13 @@ module Transform = struct
     Biocaml_transform.of_function
       (raw_item_to_string_pure ?comment_char to_string)
 
-  let char_seq_raw_item_to_string  ?(tags=Tags.default) =
+  let char_seq_raw_item_to_string  ?(tags=Tags.char_sequence_default) =
     generic_printer ~to_string:ident ~tags
 
   let int_seq_to_string_pure = fun l ->
     String.concat ~sep:" " (List.map l Int.to_string)
 
-  let int_seq_raw_item_to_string ?(tags=Tags.int_seq_default) =
+  let int_seq_raw_item_to_string ?(tags=Tags.int_sequence_default) =
     generic_printer ~to_string:int_seq_to_string_pure ~tags
 
   (** Return transform for aggregating [raw_item]s into [item]s given
@@ -256,7 +273,7 @@ module Transform = struct
       ~unnamed_sequence:(fun x -> `unnamed_int_seq x)
       ()
 
-  let char_seq_item_to_raw_item ?(tags=Tags.default) () =
+  let char_seq_item_to_raw_item ?(tags=Tags.char_sequence_default) () =
     let items_per_line = Tags.max_items_per_line tags in
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
@@ -277,7 +294,7 @@ module Transform = struct
         | Some s -> `output s
         | None -> if stopped then `end_of_stream else `not_ready)
 
-  let int_seq_item_to_raw_item ?(tags=Tags.int_seq_default) () =
+  let int_seq_item_to_raw_item ?(tags=Tags.int_sequence_default) () =
     let items_per_line = Tags.max_items_per_line tags in
     let queue = Queue.create () in
     Biocaml_transform.make ~name:"fasta_slicer" ()
@@ -317,13 +334,15 @@ module Random = struct
 
   let unit_to_random_char_seq_raw_item specification =
     let open Result in
-    let tags = get_tags specification |> Option.value ~default:Tags.default in
-    begin match tags with
+    let tags =
+      get_tags specification
+      |> Option.value ~default:Tags.char_sequence_default in
+    begin match tags.Tags.sequence with
     | `char_sequence intags ->
       let has_comments =
-        Tags.sharp_comments intags || Tags.semicolon_comments intags in
-      let impose_sequence_alphabet = Tags.impose_sequence_alphabet intags in
-      let only_header_comment  = Tags.only_header_comment intags in
+        Tags.sharp_comments tags || Tags.semicolon_comments tags in
+      let impose_sequence_alphabet = Tags.impose_sequence_alphabet tags in
+      let only_header_comment  = Tags.only_header_comment tags in
       let max_items_per_line = Tags.max_items_per_line tags in
       let non_sequence_probability =
         List.find_map specification
@@ -384,7 +403,7 @@ module Random = struct
               decr todo;
               `output (next_raw_item ()))
           ~feed:(fun () -> incr todo))
-    | `int_sequence _ ->
+    | `int_sequence ->
       fail (`inconsistent_tags `int_sequence)
     end
 

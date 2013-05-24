@@ -383,7 +383,7 @@ let do_random ~output_file ~nb_items spec =
       | `fasta spec ->
         let tags =
           Fasta.Random.get_tags spec
-          |> Option.value ~default:Fasta.Tags.default in
+          |> Option.value ~default:Fasta.Tags.char_sequence_default in
         (`fasta tags, [], spec)
     in
     if Global_configuration.gzip_output_activated ()
