@@ -128,23 +128,23 @@ module Input_transform: sig
   (** An alias of the type [Tags.t]. *)
 
   type t = [
-    | `from_sam_item of
+    | `file_to_sam_item of
         (string, (Biocaml_sam.item, input_error) Core.Result.t) Biocaml_transform.t
-    | `from_gff of
+    | `file_to_gff of
         (string, (Biocaml_gff.item, input_error) Core.Result.t) Biocaml_transform.t
-    | `from_wig of
+    | `file_to_wig of
         (string, (Biocaml_wig.item, input_error) Core.Result.t) Biocaml_transform.t
-    | `from_bed of
+    | `file_to_bed of
         (string, (Biocaml_bed.item, input_error) Core.Result.t) Biocaml_transform.t
-    | `from_fastq
+    | `file_to_fastq
       of (string, (Biocaml_fastq.item, input_error) Core.Result.t) Biocaml_transform.t
-    | `from_char_fasta
+    | `file_to_char_fasta
       of (string, (Biocaml_fasta.char_seq Biocaml_fasta.raw_item,
                    input_error) Core.Result.t) Biocaml_transform.t
-    | `from_int_fasta of
+    | `file_to_int_fasta of
         (string, (Biocaml_fasta.int_seq Biocaml_fasta.raw_item,
                   input_error) Core.Result.t) Biocaml_transform.t
-    | `from_table of
+    | `file_to_table of
         (string, (Biocaml_table.Row.t, input_error) Core.Result.t) Biocaml_transform.t
   ]
   (** The general input transformation. *)

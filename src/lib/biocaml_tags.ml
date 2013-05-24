@@ -238,35 +238,35 @@ module Input_transform = struct
   type tags = t
 
   type t = [
-    | `from_sam_item of
+    | `file_to_sam_item of
         (string, (Biocaml_sam.item, input_error) Result.t) Biocaml_transform.t
-    | `from_gff of
+    | `file_to_gff of
         (string, (Biocaml_gff.item, input_error) Result.t) Biocaml_transform.t
-    | `from_wig of
+    | `file_to_wig of
         (string, (Biocaml_wig.item, input_error) Result.t) Biocaml_transform.t
-    | `from_bed of
+    | `file_to_bed of
         (string, (Biocaml_bed.item, input_error) Result.t) Biocaml_transform.t
-    | `from_fastq
+    | `file_to_fastq
       of (string, (Biocaml_fastq.item, input_error) Result.t) Biocaml_transform.t
-    | `from_char_fasta
+    | `file_to_char_fasta
       of (string, (Biocaml_fasta.char_seq Biocaml_fasta.raw_item,
                    input_error) Result.t) Biocaml_transform.t
-    | `from_int_fasta of
+    | `file_to_int_fasta of
         (string, (Biocaml_fasta.int_seq Biocaml_fasta.raw_item,
                   input_error) Result.t) Biocaml_transform.t
-    | `from_table of
+    | `file_to_table of
         (string, (Biocaml_table.Row.t, input_error) Result.t) Biocaml_transform.t
   ]
 
   let name = function
-  | `from_sam_item _ -> "from_sam_item"
-  | `from_gff _ -> "from_gff"
-  | `from_wig _ -> "from_wig"
-  | `from_bed _ -> "from_bed"
-  | `from_fastq _ -> "from_fastq"
-  | `from_char_fasta _ -> "from_char_fasta"
-  | `from_int_fasta _ -> "from_int_fasta"
-  | `from_table _ -> "from_table"
+  | `file_to_sam_item _ -> "from_sam_item"
+  | `file_to_gff _ -> "from_gff"
+  | `file_to_wig _ -> "from_wig"
+  | `file_to_bed _ -> "from_bed"
+  | `file_to_fastq _ -> "from_fastq"
+  | `file_to_char_fasta _ -> "from_char_fasta"
+  | `file_to_int_fasta _ -> "from_int_fasta"
+  | `file_to_table _ -> "from_table"
 
 
   let from_tags ?zlib_buffer_size (input_tags: tags) =
@@ -279,7 +279,7 @@ module Input_transform = struct
             z t
         | None -> t
       in
-      let from_sam_item t = return (`from_sam_item (with_unzip t) : t) in
+      let from_sam_item t = return (`file_to_sam_item (with_unzip t) : t) in
       match (input_tags : file_format) with
       | `raw_zip tags ->
         input_transform
@@ -307,49 +307,49 @@ module Input_transform = struct
             (Biocaml_gff.Transform.string_to_item ~tags:gff_tag_list ())
             (function Ok o -> Ok o | Error e -> Error (`gff e))
         in
-        return (`from_gff (with_unzip t) : t)
+        return (`file_to_gff (with_unzip t) : t)
       | `wig wig_tag_list ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_wig.Transform.string_to_item ~tags:wig_tag_list ())
             (function Ok o -> Ok o | Error e -> Error (`wig e))
         in
-        return (`from_wig (with_unzip t) : t)
+        return (`file_to_wig (with_unzip t) : t)
       | `bed ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_bed.Transform.string_to_item ())
             (function Ok o -> Ok o | Error e -> Error (`bed e))
         in
-        return (`from_bed (with_unzip t) : t)
+        return (`file_to_bed (with_unzip t) : t)
       | `fastq ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_fastq.Transform.string_to_item ())
             (function Ok o -> Ok o | Error e -> Error (`fastq e))
         in
-        return (`from_fastq (with_unzip t) : t)
+        return (`file_to_fastq (with_unzip t) : t)
       | `fasta (`char_sequence  tags) ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_fasta.Transform.string_to_char_seq_raw_item ~tags ())
             (function Ok o -> Ok o | Error e -> Error (`fasta e))
         in
-        return (`from_char_fasta (with_unzip t) : t)
+        return (`file_to_char_fasta (with_unzip t) : t)
       | `fasta (`int_sequence tags) ->
         let t =
           Biocaml_transform.on_output
             (Biocaml_fasta.Transform.string_to_int_seq_raw_item ~tags ())
             (function Ok o -> Ok o | Error e -> Error (`fasta e))
         in
-        return (`from_int_fasta (with_unzip t) : t)
+        return (`file_to_int_fasta (with_unzip t) : t)
       | `table tags ->
         let t =
           Biocaml_transform.compose
             (Biocaml_lines.Transform.string_to_item ())
             (Biocaml_table.Row.Transform.line_to_item ~tags ())
         in
-        return (`from_table (with_unzip t) : t)
+        return (`file_to_table (with_unzip t) : t)
     in
     match input_tags with
     | `list (tags : tags list) ->
