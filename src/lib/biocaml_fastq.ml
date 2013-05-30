@@ -2,6 +2,8 @@ open Biocaml_internal_pervasives
 open Result
 module Pos = Biocaml_pos
 
+let dbg = Debug.make "fastq"
+
 type item = {
   name: string;
   sequence: string;
@@ -150,13 +152,13 @@ module Transform = struct
     Biocaml_transform.of_function begin fun {name; sequence; qualities; _} ->
       begin try
         let scores =
-          String.fold ~init:[] sequence ~f:(fun prev c ->
+          String.fold ~init:[] qualities ~f:(fun prev c ->
               Biocaml_phred_score.(
                 of_ascii_exn ~offset:phred_score_offset c |> to_int) :: prev)
           |> List.rev in
         return Biocaml_fasta.({ header = name; sequence },
                               { header = name; sequence = scores })
-      with e -> (* from the Phred-score convertions *)
+      with e -> (* exception from the Phred-score convertions *)
         fail (`cannot_convert_ascii_phred_score qualities)
       end
     end
