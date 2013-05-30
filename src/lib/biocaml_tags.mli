@@ -121,6 +121,7 @@ module Input_transform: sig
     | `fastq of Biocaml_fastq.Error.t
     | `fasta of Biocaml_fasta.Error.t
     | `table_row of Biocaml_table.Row.Error.t
+    | `fasta_lengths_mismatch
   ]
   (** An union of all possible input errors. *)
 

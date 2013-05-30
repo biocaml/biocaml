@@ -325,7 +325,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -373,7 +373,7 @@
        inkscape:connector-curvature="0" />
     <g
        id="g4874"
-       transform="translate(-474.28572,-284.28571)">
+       transform="translate(-187.14286,-254.36747)">
       <path
          transform="matrix(0.42253522,0,0,1.0416667,469.89938,116.9849)"
          d="m 1031.4286,535.2193 c 0,28.40321 -45.41115,51.42857 -101.4286,51.42857 -56.01745,0 -101.42857,-23.02536 -101.42857,-51.42857 0,-28.40322 45.41112,-51.42857 101.42857,-51.42857 56.01745,0 101.4286,23.02535 101.4286,51.42857 z"
@@ -409,9 +409,9 @@
          y="738.70282"
          id="tspan2991-7-5">transform</tspan></text>
     <rect
-       style="color:#000000;fill:none;stroke:#2c482c;stroke-width:6.49999952;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
+       style="color:#000000;fill:none;stroke:#2c482c;stroke-width:6.1262331;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate"
        id="rect2985-1"
-       width="447.14282"
+       width="397.19763"
        height="298.57144"
        x="22.024685"
        y="242.72375" />
@@ -425,10 +425,10 @@
          sodipodi:role="line"
          x="21.167534"
          y="222.72377"
-         id="tspan2991-1">mix ~f t1 t2</tspan></text>
+         id="tspan2991-1">mix t1 t2</tspan></text>
     <g
        id="g5352"
-       transform="translate(17.58693,-29.603253)">
+       transform="translate(37.58693,-29.603253)">
       <rect
          y="312.36218"
          x="67.73896"
@@ -450,13 +450,13 @@
     </g>
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m -21.816963,340.64789 82.857143,0"
+       d="m -1.816963,340.64789 82.857143,0"
        id="path3763-9"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <g
        id="g5361"
-       transform="translate(2.85714,-22.857147)">
+       transform="translate(22.85714,-22.857147)">
       <rect
          y="427.04465"
          x="82.46875"
@@ -478,25 +478,25 @@
     </g>
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m -21.816963,444.1875 82.857143,0"
+       d="m -1.816963,444.1875 82.857143,0"
        id="path3763-9-7"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m 182.77696,339.90179 c 47.14286,-3.00506 91.42857,36.05888 141.42857,37.14286"
+       d="m 202.77696,339.90179 c 47.14286,-3.00506 122.85714,37.48745 172.85714,38.57143"
        id="path3763-9-3"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m 181.3484,444.1875 c 47.46301,0 67.69698,-44.07503 142.85714,-38.57143"
+       d="m 201.3484,438.1875 c 47.46301,0 89.12555,-34.07503 170,-38.57143"
        id="path3763-9-1"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />
     <path
        style="fill:none;stroke:#000000;stroke-width:8.60000038;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;marker-end:url(#Arrow1Send)"
-       d="m 439.91982,389.90178 82.85714,0"
+       d="m 397.91982,389.90178 82.85714,0"
        id="path3763-9-34"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cc" />

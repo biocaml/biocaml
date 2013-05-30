@@ -188,32 +188,22 @@ let transforms_to_do
     | (   a_filename, a_itags, `file_to_char_fasta a_tri)
       :: (b_filename, b_itags, `file_to_int_fasta  b_tri) :: t,
       `fastq_to_file tro ->
-      let a_transfo =
-        Transform.(
-          on_error ~f:(fun e -> `input e)
-            (compose_results
-               ~on_error:(function `left e ->  e | `right e -> e)
-               a_tri (on_error ~f:(fun e -> `fasta e)
-                        (Fasta.Transform.char_seq_raw_item_to_item  ()))))
-      in
-      let b_transfo =
-        Transform.(
-          on_error ~f:(fun e -> `input e)
-            (compose_results
-               ~on_error:(function `left e ->  e | `right e -> e)
-               b_tri (on_error ~f:(fun e -> `fasta e)
-                        (Fasta.Transform.int_seq_raw_item_to_item  ()))))
-      in
-      let two_fastas_to_fastq = Fastq.Transform.fasta_pair_to_fastq () in
-      let out_extension = Tags.default_extensions output_tags |> List.hd_exn in
-      let base = filename_chop_all_extensions a_filename in
-      let m =
-      `two_files_to_file (a_filename, a_transfo,
-                          b_filename, b_transfo,
-                          filename_make_new base out_extension,
-                          Transform.compose_result_left
-                            two_fastas_to_fastq tro) in
-      loop (m :: acc) t
+      let double_file_tags = `list [a_itags; b_itags] in
+      of_result (Tags.Input_transform.from_tags double_file_tags)
+      >>= begin function
+      | `two_files_to_fastq two_fastas_to_fastq ->
+        (* transform: string * string → (Fastq.item, _) result *)
+        let out_extension =
+          Tags.default_extensions output_tags |> List.hd_exn in
+        let base = filename_chop_all_extensions a_filename in
+        let m =
+          `two_files_to_file (a_filename, b_filename,
+                              filename_make_new base out_extension,
+                              Transform.compose_result_left
+                                two_fastas_to_fastq tro) in
+        loop (m :: acc) t
+      | _ -> error (`not_implemented "expecting two_fastas_to_fastq")
+      end
     | (filename, tags, `file_to_fastq tri) :: t, `fastq_to_two_files tro ->
       (* tri: (string, (Fastq.item, _) result)
          tro: (Fastq.item, (string * string, output_error) result) *)
@@ -277,11 +267,10 @@ let run_transform ~output_tags files =
     | `file_to_file (filein, tr, fileout) ->
       Say.dbg "Starting Transform: %s → %s" filein fileout >>= fun () ->
       IO.Transform.file_to_file (Transform.to_object tr) filein  fileout
-    | `two_files_to_file (a_filename, a_transfo,
-                          b_filename, b_transfo,
+    | `two_files_to_file (a_filename, b_filename,
                           out_file, out_transfo) ->
       two_files_to_file
-        ~left:(a_filename, a_transfo) ~right:(b_filename, b_transfo)
+        ~left:(a_filename) ~right:(b_filename)
         (out_file, out_transfo)
     | `file_to_two_files (filename, t, char_seq, int_seq) ->
       file_to_two_files

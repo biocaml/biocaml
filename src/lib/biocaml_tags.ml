@@ -3,6 +3,8 @@ open Result
 module Gff = Biocaml_gff
 module Wig = Biocaml_wig
 
+let dbg = Debug.make "tags"
+
 type file_format = [
 | `gzip of file_format
 | `raw_zip of file_format
@@ -206,11 +208,16 @@ module Output_transform = struct
             compose
               (Biocaml_fasta.Transform.int_seq_item_to_raw_item ~tags:rftags ())
               t2 in
+          let the_mix =
+            on_output (mix tleft tright)  (function
+              | `both (a, b) -> (a, b)
+              | `left a -> (a, "")
+              | `right b -> ("", b)) in
           return (`fastq_to_two_files (
               on_error ~f:(fun e -> `fastq e)
                 (compose_result_left
                    (Biocaml_fastq.Transform.fastq_to_fasta_pair ())
-                   (mix tleft tright (fun a b -> (a, b))))
+                   the_mix)
             )))
       | _ ->
         fail (`not_implemented "list output_tags")
@@ -236,6 +243,7 @@ module Input_transform = struct
     | `fastq of Biocaml_fastq.Error.t
     | `fasta of Biocaml_fasta.Error.t
     | `table_row of Biocaml_table.Row.Error.t
+    | `fasta_lengths_mismatch
   ]
   with sexp_of
 
@@ -384,15 +392,18 @@ module Input_transform = struct
             compose_results
               ~on_error:(function `left e -> e | `right e -> `fasta e)
               t (Biocaml_fasta.Transform.int_seq_raw_item_to_item ()) in
+          let the_mix =
+            on_output (mix tleft tright) (function
+              | `both (Ok a, Ok b) -> Ok (a, b)
+              | `left (Ok a) -> Error (`fasta_lengths_mismatch)
+              | `right (Ok b) -> Error (`fasta_lengths_mismatch)
+              | `both (Error e, _) | `both (_, Error e)
+              | `left (Error e) | `right (Error e) -> Error e) in
           return (
             `two_files_to_fastq (
               (compose_results
                  ~on_error:(function `left e -> e | `right e -> `fastq e)
-                 (mix tleft tright
-                    (fun a b ->
-                       match a, b with
-                       | Ok a, Ok b -> Ok (a, b)
-                       | Error e, _  | _, Error e -> Error e))
+                 the_mix
                  (Biocaml_fastq.Transform.fasta_pair_to_fastq ()))
             )))
       | _ ->

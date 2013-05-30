@@ -106,7 +106,7 @@ let compose ta tb =
       | `not_ready -> call_tb_next ()
       | `end_of_stream -> stop tb; call_tb_next ())
 
-let mix ta tb ~f =
+let mix ta tb =
   let a_buffer = ref None in
   let name =
     sprintf "(mix <%s> <%s>)"
@@ -121,20 +121,26 @@ let mix ta tb ~f =
         begin match next ta with
         | `output oa ->
           begin match next tb with
-          | `output ob -> `output (f oa ob)
+          | `output ob -> `output (`both (oa, ob))
           | `not_ready -> a_buffer := Some oa; `not_ready
           | `end_of_stream -> `end_of_stream
           end
         | `not_ready -> `not_ready
-        | `end_of_stream -> `end_of_stream
+        | `end_of_stream ->
+          begin match next tb with
+          | `output ob -> `output (`right ob)
+          | `not_ready -> `not_ready
+          | `end_of_stream -> `end_of_stream
+          end
         end
       | Some oa ->
         begin match next tb with
-        | `output ob -> `output (f oa ob)
+        | `output ob -> a_buffer := None; `output (`both (oa, ob))
         | `not_ready -> `not_ready
-        | `end_of_stream -> `end_of_stream
+        | `end_of_stream -> a_buffer := None; `output (`left oa)
         end
       end)
+
 
 let filter_compose left right ~destruct ~reconstruct =
   let name =
@@ -256,5 +262,3 @@ let of_object o =
     ~next:(fun () -> o#next)
     ~feed:(fun s -> o#feed s)
     ~stop:(fun () -> o#stop) ()
-
-

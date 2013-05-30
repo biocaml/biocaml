@@ -1,4 +1,4 @@
-(** Buffered transforms. A buffered transform represents a method for
+(** Buffered transforms. A buffered transform represents a method for insertingcomment
     converting a stream of [input]s to a stream of [output]s. However,
     [input]s can also be buffered, i.e. you can feed [input]s to the
     transform and pull out [output]s later. There is no requirement
@@ -123,12 +123,16 @@ val compose: ('a, 'b) t -> ('b, 'c) t -> ('a, 'c) t
     {figure src/doc/figures/transform_compose.svg 50%
     “Compose” two transforms} *)
 
-val mix : ('a1, 'b1) t -> ('a2, 'b2) t -> f:('b1 -> 'b2 -> 'c) -> ('a1 * 'a2, 'c) t
-(** [mix t u f] returns a transform that takes as input a pair of the
-    inputs expected by [t] and [u], and outputs a single value that is the
-    result of applying [f] to the outputs of [t] and [u].
+val mix : ('a1, 'b1) t -> ('a2, 'b2) t ->
+  ('a1 * 'a2, [ `both of 'b1 * 'b2 | `left of 'b1 | `right of 'b2 ]) t
+(** [mix t u] returns a transform that takes as input a pair of the
+    inputs expected by [t] and [u], and outputs
+    either [both] outputs, or, when one transform has reach the end of
+    its stream, the output of the remaining one (as [`left _] or
+    [`right _]).
     {figure src/doc/figures/transform_mix.svg 50%
-    “Mix” the inputs of two transforms} *)
+    “Mix” the inputs of two transforms}
+*)
 
 val filter_compose:
   ('il, 'ol) t -> ('ir, 'our) t ->

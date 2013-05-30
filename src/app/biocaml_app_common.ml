@@ -624,21 +624,20 @@ let files_to_files
 
     For instance: left: char fasta, right: int fast, out: fastq
 *)
-let two_files_to_file
-    ~left:(a_filename, a_transfo) ~right:(b_filename, b_transfo)
-    (out_file, out_transfo) =
+let two_files_to_file ~left ~right (out_file, out_transfo) =
   files_to_files
     ~inputs:[
-      a_filename,
-      Transform.on_output a_transfo ~f:(Result.map ~f:(fun s -> `left s));
-      b_filename,
-      Transform.on_output b_transfo ~f:(Result.map ~f:(fun s -> `right s));
+      left, Transform.of_function (fun s -> Ok (`left s));
+      (* Transform.on_output a_transfo ~f:(Result.map ~f:(fun s -> `left s)); *)
+      right, Transform.of_function (fun s -> Ok (`right s));
+      (* Transform.on_output b_transfo ~f:(Result.map ~f:(fun s -> `right s)); *)
     ]
     ~mixer:((* ('a list, (int * string, 'err) Result.t) Transform.t) *)
       Transform.on_input out_transfo
         ~f:(function [ `left l; `right r ] -> (l, r) | _ -> assert false)
-      |> Transform.on_output ~f:(Result.map ~f:(fun s -> (0, s)))
-    )
+      |> Transform.on_output ~f:(function
+        | Ok o -> Ok (0, o)
+        | Error e -> Error (`input e)))
     [out_file]
 
 let file_to_two_files ~input t ~output_left ~output_right =
