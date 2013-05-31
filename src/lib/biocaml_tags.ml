@@ -192,36 +192,45 @@ module Output_transform = struct
         return (`table_to_file (with_zip_no_error t) : t)
     in
     match output_tags with
-    | `list [`fasta lftags as left; `fasta rftags as right ] ->
+    | `list [#file_format as left; #file_format as right ] ->
+      (* We let `output_transform` try its best for any pair of file-formats *)
       output_transform left
       >>= fun left_tr ->
       output_transform right
       >>= fun right_tr ->
       begin match left_tr, right_tr with
       | `char_fasta_to_file t1, `int_fasta_to_file t2 ->
+        let rec fasta_tags = function
+        | `gzip t -> fasta_tags t
+        | `raw_zip t -> fasta_tags t
+        | `fasta t -> t
+        | _ -> (* no way we got there through another path *) assert false in
+        let lftags = fasta_tags left in
+        let rftags = fasta_tags right in
         Biocaml_transform.(
-          let tleft =
+          let tleft = (* Sequence Fasta-full-item → string, no possible error *)
             compose
               (Biocaml_fasta.Transform.char_seq_item_to_raw_item ~tags:lftags ())
               t1 in
-          let tright =
+          let tright = (* Qualities Fasta-full-item → string, no possible error *)
             compose
               (Biocaml_fasta.Transform.int_seq_item_to_raw_item ~tags:rftags ())
               t2 in
-          let the_mix =
+          let the_mix = (* Mix the 2 previous ones into one “parallel”. *)
             on_output (mix tleft tright)  (function
               | `both (a, b) -> (a, b)
               | `left a -> (a, "")
               | `right b -> ("", b)) in
           return (`fastq_to_two_files (
               on_error ~f:(fun e -> `fastq e)
-                (compose_result_left
+                (compose_result_left (* Add (fastq → (fasta-seq, fasta-qual))
+                                        in front of the “parallel” one. *)
                    (Biocaml_fastq.Transform.fastq_to_fasta_pair ())
                    the_mix)
             )))
       | _ ->
         fail (`not_implemented "list output_tags")
-      end
+      en
     | `list (tags : tags list) -> fail (`not_implemented "list output_tags")
     | #file_format as file_output_tags -> output_transform file_output_tags
 
