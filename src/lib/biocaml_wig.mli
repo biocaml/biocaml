@@ -107,7 +107,7 @@ module Tags: sig
   (** Additional tags (c.f. {!Biocaml_tags}). *)
 
   val default: t
-  (** Default tags ([[ `sharp_comments; `pedantic ]]). *)
+  (** Default tags ([{allow_empty_lines = false; sharp_comments = true}]). *)
 
   val of_string: string ->
     (t, [> `wig of [> `tags_of_string of exn ] ]) Core.Result.t
