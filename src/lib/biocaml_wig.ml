@@ -23,9 +23,23 @@ with sexp
 type item = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 with sexp
 
+(* `module_error` should progressively allow to “tag” error values. *)
+let module_error e = Error (`wig e)
+
 module Tags = struct
-  type t = [ `sharp_comments | `pedantic ] list with sexp
-  let default = [ `sharp_comments; `pedantic ]
+  type t = {
+    allow_empty_lines: bool;
+    sharp_comments: bool;
+  }
+  with sexp
+
+  let default = {allow_empty_lines = false; sharp_comments = true}
+
+  let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
+  let of_string s =
+    try Ok (Sexplib.Sexp.of_string s |> t_of_sexp)
+    with e -> module_error (`tags_of_string e)
+
 end
 
 module Error = struct
@@ -96,7 +110,7 @@ module Transform = struct
     with
       Not_found -> Error (`cannot_parse_key_values (loc, s))
 
-  let rec next ?(pedantic=true) ?(sharp_comments=true) p =
+  let rec next ~tags p =
     let open Biocaml_lines.Buffer in
     let assoc_find ~missing l v =
       match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
@@ -106,10 +120,10 @@ module Transform = struct
       | None -> Error missing in
     match (next_line p :> string option) with
     | Some "" ->
-      if pedantic
+      if tags.Tags.allow_empty_lines
       then output_error (`empty_line (current_position p))
-      else next ~pedantic ~sharp_comments p
-    | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
+      else next ~tags p
+    | Some l when tags.Tags.sharp_comments && String.is_prefix l ~prefix:"#" ->
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
     | Some l when String.is_prefix l ~prefix:"fixedStep" ->
       let output_m =
@@ -183,17 +197,14 @@ module Transform = struct
 
 
   let string_to_item ?filename ?(tags=Tags.default) () =
-    let pedantic = List.mem tags `pedantic in
-    let sharp_comments = List.mem tags `sharp_comments in
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
-    let next = next ~pedantic ~sharp_comments in
+    let next = next ~tags in
     Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
 
   let item_to_string ?(tags=Tags.default) () =
-    let sharp_comments = List.mem tags `sharp_comments in
     let to_string = function
-    | `comment c -> if sharp_comments then sprintf "#%s\n" c else ""
+    | `comment c -> if tags.Tags.sharp_comments then sprintf "#%s\n" c else ""
     | `variable_step_state_change (chrom, span) ->
       sprintf "variableStep chrom=%s%s\n" chrom
         Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))
@@ -268,9 +279,8 @@ let in_channel_to_bed_graph_exn ?buffer_size ?filename ?tags inp =
 
 
 let item_to_string ?(tags=Tags.default) =
-  let sharp_comments = List.mem tags `sharp_comments in
   function
-  | `comment c -> if sharp_comments then sprintf "#%s\n" c else ""
+  | `comment c -> if tags.Tags.sharp_comments then sprintf "#%s\n" c else ""
   | `variable_step_state_change (chrom, span) ->
     sprintf "variableStep chrom=%s%s\n" chrom
       Option.(value_map ~default:"" span ~f:(sprintf " span=%d"))

@@ -100,11 +100,21 @@ end
 
 module Tags: sig
 
-  type t = [ `sharp_comments | `pedantic ] list
+  type t = {
+    allow_empty_lines: bool;
+    sharp_comments: bool;
+  }
   (** Additional tags (c.f. {!Biocaml_tags}). *)
 
   val default: t
   (** Default tags ([[ `sharp_comments; `pedantic ]]). *)
+
+  val of_string: string ->
+    (t, [> `wig of [> `tags_of_string of exn ] ]) Core.Result.t
+  (** Parse tags (for now S-Expressions). *)
+
+  val to_string: t -> string
+  (** Serialize tags (for now S-Expressions). *)
 
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
@@ -186,4 +196,3 @@ val bed_graph_value_of_sexp : Sexplib.Sexp.t -> bed_graph_value
 val sexp_of_bed_graph_value : bed_graph_value -> Sexplib.Sexp.t
 val item_of_sexp : Sexplib.Sexp.t -> item
 val sexp_of_item : item -> Sexplib.Sexp.t
-
