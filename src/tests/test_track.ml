@@ -63,7 +63,7 @@ let test_wig_parser () =
   ()
 
 let test_gff_parser () =
-  let transfo = Track.Transform.string_to_gff () in
+  let transfo = Track.Transform.string_to_gff ~tags:Gff.Tags.default () in
   let test_line l f =
     Transform.feed transfo (l ^ "\n");
     assert_bool l (f (Transform.next transfo))
@@ -130,7 +130,7 @@ let test_wig_printer () =
   ()
 
 let test_gff_printer () =
-  let transfo = Track.Transform.gff_to_string () in
+  let transfo = Track.Transform.gff_to_string ~tags:Gff.Tags.default () in
   let test_line i l =
     Transform.feed transfo i;
     assert_bool l (Transform.next transfo = `output (l ^ "\n"))

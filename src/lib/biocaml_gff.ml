@@ -31,8 +31,15 @@ let module_error e = Error (`gff e)
 
 module Tags = struct
 
-  type t = [ `version of [`two | `three] | `pedantic ] list with sexp
-  let default = [`version `three; `pedantic]
+  type t = {
+    version: [`two | `three];
+    allow_empty_lines: bool;
+    sharp_comments: bool;
+  }
+  with sexp
+
+  let default =
+    {version = `three; allow_empty_lines = false; sharp_comments = true}
 
 
   let to_string t = sexp_of_t t |> Sexplib.Sexp.to_string
@@ -198,25 +205,23 @@ module Transform = struct
       output_error (`wrong_row (pos, s))
     end
 
-  let rec next ?(pedantic=true) ?(sharp_comments=true) ?(version=`three) p =
+  let rec next ~tags  p =
     let open Biocaml_lines.Buffer in
     let open Result in
     match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" ->
-      if pedantic
+      if tags.Tags.allow_empty_lines
       then output_error (`empty_line (current_position p))
-      else next ~pedantic ~sharp_comments ~version p
-    | Some l when sharp_comments && String.(is_prefix (strip l) ~prefix:"#") ->
+      else next ~tags p
+    | Some l when
+        tags.Tags.sharp_comments && String.(is_prefix (strip l) ~prefix:"#") ->
       output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l -> parse_row ~version (current_position p) l
+    | Some l -> parse_row ~version:tags.Tags.version (current_position p) l
 
-  let string_to_item ?filename ?(tags=Tags.default) () =
+  let string_to_item ?filename ~tags () =
     let name = sprintf "gff_parser:%s" Option.(value ~default:"<>" filename) in
-    let pedantic = List.mem tags  `pedantic in
-    let version =
-      List.find_map tags (function `version v -> Some v | _ -> None) in
-    let next = next ~pedantic ?version in
+    let next = next ~tags in
     Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
 
   let item_to_string_pure version = (function
@@ -248,20 +253,18 @@ module Transform = struct
     ] ^ "\n"
   )
 
-  let item_to_string ?(tags=Tags.default) () =
-    let version =
-      List.find_map tags (function `version v -> Some v | _ -> None)
-      |! Option.value ~default:`three in
+  let item_to_string ~tags () =
     Biocaml_transform.of_function ~name:"gff_to_string"
-      (item_to_string_pure version)
+      (item_to_string_pure tags.Tags.version)
 
 end
 
 exception Error of  Error.t
 let error_to_exn e = Error e
 
-let in_channel_to_item_stream ?(buffer_size=65536) ?filename ?tags inp =
-  let x = Transform.string_to_item ?tags ?filename () in
+let in_channel_to_item_stream
+    ?(buffer_size=65536) ?filename ?(tags=Tags.default) inp =
+  let x = Transform.string_to_item ~tags ?filename () in
   Biocaml_transform.(in_channel_strings_to_stream inp x ~buffer_size)
 
 let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
@@ -269,7 +272,4 @@ let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
     (in_channel_to_item_stream ?buffer_size ?tags inp)
 
 let item_to_string ?(tags=Tags.default) item =
-  let version =
-    List.find_map tags (function `version v -> Some v | _ -> None)
-    |! Option.value ~default:`three in
-  Transform.item_to_string_pure version item
+  Transform.item_to_string_pure tags.Tags.version item

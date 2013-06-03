@@ -3,7 +3,7 @@ open Biocaml_internal_pervasives
 open Biocaml
 
 let test_parser () =
-  let transfo = Gff.Transform.string_to_item () in
+  let transfo = Gff.Transform.string_to_item ~tags:Gff.Tags.default () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
     Transform.feed transfo (joined ^ "\n");
@@ -27,7 +27,7 @@ let test_parser () =
              pos = (42, 43); score = Some 2.; strand = `plus;
              phase = Some 2;
              attributes = ["k", ["v"; "v v"]; "big k", ["annoying v"]]});
-  
+
   test_line ["\"big\\tC style\""; "some";  "s"; "42"; "43"; "2."; "+"]
     (function | `output (Error (`wrong_row (_, _))) -> true | _ -> false);
 
@@ -56,7 +56,10 @@ let test_parser () =
             "some=string;djf"]
     (function | `output (Error (`wrong_attributes (_, _))) -> true | _ -> false);
 
-  let transfo = Gff.Transform.string_to_item ~tags:[`version `two] () in
+  let transfo =
+    let tags =
+      { Gff.Tags.default with Gff.Tags.version = `two; allow_empty_lines = true} in
+    Gff.Transform.string_to_item ~tags () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
     Transform.feed transfo (joined ^ "\n");
@@ -73,16 +76,16 @@ let test_parser () =
          pos = (42, 43); score = Some 2.; strand = `plus;
          phase = Some 2; attributes = ["k", ["v"]; "big\tk", ["annoying v"]]});
   ()
-   
+
 let test_printer () =
-  let transfo = Gff.Transform.item_to_string () in
+  let transfo = Gff.Transform.item_to_string ~tags:Gff.Tags.default () in
   let test s item =
     Transform.feed transfo item;
     let res =  Transform.next transfo in
     match res with
     | `output o ->
       if s <> o then eprintf "NOT EQUALS:\n%S\n%S\n%!" s o;
-      assert_equal ~printer:ident s o 
+      assert_equal ~printer:ident s o
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
   in
@@ -100,14 +103,17 @@ let test_printer () =
              phase = None; attributes = [
                "k", ["v"]; "big k", ["an;no\ting\nv"]
              ]});
-  let transfo = Gff.Transform.item_to_string ~tags:[ `version `two] () in
+  let transfo =
+    let tags =
+      { Gff.Tags.default with Gff.Tags.version = `two; allow_empty_lines = true} in
+    Gff.Transform.item_to_string ~tags () in
   let test s item =
     Transform.feed transfo item;
     let res =  Transform.next transfo in
     match res with
     | `output o ->
       if s <> o then eprintf "NOT EQUALS (version 2):\n%S\n%S\n%!" s o;
-      assert_equal ~printer:ident s o 
+      assert_equal ~printer:ident s o
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
   in
@@ -120,7 +126,7 @@ let test_printer () =
              ]});
   ()
 
-  
+
 let tests = "GFF" >::: [
   "Parse GFF" >:: test_parser;
   "Print GFF" >:: test_printer;

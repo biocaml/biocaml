@@ -154,9 +154,9 @@ module Transform = struct
 
   type gff_parse_error = [Error.parsing | Gff.Error.parsing]
   type gff_t = [track | Gff.item]
-  let string_to_gff ?filename ?tags () =
+  let string_to_gff ?filename ~tags () =
     let gff = Gff.Transform.string_to_item ?filename () in
-    embed_parser  ?filename gff
+    embed_parser  ?filename (gff ~tags)
       ~reconstruct:(function
       | `bypassed (Ok f) -> Ok (f :> gff_t)
       | `bypassed (Error f) -> Error (f :> [> gff_parse_error])
@@ -192,8 +192,8 @@ module Transform = struct
       | `comment _ | `track _ | `browser _ as x -> `left x
       | #Wig.item as y -> `right y)
 
-  let gff_to_string ?tags () =
-    let gff = Gff.Transform.item_to_string ?tags () in
+  let gff_to_string ~tags () =
+    let gff = Gff.Transform.item_to_string ~tags () in
     make_printer gff ()
       ~split:(function
       | `comment _ | `track _ | `browser _ as x -> `left x

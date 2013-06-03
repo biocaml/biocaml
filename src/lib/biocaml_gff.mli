@@ -70,11 +70,16 @@ end
 
 module Tags: sig
 
-  type t = [ `version of [`two | `three] | `pedantic ] list
+  type t = {
+    version: [`two | `three];
+    allow_empty_lines: bool;
+    sharp_comments: bool;
+  }
   (** Additional format-information tags (c.f. {!Biocaml_tags}). *)
 
   val default: t
-  (** Default tags for a random Gff file: [[`version `three; `pedantic]]. *)
+  (** Default tags for a random Gff file:
+      [{version = `three; allow_empty_lines = false; sharp_comments = true}]. *)
 
   val of_string: string ->
     (t, [> `gff of [> `tags_of_string of exn ] ]) Core.Result.t
@@ -114,12 +119,12 @@ module Transform: sig
 
   val string_to_item:
     ?filename:string ->
-    ?tags: Tags.t ->
+    tags: Tags.t ->
     unit ->
     (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
   (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
-  val item_to_string: ?tags: Tags.t -> unit ->
+  val item_to_string: tags: Tags.t -> unit ->
     (item, string) Biocaml_transform.t
   (** Create a printer for a given version. *)
 
