@@ -230,7 +230,7 @@ module Output_transform = struct
             )))
       | _ ->
         fail (`not_implemented "list output_tags")
-      en
+      end
     | `list (tags : tags list) -> fail (`not_implemented "list output_tags")
     | #file_format as file_output_tags -> output_transform file_output_tags
 
