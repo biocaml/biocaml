@@ -52,22 +52,6 @@
     to mean specifically a sequence of characters, and [int_seq] to
     mean specifically a sequence of integers.
 
-    Parsing functions throughout this module take the following
-    optional arguments:
-
-    - [filename] - used only for error messages when the data source
-    is not the file.
-
-    - [pedantic] - if true, which is the default, report more
-    errors: Biocaml_transform.no_error lines, non standard
-    characters.
-
-    - [sharp_comments] and [semicolon_comments] - if true, allow
-    comments beginning with a '#' or ';' character,
-    respectively. Setting both to true is okay, although it is not
-    recommended to have such files. Setting both to false implies that
-    comments are disallowed.
-
 *)
 
 (** {2 Fasta Content Type Definitions } *)
