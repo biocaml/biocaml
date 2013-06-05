@@ -5,16 +5,25 @@ DefineCommandVars()
 ################################################################################
 # Variables that can be re-defined from the command line:
 
+# The prefix for installation of binaries and documentation
 PREFIX=$(PWD)/usr/
+
+# Whether to build the application or not
+# BUILD_APP = `true` or `false`
+# BUILD_TESTS = `true` or `false`
+
 DefineCommandVars()   # This tells OMake to re-evaluate command-line variables
+
+# More fine-grained configuration of the installation directories:
 BINDIR=$(PREFIX)/bin/
 DOCDIR=$(PREFIX)/share/doc
+
 DefineCommandVars()
 
 ################################################################################
 
 
-.PHONY: clean install install_library uninstall uninstall_library \
+.PHONY: clean distclean install install_library uninstall uninstall_library \
         test install_app uninstall_app doc install_doc dist
 
 USE_OCAMLFIND = true
@@ -22,6 +31,21 @@ if $(not $(OCAMLFIND_EXISTS))
   eprintln(This project requires ocamlfind, but is was not found.)
   eprintln(You need to install ocamlfind and run "omake --configure".)
   exit 1
+
+.STATIC:
+    COMPILE_BIOCAML_APP=true
+    if $(defined BUILD_APP)
+        echo "User defined BUILD_APP: $(BUILD_APP)"
+        COMPILE_BIOCAML_APP = $(BUILD_APP)
+        export
+
+.STATIC:
+    COMPILE_BIOCAML_TESTS=true
+    if $(defined BUILD_TESTS)
+        echo "User defined BUILD_TESTS: $(BUILD_TESTS)"
+        COMPILE_BIOCAML_TESTS = $(BUILD_TESTS)
+        export
+
 
 NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
 BYTE_ENABLED = true
@@ -138,7 +162,10 @@ BENCHMARKS[]=
 BENCHMARKS_PACKAGES=
 
 clean:
-  rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
+  rm -fr _build
+
+distclean: clean
+  rm -fr OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
 
 install: install_library install_app
 uninstall: uninstall_library uninstall_app
@@ -265,18 +292,24 @@ ensure_path(path) =
         OCAMLINCLUDES += $(dir ../lib/)
         OCAMLPACKS[] = $(PACKAGES) $(APP_PACKAGES)
         %.ml: ../lib/biocaml.cma
-        .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+        if $(COMPILE_BIOCAML_APP)
+            echo "conf: Building biocaml application"
+            .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
 
     .SUBDIRS: _build/tests
         OCAML_LIBS = ../lib/biocaml
         OCAMLINCLUDES += $(dir ../lib/)
         OCAMLPACKS[] = $(PACKAGES) $(UNIT_TESTS_PACKAGES)
         %.ml: ../lib/biocaml.cma
-        .DEFAULT: $(OCamlProgram $(UNIT_TESTS_NAME), main $(UNIT_TESTS))
+        if $(COMPILE_BIOCAML_TESTS)
+            echo "conf: Building biocaml tests"
+            .DEFAULT: $(OCamlProgram $(UNIT_TESTS_NAME), main $(UNIT_TESTS))
 
     .SUBDIRS: _build/benchmark
         OCAML_LIBS = ../lib/biocaml
         OCAMLINCLUDES += $(dir ../lib/)
         OCAMLPACKS[] = $(PACKAGES) $(BENCHMARKS_PACKAGES)
         %.ml: ../lib/biocaml.cma
-        .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS))
+        if $(COMPILE_BIOCAML_TESTS)
+            echo "conf: Building biocaml benchmarks"
+            .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS))
