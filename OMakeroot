@@ -2,7 +2,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: clean install install_library uninstall uninstall_library
+.PHONY: clean install install_library uninstall uninstall_library test
 
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
@@ -139,6 +139,28 @@ APP_MODULES[]=
     biocaml_app_entrez
 APP_PACKAGES= flow
 
+UNIT_TESTS_NAME=biocaml_unit_test
+UNIT_TESTS[]=
+    test_bed
+    test_fasta
+    test_gff
+    test_interval_tree
+    test_phred_score
+    test_pwm
+    test_roc
+    test_rset
+    test_sam
+    test_stream
+    test_table
+    test_track
+    test_vcf
+    test_wig
+    test_zip
+UNIT_TESTS_PACKAGES= oUnit
+
+test: _build/tests/$(UNIT_TESTS_NAME)
+    $<
+
 
 clean:
   rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
@@ -146,10 +168,14 @@ clean:
 install: install_library
 uninstall: uninstall_library
 
+ensure_path(path) =
+    mkdir -p $(path)
 
 .SUBDIRS: .
-    if $(not $(file-exists _build/))
-        mkdir -p _build/lib _build/app
+
+    ensure_path(_build/lib)
+    ensure_path(_build/app)
+    ensure_path(_build/tests)
     vmount(-l, src/, _build/)
 
     .SUBDIRS: _build/lib
@@ -162,3 +188,10 @@ uninstall: uninstall_library
         OCAMLPACKS[] = $(PACKAGES) $(APP_PACKAGES)
         %.ml: ../lib/biocaml.cma
         .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+
+    .SUBDIRS: _build/tests
+        OCAML_LIBS = ../lib/biocaml
+        OCAMLINCLUDES += $(dir ../lib/)
+        OCAMLPACKS[] = $(PACKAGES) $(UNIT_TESTS_PACKAGES)
+        %.ml: ../lib/biocaml.cma
+        .DEFAULT: $(OCamlProgram $(UNIT_TESTS_NAME), main $(UNIT_TESTS))
