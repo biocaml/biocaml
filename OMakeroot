@@ -161,6 +161,10 @@ UNIT_TESTS_PACKAGES= oUnit
 test: _build/tests/$(UNIT_TESTS_NAME)
     $<
 
+BENCHMARKS_NAME=biocaml_benchmarks
+BENCHMARKS[]=
+    benchmark_zip
+BENCHMARKS_PACKAGES=
 
 clean:
   rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
@@ -176,6 +180,7 @@ ensure_path(path) =
     ensure_path(_build/lib)
     ensure_path(_build/app)
     ensure_path(_build/tests)
+    ensure_path(_build/benchmark)
     vmount(-l, src/, _build/)
 
     .SUBDIRS: _build/lib
@@ -195,3 +200,10 @@ ensure_path(path) =
         OCAMLPACKS[] = $(PACKAGES) $(UNIT_TESTS_PACKAGES)
         %.ml: ../lib/biocaml.cma
         .DEFAULT: $(OCamlProgram $(UNIT_TESTS_NAME), main $(UNIT_TESTS))
+
+    .SUBDIRS: _build/benchmark
+        OCAML_LIBS = ../lib/biocaml
+        OCAMLINCLUDES += $(dir ../lib/)
+        OCAMLPACKS[] = $(PACKAGES) $(BENCHMARKS_PACKAGES)
+        %.ml: ../lib/biocaml.cma
+        .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS))
