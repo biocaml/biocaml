@@ -15,7 +15,7 @@ DefineCommandVars()
 
 
 .PHONY: clean install install_library uninstall uninstall_library \
-        test install_app uninstall_app doc install_doc
+        test install_app uninstall_app doc install_doc dist
 
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
@@ -152,6 +152,16 @@ uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
     rm -f $(BINDIR)/$(APP_NAME)
 
+DIST_FILES=Changes INSTALL LICENSE OMakeroot README.md src
+dist:
+    rm -fr _build/dist/
+    mkdir -p _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/
+    cp -r $(DIST_FILES) _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/
+    cd _build/dist/ && tar cvfz $(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz \
+                                $(PROJECT_NAME)-$(PROJECT_VERSION) \
+        && md5sum $(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz > \
+             _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz.md5
+             # → wierd path to the file, required because OMake interprets it
 
 ################################################################################
 # Biocaml is a bit more complex than what OCamlLibrary can provide so
