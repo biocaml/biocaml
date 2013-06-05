@@ -1,0 +1,164 @@
+
+open build/OCaml
+DefineCommandVars()
+
+.PHONY: clean install install_library uninstall uninstall_library
+
+USE_OCAMLFIND = true
+if $(not $(OCAMLFIND_EXISTS))
+  eprintln(This project requires ocamlfind, but is was not found.)
+  eprintln(You need to install ocamlfind and run "omake --configure".)
+  exit 1
+
+NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
+BYTE_ENABLED = true
+
+OCAMLFLAGS = -bin-annot -annot -warn-error P -thread
+OCAMLCFLAGS =
+OCAMLOPTFLAGS =
+OCAML_LINK_FLAGS +=
+OCAML_BYTE_LINK_FLAGS =
+OCAML_NATIVE_LINK_FLAGS =
+OCAMLFINDFLAGS = -syntax camlp4o
+
+
+PROJECT_NAME= biocaml
+PROJECT_VERSION= 0.3.0-dev
+
+LIB_NAME=$(PROJECT_NAME)
+LIB_VERSION=$(PROJECT_VERSION)
+
+LIB_MODULES[] =
+    biocaml
+    biocaml_internal_pervasives
+    biocaml_transform
+    biocaml_msg
+    biocaml_zip
+    biocaml_bam
+    biocaml_pos
+    biocaml_about
+    biocaml_accu
+    biocaml_bar
+    biocaml_bed
+    biocaml_bpmap
+    biocaml_cel
+    biocaml_chr
+    biocaml_entrez
+    biocaml_fasta
+    biocaml_fastq
+    biocaml_genomeMap
+    biocaml_gff
+    biocaml_histogram
+    biocaml_interval_tree
+    biocaml_iset
+    biocaml_jaspar
+    biocaml_line
+    biocaml_lines
+    biocaml_math
+    biocaml_phred_score
+    biocaml_psl
+    biocaml_pwm
+    biocaml_range
+    biocaml_roc
+    biocaml_romanNum
+    biocaml_rSet
+    biocaml_sam
+    biocaml_sbml
+    biocaml_seq
+    biocaml_solexa_score
+    biocaml_sgr
+    biocaml_strandName
+    biocaml_stream
+    biocaml_streamable
+    biocaml_track
+    biocaml_tags
+    biocaml_vcf
+    biocaml_wig
+    biocaml_mzData
+    biocaml_table
+    biocaml_transcripts
+
+LIB_STUBS= biocaml_pwm_stub biocaml_mzData_stubs
+LIB_DESCRIPTION=The OCaml Bioinformatics Library <http://biocaml.org>
+LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
+DEPENDENCIES=core threads zip unix xmlm pcre
+PACKAGES= $(DEPENDENCIES) sexplib.syntax
+
+public.BioCamlLibrary(name, files, c_files) =
+    protected.name = $(file $(name))
+    protected.OFILES   = $(addsuffix $(EXT_OBJ), $(files))
+    protected.CMOFILES = $(addsuffix .cmo, $(files))
+    protected.CMXFILES = $(addsuffix .cmx, $(files))
+    protected.CLIB      = $(file $(name)$(EXT_LIB))
+    protected.BYTELIB   = $(file $(name).cma)
+    protected.NATIVELIB = $(file $(name).cmxa)
+    protected.STUB_C_FILES= $(addsuffix .o, $(c_files))
+    biocaml_about.ml:
+        echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
+        echo 'let version = "$(PROJECT_VERSION)"' >> $@
+    #
+    # Link commands
+    #
+    #section
+    #    %.o: %.c
+    #        ocamlc -c $<
+    foreach(f => ..., $(c_files))
+        $(f).o: $(f).c
+            ocamlc -c $<
+    META:
+        echo "description = \"$(LIB_DESCRIPTION)\"" > META
+        echo "version = \"$(LIB_VERSION)\"" >> META
+        echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
+        echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
+        echo "requires = \"$(DEPENDENCIES)\"" >> META
+    install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
+      ocamlfind install $(LIB_NAME) META *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
+    uninstall_library:
+      ocamlfind remove $(LIB_NAME)
+    if $(BYTE_ENABLED)
+        $(BYTELIB): $(CMOFILES) $(STUB_C_FILES)
+            ocamlmklib -o $(name) $(OCamlLinkSort $(CMOFILES)) $(STUB_C_FILES) \
+                 $(OCAML_BYTE_LINK_FLAGS)
+    if $(NATIVE_ENABLED)
+        $(NATIVELIB) $(CLIB): $(CMXFILES) $(OFILES) $(STUB_C_FILES)
+            ocamlmklib -custom -o $(name)  $(OCamlLinkSort $(CMXFILES)) $(STUB_C_FILES) \
+                 $(OCAML_NATIVE_LINK_FLAGS)
+    return $(array $(if $(NATIVE_ENABLED), $(NATIVELIB)), \
+             $(if $(NATIVE_ENABLED), $(CLIB)), $(if $(BYTE_ENABLED), $(BYTELIB)))
+
+
+APP_NAME=$(PROJECT_NAME)
+APP_MODULES[]=
+    biocaml_app_bed_operations
+    biocaml_app_random
+    biocaml_app_common
+    biocaml_app_transform
+    biocaml_app_count_alignments
+    biocaml_main
+    biocaml_app_demux
+    biocaml_app_entrez
+APP_PACKAGES= flow
+
+
+clean:
+  rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
+
+install: install_library
+uninstall: uninstall_library
+
+
+.SUBDIRS: .
+    if $(not $(file-exists _build/))
+        mkdir -p _build/lib _build/app
+    vmount(-l, src/, _build/)
+
+    .SUBDIRS: _build/lib
+        OCAMLPACKS[] = $(PACKAGES)
+        .DEFAULT: $(BioCamlLibrary biocaml, $(LIB_MODULES), $(LIB_STUBS))
+
+    .SUBDIRS: _build/app
+        OCAML_LIBS = ../lib/biocaml
+        OCAMLINCLUDES += $(dir ../lib/)
+        OCAMLPACKS[] = $(PACKAGES) $(APP_PACKAGES)
+        %.ml: ../lib/biocaml.cma
+        .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
