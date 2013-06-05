@@ -96,48 +96,6 @@ LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 DEPENDENCIES=core threads zip unix xmlm pcre
 PACKAGES= $(DEPENDENCIES) sexplib.syntax
 
-public.BioCamlLibrary(name, files, c_files) =
-    protected.name = $(file $(name))
-    protected.OFILES   = $(addsuffix $(EXT_OBJ), $(files))
-    protected.CMOFILES = $(addsuffix .cmo, $(files))
-    protected.CMXFILES = $(addsuffix .cmx, $(files))
-    protected.CLIB      = $(file $(name)$(EXT_LIB))
-    protected.BYTELIB   = $(file $(name).cma)
-    protected.NATIVELIB = $(file $(name).cmxa)
-    protected.STUB_C_FILES= $(addsuffix .o, $(c_files))
-    biocaml_about.ml:
-        echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
-        echo 'let version = "$(PROJECT_VERSION)"' >> $@
-    #
-    # Link commands
-    #
-    #section
-    #    %.o: %.c
-    #        ocamlc -c $<
-    foreach(f => ..., $(c_files))
-        $(f).o: $(f).c
-            ocamlc -c $<
-    META:
-        echo "description = \"$(LIB_DESCRIPTION)\"" > META
-        echo "version = \"$(LIB_VERSION)\"" >> META
-        echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
-        echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
-        echo "requires = \"$(DEPENDENCIES)\"" >> META
-    install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
-      ocamlfind install $(LIB_NAME) META *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
-    uninstall_library:
-      ocamlfind remove $(LIB_NAME)
-    if $(BYTE_ENABLED)
-        $(BYTELIB): $(CMOFILES) $(STUB_C_FILES)
-            ocamlmklib -o $(name) $(OCamlLinkSort $(CMOFILES)) $(STUB_C_FILES) \
-                 $(OCAML_BYTE_LINK_FLAGS)
-    if $(NATIVE_ENABLED)
-        $(NATIVELIB) $(CLIB): $(CMXFILES) $(OFILES) $(STUB_C_FILES)
-            ocamlmklib -custom -o $(name)  $(OCamlLinkSort $(CMXFILES)) $(STUB_C_FILES) \
-                 $(OCAML_NATIVE_LINK_FLAGS)
-    return $(array $(if $(NATIVE_ENABLED), $(NATIVELIB)), \
-             $(if $(NATIVE_ENABLED), $(CLIB)), $(if $(BYTE_ENABLED), $(BYTELIB)))
-
 
 APP_NAME=$(PROJECT_NAME)
 APP_MODULES[]=
@@ -193,8 +151,55 @@ uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
     rm -f $(BINDIR)/$(APP_NAME)
 
+
+################################################################################
+# Biocaml is a bit more complex than what OCamlLibrary can provide so
+# we define this functions:
+public.BioCamlLibrary(name, files, c_files) =
+    protected.name = $(file $(name))
+    protected.OFILES   = $(addsuffix $(EXT_OBJ), $(files))
+    protected.CMOFILES = $(addsuffix .cmo, $(files))
+    protected.CMXFILES = $(addsuffix .cmx, $(files))
+    protected.CLIB      = $(file $(name)$(EXT_LIB))
+    protected.BYTELIB   = $(file $(name).cma)
+    protected.NATIVELIB = $(file $(name).cmxa)
+    protected.STUB_C_FILES= $(addsuffix .o, $(c_files))
+    biocaml_about.ml:
+        echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
+        echo 'let version = "$(PROJECT_VERSION)"' >> $@
+    foreach(f => ..., $(c_files))
+        $(f).o: $(f).c
+            ocamlc -c $<
+    META:
+        echo "description = \"$(LIB_DESCRIPTION)\"" > META
+        echo "version = \"$(LIB_VERSION)\"" >> META
+        echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
+        echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
+        echo "requires = \"$(DEPENDENCIES)\"" >> META
+    install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
+        ocamlfind install $(LIB_NAME) META \
+            *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
+    uninstall_library:
+        ocamlfind remove $(LIB_NAME)
+    #
+    # Thanks to Gerd's recipes + OCaml.om in OMake's std-lib
+    # http://www.camlcity.org/knowledge/kb_001_omake_recipes.html
+    if $(BYTE_ENABLED)
+        $(BYTELIB): $(CMOFILES) $(STUB_C_FILES)
+            ocamlmklib -o $(name) $(OCamlLinkSort $(CMOFILES)) $(STUB_C_FILES) \
+                 $(OCAML_BYTE_LINK_FLAGS)
+    if $(NATIVE_ENABLED)
+        $(NATIVELIB) $(CLIB): $(CMXFILES) $(OFILES) $(STUB_C_FILES)
+            ocamlmklib -custom -o $(name)  $(OCamlLinkSort $(CMXFILES)) $(STUB_C_FILES) \
+                 $(OCAML_NATIVE_LINK_FLAGS)
+    return $(array $(if $(NATIVE_ENABLED), $(NATIVELIB)), \
+             $(if $(NATIVE_ENABLED), $(CLIB)), $(if $(BYTE_ENABLED), $(BYTELIB)))
+
+################################################################################
+
 ensure_path(path) =
     mkdir -p $(path)
+
 
 .SUBDIRS: .
 
