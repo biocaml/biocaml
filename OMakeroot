@@ -8,13 +8,14 @@ DefineCommandVars()
 PREFIX=$(PWD)/usr/
 DefineCommandVars()   # This tells OMake to re-evaluate command-line variables
 BINDIR=$(PREFIX)/bin/
+DOCDIR=$(PREFIX)/share/doc
 DefineCommandVars()
 
 ################################################################################
 
 
 .PHONY: clean install install_library uninstall uninstall_library \
-        test install_app uninstall_app doc
+        test install_app uninstall_app doc install_doc
 
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
@@ -220,6 +221,11 @@ _build/biohtml.cmo: src/odoc/biohtml.ml
 
 doc: $(DOCLIB_DIR)/index.html
 
+install_doc: doc
+    echo "Installing documentation in $(DOCDIR)/biocaml"
+    rm -fr $(DOCDIR)/biocaml
+    mkdir -p $(DOCDIR)
+    cp -r _build/doclib $(DOCDIR)/biocaml
 
 ################################################################################
 # Definition of the sub-directories
