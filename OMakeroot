@@ -163,6 +163,12 @@ dist:
              _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz.md5
              # → wierd path to the file, required because OMake interprets it
 
+TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
+TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
+TAGS_SOURCES=$(shell find src -name "*.ml")
+TAGS:
+    otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS $(TAGS_SOURCES)
+
 ################################################################################
 # Biocaml is a bit more complex than what OCamlLibrary can provide so
 # we define this functions:
