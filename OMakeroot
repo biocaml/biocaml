@@ -2,7 +2,19 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: clean install install_library uninstall uninstall_library test
+################################################################################
+# Variables that can be re-defined from the command line:
+
+PREFIX=$(PWD)/usr/
+DefineCommandVars()   # This tells OMake to re-evaluate command-line variables
+BINDIR=$(PREFIX)/bin/
+DefineCommandVars()
+
+################################################################################
+
+
+.PHONY: clean install install_library uninstall uninstall_library \
+        test install_app uninstall_app
 
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
@@ -169,8 +181,17 @@ BENCHMARKS_PACKAGES=
 clean:
   rm -fr _build OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
 
-install: install_library
-uninstall: uninstall_library
+install: install_library install_app
+uninstall: uninstall_library uninstall_app
+
+install_app: _build/app/$(APP_NAME)
+    echo "Installing $< in $(BINDIR)"
+    mkdir -p $(BINDIR)
+    install $< $(BINDIR)
+
+uninstall_app:
+    echo "Removing $(APP_NAME) from $(BINDIR)"
+    rm -f $(BINDIR)/$(APP_NAME)
 
 ensure_path(path) =
     mkdir -p $(path)
