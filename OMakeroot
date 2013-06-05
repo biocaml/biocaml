@@ -14,7 +14,7 @@ DefineCommandVars()
 
 
 .PHONY: clean install install_library uninstall uninstall_library \
-        test install_app uninstall_app
+        test install_app uninstall_app doc
 
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
@@ -196,13 +196,38 @@ public.BioCamlLibrary(name, files, c_files) =
              $(if $(NATIVE_ENABLED), $(CLIB)), $(if $(BYTE_ENABLED), $(BYTELIB)))
 
 ################################################################################
+# Build of the documentation:
+#
+DOCLIB_DIR=_build/doclib/
 
+$(DOCLIB_DIR)/biocaml.css: src/doc/biocaml.css
+    mkdir -p _build/doclib
+    cp src/doc/biocaml.css $@
+
+$(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo _build/lib/$(LIB_NAME).cma
+    cp src/doc/figures/* $(DOCLIB_DIR)/
+    ocamlfind ocamldoc \
+        -g _build/biohtml.cmo \
+        -css-style biocaml.css \
+        -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
+        -charset UTF-8 -d $(DOCLIB_DIR) -t "The Biocaml Library" \
+        -keep-code -colorize-code _build/lib/*.mli _build/lib/*.ml \
+        -sort -I _build/lib/. \
+        -intro src/doc/intro.txt
+
+_build/biohtml.cmo: src/odoc/biohtml.ml
+    ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
+
+doc: $(DOCLIB_DIR)/index.html
+
+
+################################################################################
+# Definition of the sub-directories
+#
 ensure_path(path) =
     mkdir -p $(path)
 
-
 .SUBDIRS: .
-
     ensure_path(_build/lib)
     ensure_path(_build/app)
     ensure_path(_build/tests)
