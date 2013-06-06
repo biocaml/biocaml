@@ -39,6 +39,8 @@ INSTALL_BINDIR=$(INSTALL_PREFIX)/bin/
 INSTALL_DOCDIR=$(INSTALL_PREFIX)/share/doc
 
 DefineCommandVars()
+# We call DefineCommandVars so that the user can keep overriding the
+# previous variables from command line
 
 print_conf:
     echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
@@ -154,6 +156,7 @@ UNIT_TESTS[]=
     test_zip
 UNIT_TESTS_PACKAGES= oUnit
 
+# Run the tests' main executable
 test: _build/tests/$(UNIT_TESTS_NAME)
     $<
 
@@ -180,6 +183,9 @@ uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
     rm -f $(INSTALL_BINDIR)/$(APP_NAME)
 
+#
+# Create _build/dist/biocaml-x.y.z.tar.gz
+#
 DIST_FILES=Changes INSTALL LICENSE OMakeroot README.md src
 dist:
     rm -fr _build/dist/
@@ -191,6 +197,7 @@ dist:
              _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz.md5
              # → wierd path to the file, required because OMake interprets it
 
+
 TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
 TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
 TAGS_SOURCES=$(shell find src -name "*.ml")
@@ -199,8 +206,9 @@ TAGS:
 
 ################################################################################
 # Biocaml is a bit more complex than what OCamlLibrary can provide so
-# we define this functions:
-public.BioCamlLibrary(name, files, c_files) =
+# we define this function:
+#
+public.OCamlLibraryWithCFiles(name, files, c_files) =
     protected.name = $(file $(name))
     protected.OFILES   = $(addsuffix $(EXT_OBJ), $(files))
     protected.CMOFILES = $(addsuffix .cmo, $(files))
@@ -209,23 +217,9 @@ public.BioCamlLibrary(name, files, c_files) =
     protected.BYTELIB   = $(file $(name).cma)
     protected.NATIVELIB = $(file $(name).cmxa)
     protected.STUB_C_FILES= $(addsuffix .o, $(c_files))
-    biocaml_about.ml: :value: $(PROJECT_VERSION)
-        echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
-        echo 'let version = "$(PROJECT_VERSION)"' >> $@
     foreach(f => ..., $(c_files))
         $(f).o: $(f).c
             ocamlc -c $<
-    META:
-        echo "description = \"$(LIB_DESCRIPTION)\"" > META
-        echo "version = \"$(LIB_VERSION)\"" >> META
-        echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
-        echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
-        echo "requires = \"$(DEPENDENCIES)\"" >> META
-    install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
-        ocamlfind install $(LIB_NAME) META \
-            *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
-    uninstall_library:
-        ocamlfind remove $(LIB_NAME)
     #
     # Thanks to Gerd's recipes + OCaml.om in OMake's std-lib
     # http://www.camlcity.org/knowledge/kb_001_omake_recipes.html
@@ -286,7 +280,21 @@ ensure_path(path) =
 
     .SUBDIRS: _build/lib
         OCAMLPACKS[] = $(PACKAGES)
-        .DEFAULT: $(BioCamlLibrary biocaml, $(LIB_MODULES), $(LIB_STUBS))
+        biocaml_about.ml: :value: $(PROJECT_VERSION)
+            echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
+            echo 'let version = "$(PROJECT_VERSION)"' >> $@
+        META:
+            echo "description = \"$(LIB_DESCRIPTION)\"" > META
+            echo "version = \"$(LIB_VERSION)\"" >> META
+            echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
+            echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
+            echo "requires = \"$(DEPENDENCIES)\"" >> META
+        install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
+            ocamlfind install $(LIB_NAME) META \
+                *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
+        uninstall_library:
+            ocamlfind remove $(LIB_NAME)
+        .DEFAULT: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
 
     .SUBDIRS: _build/app
         OCAML_LIBS = ../lib/biocaml
