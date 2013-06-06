@@ -172,7 +172,7 @@ install: install_library install_app
 uninstall: uninstall_library uninstall_app
 
 install_app: _build/app/$(APP_NAME)
-    echo "Installing $< in $(BINDIR)"
+    echo "Installing $< in $(INSTALL_BINDIR)"
     mkdir -p $(INSTALL_BINDIR)
     install $< $(INSTALL_BINDIR)
 
