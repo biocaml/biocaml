@@ -2,29 +2,12 @@
 open build/OCaml
 DefineCommandVars()
 
-################################################################################
-# Variables that can be re-defined from the command line:
-
-# The prefix for installation of binaries and documentation
-PREFIX=$(PWD)/usr/
-
-# Whether to build the application or not
-# BUILD_APP = `true` or `false`
-# BUILD_TESTS = `true` or `false`
-
-DefineCommandVars()   # This tells OMake to re-evaluate command-line variables
-
-# More fine-grained configuration of the installation directories:
-BINDIR=$(PREFIX)/bin/
-DOCDIR=$(PREFIX)/share/doc
-
-DefineCommandVars()
 
 ################################################################################
 
 
 .PHONY: clean distclean install install_library uninstall uninstall_library \
-        test install_app uninstall_app doc install_doc dist
+        test install_app uninstall_app doc install_doc dist configure print_conf
 
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
@@ -32,19 +15,35 @@ if $(not $(OCAMLFIND_EXISTS))
   eprintln(You need to install ocamlfind and run "omake --configure".)
   exit 1
 
-.STATIC:
-    COMPILE_BIOCAML_APP=true
-    if $(defined BUILD_APP)
-        echo "User defined BUILD_APP: $(BUILD_APP)"
-        COMPILE_BIOCAML_APP = $(BUILD_APP)
-        export
 
-.STATIC:
-    COMPILE_BIOCAML_TESTS=true
-    if $(defined BUILD_TESTS)
-        echo "User defined BUILD_TESTS: $(BUILD_TESTS)"
-        COMPILE_BIOCAML_TESTS = $(BUILD_TESTS)
-        export
+.INCLUDE: local_configuration.om
+    if $(not $(file-exists local_configuration.om))
+        echo "# Default configuration" > local_configuration.om
+        echo "COMPILE_BIOCAML_APP=true" >> local_configuration.om
+        echo "COMPILE_BIOCAML_TESTS=true" >> local_configuration.om
+        echo "INSTALL_PREFIX=$(PWD)/usr" >> local_configuration.om
+
+configurable(user_var,local_var) =
+    if $(defined $(user_var))
+        echo "User defined $(user_var): $(getvar $(user_var))"
+        echo "$(local_var)=$(getvar $(user_var))" >> local_configuration.om
+    else
+        echo "Keeping previous $(user_var): $(getvar $(local_var))"
+
+configure:
+    configurable(BUILD_APP, COMPILE_BIOCAML_APP)
+    configurable(BUILD_TESTS, COMPILE_BIOCAML_TESTS)
+    configurable(PREFIX, INSTALL_PREFIX)
+
+INSTALL_BINDIR=$(INSTALL_PREFIX)/bin/
+INSTALL_DOCDIR=$(INSTALL_PREFIX)/share/doc
+
+print_conf:
+    echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
+    echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
+    echo "INSTALL_PREFIX: $(INSTALL_PREFIX)"
+    echo "INSTALL_BINDIR: $(INSTALL_BINDIR)"
+    echo "INSTALL_DOCDIR: $(INSTALL_DOCDIR)"
 
 
 NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
@@ -165,19 +164,19 @@ clean:
   rm -fr _build
 
 distclean: clean
-  rm -fr OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock
+  rm -fr OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock local_configuration.om
 
 install: install_library install_app
 uninstall: uninstall_library uninstall_app
 
 install_app: _build/app/$(APP_NAME)
     echo "Installing $< in $(BINDIR)"
-    mkdir -p $(BINDIR)
-    install $< $(BINDIR)
+    mkdir -p $(INSTALL_BINDIR)
+    install $< $(INSTALL_BINDIR)
 
 uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
-    rm -f $(BINDIR)/$(APP_NAME)
+    rm -f $(INSTALL_BINDIR)/$(APP_NAME)
 
 DIST_FILES=Changes INSTALL LICENSE OMakeroot README.md src
 dist:
@@ -265,10 +264,10 @@ _build/biohtml.cmo: src/odoc/biohtml.ml
 doc: $(DOCLIB_DIR)/index.html
 
 install_doc: doc
-    echo "Installing documentation in $(DOCDIR)/biocaml"
-    rm -fr $(DOCDIR)/biocaml
-    mkdir -p $(DOCDIR)
-    cp -r _build/doclib $(DOCDIR)/biocaml
+    echo "Installing documentation in $(INSTALL_DOCDIR)/biocaml"
+    rm -fr $(INSTALL_DOCDIR)/biocaml
+    mkdir -p $(INSTALL_DOCDIR)
+    cp -r _build/doclib $(INSTALL_DOCDIR)/biocaml
 
 ################################################################################
 # Definition of the sub-directories
