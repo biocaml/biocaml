@@ -6,8 +6,7 @@
 open Core.Std
 open Printf
 
-let setup_data_fn = "setup.data"
-let biocaml_dir = "_build/src/lib"
+let biocaml_dir = "_build/lib"
 
 let command fmt =
   let f x =
