@@ -209,7 +209,7 @@ public.BioCamlLibrary(name, files, c_files) =
     protected.BYTELIB   = $(file $(name).cma)
     protected.NATIVELIB = $(file $(name).cmxa)
     protected.STUB_C_FILES= $(addsuffix .o, $(c_files))
-    biocaml_about.ml:
+    biocaml_about.ml: :value: $(PROJECT_VERSION)
         echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
         echo 'let version = "$(PROJECT_VERSION)"' >> $@
     foreach(f => ..., $(c_files))
