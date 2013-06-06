@@ -1,30 +1,38 @@
 Biocaml Installation Instructions
 
 Install From Source
-==========
+===================
+
 Uncompress the source archive, go to the root of the package, then run
 
-    ocaml setup.ml -configure [options]
+    omake configure [VAR=val]
 
-where choices for options can be determined by running
+Where VAR maybe:
 
-    ocaml setup.ml -configure --help
+- `PREFIX` and its value a path (like `/usr/`)
+- `BUILD_APP` (`true` or `false`, requires the Flow library)
+- `BUILD_TESTS` (`true` or `false`, requires the oUnit framework)
 
-Then do
+You may check the configuration with `omake print_conf`
 
-    make
-    make install
+Them, build:
+
+    omake
+
+and install:
+
+    omake install
 
 To compile documentation, do
 
-    make doc
+    omake doc
 
 To uninstall, do
 
-    make uninstall
+    omake uninstall
 
-Tags
-----
-Run 'make TAGS' to generate a TAGS file for use with emacs or
-vi/vim. In this case, you will also need the otags tool to be
-installed in your path.
+
+You may also build the `TAGS` file (requires `otags`):
+
+    omake TAGS
+    
