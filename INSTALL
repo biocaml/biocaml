@@ -23,6 +23,11 @@ and install:
 
     omake install
 
+there, you maybe want to override some variables:
+
+    omake install INSTALL_BINDIR=some/path
+
+
 To compile documentation, do
 
     omake doc
@@ -35,4 +40,7 @@ To uninstall, do
 You may also build the `TAGS` file (requires `otags`):
 
     omake TAGS
-    
+
+or run the test suite:
+
+    omake test
