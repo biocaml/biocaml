@@ -38,6 +38,8 @@ configure:
 INSTALL_BINDIR=$(INSTALL_PREFIX)/bin/
 INSTALL_DOCDIR=$(INSTALL_PREFIX)/share/doc
 
+DefineCommandVars()
+
 print_conf:
     echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
     echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
