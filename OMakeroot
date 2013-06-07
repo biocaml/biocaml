@@ -291,7 +291,7 @@ ensure_path(path) =
             echo "requires = \"$(DEPENDENCIES)\"" >> META
         install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
             ocamlfind install $(LIB_NAME) META \
-                *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa $(LIB_NAME).a
+                *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa *.a -dll *.so
         uninstall_library:
             ocamlfind remove $(LIB_NAME)
         .DEFAULT: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
