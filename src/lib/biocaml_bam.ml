@@ -503,7 +503,7 @@ module Transform = struct
   let raw_to_item () :
       (raw_item, (Sam.item, _) Result.t) Biocaml_transform.t=
     let name = "bam_item_parser" in
-    let raw_queue = Dequeue.create ~dummy:(`header "no") () in
+    let raw_queue = Dequeue.create () in
     let raw_items_count = ref 0 in
     let header_items = ref [] in
     let reference_information = ref [| |] in
@@ -519,7 +519,7 @@ module Transform = struct
         | true, false -> `not_ready
         | false, _ ->
           incr raw_items_count;
-          begin match Dequeue.take_front_exn raw_queue with
+          begin match Dequeue.dequeue_exn raw_queue `front with
           | `header s ->
             begin match parse_sam_header s with
             | Ok h -> header_items := h; next stopped
@@ -532,7 +532,7 @@ module Transform = struct
           | `alignment a ->
             if !first_alignment then (
               first_alignment := false;
-              Dequeue.push_front raw_queue (`alignment a);
+              Dequeue.enqueue raw_queue `front (`alignment a);
               output_ok (`reference_sequence_dictionary !reference_information)
             ) else (
               expand_alignment !reference_information a |! output_result
@@ -541,7 +541,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.enqueue raw_queue `back) ()
       ~next
 
   let downgrade_alignement al ref_dict =
@@ -665,7 +665,7 @@ module Transform = struct
   let item_to_raw () :
       (Sam.item, (raw_item, _) Result.t) Biocaml_transform.t =
     let name = "bam_item_downgrader" in
-    let queue = Dequeue.create ~dummy:(`header ("no", [])) () in
+    let queue = Dequeue.create () in
     let items_count = ref 0 in
     let ref_dict = ref [| |] in
     let ref_dict_done = ref false in
@@ -678,7 +678,7 @@ module Transform = struct
       | true, false -> `not_ready
       | false, _ ->
         incr items_count;
-        begin match Dequeue.take_front_exn queue with
+        begin match Dequeue.dequeue_exn queue `front with
         | `comment c ->
           Buffer.add_string header "@CO\t";
           Buffer.add_string header c;
@@ -714,7 +714,7 @@ module Transform = struct
           then begin
             dbg "reference_information: %d" Array.(length !ref_dict);
             ref_dict_done := true;
-            Dequeue.push_front queue (`alignment al);
+            Dequeue.enqueue queue `front (`alignment al);
             output_ok (`reference_information (Array.map !ref_dict ~f:(fun rs ->
               let open Sam in
               (rs.ref_name, rs.ref_length))))
@@ -727,7 +727,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make ~name ~feed:(Dequeue.push_back queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.enqueue queue `back) ()
       ~next
 
   let uncompressed_bam_printer () : (raw_item, string) Biocaml_transform.t =
