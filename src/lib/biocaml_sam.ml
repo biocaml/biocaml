@@ -507,7 +507,7 @@ module Transform = struct
   let raw_to_item () :
       (raw_item, (item, [> Error.raw_to_item]) Result.t) Biocaml_transform.t =
     let name = "sam_item_parser" in
-    let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
+    let raw_queue = Dequeue.create () in
     let raw_items_count = ref 0 in
     let refseq_line, refseq_end = reference_sequence_aggregator () in
     let header_finished = ref false in
@@ -517,7 +517,7 @@ module Transform = struct
       then (if stopped then `end_of_stream else `not_ready)
       else begin
         incr raw_items_count;
-        begin match Dequeue.take_front_exn raw_queue with
+        begin match Dequeue.dequeue_exn raw_queue `front with
         | `comment c when !header_finished ->
           output_error (`comment_after_end_of_header (!raw_items_count, c))
         | `header c when !header_finished ->
@@ -540,7 +540,7 @@ module Transform = struct
                           |! output_result
           ) else begin
             header_finished := true;
-            Dequeue.push_front raw_queue (`alignment a);
+            Dequeue.enqueue raw_queue `front (`alignment a);
             begin match refseq_end () with
             | Ok rd ->
               ref_dictionary := Some rd;
@@ -551,7 +551,7 @@ module Transform = struct
         end
       end
     in
-    Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.enqueue raw_queue `back) ()
       ~next
 
   let downgrade_alignment al =
@@ -619,7 +619,7 @@ module Transform = struct
 
   let item_to_raw () =
     let name = "sam_item_to_raw" in
-    let raw_queue = Dequeue.create ~dummy:(`comment "no") () in
+    let raw_queue = Dequeue.create () in
     let raw_items_count = ref 0 in
     let reference_sequence_dictionary = ref [| |] in
     let reference_sequence_dictionary_to_output = ref 0 in
@@ -635,7 +635,7 @@ module Transform = struct
         | true (* when not stopped *) -> `not_ready
         | false ->
           incr raw_items_count;
-          begin match Dequeue.take_front_exn raw_queue with
+          begin match Dequeue.dequeue_exn raw_queue `front with
           | `comment c ->
             dbg "comment"; output_ok (`comment c)
           | `header_line (version, sorting, rest) ->
@@ -674,7 +674,7 @@ module Transform = struct
         output_ok (`header ("SQ", reference_sequence_to_header o))
       end
     in
-    Biocaml_transform.make ~name ~feed:(Dequeue.push_back raw_queue) ()
+    Biocaml_transform.make ~name ~feed:(Dequeue.enqueue raw_queue `back) ()
       ~next
 
 
