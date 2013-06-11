@@ -178,7 +178,7 @@ let coerce_to_vcf_info_type t s =
    | Error formatting. |
    +-------------------+ *)
 
-let parse_row_error_to_string : vcf_parse_row_error -> string = function
+let parse_row_error_to_string = function
   | `invalid_int s -> sprintf "invalid_integer (%s)" s
   | `invalid_float s -> sprintf "invalid_float (%s)" s
   | `info_type_coersion_failure (t, s) ->
@@ -200,7 +200,7 @@ let parse_row_error_to_string : vcf_parse_row_error -> string = function
   | `malformed_sample s -> sprintf "malformed_sample (%s)" s
   | `unknown_format f -> sprintf "unknown_formar (%s)" f
 
-let parse_error_to_string : vcf_parse_error -> string =
+let parse_error_to_string =
   let pos () a = Pos.to_string a in function
     | `malformed_meta (p, s) -> sprintf "malformed_meta (%a, %S)" pos p s
     | `malformed_row (p, err, s) ->
