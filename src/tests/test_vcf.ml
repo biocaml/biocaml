@@ -18,11 +18,13 @@ let compare_rows r1 r2 =
   r1.vcfr_alts  = r2.vcfr_alts &&
   r1.vcfr_qual  = r2.vcfr_qual &&
   r1.vcfr_filter = r2.vcfr_filter &&
-  Hashtbl.equal r1.vcfr_info r2.vcfr_info (=)
+  Hashtbl.equal r1.vcfr_info r2.vcfr_info (=) &&
+  Hashtbl.equal r1.vcfr_samples r2.vcfr_samples (=)
 
-let make_row ~chrom ~pos ~ids ~ref ~alts ~qual ~filter ~info =
+let make_row ~chrom ~pos ~ids ~ref ~alts ~qual ~filter ~info ~samples =
     let open Vcf in
-    let vcfr_info = Hashtbl.Poly.of_alist_exn info in
+    let vcfr_info    = Hashtbl.Poly.of_alist_exn info in
+    let vcfr_samples = Hashtbl.Poly.of_alist_exn samples in
     {
       vcfr_chrom = chrom;
       vcfr_pos   = pos;
@@ -31,7 +33,7 @@ let make_row ~chrom ~pos ~ids ~ref ~alts ~qual ~filter ~info =
       vcfr_alts  = alts;
       vcfr_qual  = qual;
       vcfr_filter = filter;
-      vcfr_info
+      vcfr_info; vcfr_samples
     }
 
 let test_parse_vcf_generic filename rows =
@@ -66,6 +68,7 @@ let test_parse_vcf_simple () =
              ("AF", [`float 0.5]);
              ("DB", [`flag "DB"]);
              ("H2", [`flag "H2"])]
+      ~samples:[]
   ]
 
 let test_parse_vcf_1000g () =
@@ -75,7 +78,8 @@ let test_parse_vcf_1000g () =
       ~qual:(Some 3.0) ~filter:["q10"]
       ~info:[("NS", [`integer 3]);
              ("DP", [`integer 11]);
-             ("AF", [`float 0.017])];
+             ("AF", [`float 0.017])]
+      ~samples:[];
     make_row ~chrom:"20" ~pos:1110696 ~ids:["rs6040355"]
       ~ref:"A" ~alts:["G"; "T"]
       ~qual:(Some 67.0) ~filter:[]
@@ -83,19 +87,22 @@ let test_parse_vcf_1000g () =
              ("DP", [`integer 10]);
              ("AF", [`float 0.333; `float 0.667]);
              ("AA", [`string "T"]);
-             ("DB", [`flag "DB"])];
+             ("DB", [`flag "DB"])]
+      ~samples:[];
     make_row ~chrom:"20" ~pos:1230237 ~ids:[]
       ~ref:"T" ~alts:[]
       ~qual:(Some 47.0) ~filter:[]
       ~info:[("NS", [`integer 3]);
              ("DP", [`integer 13]);
-             ("AA", [`string "T"])];
+             ("AA", [`string "T"])]
+      ~samples:[];
     make_row ~chrom:"20" ~pos:1234567 ~ids:["microsat1"]
       ~ref:"GTC" ~alts:["G"; "GTCT"]
       ~qual:(Some 50.0) ~filter:[]
       ~info:[("NS", [`integer 3]);
              ("DP", [`integer 9]);
              ("AA", [`string "G"])]
+      ~samples:[]
   ]
 
 let test_parse_vcf_reserved () =
@@ -108,6 +115,7 @@ let test_parse_vcf_reserved () =
              ("AF", [`float 0.5]);
              ("DB", [`flag "DB"]);
              ("H2", [`flag "H2"])]
+      ~samples:[]
   ]
 
 let test_parse_vcf_alt () =
@@ -120,7 +128,8 @@ let test_parse_vcf_alt () =
              ("END", [`integer 321887]);
              ("SVLEN", [`integer (-105)]);
              ("CIPOS", [`integer (-56); `integer 20]);
-             ("CIEND", [`integer (-10); `integer 62])];
+             ("CIEND", [`integer (-10); `integer 62])]
+      ~samples:[];
     make_row ~chrom:"2" ~pos:14477084 ~ids:[]
       ~ref:"C" ~alts:["<DEL:ME:ALU>"]
       ~qual:(Some 12.0) ~filter:[]
@@ -131,7 +140,33 @@ let test_parse_vcf_alt () =
              ("MEINFO", [`string "AluYa5"; `string "5"; `string "307"; `string "+"]);
              ("CIPOS", [`integer (-22); `integer 18]);
              ("CIEND", [`integer (-12); `integer 32])]
+      ~samples:[]
   ]
+
+let test_parse_vcf_samples () =
+  test_parse_vcf_generic "vcf_06_samples.vcf" [
+    make_row ~chrom:"20" ~pos:14370 ~ids:["rs6054257"]
+      ~ref:"G" ~alts:["A"]
+      ~qual:(Some 29.0) ~filter:[]
+      ~info:[("NS", [`integer 3]);
+             ("DP", [`integer 14]);
+             ("AF", [`float 0.5]);
+             ("DB", [`flag "DB"]);
+             ("H2", [`flag "H2"])]
+      ~samples:[("NA00001", [("GT", [`string "0|0"]);
+                             ("GQ", [`integer 48]);
+                             ("DP", [`integer 1]);
+                             ("HQ", [`integer 51; `integer 51])]);
+                ("NA00002", [("GT", [`string "1|0"]);
+                             ("GQ", [`integer 48]);
+                             ("DP", [`integer 8]);
+                             ("HQ", [`integer 51; `integer 51])]);
+                ("NA00003", [("GT", [`string "1/1"]);
+                             ("GQ", [`integer 43]);
+                             ("DP", [`integer 5]);
+                             ("HQ", [`missing; `missing])])]
+  ]
+
 
 let tests = "VCF" >::: [
   "Parse VCF header" >:: test_parse_vcf_header;
@@ -139,4 +174,5 @@ let tests = "VCF" >::: [
   "Parse sample VCF from 1000g project" >:: test_parse_vcf_1000g;
   "Parse VCF missing INFO for reserved sub-fields" >:: test_parse_vcf_reserved;
   "Parse VCF with custom ALT" >:: test_parse_vcf_alt;
+  "Parse VCF with multiple samples" >:: test_parse_vcf_samples
 ]
