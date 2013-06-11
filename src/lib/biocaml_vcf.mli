@@ -1,3 +1,8 @@
+(** Parsing of VCF files.
+
+    This module implements VCFv4.1, as defined by 1000 genomes project:
+    http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41 *)
+
 open Biocaml_internal_pervasives
 
 type vcf_id = string
@@ -8,12 +13,14 @@ type vcf_number =
   | OnePerGenotype
   | Unknown
 
+(** Types, allowed for VCF FORMAT meta header. *)
 type vcf_format_type = [ `integer_value
                        | `float_value
                        | `character_value
                        | `string_value
                        ]
 
+(** Types, allowed for VCF INFO meta header. *)
 type vcf_info_type = [ vcf_format_type | `flag_value ]
 
 type vcf_info_meta = Info of vcf_number * vcf_info_type * vcf_description
