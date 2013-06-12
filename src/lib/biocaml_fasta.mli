@@ -117,15 +117,11 @@ module Tags: sig
   (** The tags describing as much information as possible a given
       FASTA “sub-format” *)
 
-
   val char_sequence_default: t
   (** The default tags (for [char_seq]). *)
 
   val int_sequence_default: t
   (** The default tags (for [int_seq]). *)
-
-  val pedantic_with: t -> t
-  (** For a given set of tags [base], add pedantry.  *)
 
   val is_char_sequence: t -> bool
   (** Test the value of [t.sequence]. *)

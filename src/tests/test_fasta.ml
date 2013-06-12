@@ -6,9 +6,20 @@ open Core.Std
 let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
 
 let make_stream ?(more_tags=[]) file =
+  let capitals =
+    List.init 26 (fun i -> Char.of_int_exn (i + Char.to_int 'A'))
+  in
+  let tags = Fasta.Tags.({
+    common = {char_sequence_default.common with
+      forbid_empty_lines = true;
+      only_header_comment = true;
+    };
+    sequence = `char_sequence { impose_sequence_alphabet = Some capitals }
+  })
+  in
   let t =
     Fasta.Transform.string_to_char_seq_raw_item ()
-      ~tags:Fasta.Tags.(pedantic_with char_sequence_default)
+      ~tags
   in
                (* [`sharp_comments; `semicolon_comments; `forbid_empty_lines;] *)
              (* @ more_tags) () in *)

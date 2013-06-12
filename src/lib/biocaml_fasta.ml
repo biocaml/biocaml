@@ -53,22 +53,6 @@ module Tags = struct
 
   let int_sequence_default = { common = common_default; sequence = `int_sequence }
 
-  let common_pedantry c =
-    {c with forbid_empty_lines = true; only_header_comment = true }
-
-
-  let pedantic_with (tags: t) =
-    let capitals =
-      List.init 26 (fun i -> Char.of_int_exn (i + Char.to_int 'A')) in
-    {
-      common = common_pedantry tags.common;
-      sequence =
-        match tags.sequence with
-        | `int_sequence -> `int_sequence
-        | `char_sequence c ->
-          `char_sequence { impose_sequence_alphabet = Some capitals }
-    }
-
   let is_char_sequence t = t.sequence <> `int_sequence
   let is_int_sequence t = t.sequence = `int_sequence
 
