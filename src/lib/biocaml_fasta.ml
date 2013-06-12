@@ -1,6 +1,7 @@
 open Biocaml_internal_pervasives
 open Result
 module Pos = Biocaml_pos
+module Lines = Biocaml_lines
 
 type char_seq = string with sexp
 type int_seq = int list with sexp
@@ -92,74 +93,66 @@ end
 
 module Transform = struct
 
-  (** The {i next} function used to construct the transform in
-      [generic_parser]. *)
-  let rec next ~parse_sequence
-      ~forbid_empty_lines ~sharp_comments ~semicolon_comments p =
-    let open Biocaml_lines.Buffer in
-    match (next_line p :> string option) with
-    | Some "" ->
-      if forbid_empty_lines
-      then output_error (`empty_line (current_position p))
-      else
-        next ~parse_sequence
-          ~forbid_empty_lines ~sharp_comments ~semicolon_comments p
-    | Some l when sharp_comments && String.is_prefix l ~prefix:"#" ->
-      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l when semicolon_comments && String.is_prefix l ~prefix:";" ->
-      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l when String.is_prefix l ~prefix:">" ->
-      output_ok (`header String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l -> parse_sequence l
-    | None ->
-      `not_ready
-
-  (** Return a transform converting strings to [raw_item]s, given a
-      function [parse_sequence] for parsing either [char_seq]s or
-      [int_seq]s. *)
-  let generic_parser ~parse_sequence
-      ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments () =
-    let name =
-      sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
-    let next =
-      next ~parse_sequence
-        ~forbid_empty_lines ~sharp_comments ~semicolon_comments in
-    Biocaml_lines.Transform.make ~name ?filename ~next ()
-      ~on_error:(function `next e -> e
-      | `incomplete_input e -> `incomplete_input e)
+  let string_to_raw_item ~string_to_partial_sequence
+      ?filename ?(tags=Tags.char_sequence_default) () =
+    let name = sprintf "fasta_parser:%s" Option.(value ~default:"<>" filename) in
+    let chopl s = String.(sub s ~pos:1 ~len:(length s - 1)) in
+    let open Lines.Buffer in
+    let buffer = make ?filename () in
+    let feed = feed_string buffer in
+    let rec next stopped = match (next_line buffer :> string option) with
+      | None -> if stopped then `end_of_stream else `not_ready
+      | Some line ->
+        let open Tags in
+        if line = "" then
+          if tags.forbid_empty_lines then
+            output_error (`empty_line (current_position buffer))
+          else
+            next stopped
+        else if tags.sharp_comments && line.[0] = '#' then
+          output_ok (`comment (chopl line))
+        else if tags.semicolon_comments && line.[0] = ';' then
+          output_ok (`comment (chopl line))
+        else if line.[0] = '>' then
+          output_ok (`header (chopl line))
+        else
+          string_to_partial_sequence line
+    in
+    Biocaml_transform.make ~name ~feed ~next ()
 
   let string_to_char_seq_raw_item
       ?filename ?(tags=Tags.char_sequence_default) () =
-      (* ?pedantic ?sharp_comments ?semicolon_comments () = *)
-    let sharp_comments = Tags.sharp_comments tags in
-    let semicolon_comments = Tags.semicolon_comments tags in
-    let forbid_empty_lines = Tags.forbid_empty_lines tags in
-    let impose_sequence_alphabet = Tags.impose_sequence_alphabet tags in
-    generic_parser ~parse_sequence:(fun l ->
-      match impose_sequence_alphabet with
-      | Some f when not (String.for_all l ~f) ->
-        output_error (`malformed_partial_sequence l)
-      | _ ->
-      (* if impose_sequence_alphabet && String.exists l ~f:(filter_fun) *)
-        (* ~f:(function 'A' .. 'Z' | '*' | '-' -> false | _ -> true) *)
-        output_ok (`partial_sequence l)
-    ) ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments ()
+    let string_to_partial_sequence s =
+      match tags.Tags.sequence with
+      | `int_sequence
+      | `char_sequence None -> output_ok (`partial_sequence s)
+      | `char_sequence (Some alphabet) ->
+        if String.for_all s ~f:(List.mem alphabet) then
+          output_ok (`partial_sequence s)
+        else
+          output_error (`malformed_partial_sequence s)
+    in
+    string_to_raw_item
+      ~string_to_partial_sequence
+      ?filename
+      ~tags
+      ()
 
   let string_to_int_seq_raw_item
-      ?filename ?(tags=Tags.int_sequence_default) () =
-    let sharp_comments = Tags.sharp_comments tags in
-    let semicolon_comments = Tags.semicolon_comments tags in
-    let forbid_empty_lines = Tags.forbid_empty_lines tags in
-    generic_parser ~parse_sequence:(fun l ->
-        let exploded = String.split ~on:' ' l in
-        try
-          output_ok (`partial_sequence
-                        (List.filter_map exploded (function
-                          | "" -> None
-                          | s -> Some (Int.of_string s))))
-        with _ -> output_error (`malformed_partial_sequence l)
-    ) ?filename ~forbid_empty_lines ~sharp_comments ~semicolon_comments ()
-
+      ?filename ?(tags=Tags.char_sequence_default) () =
+    let string_to_partial_sequence s =
+      try
+        output_ok (`partial_sequence
+          (List.filter_map (String.split ~on:' ' s) ~f:(function
+          | "" -> None
+          | s -> Some (Int.of_string s))))
+      with _ -> output_error (`malformed_partial_sequence s)
+    in
+    string_to_raw_item
+      ~string_to_partial_sequence
+      ?filename
+      ~tags
+      ()
 
   let raw_item_to_string_pure ?comment_char alpha_to_string =
     function
