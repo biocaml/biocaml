@@ -24,42 +24,33 @@ module Tags = struct
   }
   with sexp
 
-  type common = {
+  type t = {
     forbid_empty_lines: bool;
     only_header_comment: bool;
     sharp_comments: bool;
     semicolon_comments: bool;
     max_items_per_line: int option;
-  }
-  with sexp
-
-  type t = {
-    common: common;
     sequence: [ `int_sequence | `char_sequence of char_sequence ]
   }
   with sexp
 
-  let common_default = {
-    forbid_empty_lines = false;
-    only_header_comment = false;
-    sharp_comments = true;
-    semicolon_comments = true;
-    max_items_per_line = None;
-  }
-
   let char_sequence_default =
-    { common = common_default;
+    { forbid_empty_lines = false;
+      only_header_comment = false;
+      sharp_comments = true;
+      semicolon_comments = true;
+      max_items_per_line = None;
       sequence = `char_sequence {impose_sequence_alphabet = None} }
 
-  let int_sequence_default = { common = common_default; sequence = `int_sequence }
+  let int_sequence_default = { char_sequence_default with sequence = `int_sequence }
 
   let is_char_sequence t = t.sequence <> `int_sequence
   let is_int_sequence t = t.sequence = `int_sequence
 
-  let forbid_empty_lines  tags = tags.common.forbid_empty_lines
-  let only_header_comment tags = tags.common.only_header_comment
-  let sharp_comments      tags = tags.common.sharp_comments
-  let semicolon_comments  tags = tags.common.semicolon_comments
+  let forbid_empty_lines  tags = tags.forbid_empty_lines
+  let only_header_comment tags = tags.only_header_comment
+  let sharp_comments      tags = tags.sharp_comments
+  let semicolon_comments  tags = tags.semicolon_comments
   let impose_sequence_alphabet tags =
     match tags.sequence with
     | `int_sequence -> None
@@ -74,12 +65,12 @@ module Tags = struct
       match t.sequence with
       | `int_sequence -> 25
       | `char_sequence _ -> 72 in
-    Option.value ~default t.common.max_items_per_line
+    Option.value ~default t.max_items_per_line
 
   let comment_char (t: t) =
-    if t.common.sharp_comments
+    if t.sharp_comments
     then Some '#'
-    else if t.common.semicolon_comments
+    else if t.semicolon_comments
     then Some ';'
     else None
 

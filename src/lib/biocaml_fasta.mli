@@ -101,21 +101,15 @@ module Tags: sig
   }
   (** The format details for [char_seq] FASTA files. *)
 
-  type common = {
+  type t = {
     forbid_empty_lines: bool;
     only_header_comment: bool;
     sharp_comments: bool;
     semicolon_comments: bool;
     max_items_per_line: int option;
-  }
-  (** The format details for any kind of FASTA file. *)
-
-  type t = {
-    common: common;
     sequence: [ `int_sequence | `char_sequence of char_sequence ]
   }
-  (** The tags describing as much information as possible a given
-      FASTA “sub-format” *)
+  (** The format details for any kind of FASTA file. *)
 
   val char_sequence_default: t
   (** The default tags (for [char_seq]). *)

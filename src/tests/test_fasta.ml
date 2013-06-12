@@ -10,11 +10,10 @@ let make_stream ?(more_tags=[]) file =
     List.init 26 (fun i -> Char.of_int_exn (i + Char.to_int 'A'))
   in
   let tags = Fasta.Tags.({
-    common = {char_sequence_default.common with
+    char_sequence_default with
       forbid_empty_lines = true;
       only_header_comment = true;
-    };
-    sequence = `char_sequence { impose_sequence_alphabet = Some capitals }
+      sequence = `char_sequence { impose_sequence_alphabet = Some capitals }
   })
   in
   let t =
@@ -179,9 +178,7 @@ let sequence_slicer_stream file =
   let slicer =
     let tags =
       Fasta.Tags.({ char_sequence_default
-                    with common =
-                           { char_sequence_default.common
-                             with max_items_per_line =  Some 4}}) in
+                    with max_items_per_line =  Some 4}) in
     Fasta.Transform.char_seq_item_to_raw_item ~tags () in
   let transform =
     Transform.(compose_result_left
@@ -227,9 +224,7 @@ let score_slicer () =
   let slicer =
     let tags =
       Fasta.Tags.({ int_sequence_default
-                    with common =
-                           { char_sequence_default.common
-                             with max_items_per_line =  Some 3}}) in
+                    with max_items_per_line =  Some 3}) in
     Fasta.Transform.int_seq_item_to_raw_item ~tags () in
   let transform =
     Transform.(compose_result_left
