@@ -104,7 +104,7 @@ module Transform = struct
       | None -> if stopped then `end_of_stream else `not_ready
       | Some line ->
         let open Tags in
-        if line = "" then
+        if String.for_all line ~f:Char.is_whitespace then
           if tags.forbid_empty_lines then
             output_error (`empty_line (current_position buffer))
           else
