@@ -125,6 +125,9 @@ module Error : sig
       - [`malformed_partial_sequence s] - indicates that [s] could not
       be parsed into a valid (partial) sequence value.
 
+      - [`sequence_is_too_long s] - indicates that [s] is longer than
+      allowed by `max_items_per_line.
+
       - [`unnamed_char_seq x] - a [char_seq] value [x] was found without
       a preceding header section.
 
@@ -137,6 +140,7 @@ module Error : sig
   | `empty_line of Biocaml_pos.t
   | `incomplete_input of Biocaml_pos.t * string list * string option
   | `malformed_partial_sequence of string
+  | `sequence_is_too_long of string
   ]
   (** Errors raised when converting a string to a {!type: raw_item}. *)
 

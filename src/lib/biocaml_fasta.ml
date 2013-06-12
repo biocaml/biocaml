@@ -80,6 +80,7 @@ module Error = struct
     | `empty_line of Pos.t
     | `incomplete_input of Pos.t * string list * string option
     | `malformed_partial_sequence of string
+    | `sequence_is_too_long of string
   ]
   with sexp
 
@@ -122,15 +123,24 @@ module Transform = struct
 
   let string_to_char_seq_raw_item
       ?filename ?(tags=Tags.char_sequence_default) () =
-    let string_to_partial_sequence s =
-      match tags.Tags.sequence with
+    let check_alphabet s = match tags.Tags.sequence with
       | `int_sequence
-      | `char_sequence None -> output_ok (`partial_sequence s)
+      | `char_sequence None ->
+        output_ok (`partial_sequence s)
       | `char_sequence (Some alphabet) ->
         if String.for_all s ~f:(List.mem alphabet) then
           output_ok (`partial_sequence s)
         else
           output_error (`malformed_partial_sequence s)
+    in
+    let string_to_partial_sequence s =
+      match tags.Tags.max_items_per_line with
+      | Some n ->
+        if String.length s > n then
+          output_error (`sequence_is_too_long s)
+        else
+          check_alphabet s
+      | None -> check_alphabet s
     in
     string_to_raw_item
       ~string_to_partial_sequence
@@ -142,10 +152,17 @@ module Transform = struct
       ?filename ?(tags=Tags.char_sequence_default) () =
     let string_to_partial_sequence s =
       try
-        output_ok (`partial_sequence
-          (List.filter_map (String.split ~on:' ' s) ~f:(function
+        let il = List.filter_map (String.split ~on:' ' s) ~f:(function
           | "" -> None
-          | s -> Some (Int.of_string s))))
+          | s -> Some (Int.of_string s))
+        in
+        match tags.Tags.max_items_per_line with
+        | Some n ->
+          if List.length il > n then
+            output_error (`sequence_is_too_long s)
+          else
+            output_ok (`partial_sequence il)
+        | None -> output_ok (`partial_sequence il)
       with _ -> output_error (`malformed_partial_sequence s)
     in
     string_to_raw_item
