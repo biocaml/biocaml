@@ -139,8 +139,8 @@ module Error : sig
   type string_to_raw_item = [
   | `empty_line of Biocaml_pos.t
   | `incomplete_input of Biocaml_pos.t * string list * string option
-  | `malformed_partial_sequence of string
-  | `sequence_is_too_long of string
+  | `malformed_partial_sequence of Biocaml_pos.t * string
+  | `sequence_is_too_long of Biocaml_pos.t * string
   ]
   (** Errors raised when converting a string to a {!type: raw_item}. *)
 

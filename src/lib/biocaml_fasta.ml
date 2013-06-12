@@ -79,8 +79,8 @@ module Error = struct
   type string_to_raw_item = [
     | `empty_line of Pos.t
     | `incomplete_input of Pos.t * string list * string option
-    | `malformed_partial_sequence of string
-    | `sequence_is_too_long of string
+    | `malformed_partial_sequence of Pos.t * string
+    | `sequence_is_too_long of Pos.t * string
   ]
   with sexp
 
@@ -117,13 +117,13 @@ module Transform = struct
         else if line.[0] = '>' then
           output_ok (`header (chopl line))
         else
-          string_to_partial_sequence line
+          string_to_partial_sequence ~pos:(current_position buffer) line
     in
     Biocaml_transform.make ~name ~feed ~next ()
 
   let string_to_char_seq_raw_item
       ?filename ?(tags=Tags.char_sequence_default) () =
-    let check_alphabet s = match tags.Tags.sequence with
+    let check_alphabet ~pos s = match tags.Tags.sequence with
       | `int_sequence
       | `char_sequence None ->
         output_ok (`partial_sequence s)
@@ -131,16 +131,16 @@ module Transform = struct
         if String.for_all s ~f:(List.mem alphabet) then
           output_ok (`partial_sequence s)
         else
-          output_error (`malformed_partial_sequence s)
+          output_error (`malformed_partial_sequence (pos,s))
     in
-    let string_to_partial_sequence s =
+    let string_to_partial_sequence ~pos s =
       match tags.Tags.max_items_per_line with
       | Some n ->
         if String.length s > n then
-          output_error (`sequence_is_too_long s)
+          output_error (`sequence_is_too_long (pos,s))
         else
-          check_alphabet s
-      | None -> check_alphabet s
+          check_alphabet ~pos s
+      | None -> check_alphabet ~pos s
     in
     string_to_raw_item
       ~string_to_partial_sequence
@@ -150,7 +150,7 @@ module Transform = struct
 
   let string_to_int_seq_raw_item
       ?filename ?(tags=Tags.char_sequence_default) () =
-    let string_to_partial_sequence s =
+    let string_to_partial_sequence ~pos s =
       try
         let il = List.filter_map (String.split ~on:' ' s) ~f:(function
           | "" -> None
@@ -159,11 +159,11 @@ module Transform = struct
         match tags.Tags.max_items_per_line with
         | Some n ->
           if List.length il > n then
-            output_error (`sequence_is_too_long s)
+            output_error (`sequence_is_too_long (pos,s))
           else
             output_ok (`partial_sequence il)
         | None -> output_ok (`partial_sequence il)
-      with _ -> output_error (`malformed_partial_sequence s)
+      with _ -> output_error (`malformed_partial_sequence (pos,s))
     in
     string_to_raw_item
       ~string_to_partial_sequence
