@@ -68,28 +68,6 @@ type 'a item = {
 }
 (** A named FASTA item. *)
 
-
-type 'a raw_item = [
-  | `comment of string
-  | `header of string
-  | `partial_sequence of 'a
-]
-(** Lowest level items parsed by this module:
-
-    - [`comment _] - a single comment line without the final
-      newline.
-
-    - [`header _] - a single header line without the initial '>',
-      whitespace following this, nor final newline.
-
-    - [`partial_sequence _] - either a sequence of characters,
-      represented as a string, or a sequence of space separated
-      integers, represented by an [int list]. The value does not
-      necessarily carry the complete content associated with a
-      header. It may be only part of the sequence, which can be useful
-      for files with large sequences (e.g. genomic sequence
-      files).  *)
-
 (** {2 Tags: Describe The Format } *)
 
 module Tags: sig
@@ -216,6 +194,38 @@ val in_channel_to_int_seq_item_stream_exn :
 (** Returns a stream of [int_seq item]s. Comments are
     discarded.  [Stream.next] will raise [Error _] in case of any error. *)
 
+
+(** {2 Raw Items}
+
+    A [raw_item] represents an intermediate level of parsing, between
+    a plain string and an [item]. Working with [raw_item]s can be
+    useful for various reasons. You may want to work with comments,
+    which are not kept in [item]s. Also, the extra work required to
+    parse to an [item] may be unnecessary for the analysis you will
+    do, so using [raw_item]s can be more efficient.
+*)
+
+type 'a raw_item = [
+  | `comment of string
+  | `header of string
+  | `partial_sequence of 'a
+]
+(** Lowest level items parsed by this module:
+
+    - [`comment _] - a single comment line without the final
+      newline.
+
+    - [`header _] - a single header line without the initial '>',
+      whitespace following this, nor final newline.
+
+    - [`partial_sequence _] - either a sequence of characters,
+      represented as a string, or a sequence of space separated
+      integers, represented by an [int list]. The value does not
+      necessarily carry the complete content associated with a
+      header. It may be only part of the sequence, which can be useful
+      for files with large sequences (e.g. genomic sequence
+      files).  *)
+
 val in_channel_to_char_seq_raw_item_stream :
   ?buffer_size:int ->
   ?filename:string ->
@@ -231,7 +241,6 @@ val in_channel_to_int_seq_raw_item_stream :
   in_channel ->
   (int_seq raw_item, [> Error.t]) Core.Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq raw_item] results. *)
-
 
 val in_channel_to_char_seq_raw_item_stream_exn :
   ?buffer_size:int ->
@@ -251,18 +260,13 @@ val in_channel_to_int_seq_raw_item_stream_exn :
 (** Returns a stream of [int_seq raw_item]s. Comments are discarded.
     [Stream.next] will raise [Error _] in case of any error. *)
 
-(** {2 [To_string] Functions }
-
-    These functions convert [_ raw_item] value to strings that can be
-    dumped to a file, i.e. they are full-lines, including end-of-line
-    characters.
-*)
-
 val char_seq_raw_item_to_string: char_seq raw_item -> string
-(** Convert a [raw_item] to a string (ignore comments). *)
+(** Convert a [raw_item] to a string (ignore comments). End-of-line
+    characters are included. *)
 
 val int_seq_raw_item_to_string: int_seq raw_item -> string
-(** Convert a [raw_item] to a string (ignore comments). *)
+(** Convert a [raw_item] to a string (ignore comments). End-of-line
+    characters are included. *)
 
 
 (** {2 Transforms } *)
@@ -341,6 +345,7 @@ module Transform: sig
       [*_comments] tag is provided. *)
 
 end
+
 
 (** {2 Random Generation} *)
 module Random: sig
