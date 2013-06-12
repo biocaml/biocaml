@@ -41,8 +41,8 @@ module Filename : sig
   include module type of Core.Std.Filename
 
   module Infix : sig
-    (** [p1 </> p2] equivalent to [concat p1 p2]. *)
-    val (</>) : string -> string -> string
+    (** [p1/p2] is equivalent to [concat p1 p2]. *)
+    val (/) : string -> string -> string
   end
 end
 module Float : module type of Core.Std.Float

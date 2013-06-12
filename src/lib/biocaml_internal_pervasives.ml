@@ -47,7 +47,7 @@ module Filename = struct
   include Core.Std.Filename
 
   module Infix = struct
-    let (</>) = concat
+    let (/) = concat
   end
 end
 module Float = Core.Std.Float
