@@ -13,7 +13,7 @@ let make_stream ?(more_tags=[]) file =
     char_sequence_default with
       forbid_empty_lines = true;
       only_header_comment = true;
-      sequence = `char_sequence { impose_sequence_alphabet = Some capitals }
+      sequence = `char_sequence (Some capitals)
   })
   in
   let t =

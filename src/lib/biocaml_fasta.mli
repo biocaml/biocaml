@@ -95,19 +95,13 @@ type 'a raw_item = [
 module Tags: sig
   (** Additional format-information tags (c.f. {!Biocaml_tags}). *)
 
-
-  type char_sequence = {
-    impose_sequence_alphabet: char list option;
-  }
-  (** The format details for [char_seq] FASTA files. *)
-
   type t = {
     forbid_empty_lines: bool;
     only_header_comment: bool;
     sharp_comments: bool;
     semicolon_comments: bool;
     max_items_per_line: int option;
-    sequence: [ `int_sequence | `char_sequence of char_sequence ]
+    sequence: [ `int_sequence | `char_sequence of char list option ]
   }
   (** The format details for any kind of FASTA file. *)
 

@@ -19,18 +19,13 @@ with sexp
 
 module Tags = struct
 
-  type char_sequence = {
-    impose_sequence_alphabet: char list option;
-  }
-  with sexp
-
   type t = {
     forbid_empty_lines: bool;
     only_header_comment: bool;
     sharp_comments: bool;
     semicolon_comments: bool;
     max_items_per_line: int option;
-    sequence: [ `int_sequence | `char_sequence of char_sequence ]
+    sequence: [ `int_sequence | `char_sequence of char list option ]
   }
   with sexp
 
@@ -40,7 +35,7 @@ module Tags = struct
       sharp_comments = true;
       semicolon_comments = true;
       max_items_per_line = None;
-      sequence = `char_sequence {impose_sequence_alphabet = None} }
+      sequence = `char_sequence None }
 
   let int_sequence_default = { char_sequence_default with sequence = `int_sequence }
 
@@ -54,11 +49,8 @@ module Tags = struct
   let impose_sequence_alphabet tags =
     match tags.sequence with
     | `int_sequence -> None
-    | `char_sequence c ->
-      begin match c.impose_sequence_alphabet with
-      | Some alphb -> Some (fun c -> List.mem alphb c)
-      | None -> None
-      end
+    | `char_sequence (Some alphb) -> Some (fun c -> List.mem alphb c)
+    | `char_sequence None -> None
 
   let max_items_per_line (t: t) =
     let default =
