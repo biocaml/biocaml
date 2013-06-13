@@ -58,7 +58,7 @@ Biocaml_roc
 
 {3 Strings}
 {!modules:
-Biocaml_chrName
+Biocaml_chr
 Biocaml_line
 Biocaml_strandName
 }
