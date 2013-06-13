@@ -17,9 +17,9 @@
     Functions for converting to an Arabic or Roman format are
     provided. The benefit is that these functions convert to a
     canonical form, and thus the resulting strings can be compared
-    reliably. For example, [arabic "Chr4"] and [arabic "IV"] both
-    return "4". The Arabic format is preferred over the Roman form
-    because the latter is incomplete; it cannot represent chromosome
+    reliably. For example, [to_arabic "Chr4"] and [to_arabic "IV"] both
+    return "4". The Arabic format is recommended over the Roman form
+    because the Roman form is incomplete; e.g. it cannot represent chromosome
     number 10 because there would be an ambiguity with the maternal
     chromosome "chrX". *)
 
@@ -39,9 +39,9 @@ end
 exception Error of Error.t
 
 val to_arabic : string -> string
-(** [arabic s] returns the canonical Arabic representation of [s]. *)
+(** [to_arabic s] returns the canonical Arabic representation of [s]. *)
 
 val to_roman : string -> (string, Error.t) Core.Std.Result.t
-(** [roman s] returns the canonical Roman representation of [s]. *)
+(** [to_roman s] returns the canonical Roman representation of [s]. *)
 
 val to_roman_exn : string -> string
