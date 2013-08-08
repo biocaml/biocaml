@@ -121,7 +121,7 @@ LIB_MODULES[] =
 LIB_STUBS= biocaml_pwm_stub biocaml_mzData_stubs
 LIB_DESCRIPTION=The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
-DEPENDENCIES=core threads zip unix xmlm pcre
+DEPENDENCIES=core threads zip unix xmlm pcre cfstream
 PACKAGES= $(DEPENDENCIES) sexplib.syntax
 
 
@@ -248,7 +248,7 @@ $(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo _build/li
     ocamlfind ocamldoc \
         -g _build/biohtml.cmo \
         -css-style biocaml.css \
-        -syntax camlp4o -package xmlm,zip,pcre,core,sexplib.syntax \
+        -syntax camlp4o -package xmlm,zip,pcre,core,cfstream,sexplib.syntax \
         -charset UTF-8 -d $(DOCLIB_DIR) -t "The Biocaml Library" \
         -keep-code -colorize-code _build/lib/*.mli _build/lib/*.ml \
         -sort -I _build/lib/. \

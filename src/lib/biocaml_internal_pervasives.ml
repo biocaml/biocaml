@@ -1,30 +1,12 @@
-module Stream = Biocaml_stream
-module Streamable = Biocaml_streamable
+module Stream = CFStream_stream
+module Streamable = CFStream_streamable
 
 include Core.Common
 let ( |? ) x default = Core.Option.value ~default x
-module List = struct
-  include Core.Std.List
-
-  let to_stream = Stream.of_list
-
-  let of_stream strm =
-    strm
-    |! Stream.fold ~init:[] ~f:(fun l a -> a::l)
-    |! List.rev
-end
+module List = Core.Std.List
 module Arg = Core.Std.Arg
 module Array = struct
   include Core.Std.Array
-
-  let to_stream a =
-    Stream.from (fun i ->
-      try Some a.(i)
-      with Invalid_argument _ -> None
-    )
-
-  let of_stream strm = List.of_stream strm |! Array.of_list
-
   let range xs = Stream.Infix.(0 --^ (length xs))
 end
 include Array.Infix

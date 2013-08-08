@@ -8,15 +8,15 @@ type confusion_matrix = {
 }
 
 let make ~pos ~neg =
-  let pos = Array.of_stream pos
-  and neg = Array.of_stream neg in
+  let pos = Stream.to_array pos
+  and neg = Stream.to_array neg in
   Array.sort ~cmp:(Fn.flip compare) pos ;
   Array.sort ~cmp:(Fn.flip compare) neg ;
   let sorted_elements =
     Stream.merge
       ~cmp:(Fn.flip compare)
-      (Array.to_stream pos |! Stream.map ~f:(fun x -> x, `pos))
-      (Array.to_stream neg |! Stream.map ~f:(fun x -> x, `neg))
+      (Stream.of_array pos |! Stream.map ~f:(fun x -> x, `pos))
+      (Stream.of_array neg |! Stream.map ~f:(fun x -> x, `neg))
   and initial = {
     tp = 0 ;
     tn = Array.length neg ;

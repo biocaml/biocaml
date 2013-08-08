@@ -3,7 +3,7 @@ open Biocaml_internal_pervasives
 open Biocaml
 
 let auc pos neg =
-  Roc.make ~pos:(List.to_stream pos) ~neg:(List.to_stream neg)
+  Roc.make ~pos:(Stream.of_list pos) ~neg:(Stream.of_list neg)
   |! Stream.map ~f:(fun (_,cm) -> Roc.sensitivity cm, Roc.specificity cm)
   |! Roc.auc
 

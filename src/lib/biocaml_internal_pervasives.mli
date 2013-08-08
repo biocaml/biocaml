@@ -4,19 +4,15 @@
     with a few functions added. A few modules are completely new.
 *)
 
-module Stream : module type of Biocaml_stream
-module Streamable : module type of Biocaml_streamable
+module Stream : module type of CFStream_stream
+module Streamable : module type of CFStream_streamable
 
 include module type of Core.Common
 val ( |? ) : 'a option -> 'a -> 'a
-module List : sig
-  include module type of Core.Std.List
-  include Streamable.S with type 'a t := 'a t
-end
+module List : module type of Core.Std.List
 module Arg : module type of Core.Std.Arg
 module Array : sig
   include module type of Core.Std.Array
-  include Streamable.S with type 'a t := 'a t
 
   (** [range xs] is the stream of all valid indices in [xs] *)
   val range : 'a t -> int Stream.t

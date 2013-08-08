@@ -33,9 +33,9 @@ let attrs_of_string =
     let rex = Lazy.force lazy_rex in
     let r : Pcre.substrings array = Pcre.exec_all ~rex s in
     Stream.(Infix.(combine
-      (Array.to_stream r /@ (Pcre.get_named_substring rex "K"),
-       Array.to_stream r /@ (Pcre.get_named_substring rex "V"))))
-    |! List.of_stream
+      (Stream.of_array r /@ (Pcre.get_named_substring rex "K"),
+       Stream.of_array r /@ (Pcre.get_named_substring rex "V"))))
+    |! Stream.to_list
 
 
 let transpose m = 

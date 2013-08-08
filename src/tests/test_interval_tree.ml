@@ -20,10 +20,10 @@ module ListImpl = struct
   let elements x = x
 
   let to_stream x = 
-    List.sort compare x |! List.to_stream
+    List.sort compare x |! Stream.of_list
 
   let to_backwards_stream x = 
-    List.sort (Fn.flip compare) x |! List.to_stream
+    List.sort (Fn.flip compare) x |! Stream.of_list
 
   let pos x = 
     if x < 0 then 0 else x
@@ -91,7 +91,7 @@ module L = TestAdditions(ListImpl)
 
 let test_add () =
   for i = 1 to 100 do
-    let intervals = random_intervals 100 |! List.of_stream in
+    let intervals = random_intervals 100 |! Stream.to_list in
     List.fold_left intervals ~init:T.empty ~f:(fun accu (lo,hi,_) -> 
       let r = T.add accu ~low:lo ~high:hi ~data:() in
       Biocaml_interval_tree.check_integrity r ; r
@@ -101,9 +101,9 @@ let test_add () =
 
 let test_creation () =
   for i = 1 to 100 do
-    let intervals = random_intervals 100 |! List.of_stream in
-    let lres = L.(intervals |! of_list |! to_stream |! List.of_stream)
-    and tres = T.(intervals |! of_list |! to_stream |! List.of_stream) in
+    let intervals = random_intervals 100 |! Stream.to_list in
+    let lres = L.(intervals |! of_list |! to_stream |! Stream.to_list)
+    and tres = T.(intervals |! of_list |! to_stream |! Stream.to_list) in
     assert_equal ~printer:string_of_int 100 ~msg:"Verify list result length" (List.length lres) ;
     assert_equal ~printer:string_of_int 100 ~msg:"Verify tree result length" (List.length tres) ;
     assert_equal ~msg:"Compare list and tree results" lres tres
@@ -111,7 +111,7 @@ let test_creation () =
 
 let test_intersection () = 
   for i = 1 to 1000 do
-    let intervals = random_intervals ~ub:1000 1000 |! List.of_stream
+    let intervals = random_intervals ~ub:1000 1000 |! Stream.to_list
     and low, high, _ = random_interval  ~ub:1000 () in
     let l = L.(intersects (of_list intervals) ~low ~high)
     and t = T.(intersects (of_list intervals) ~low ~high) in
@@ -120,7 +120,7 @@ let test_intersection () =
 
 let test_find_closest () = 
   for i = 1 to 1000 do
-    let intervals = random_intervals ~ub:1000 1000 |! List.of_stream
+    let intervals = random_intervals ~ub:1000 1000 |! Stream.to_list
     and lo, hi, _ = random_interval  ~ub:1000 () in
     let llo,lhi,_, dl = L.(find_closest lo hi (of_list intervals))
     and tlo,thi,_, dt = T.(find_closest lo hi (of_list intervals)) 
@@ -142,15 +142,15 @@ let test_find_intersecting_elem1 () =
             (add ~low:70501 ~high:71001 ~data:()
                empty))) in 
   assert_equal
-    T.(find_intersecting_elem 70163 70163 u |! List.of_stream |! List.length)
+    T.(find_intersecting_elem 70163 70163 u |! Stream.to_list |! List.length)
     1 ;
   assert_equal
-    T.(find_intersecting_elem 65163 75163 u |! List.of_stream |! List.length)
+    T.(find_intersecting_elem 65163 75163 u |! Stream.to_list |! List.length)
     3
 
 let test_find_intersecting_elem2 () = 
   for i = 1 to 1000 do
-    let intervals = random_intervals ~ub:1000 1000 |! List.of_stream
+    let intervals = random_intervals ~ub:1000 1000 |! Stream.to_list
     and lo, hi, _ = random_interval  ~ub:1000 () in
     let l = L.(find_intersecting_elem lo hi (of_list intervals)) |! Set.of_stream
     and t = T.(find_intersecting_elem lo hi (of_list intervals)) |! Set.of_stream in
