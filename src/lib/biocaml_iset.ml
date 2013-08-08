@@ -132,7 +132,7 @@ let rec fold f t init =
 
 (* FIXME: this is nlog n because of the left nesting of appends *)
 let rec to_stream =
-  let module S = Biocaml_stream in
+  let module S = CFStream_stream in
   function
   | Empty -> S.empty ()
   | Node (l, v, r, _) ->
@@ -471,4 +471,4 @@ let max_elt s =
 let choose s = fst (root s)
 
 let of_list l = List.fold_left (fun s (lo,hi) -> add_range s lo hi) empty l
-let of_stream e = Biocaml_stream.fold ~f:(fun s (lo,hi) -> add_range s lo hi) ~init:empty e
+let of_stream e = CFStream_stream.fold ~f:(fun s (lo,hi) -> add_range s lo hi) ~init:empty e

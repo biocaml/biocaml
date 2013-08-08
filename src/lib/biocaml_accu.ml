@@ -18,7 +18,7 @@ let add (t : ('a,'b,'c,'d) t) x y =
   let accu = Hashtbl.find t.table bin |? t.zero in
   Hashtbl.replace t.table bin (t.add y accu)
 
-let stream t = Hashtbl.to_stream t.table
+let stream t = Stream.of_hashtbl t.table
 
 let get t = Hashtbl.find t.table
 

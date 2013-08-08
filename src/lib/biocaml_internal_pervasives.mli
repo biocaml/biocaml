@@ -5,7 +5,6 @@
 *)
 
 module Stream : module type of CFStream_stream
-module Streamable : module type of CFStream_streamable
 
 include module type of Core.Common
 val ( |? ) : 'a option -> 'a -> 'a
@@ -43,10 +42,7 @@ module Filename : sig
 end
 module Float : module type of Core.Std.Float
 module Fn : module type of Core.Std.Fn
-module Hashtbl : sig
-  include module type of Core.Std.Hashtbl
-  include Streamable.S2 with type ('a,'b) t := ('a,'b) t
-end
+module Hashtbl : module type of Core.Std.Hashtbl
 module Int : module type of Core.Std.Int
 include module type of Int.Infix
 module In_channel : module type of Core.Std.In_channel
@@ -58,11 +54,7 @@ include module type of Interfaces
 module Interval : module type of Core.Std.Interval
 module Lazy : module type of Core.Std.Lazy
 include module type of List.Infix
-module Map : sig
-  include module type of Core.Std.Map
-  val to_stream : ('a, 'b, 'c) t -> ('a * 'b) Stream.t
-  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) Poly.t
-end
+module Map : module type of Core.Std.Map
 module Monad : module type of Core.Std.Monad
 module Nat : module type of Core.Std.Nat
 module Nativeint : module type of Core.Std.Nativeint
@@ -90,11 +82,7 @@ module Result : sig
 
 end
 include module type of Result.Export
-module Set : sig
-  include module type of Core.Std.Set
-  val to_stream : ('a, 'b) t -> 'a Stream.t
-  val of_stream : 'a Stream.t -> 'a Poly.t
-end
+module Set : module type of Core.Std.Set
 include module type of Sexplib.Conv
 module Stack : module type of Core.Std.Stack
 module String : module type of Core.Std.String

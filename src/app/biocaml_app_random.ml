@@ -2,7 +2,7 @@ open Core.Std
 open Flow
 open Biocaml_app_common
 open Biocaml
-
+module Stream = CFStream_stream
 
 module Genlex = struct
   include Genlex
@@ -21,7 +21,7 @@ let parse_spec_aux s =
   let open Genlex in
   let char_stream = String.to_list (s ^ " special_end") |! Stream.of_list in
   begin try
-    let tokens = Biocaml_stream.to_list (spec_lexer char_stream) in
+    let tokens = Stream.to_list (spec_lexer char_stream) in
     match List.rev tokens with
     | (Ident "special_end") :: more ->
       return (List.rev more)

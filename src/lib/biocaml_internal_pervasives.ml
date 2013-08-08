@@ -1,15 +1,14 @@
 module Stream = CFStream_stream
-module Streamable = CFStream_streamable
 
 include Core.Common
 let ( |? ) x default = Core.Option.value ~default x
 module List = Core.Std.List
-module Arg = Core.Std.Arg
 module Array = struct
   include Core.Std.Array
   let range xs = Stream.Infix.(0 --^ (length xs))
 end
 include Array.Infix
+module Arg = Core.Std.Arg
 module Backtrace = Core.Std.Backtrace
 module Bag = Core.Std.Bag
 module Big_int = Core.Std.Big_int
@@ -34,14 +33,7 @@ module Filename = struct
 end
 module Float = Core.Std.Float
 module Fn = Core.Std.Fn
-module Hashtbl = struct
-  include Core.Std.Hashtbl
-  let to_stream t = Stream.of_list (to_alist t)
-  let of_stream xs =
-    let t = Poly.create () in
-    Stream.iter xs ~f:(fun (key,data) -> Poly.replace t ~key ~data) ;
-    t
-end
+module Hashtbl = Core.Std.Hashtbl
 module Int = Core.Std.Int
 include Int.Infix
 module In_channel = Core.Std.In_channel
@@ -53,12 +45,7 @@ include Interfaces
 module Interval = Core.Std.Interval
 module Lazy = Core.Std.Lazy
 include List.Infix
-module Map = struct
-  include Core.Std.Map
-  let to_stream t = Stream.of_list (to_alist t)
-  let of_stream xs =
-    Stream.fold xs ~init:Poly.empty ~f:(fun accu (key,data) -> Poly.add accu ~key ~data)
-end
+module Map = Core.Std.Map
 module Monad = Core.Std.Monad
 module Nat = Core.Std.Nat
 module Nativeint = Core.Std.Nativeint
@@ -97,12 +84,7 @@ module Result = struct
 
 end
 include Result.Export
-module Set = struct
-  include Core.Std.Set
-  let to_stream t = Stream.of_list (to_list t)
-  let of_stream xs =
-    Stream.fold xs ~init:Poly.empty ~f:(fun accu e -> Poly.add accu e) ;
-end
+module Set = Core.Std.Set
 include Sexplib.Conv
 module Stack = Core.Std.Stack
 module String = Core.Std.String

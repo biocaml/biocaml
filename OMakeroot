@@ -108,8 +108,6 @@ LIB_MODULES[] =
     biocaml_solexa_score
     biocaml_sgr
     biocaml_strandName
-    biocaml_stream
-    biocaml_streamable
     biocaml_track
     biocaml_tags
     biocaml_vcf

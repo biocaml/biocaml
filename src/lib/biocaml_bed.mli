@@ -80,11 +80,11 @@ exception Error of  Error.t
 (** The exception raised by the [*_exn] functions. *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?more_columns:parsing_spec ->
-  in_channel -> (item, [> Error.parsing]) Core.Result.t Biocaml_stream.t
+  in_channel -> (item, [> Error.parsing]) Core.Result.t Stream.t
 (** Parse an input-channel into [item] values. *)
 
 val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spec ->
-  in_channel -> item Biocaml_stream.t
+  in_channel -> item Stream.t
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
