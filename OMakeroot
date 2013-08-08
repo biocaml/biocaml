@@ -146,7 +146,6 @@ UNIT_TESTS[]=
     test_roc
     test_rset
     test_sam
-    test_stream
     test_table
     test_track
     test_vcf
