@@ -1,5 +1,26 @@
 Biocaml Release Notes
 
+biocaml-0.3.0 2013-09-20
+------------------------
+* Switch build system to OMake.
+
+* Delete or replace separate command line apps with unified `biocaml`
+  app.
+
+* App now has several new tools: alignments, bed, demux, info, random,
+  and transform.
+
+* Improve generated html for API documentation.
+
+* New Psl and Vcf modules.
+
+* Rename module ChrName to Chr.
+
+* Move Stream to separate package CFStream.
+
+* Numerous API changes.
+
+
 biocaml-0.2.0 2013-02-28
 ------------------------
 * Switch to Core from Batteries.
