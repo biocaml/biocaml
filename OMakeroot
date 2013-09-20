@@ -180,21 +180,6 @@ uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
     rm -f $(INSTALL_BINDIR)/$(APP_NAME)
 
-#
-# Create _build/dist/biocaml-x.y.z.tar.gz
-#
-DIST_FILES=Changes INSTALL LICENSE OMakeroot README.md src
-dist:
-    rm -fr _build/dist/
-    mkdir -p _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/
-    cp -r $(DIST_FILES) _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION)/
-    cd _build/dist/ && tar cvfz $(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz \
-                                $(PROJECT_NAME)-$(PROJECT_VERSION) \
-        && md5sum $(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz > \
-             _build/dist/$(PROJECT_NAME)-$(PROJECT_VERSION).tar.gz.md5
-             # → wierd path to the file, required because OMake interprets it
-
-
 TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
 TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
 TAGS_SOURCES=$(shell find src -name "*.ml")
