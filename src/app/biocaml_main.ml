@@ -50,7 +50,7 @@ let () =
         ("alignments", Biocaml_app_count_alignments.command);
         ("info", cmd_info);
       ] in
-    run whole_thing;
+    run ~version:Biocaml_about.version whole_thing;
     let m =
       List.fold !lwts_to_run ~init:(return ()) ~f:(fun m n ->
         m >>= fun () -> n)
