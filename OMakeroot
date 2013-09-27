@@ -225,7 +225,8 @@ $(DOCLIB_DIR)/biocaml.css: src/doc/biocaml.css
     mkdir -p _build/doclib
     cp src/doc/biocaml.css $@
 
-$(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo _build/lib/$(LIB_NAME).cma
+$(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo \
+        _build/lib/$(LIB_NAME).cma $(if $(NATIVE_ENABLED), _build/biohtml.cmxs)
     cp src/doc/figures/* $(DOCLIB_DIR)/
     ocamlfind ocamldoc \
         -g _build/biohtml.cmo \
@@ -238,6 +239,9 @@ $(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo _build/li
 
 _build/biohtml.cmo: src/odoc/biohtml.ml
     ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
+
+_build/biohtml.cmxs: src/odoc/biohtml.ml
+    ocamlfind ocamlopt -shared src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
 
 doc: $(DOCLIB_DIR)/index.html
 
