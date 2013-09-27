@@ -1,5 +1,10 @@
 Biocaml Release Notes
 
+biocaml-0.3.1 2013-09-27
+------------------------
+* Fix documentation build.
+
+
 biocaml-0.3.0 2013-09-20
 ------------------------
 * Switch build system to OMake.
