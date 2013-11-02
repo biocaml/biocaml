@@ -198,6 +198,13 @@ val in_channel_to_int_seq_item_stream_exn :
 (** Returns a stream of [int_seq item]s. Comments are
     discarded.  [Stream.next] will raise [Error _] in case of any error. *)
 
+(** {2 [Out_channel] Functions } *)
+
+val char_seq_items_to_out_channel :
+  ?tags:Tags.t ->
+  char_seq item Stream.t ->
+  out_channel ->
+  unit
 
 (** {2 Raw Items}
 

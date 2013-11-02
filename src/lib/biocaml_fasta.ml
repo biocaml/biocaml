@@ -445,3 +445,11 @@ let in_channel_to_int_seq_item_stream_exn ?(buffer_size=65536) ?filename
   Stream.result_to_exn ~error_to_exn (
     in_channel_to_int_seq_item_stream ?filename ?tags inp
   )
+
+let char_seq_items_to_out_channel ?tags items oc =
+  let t =
+    Biocaml_transform.compose
+      (Transform.char_seq_item_to_raw_item ?tags ())
+      (Transform.char_seq_raw_item_to_string ?tags ())
+  in
+  Biocaml_transform.stream_to_out_channel items t oc
