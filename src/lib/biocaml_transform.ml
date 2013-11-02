@@ -75,6 +75,9 @@ let to_stream_fun tr en =
 let in_channel_strings_to_stream ?(buffer_size=65536) ic tr =
   to_stream_fun tr (Stream.strings_of_channel ~buffer_size ic)
 
+let stream_to_out_channel xs tr oc =
+  Stream.iter (to_stream_fun tr xs) ~f:(output_string oc)
+
 let on_input t ~f =
   { t with feed = fun x -> t.feed (f x) }
 

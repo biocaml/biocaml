@@ -99,6 +99,11 @@ val to_stream_fun:
 val in_channel_strings_to_stream :
   ?buffer_size:int -> in_channel -> (string, 'output) t -> 'output Stream.t
 
+(** [stream_to_out_channel xs t oc] consumes a stream of ['input]s
+    using [t] to transform them into strings, which are then written
+    on the out_channel [oc]. *)
+val stream_to_out_channel :
+  'input Stream.t -> ('input, string) t -> out_channel ->  unit
 
 (** {2 Compose}
 
