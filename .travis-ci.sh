@@ -32,5 +32,7 @@ omake
 echo "==== Test ===="
 omake test
 echo "==== Bench ===="
-_build/benchmark/biocaml_benchmarks
+_build/benchmark/biocaml_benchmarks -feeds 1000 -s 100,1000,10000,100000 -z 0,2,5,9 -b 100,1000,10000,100000
+echo "==== Doc ===="
+omake doc
 
