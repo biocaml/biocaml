@@ -11,7 +11,6 @@ include Array.Infix
 module Arg = Core.Std.Arg
 module Backtrace = Core.Std.Backtrace
 module Bag = Core.Std.Bag
-module Big_int = Core.Std.Big_int
 module Bigbuffer = Core.Std.Bigbuffer
 module Bigstring = Core.Std.Bigstring
 module Bigsubstring = Core.Std.Bigsubstring
@@ -47,9 +46,7 @@ module Lazy = Core.Std.Lazy
 include List.Infix
 module Map = Core.Std.Map
 module Monad = Core.Std.Monad
-module Nat = Core.Std.Nat
 module Nativeint = Core.Std.Nativeint
-module Num = Core.Std.Num
 module Option = Core.Std.Option
 module Out_channel = Core.Std.Out_channel
 module Printexc = Core.Std.Printexc
@@ -57,7 +54,6 @@ module Printf = Core.Std.Printf
 include Printf
 module Queue = Core.Std.Queue
 module Random = Core.Std.Random
-module Ratio = Core.Std.Ratio
 module Result = struct
 
   include Core.Std.Result

@@ -19,7 +19,6 @@ end
 include module type of Array.Infix
 module Backtrace : module type of Core.Std.Backtrace
 module Bag : module type of Core.Std.Bag
-module Big_int : module type of Core.Std.Big_int
 module Bigbuffer : module type of Core.Std.Bigbuffer
 module Bigstring : module type of Core.Std.Bigstring
 module Bigsubstring : module type of Core.Std.Bigsubstring
@@ -56,9 +55,7 @@ module Lazy : module type of Core.Std.Lazy
 include module type of List.Infix
 module Map : module type of Core.Std.Map
 module Monad : module type of Core.Std.Monad
-module Nat : module type of Core.Std.Nat
 module Nativeint : module type of Core.Std.Nativeint
-module Num : module type of Core.Std.Num
 module Option : module type of Core.Std.Option
 module Out_channel : module type of Core.Std.Out_channel
 module Printexc : module type of Core.Std.Printexc
@@ -66,7 +63,6 @@ module Printf : module type of Core.Std.Printf
 include module type of Printf
 module Queue : module type of Core.Std.Queue
 module Random : module type of Core.Std.Random
-module Ratio : module type of Core.Std.Ratio
 module Result : sig
 
   include module type of Core.Std.Result
