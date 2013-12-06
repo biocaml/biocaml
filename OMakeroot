@@ -1,16 +1,16 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: test doc dist \
-        install install_library install_app install_doc \
-        uninstall uninstall_library uninstall_app \
+.PHONY: tests doc dist \
+        install install_lib install_app install_doc \
+        uninstall uninstall_lib uninstall_app \
         clean distclean \
         configure print_conf
 
 ################################################################################
 # Primary Commands
-install: install_library install_app
-uninstall: uninstall_library uninstall_app
+install: install_lib install_app
+uninstall: uninstall_lib uninstall_app
 
 clean:
   rm -rf _build
@@ -20,12 +20,12 @@ distclean: clean
 
 ################################################################################
 # General Project Information
-PROJECT_NAME= biocaml
-PROJECT_VERSION= 0.4-dev
-LIB_VERSION=$(PROJECT_VERSION)
+PROJECT= biocaml
+VERSION= 0.4-dev
+LIB_VERSION=$(VERSION)
 
-LIB_NAME=$(PROJECT_NAME)
-APP_NAME=$(PROJECT_NAME)
+LIB_NAME=$(PROJECT)
+APP_NAME=$(PROJECT)
 
 DEPENDENCIES=core threads zip unix xmlm pcre cfstream
 PACKAGES= $(DEPENDENCIES) sexplib.syntax
@@ -33,21 +33,21 @@ PACKAGES= $(DEPENDENCIES) sexplib.syntax
 LIB_DESCRIPTION=The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
-  $(PROJECT_NAME)_about
+  $(PROJECT)_about
 LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
-LIB_STUBS= $(PROJECT_NAME)_pwm_stub $(PROJECT_NAME)_mzData_stubs
+LIB_STUBS= $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 
 APP_MODULES[]=
   $(removesuffix $(basename $(ls src/app/*.ml)))
 APP_PACKAGES= flow
 
-UNIT_TESTS_NAME=biocaml_unit_test
-UNIT_TESTS[]=
+TESTS_NAME=biocaml_unit_test
+TESTS_MODULES[]=
   $(removesuffix $(basename $(ls src/tests/test_*.ml)))
-UNIT_TESTS_PACKAGES= oUnit
+TESTS_PACKAGES= oUnit
 
 BENCHMARKS_NAME=biocaml_benchmarks
-BENCHMARKS[]=
+BENCHMARKS_MODULES[]=
   $(removesuffix $(basename $(ls src/benchmark/*.ml)))
 BENCHMARKS_PACKAGES=
 
@@ -59,7 +59,7 @@ BENCHMARKS_PACKAGES=
         echo "# Default configuration" > local_configuration.om
         echo "COMPILE_BIOCAML_APP=true" >> local_configuration.om
         echo "COMPILE_BIOCAML_TESTS=true" >> local_configuration.om
-        echo "INSTALL_PREFIX=$(PWD)/usr" >> local_configuration.om
+        echo "PREFIX=$(PWD)/usr" >> local_configuration.om
 
 configurable(user_var,local_var) =
     if $(defined $(user_var))
@@ -71,10 +71,10 @@ configurable(user_var,local_var) =
 configure:
     configurable(BUILD_APP, COMPILE_BIOCAML_APP)
     configurable(BUILD_TESTS, COMPILE_BIOCAML_TESTS)
-    configurable(PREFIX, INSTALL_PREFIX)
+    configurable(PREFIX, PREFIX)
 
-INSTALL_BINDIR=$(INSTALL_PREFIX)/bin/
-INSTALL_DOCDIR=$(INSTALL_PREFIX)/share/doc
+BINDIR=$(PREFIX)/bin/
+DOCDIR=$(PREFIX)/share/doc
 
 DefineCommandVars()
 # We call DefineCommandVars so that the user can keep overriding the
@@ -83,9 +83,9 @@ DefineCommandVars()
 print_conf:
     echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
     echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
-    echo "INSTALL_PREFIX: $(INSTALL_PREFIX)"
-    echo "INSTALL_BINDIR: $(INSTALL_BINDIR)"
-    echo "INSTALL_DOCDIR: $(INSTALL_DOCDIR)"
+    echo "PREFIX: $(PREFIX)"
+    echo "BINDIR: $(BINDIR)"
+    echo "DOCDIR: $(DOCDIR)"
 
 
 ################################################################################
@@ -107,18 +107,18 @@ OCAML_BYTE_LINK_FLAGS =
 OCAML_NATIVE_LINK_FLAGS =
 OCAMLFINDFLAGS = -syntax camlp4o
 
-# Run the tests' main executable
-test: _build/tests/$(UNIT_TESTS_NAME)
+# Run tests
+tests: _build/tests/$(TESTS_NAME)
     $<
 
 install_app: _build/app/$(APP_NAME)
-    echo "Installing $< in $(INSTALL_BINDIR)"
-    mkdir -p $(INSTALL_BINDIR)
-    install $< $(INSTALL_BINDIR)
+    echo "Installing $< in $(BINDIR)"
+    mkdir -p $(BINDIR)
+    install $< $(BINDIR)
 
 uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
-    rm -f $(INSTALL_BINDIR)/$(APP_NAME)
+    rm -f $(BINDIR)/$(APP_NAME)
 
 TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
 TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
@@ -173,19 +173,19 @@ ensure_path(path) =
     # Library
     .SUBDIRS: _build/lib
         OCAMLPACKS[] = $(PACKAGES)
-        biocaml_about.ml: :value: $(PROJECT_VERSION)
-            echo '(** Version string of the library: ["$(PROJECT_VERSION)"] *)' > $@
-            echo 'let version = "$(PROJECT_VERSION)"' >> $@
+        biocaml_about.ml: :value: $(VERSION)
+            echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
+            echo 'let version = "$(VERSION)"' >> $@
         META:
             echo "description = \"$(LIB_DESCRIPTION)\"" > META
             echo "version = \"$(LIB_VERSION)\"" >> META
             echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
             echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
             echo "requires = \"$(DEPENDENCIES)\"" >> META
-        install_library: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_library
+        install_lib: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_lib
             ocamlfind install $(LIB_NAME) META \
                 *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa *.a -dll *.so
-        uninstall_library:
+        uninstall_lib:
             ocamlfind remove $(LIB_NAME)
         .DEFAULT: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
 
@@ -207,11 +207,11 @@ ensure_path(path) =
     .SUBDIRS: _build/tests
         OCAML_LIBS = ../lib/biocaml
         OCAMLINCLUDES += $(dir ../lib/)
-        OCAMLPACKS[] = $(PACKAGES) $(UNIT_TESTS_PACKAGES)
+        OCAMLPACKS[] = $(PACKAGES) $(TESTS_PACKAGES)
         %.ml: ../lib/biocaml.cma
         if $(COMPILE_BIOCAML_TESTS)
             echo "conf: Building biocaml tests"
-            .DEFAULT: $(OCamlProgram $(UNIT_TESTS_NAME), main $(UNIT_TESTS))
+            .DEFAULT: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
 
 
     ################################################################################
@@ -223,7 +223,7 @@ ensure_path(path) =
         %.ml: ../lib/biocaml.cma
         if $(COMPILE_BIOCAML_TESTS)
             echo "conf: Building biocaml benchmarks"
-            .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS))
+            .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
 
 
 ################################################################################
@@ -255,7 +255,7 @@ _build/biohtml.cmxs: src/odoc/biohtml.ml
 doc: $(DOCLIB_DIR)/index.html
 
 install_doc: doc
-    echo "Installing documentation in $(INSTALL_DOCDIR)/biocaml"
-    rm -fr $(INSTALL_DOCDIR)/biocaml
-    mkdir -p $(INSTALL_DOCDIR)
-    cp -r _build/doclib $(INSTALL_DOCDIR)/biocaml
+    echo "Installing documentation in $(DOCDIR)/biocaml"
+    rm -fr $(DOCDIR)/biocaml
+    mkdir -p $(DOCDIR)
+    cp -r _build/doclib $(DOCDIR)/biocaml
