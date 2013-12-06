@@ -32,87 +32,23 @@ PACKAGES= $(DEPENDENCIES) sexplib.syntax
 
 LIB_DESCRIPTION=The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_MODULES[] =
-    biocaml
-    biocaml_internal_pervasives
-    biocaml_transform
-    biocaml_msg
-    biocaml_zip
-    biocaml_bam
-    biocaml_pos
-    biocaml_about
-    biocaml_accu
-    biocaml_bar
-    biocaml_bed
-    biocaml_bpmap
-    biocaml_cel
-    biocaml_chr
-    biocaml_entrez
-    biocaml_fasta
-    biocaml_fastq
-    biocaml_genomeMap
-    biocaml_gff
-    biocaml_histogram
-    biocaml_interval_tree
-    biocaml_iset
-    biocaml_jaspar
-    biocaml_line
-    biocaml_lines
-    biocaml_math
-    biocaml_phred_score
-    biocaml_psl
-    biocaml_pwm
-    biocaml_range
-    biocaml_roc
-    biocaml_romanNum
-    biocaml_rSet
-    biocaml_sam
-    biocaml_sbml
-    biocaml_seq
-    biocaml_solexa_score
-    biocaml_sgr
-    biocaml_strandName
-    biocaml_track
-    biocaml_tags
-    biocaml_vcf
-    biocaml_wig
-    biocaml_mzData
-    biocaml_table
-    biocaml_transcripts
+  $(removesuffix $(basename $(ls src/lib/*.ml)))
+  $(PROJECT_NAME)_about
 LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
-LIB_STUBS= biocaml_pwm_stub biocaml_mzData_stubs
+LIB_STUBS= $(PROJECT_NAME)_pwm_stub $(PROJECT_NAME)_mzData_stubs
 
 APP_MODULES[]=
-    biocaml_app_bed_operations
-    biocaml_app_random
-    biocaml_app_common
-    biocaml_app_transform
-    biocaml_app_count_alignments
-    biocaml_main
-    biocaml_app_demux
-    biocaml_app_entrez
+  $(removesuffix $(basename $(ls src/app/*.ml)))
 APP_PACKAGES= flow
 
 UNIT_TESTS_NAME=biocaml_unit_test
 UNIT_TESTS[]=
-    test_bed
-    test_fasta
-    test_gff
-    test_interval_tree
-    test_phred_score
-    test_pwm
-    test_roc
-    test_rset
-    test_sam
-    test_table
-    test_track
-    test_vcf
-    test_wig
-    test_zip
+  $(removesuffix $(basename $(ls src/tests/test_*.ml)))
 UNIT_TESTS_PACKAGES= oUnit
 
 BENCHMARKS_NAME=biocaml_benchmarks
 BENCHMARKS[]=
-    benchmark_zip
+  $(removesuffix $(basename $(ls src/benchmark/*.ml)))
 BENCHMARKS_PACKAGES=
 
 
