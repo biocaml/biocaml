@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: tests doc dist \
+.PHONY: tests doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
