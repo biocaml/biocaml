@@ -5,3 +5,8 @@ env:
   - OCAML_VERSION=4.00.1 OPAM_VERSION=1.1.0 CORE_VERSION=109.47.00
   - OCAML_VERSION=4.01.0 OPAM_VERSION=1.1.0 CORE_VERSION=109.42.00
   - OCAML_VERSION=4.00.1 OPAM_VERSION=1.1.0 CORE_VERSION=109.42.00
+
+notifications:
+  email:
+    recipients:
+      - biocaml-commits@googlegroups.com
