@@ -1,4 +1,5 @@
-[Biocaml](http://biocaml.org) - The OCaml Bioinformatics Library
+[Biocaml](http://biocaml.org) - The OCaml Bioinformatics Library  
+[![Build Status](https://travis-ci.org/biocaml/biocaml.png?branch=master)](https://travis-ci.org/biocaml/biocaml)
 
 DESCRIPTION
 ===========
