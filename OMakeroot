@@ -24,12 +24,10 @@ PROJECT= biocaml
 VERSION= 0.4-dev
 LIB_VERSION=$(VERSION)
 
-LIB_NAME=$(PROJECT)
-APP_NAME=$(PROJECT)
-
 DEPENDENCIES=core threads zip unix xmlm pcre cfstream
 PACKAGES= $(DEPENDENCIES) sexplib.syntax
 
+LIB_NAME=$(PROJECT)
 LIB_DESCRIPTION=The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
@@ -37,6 +35,7 @@ LIB_MODULES[] =
 LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 LIB_STUBS= $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 
+APP_NAME=$(PROJECT)
 APP_MODULES[]=
   $(removesuffix $(basename $(ls src/app/*.ml)))
 APP_PACKAGES= flow
@@ -107,24 +106,6 @@ OCAML_BYTE_LINK_FLAGS =
 OCAML_NATIVE_LINK_FLAGS =
 OCAMLFINDFLAGS = -syntax camlp4o
 
-# Run tests
-tests: _build/tests/$(TESTS_NAME)
-    $<
-
-install_app: _build/app/$(APP_NAME)
-    echo "Installing $< in $(BINDIR)"
-    mkdir -p $(BINDIR)
-    install $< $(BINDIR)
-
-uninstall_app:
-    echo "Removing $(APP_NAME) from $(BINDIR)"
-    rm -f $(BINDIR)/$(APP_NAME)
-
-TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
-TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
-TAGS_SOURCES=$(shell find src -name "*.ml")
-TAGS:
-    otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS $(TAGS_SOURCES)
 
 ################################################################################
 # Biocaml is a bit more complex than what OCamlLibrary can provide so
@@ -155,6 +136,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
                  $(OCAML_NATIVE_LINK_FLAGS)
     return $(array $(if $(NATIVE_ENABLED), $(NATIVELIB)), \
              $(if $(NATIVE_ENABLED), $(CLIB)), $(if $(BYTE_ENABLED), $(BYTELIB)))
+
 
 ################################################################################
 # Definition of the sub-directories
@@ -201,6 +183,15 @@ ensure_path(path) =
             echo "conf: Building biocaml application"
             .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
 
+    install_app: _build/app/$(APP_NAME)
+        echo "Installing $< in $(BINDIR)"
+        mkdir -p $(BINDIR)
+        install $< $(BINDIR)
+
+    uninstall_app:
+        echo "Removing $(APP_NAME) from $(BINDIR)"
+        rm -f $(BINDIR)/$(APP_NAME)
+
 
     ################################################################################
     # Tests
@@ -213,6 +204,9 @@ ensure_path(path) =
             echo "conf: Building biocaml tests"
             .DEFAULT: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
 
+    # Run tests
+    tests: _build/tests/$(TESTS_NAME)
+        $<
 
     ################################################################################
     # Benchmarks
@@ -259,3 +253,12 @@ install_doc: doc
     rm -fr $(DOCDIR)/biocaml
     mkdir -p $(DOCDIR)
     cp -r _build/doclib $(DOCDIR)/biocaml
+
+
+################################################################################
+# OTAGS Support
+TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
+TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
+TAGS_SOURCES=$(shell find src -name "*.ml")
+TAGS:
+    otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS $(TAGS_SOURCES)
