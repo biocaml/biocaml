@@ -3,8 +3,8 @@ _build/
 /.omakedb
 /.omakedb.lock
 /OMakeroot.omc
-/local_configuration.om
-/local_configuration.omc
+/configure.om
+/configure.omc
 /src/odoc/*.o
 /src/odoc/*.cm*
 *~

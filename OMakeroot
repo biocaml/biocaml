@@ -16,7 +16,7 @@ clean:
   rm -rf _build
 
 distclean: clean
-  rm -rf OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock local_configuration.omc
+  rm -rf OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock configure.omc
 
 ################################################################################
 # General Project Information
@@ -53,17 +53,17 @@ BENCHMARKS_PACKAGES =
 
 ################################################################################
 # Directory and File Names
-.INCLUDE: local_configuration.om
-  if $(not $(file-exists local_configuration.om))
-    echo "# Default configuration" > local_configuration.om
-    echo "COMPILE_BIOCAML_APP=true" >> local_configuration.om
-    echo "COMPILE_BIOCAML_TESTS=true" >> local_configuration.om
-    echo "PREFIX=$(PWD)/usr" >> local_configuration.om
+.INCLUDE: configure.om
+  if $(not $(file-exists configure.om))
+    echo "# Default configuration" > configure.om
+    echo "COMPILE_BIOCAML_APP=true" >> configure.om
+    echo "COMPILE_BIOCAML_TESTS=true" >> configure.om
+    echo "PREFIX=$(PWD)/usr" >> configure.om
 
 configurable(user_var,local_var) =
   if $(defined $(user_var))
     echo "User defined $(user_var): $(getvar $(user_var))"
-    echo "$(local_var)=$(getvar $(user_var))" >> local_configuration.om
+    echo "$(local_var)=$(getvar $(user_var))" >> configure.om
   else
     echo "Keeping previous $(user_var): $(getvar $(local_var))"
 
