@@ -59,8 +59,8 @@ DEFAULT_PREFIX = _build/usr
 $(CONFIG_FILE):
   if $(not $(file-exists $(CONFIG_FILE)))
     echo "Generating default $@. Change as desired."
-    echo "COMPILE_BIOCAML_APP = true" > $(CONFIG_FILE)
-    echo "COMPILE_BIOCAML_TESTS = true" >> $(CONFIG_FILE)
+    echo "COMPILE_APP = true" > $(CONFIG_FILE)
+    echo "COMPILE_TESTS = true" >> $(CONFIG_FILE)
     echo "PREFIX = $(DEFAULT_PREFIX)" >> $(CONFIG_FILE)
   else
     echo "$@ exists. Will not change."
@@ -79,17 +79,17 @@ if $(not $(defined DOCDIR))
   DOCDIR = $(PREFIX)/doc
   export
 
-if $(not $(defined COMPILE_BIOCAML_APP))
-  COMPILE_BIOCAML_APP = true
+if $(not $(defined COMPILE_APP))
+  COMPILE_APP = true
   export
 
-if $(not $(defined COMPILE_BIOCAML_TESTS))
-  COMPILE_BIOCAML_TESTS = true
+if $(not $(defined COMPILE_TESTS))
+  COMPILE_TESTS = true
   export
 
 print_config:
-  echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
-  echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
+  echo "COMPILE_APP: $(COMPILE_APP)"
+  echo "COMPILE_TESTS: $(COMPILE_TESTS)"
   echo "PREFIX: $(PREFIX)"
   echo "BINDIR: $(BINDIR)"
   echo "DOCDIR: $(DOCDIR)"
@@ -204,7 +204,7 @@ ensure_path(path) =
 
     app: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
 
-    if $(COMPILE_BIOCAML_APP)
+    if $(COMPILE_APP)
       echo "conf: Building biocaml application"
       .DEFAULT: app
 
@@ -229,7 +229,7 @@ ensure_path(path) =
 
     tests: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
 
-    if $(COMPILE_BIOCAML_TESTS)
+    if $(COMPILE_TESTS)
       echo "conf: Building biocaml tests"
       .DEFAULT: tests
 
@@ -248,7 +248,7 @@ ensure_path(path) =
 
     benchmarks: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
 
-    if $(COMPILE_BIOCAML_TESTS)
+    if $(COMPILE_TESTS)
       echo "conf: Building biocaml benchmarks"
       .DEFAULT: benchmarks
 
