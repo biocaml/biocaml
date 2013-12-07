@@ -23,6 +23,10 @@ opam --git-version
 
 opam init 
 
+opam remote add biorepo git://github.com/biocaml/dev-opam-repo.git
+opam update
+opam pin flow git://github.com/smondet/flow
+
 echo "==== Installing $OPAM_DEPENDS ===="
 opam install ${OPAM_DEPENDS}
 
