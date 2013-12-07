@@ -20,57 +20,57 @@ distclean: clean
 
 ################################################################################
 # General Project Information
-PROJECT= biocaml
-VERSION= 0.4-dev
-LIB_VERSION=$(VERSION)
+PROJECT = biocaml
+VERSION = 0.4-dev
+LIB_VERSION = $(VERSION)
 
-DEPENDENCIES=core threads zip unix xmlm pcre cfstream
-PACKAGES= $(DEPENDENCIES) sexplib.syntax
+DEPENDENCIES = core threads zip unix xmlm pcre cfstream
+PACKAGES = $(DEPENDENCIES) sexplib.syntax
 
-LIB_NAME=$(PROJECT)
-LIB_DESCRIPTION=The OCaml Bioinformatics Library <http://biocaml.org>
+LIB_NAME = $(PROJECT)
+LIB_DESCRIPTION = The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
   $(PROJECT)_about
-LIB_SOURCES= $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
-LIB_STUBS= $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
+LIB_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
+LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 
-APP_NAME=$(PROJECT)
-APP_MODULES[]=
+APP_NAME = $(PROJECT)
+APP_MODULES[] =
   $(removesuffix $(basename $(ls src/app/*.ml)))
-APP_PACKAGES= flow
+APP_PACKAGES = flow
 
-TESTS_NAME=biocaml_unit_test
-TESTS_MODULES[]=
+TESTS_NAME = biocaml_unit_test
+TESTS_MODULES[] =
   $(removesuffix $(basename $(ls src/tests/test_*.ml)))
-TESTS_PACKAGES= oUnit
+TESTS_PACKAGES = oUnit
 
-BENCHMARKS_NAME=biocaml_benchmarks
-BENCHMARKS_MODULES[]=
+BENCHMARKS_NAME = biocaml_benchmarks
+BENCHMARKS_MODULES[] =
   $(removesuffix $(basename $(ls src/benchmark/*.ml)))
-BENCHMARKS_PACKAGES=
+BENCHMARKS_PACKAGES =
 
 
 ################################################################################
 # Directory and File Names
 .INCLUDE: local_configuration.om
-    if $(not $(file-exists local_configuration.om))
-        echo "# Default configuration" > local_configuration.om
-        echo "COMPILE_BIOCAML_APP=true" >> local_configuration.om
-        echo "COMPILE_BIOCAML_TESTS=true" >> local_configuration.om
-        echo "PREFIX=$(PWD)/usr" >> local_configuration.om
+  if $(not $(file-exists local_configuration.om))
+    echo "# Default configuration" > local_configuration.om
+    echo "COMPILE_BIOCAML_APP=true" >> local_configuration.om
+    echo "COMPILE_BIOCAML_TESTS=true" >> local_configuration.om
+    echo "PREFIX=$(PWD)/usr" >> local_configuration.om
 
 configurable(user_var,local_var) =
-    if $(defined $(user_var))
-        echo "User defined $(user_var): $(getvar $(user_var))"
-        echo "$(local_var)=$(getvar $(user_var))" >> local_configuration.om
-    else
-        echo "Keeping previous $(user_var): $(getvar $(local_var))"
+  if $(defined $(user_var))
+    echo "User defined $(user_var): $(getvar $(user_var))"
+    echo "$(local_var)=$(getvar $(user_var))" >> local_configuration.om
+  else
+    echo "Keeping previous $(user_var): $(getvar $(local_var))"
 
 configure:
-    configurable(BUILD_APP, COMPILE_BIOCAML_APP)
-    configurable(BUILD_TESTS, COMPILE_BIOCAML_TESTS)
-    configurable(PREFIX, PREFIX)
+  configurable(BUILD_APP, COMPILE_BIOCAML_APP)
+  configurable(BUILD_TESTS, COMPILE_BIOCAML_TESTS)
+  configurable(PREFIX, PREFIX)
 
 BINDIR=$(PREFIX)/bin/
 DOCDIR=$(PREFIX)/share/doc
@@ -80,11 +80,11 @@ DefineCommandVars()
 # previous variables from command line
 
 print_conf:
-    echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
-    echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
-    echo "PREFIX: $(PREFIX)"
-    echo "BINDIR: $(BINDIR)"
-    echo "DOCDIR: $(DOCDIR)"
+  echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
+  echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
+  echo "PREFIX: $(PREFIX)"
+  echo "BINDIR: $(BINDIR)"
+  echo "DOCDIR: $(DOCDIR)"
 
 
 ################################################################################
@@ -112,112 +112,129 @@ OCAMLFINDFLAGS = -syntax camlp4o
 # we define this function:
 #
 public.OCamlLibraryWithCFiles(name, files, c_files) =
-    protected.name = $(file $(name))
-    protected.OFILES   = $(addsuffix $(EXT_OBJ), $(files))
-    protected.CMOFILES = $(addsuffix .cmo, $(files))
-    protected.CMXFILES = $(addsuffix .cmx, $(files))
-    protected.CLIB      = $(file $(name)$(EXT_LIB))
-    protected.BYTELIB   = $(file $(name).cma)
-    protected.NATIVELIB = $(file $(name).cmxa)
-    protected.STUB_C_FILES= $(addsuffix .o, $(c_files))
-    foreach(f => ..., $(c_files))
-        $(f).o: $(f).c
-            ocamlc -c $<
-    #
-    # Thanks to Gerd's recipes + OCaml.om in OMake's std-lib
-    # http://www.camlcity.org/knowledge/kb_001_omake_recipes.html
-    if $(BYTE_ENABLED)
-        $(BYTELIB): $(CMOFILES) $(STUB_C_FILES)
-            ocamlmklib -o $(name) $(OCamlLinkSort $(CMOFILES)) $(STUB_C_FILES) \
-                 $(OCAML_BYTE_LINK_FLAGS)
-    if $(NATIVE_ENABLED)
-        $(NATIVELIB) $(CLIB): $(CMXFILES) $(OFILES) $(STUB_C_FILES)
-            ocamlmklib -custom -o $(name)  $(OCamlLinkSort $(CMXFILES)) $(STUB_C_FILES) \
-                 $(OCAML_NATIVE_LINK_FLAGS)
-    return $(array $(if $(NATIVE_ENABLED), $(NATIVELIB)), \
-             $(if $(NATIVE_ENABLED), $(CLIB)), $(if $(BYTE_ENABLED), $(BYTELIB)))
+  protected.name         = $(file $(name))
+  protected.OFILES       = $(addsuffix $(EXT_OBJ), $(files))
+  protected.CMOFILES     = $(addsuffix .cmo, $(files))
+  protected.CMXFILES     = $(addsuffix .cmx, $(files))
+  protected.CLIB         = $(file $(name)$(EXT_LIB))
+  protected.BYTELIB      = $(file $(name).cma)
+  protected.NATIVELIB    = $(file $(name).cmxa)
+  protected.STUB_C_FILES = $(addsuffix .o, $(c_files))
+  foreach(f => ..., $(c_files))
+    $(f).o: $(f).c
+      ocamlc -c $<
+  #
+  # Thanks to Gerd's recipes + OCaml.om in OMake's std-lib
+  # http://www.camlcity.org/knowledge/kb_001_omake_recipes.html
+  if $(BYTE_ENABLED)
+    $(BYTELIB): $(CMOFILES) $(STUB_C_FILES)
+      ocamlmklib -o $(name) $(OCamlLinkSort $(CMOFILES)) \
+        $(STUB_C_FILES) $(OCAML_BYTE_LINK_FLAGS)
+
+  if $(NATIVE_ENABLED)
+    $(NATIVELIB) $(CLIB): $(CMXFILES) $(OFILES) $(STUB_C_FILES)
+      ocamlmklib -custom -o $(name) \
+        $(OCamlLinkSort $(CMXFILES)) $(STUB_C_FILES) $(OCAML_NATIVE_LINK_FLAGS)
+
+  return $(array \
+             $(if $(NATIVE_ENABLED), $(NATIVELIB)), \
+             $(if $(NATIVE_ENABLED), $(CLIB)), \
+             $(if $(BYTE_ENABLED), $(BYTELIB)) \
+          )
 
 
 ################################################################################
 # Definition of the sub-directories
 #
 ensure_path(path) =
-    mkdir -p $(path)
+  mkdir -p $(path)
 
 .SUBDIRS: .
-    ensure_path(_build/lib)
-    ensure_path(_build/app)
-    ensure_path(_build/tests)
-    ensure_path(_build/benchmark)
-    vmount(-l, src/, _build/)
+  ensure_path(_build/lib)
+  ensure_path(_build/app)
+  ensure_path(_build/tests)
+  ensure_path(_build/benchmark)
+  vmount(-l, src/, _build/)
 
-    ################################################################################
-    # Library
-    .SUBDIRS: _build/lib
-        OCAMLPACKS[] = $(PACKAGES)
-        biocaml_about.ml: :value: $(VERSION)
-            echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
-            echo 'let version = "$(VERSION)"' >> $@
-        META:
-            echo "description = \"$(LIB_DESCRIPTION)\"" > META
-            echo "version = \"$(LIB_VERSION)\"" >> META
-            echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
-            echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
-            echo "requires = \"$(DEPENDENCIES)\"" >> META
-        install_lib: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_lib
-            ocamlfind install $(LIB_NAME) META \
-                *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa *.a -dll *.so
-        uninstall_lib:
-            ocamlfind remove $(LIB_NAME)
-        .DEFAULT: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
+  ################################################################################
+  # Library
+  .SUBDIRS: _build/lib
 
+    OCAMLPACKS[] = $(PACKAGES)
 
-    ################################################################################
-    # Command Line App
-    .SUBDIRS: _build/app
-        OCAML_LIBS = ../lib/biocaml
-        OCAMLINCLUDES += $(dir ../lib/)
-        OCAMLPACKS[] = $(PACKAGES) $(APP_PACKAGES)
-        %.ml: ../lib/biocaml.cma
-        if $(COMPILE_BIOCAML_APP)
-            echo "conf: Building biocaml application"
-            .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+    biocaml_about.ml: :value: $(VERSION)
+      echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
+      echo 'let version = "$(VERSION)"' >> $@
 
-    install_app: _build/app/$(APP_NAME)
-        echo "Installing $< in $(BINDIR)"
-        mkdir -p $(BINDIR)
-        install $< $(BINDIR)
+    META:
+      echo "description = \"$(LIB_DESCRIPTION)\"" > META
+      echo "version = \"$(LIB_VERSION)\"" >> META
+      echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
+      echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
+      echo "requires = \"$(DEPENDENCIES)\"" >> META
 
-    uninstall_app:
-        echo "Removing $(APP_NAME) from $(BINDIR)"
-        rm -f $(BINDIR)/$(APP_NAME)
+    install_lib: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_lib
+      ocamlfind install $(LIB_NAME) META \
+        *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa *.a -dll *.so
+
+    uninstall_lib:
+      ocamlfind remove $(LIB_NAME)
+
+    .DEFAULT: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
 
 
-    ################################################################################
-    # Tests
-    .SUBDIRS: _build/tests
-        OCAML_LIBS = ../lib/biocaml
-        OCAMLINCLUDES += $(dir ../lib/)
-        OCAMLPACKS[] = $(PACKAGES) $(TESTS_PACKAGES)
-        %.ml: ../lib/biocaml.cma
-        if $(COMPILE_BIOCAML_TESTS)
-            echo "conf: Building biocaml tests"
-            .DEFAULT: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
+  ################################################################################
+  # Command Line App
+  .SUBDIRS: _build/app
+    OCAML_LIBS = ../lib/biocaml
+    OCAMLINCLUDES += $(dir ../lib/)
+    OCAMLPACKS[] = $(PACKAGES) $(APP_PACKAGES)
 
-    # Run tests
-    tests: _build/tests/$(TESTS_NAME)
-        $<
+    %.ml: ../lib/biocaml.cma
 
-    ################################################################################
-    # Benchmarks
-    .SUBDIRS: _build/benchmark
-        OCAML_LIBS = ../lib/biocaml
-        OCAMLINCLUDES += $(dir ../lib/)
-        OCAMLPACKS[] = $(PACKAGES) $(BENCHMARKS_PACKAGES)
-        %.ml: ../lib/biocaml.cma
-        if $(COMPILE_BIOCAML_TESTS)
-            echo "conf: Building biocaml benchmarks"
-            .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
+    if $(COMPILE_BIOCAML_APP)
+      echo "conf: Building biocaml application"
+      .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+
+  install_app: _build/app/$(APP_NAME)
+    echo "Installing $< in $(BINDIR)"
+    mkdir -p $(BINDIR)
+    install $< $(BINDIR)
+
+  uninstall_app:
+    echo "Removing $(APP_NAME) from $(BINDIR)"
+    rm -f $(BINDIR)/$(APP_NAME)
+
+
+  ################################################################################
+  # Tests
+  .SUBDIRS: _build/tests
+    OCAML_LIBS = ../lib/biocaml
+    OCAMLINCLUDES += $(dir ../lib/)
+    OCAMLPACKS[] = $(PACKAGES) $(TESTS_PACKAGES)
+
+    %.ml: ../lib/biocaml.cma
+
+    if $(COMPILE_BIOCAML_TESTS)
+      echo "conf: Building biocaml tests"
+      .DEFAULT: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
+
+  # Run tests
+  tests: _build/tests/$(TESTS_NAME)
+    $<
+
+  ################################################################################
+  # Benchmarks
+  .SUBDIRS: _build/benchmark
+    OCAML_LIBS = ../lib/biocaml
+    OCAMLINCLUDES += $(dir ../lib/)
+    OCAMLPACKS[] = $(PACKAGES) $(BENCHMARKS_PACKAGES)
+
+    %.ml: ../lib/biocaml.cma
+
+    if $(COMPILE_BIOCAML_TESTS)
+      echo "conf: Building biocaml benchmarks"
+      .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
 
 
 ################################################################################
@@ -225,34 +242,34 @@ ensure_path(path) =
 DOCLIB_DIR=_build/doclib/
 
 $(DOCLIB_DIR)/biocaml.css: src/doc/biocaml.css
-    mkdir -p _build/doclib
-    cp src/doc/biocaml.css $@
+  mkdir -p _build/doclib
+  cp src/doc/biocaml.css $@
 
 $(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo \
         _build/lib/$(LIB_NAME).cma $(if $(NATIVE_ENABLED), _build/biohtml.cmxs)
-    cp src/doc/figures/* $(DOCLIB_DIR)/
-    ocamlfind ocamldoc \
-        -g _build/biohtml.cmo \
-        -css-style biocaml.css \
-        -syntax camlp4o -package xmlm,zip,pcre,core,cfstream,sexplib.syntax \
-        -charset UTF-8 -d $(DOCLIB_DIR) -t "The Biocaml Library" \
-        -keep-code -colorize-code _build/lib/*.mli _build/lib/*.ml \
-        -sort -I _build/lib/. \
-        -intro src/doc/intro.txt
+  cp src/doc/figures/* $(DOCLIB_DIR)/
+  ocamlfind ocamldoc \
+    -g _build/biohtml.cmo \
+    -css-style biocaml.css \
+    -syntax camlp4o -package xmlm,zip,pcre,core,cfstream,sexplib.syntax \
+    -charset UTF-8 -d $(DOCLIB_DIR) -t "The Biocaml Library" \
+    -keep-code -colorize-code _build/lib/*.mli _build/lib/*.ml \
+    -sort -I _build/lib/. \
+    -intro src/doc/intro.txt
 
 _build/biohtml.cmo: src/odoc/biohtml.ml
-    ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
+  ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
 
 _build/biohtml.cmxs: src/odoc/biohtml.ml
-    ocamlfind ocamlopt -shared src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
+  ocamlfind ocamlopt -shared src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
 
 doc: $(DOCLIB_DIR)/index.html
 
 install_doc: doc
-    echo "Installing documentation in $(DOCDIR)/biocaml"
-    rm -fr $(DOCDIR)/biocaml
-    mkdir -p $(DOCDIR)
-    cp -r _build/doclib $(DOCDIR)/biocaml
+  echo "Installing documentation in $(DOCDIR)/biocaml"
+  rm -fr $(DOCDIR)/biocaml
+  mkdir -p $(DOCDIR)
+  cp -r _build/doclib $(DOCDIR)/biocaml
 
 
 ################################################################################
@@ -261,4 +278,4 @@ TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind que
 TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
 TAGS_SOURCES=$(shell find src -name "*.ml")
 TAGS:
-    otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS $(TAGS_SOURCES)
+  otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS $(TAGS_SOURCES)
