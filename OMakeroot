@@ -16,7 +16,7 @@ clean:
   rm -rf _build
 
 distclean: clean
-  rm -rf OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock local_configuration.om
+  rm -rf OMakefile.omc OMakeroot.omc .omakedb .omakedb.lock local_configuration.omc
 
 ################################################################################
 # General Project Information
