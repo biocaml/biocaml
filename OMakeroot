@@ -5,7 +5,7 @@ DefineCommandVars()
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
-        configure print_conf
+        print_config
 
 ################################################################################
 # Primary Commands
@@ -53,33 +53,41 @@ BENCHMARKS_PACKAGES =
 
 ################################################################################
 # Directory and File Names
-.INCLUDE: configure.om
-  if $(not $(file-exists configure.om))
-    echo "# Default configuration" > configure.om
-    echo "COMPILE_BIOCAML_APP=true" >> configure.om
-    echo "COMPILE_BIOCAML_TESTS=true" >> configure.om
-    echo "PREFIX=$(PWD)/usr" >> configure.om
+CONFIG_FILE = configure.om
+DEFAULT_PREFIX = _build/usr
 
-configurable(user_var,local_var) =
-  if $(defined $(user_var))
-    echo "User defined $(user_var): $(getvar $(user_var))"
-    echo "$(local_var)=$(getvar $(user_var))" >> configure.om
+$(CONFIG_FILE):
+  if $(not $(file-exists $(CONFIG_FILE)))
+    echo "Generating default $@. Change as desired."
+    echo "COMPILE_BIOCAML_APP = true" > $(CONFIG_FILE)
+    echo "COMPILE_BIOCAML_TESTS = true" >> $(CONFIG_FILE)
+    echo "PREFIX = $(DEFAULT_PREFIX)" >> $(CONFIG_FILE)
   else
-    echo "Keeping previous $(user_var): $(getvar $(local_var))"
-
-configure:
-  configurable(BUILD_APP, COMPILE_BIOCAML_APP)
-  configurable(BUILD_TESTS, COMPILE_BIOCAML_TESTS)
-  configurable(PREFIX, PREFIX)
-
-BINDIR=$(PREFIX)/bin/
-DOCDIR=$(PREFIX)/share/doc
+    echo "$@ exists. Will not change."
 
 DefineCommandVars()
-# We call DefineCommandVars so that the user can keep overriding the
-# previous variables from command line
 
-print_conf:
+if $(not $(defined PREFIX))
+  PREFIX = $(DEFAULT_PREFIX)
+  export
+
+if $(not $(defined BINDIR))
+  BINDIR = $(PREFIX)/bin
+  export
+
+if $(not $(defined DOCDIR))
+  DOCDIR = $(PREFIX)/doc
+  export
+
+if $(not $(defined COMPILE_BIOCAML_APP))
+  COMPILE_BIOCAML_APP = true
+  export
+
+if $(not $(defined COMPILE_BIOCAML_TESTS))
+  COMPILE_BIOCAML_TESTS = true
+  export
+
+print_config:
   echo "COMPILE_BIOCAML_APP: $(COMPILE_BIOCAML_APP)"
   echo "COMPILE_BIOCAML_TESTS: $(COMPILE_BIOCAML_TESTS)"
   echo "PREFIX: $(PREFIX)"
