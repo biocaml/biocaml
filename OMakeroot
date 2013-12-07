@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: tests doc \
+.PHONY: lib app tests run_tests benchmarks doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
@@ -180,7 +180,9 @@ ensure_path(path) =
     uninstall_lib:
       ocamlfind remove $(LIB_NAME)
 
-    .DEFAULT: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
+    lib: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
+
+    .DEFAULT: lib META
 
 
   ################################################################################
@@ -192,9 +194,11 @@ ensure_path(path) =
 
     %.ml: ../lib/biocaml.cma
 
+    app: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+
     if $(COMPILE_BIOCAML_APP)
       echo "conf: Building biocaml application"
-      .DEFAULT: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+      .DEFAULT: app
 
   install_app: _build/app/$(APP_NAME)
     echo "Installing $< in $(BINDIR)"
@@ -215,12 +219,14 @@ ensure_path(path) =
 
     %.ml: ../lib/biocaml.cma
 
+    tests: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
+
     if $(COMPILE_BIOCAML_TESTS)
       echo "conf: Building biocaml tests"
-      .DEFAULT: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
+      .DEFAULT: tests
 
   # Run tests
-  tests: _build/tests/$(TESTS_NAME)
+  run_tests: _build/tests/$(TESTS_NAME)
     $<
 
   ################################################################################
@@ -232,9 +238,11 @@ ensure_path(path) =
 
     %.ml: ../lib/biocaml.cma
 
+    benchmarks: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
+
     if $(COMPILE_BIOCAML_TESTS)
       echo "conf: Building biocaml benchmarks"
-      .DEFAULT: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
+      .DEFAULT: benchmarks
 
 
 ################################################################################

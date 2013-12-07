@@ -30,7 +30,7 @@ eval `opam config env`
 echo "==== Build ===="
 omake
 echo "==== Test ===="
-omake test
+omake run_tests
 echo "==== Bench ===="
 _build/benchmark/biocaml_benchmarks
 echo "==== Doc ===="
