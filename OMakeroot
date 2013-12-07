@@ -47,7 +47,7 @@ TESTS_PACKAGES = oUnit
 
 BENCHMARKS_NAME = biocaml_benchmarks
 BENCHMARKS_MODULES[] =
-  $(removesuffix $(basename $(ls src/benchmark/*.ml)))
+  $(removesuffix $(basename $(ls src/benchmarks/*.ml)))
 BENCHMARKS_PACKAGES =
 
 
@@ -161,7 +161,7 @@ ensure_path(path) =
   ensure_path(_build/lib)
   ensure_path(_build/app)
   ensure_path(_build/tests)
-  ensure_path(_build/benchmark)
+  ensure_path(_build/benchmarks)
   vmount(-l, src/, _build/)
 
   ################################################################################
@@ -239,7 +239,7 @@ ensure_path(path) =
 
   ################################################################################
   # Benchmarks
-  .SUBDIRS: _build/benchmark
+  .SUBDIRS: _build/benchmarks
     OCAML_LIBS = ../lib/biocaml
     OCAMLINCLUDES += $(dir ../lib/)
     OCAMLPACKS[] = $(PACKAGES) $(BENCHMARKS_PACKAGES)
