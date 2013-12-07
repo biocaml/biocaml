@@ -40,7 +40,7 @@ APP_MODULES[] =
   $(removesuffix $(basename $(ls src/app/*.ml)))
 APP_PACKAGES = flow
 
-TESTS_NAME = biocaml_unit_test
+TESTS_NAME = biocaml_tests
 TESTS_MODULES[] =
   $(removesuffix $(basename $(ls src/tests/test_*.ml)))
 TESTS_PACKAGES = oUnit
