@@ -5,8 +5,6 @@ _build/
 /OMakeroot.omc
 /configure.om
 /configure.omc
-/src/odoc/*.o
-/src/odoc/*.cm*
 *~
 tmp/
 .bzrignore

@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: lib app tests run_tests benchmarks doc \
+.PHONY: lib app tests run_tests benchmarks odoc doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
@@ -49,6 +49,11 @@ BENCHMARKS_NAME = biocaml_benchmarks
 BENCHMARKS_MODULES[] =
   $(removesuffix $(basename $(ls src/benchmarks/*.ml)))
 BENCHMARKS_PACKAGES =
+
+ODOC_NAME = $(PROJECT)_odoc
+ODOC_MODULES[] =
+  $(removesuffix $(basename $(ls src/odoc/*.ml)))
+ODOC_PACKAGES =
 
 
 ################################################################################
@@ -162,6 +167,8 @@ ensure_path(path) =
   ensure_path(_build/app)
   ensure_path(_build/tests)
   ensure_path(_build/benchmarks)
+  ensure_path(_build/odoc)
+  ensure_path(_build/doc)
   vmount(-l, src/, _build/)
 
   ################################################################################
@@ -253,39 +260,58 @@ ensure_path(path) =
       .DEFAULT: benchmarks
 
 
-################################################################################
-# Documentation
-DOCLIB_DIR=_build/doclib/
+  ################################################################################
+  # OCamldoc Custom Generator
+  .SUBDIRS: _build/odoc
+    OCAMLINCLUDES += $(dir ../lib/) +ocamldoc +compiler-libs
+    OCAMLPACKS[] = $(PACKAGES) $(ODOC_PACKAGES)
 
-$(DOCLIB_DIR)/biocaml.css: src/doc/biocaml.css
-  mkdir -p _build/doclib
-  cp src/doc/biocaml.css $@
+    %.ml: ../lib/biocaml.cma
 
-$(DOCLIB_DIR)/index.html: $(DOCLIB_DIR)/biocaml.css _build/biohtml.cmo \
-        _build/lib/$(LIB_NAME).cma $(if $(NATIVE_ENABLED), _build/biohtml.cmxs)
-  cp src/doc/figures/* $(DOCLIB_DIR)/
-  ocamlfind ocamldoc \
-    -g _build/biohtml.cmo \
-    -css-style biocaml.css \
-    -syntax camlp4o -package xmlm,zip,pcre,core,cfstream,sexplib.syntax \
-    -charset UTF-8 -d $(DOCLIB_DIR) -t "The Biocaml Library" \
-    -keep-code -colorize-code _build/lib/*.mli _build/lib/*.ml \
-    -sort -I _build/lib/. \
-    -intro src/doc/intro.txt
+    biocaml_odoc.cmxs: biohtml.ml
+      ocamlfind ocamlopt -shared $^ -o $@ -I +ocamldoc -I +compiler-libs
 
-_build/biohtml.cmo: src/odoc/biohtml.ml
-  ocamlfind ocamlc -c src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
+    odoc: biocaml_odoc.cmxs $(OCamlLibrary biocaml_odoc, biohtml)
 
-_build/biohtml.cmxs: src/odoc/biohtml.ml
-  ocamlfind ocamlopt -shared src/odoc/biohtml.ml -o $@ -I +ocamldoc -I +compiler-libs
+    .DEFAULT: odoc
 
-doc: $(DOCLIB_DIR)/index.html
 
-install_doc: doc
-  echo "Installing documentation in $(DOCDIR)/biocaml"
-  rm -fr $(DOCDIR)/biocaml
-  mkdir -p $(DOCDIR)
-  cp -r _build/doclib $(DOCDIR)/biocaml
+  ################################################################################
+  # Documentation
+  .SUBDIRS: _build/doc
+
+    api/biocaml.css: biocaml.css
+      mkdir -p api
+      cp $< $@
+
+    api/index.html: api/biocaml.css ../odoc/biocaml_odoc.cma ../lib/$(LIB_NAME).cma
+      rm -rf api
+      mkdir api
+      cp biocaml.css api/
+      cp ../../src/doc/figures/* api/
+      ocamlfind ocamldoc \
+        -g ../odoc/biocaml_odoc.cma \
+        -css-style biocaml.css \
+        -syntax camlp4o \
+        -package xmlm,zip,pcre,core,cfstream,sexplib.syntax \
+        -charset UTF-8 \
+        -d api \
+        -t "The Biocaml Library" \
+        -keep-code \
+        -colorize-code \
+        -sort \
+        -intro ../../src/doc/intro.txt \
+        -I ../lib \
+        -thread \
+        ../lib/*.mli ../lib/*.ml
+
+    doc: odoc api/index.html
+
+  install_doc: doc
+    echo "Installing documentation in $(DOCDIR)"
+    rm -rf $(DOCDIR)
+    mkdir -p $(DOCDIR)
+    cp -r _build/doc/api $(DOCDIR)
 
 
 ################################################################################
