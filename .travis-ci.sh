@@ -36,7 +36,7 @@ omake
 echo "==== Test ===="
 omake run_tests
 echo "==== Bench ===="
-_build/benchmark/biocaml_benchmarks
+_build/benchmarks/biocaml_benchmarks
 echo "==== Doc ===="
 omake doc
 
