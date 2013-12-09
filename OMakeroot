@@ -157,18 +157,14 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 
 
 ################################################################################
-# Definition of the sub-directories
-#
-ensure_path(path) =
-  mkdir -p $(path)
-
+# Sub-directories
 .SUBDIRS: .
-  ensure_path(_build/lib)
-  ensure_path(_build/app)
-  ensure_path(_build/tests)
-  ensure_path(_build/benchmarks)
-  ensure_path(_build/odoc)
-  ensure_path(_build/doc)
+  mkdir -p _build/lib
+  mkdir -p _build/app
+  mkdir -p _build/tests
+  mkdir -p _build/benchmarks
+  mkdir -p _build/odoc
+  mkdir -p _build/doc
   vmount(-l, src/, _build/)
 
   ################################################################################
