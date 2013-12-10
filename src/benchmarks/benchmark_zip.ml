@@ -67,7 +67,7 @@ let gzip_benchotest ~feeds ~string_sizes ~zip_levels ~zlib_bufsizes () =
   printf "\n%!"
 
 
-let () =
+let command =
   let module Int_list = struct
     let of_string s =
       String.split s ~on:',' |> List.map ~f:Int.of_string
@@ -78,33 +78,33 @@ let () =
   let default_string_sizes = [100; 1000] in
   let default_zip_levels = [0; 2; 5; 9] in
   let default_zlib_bufsizes = [100; 1024] in
-  run (basic ~summary:"Benchmark the 'zip' transform"
+  basic ~summary:"Benchmark the 'zip' transform"
     Spec.(
       step (fun k feeds -> k ~feeds)
       +> flag "feeds" ~aliases:["f"]
           (optional_with_default default_feeds int)
           ~doc:(sprintf "<n> Call Transform.feed <n> times (default %d)."
-              default_feeds)
+                  default_feeds)
       ++ step (fun k string_sizes -> k ~string_sizes)
       +> flag "string-sizes" ~aliases:["s"]
           (optional_with_default default_string_sizes Int_list.arg_type)
           ~doc:(sprintf
-              "<n,m,...> Call Transform.feed with strings of sizes <n>, <m>, …\n(default: %s)"
-                (String.concat ~sep:"," (List.map default_string_sizes Int.to_string)))
+                  "<n,m,...> Call Transform.feed with strings of sizes <n>, <m>, …\n(default: %s)"
+                  (String.concat ~sep:"," (List.map default_string_sizes Int.to_string)))
       ++ step (fun k zip_levels -> k ~zip_levels)
       +> flag "zip-levels" ~aliases:["z"]
           (optional_with_default default_zip_levels Int_list.arg_type)
           ~doc:(sprintf
-              "<n,m,...> Use the <n,m,...> as Zip compression levels.\n\
-               The level 0 means not using compression at all.\n
+                  "<n,m,...> Use the <n,m,...> as Zip compression levels.\n\
+                   The level 0 means not using compression at all.\n
                (default: %s)"
-              (String.concat ~sep:"," (List.map default_zip_levels Int.to_string)))
+                  (String.concat ~sep:"," (List.map default_zip_levels Int.to_string)))
       ++ step (fun k zlib_bufsizes -> k ~zlib_bufsizes)
       +> flag "zlib-bufsizes" ~aliases:["b"]
           (optional_with_default default_zlib_bufsizes Int_list.arg_type)
           ~doc:(sprintf
-              "<n,m,...> Use the <n,m,...> as buffer-sizes for the ZLib.\n\
-               (default: %s)"
-              (String.concat ~sep:"," (List.map default_zlib_bufsizes Int.to_string)))
+                  "<n,m,...> Use the <n,m,...> as buffer-sizes for the ZLib.\n\
+                   (default: %s)"
+                  (String.concat ~sep:"," (List.map default_zlib_bufsizes Int.to_string)))
     )
-    gzip_benchotest)
+    gzip_benchotest
