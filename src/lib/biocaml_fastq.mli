@@ -55,6 +55,39 @@ module Error : sig
 
 end
 
+exception Parse_error of Biocaml_pos.t * string
+(** Indicates a parse error at the given [pos]. The string is a
+    message explaining the error. *)
+
+module Parse : sig
+  (** Parsing functions. Mostly needed only internally. Each function
+  takes:
+
+      - [line] - The line to parse.
+
+      - [pos] - Optional position of the line used in error
+      reporting. The column should always be 1 because by definition a
+      line starts at the beginning.
+
+  All raise [Parse_error].
+  *)
+
+  val name : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+  val sequence : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+  val comment : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+
+  (** [qualities sequence line] parses given qualities [line] in the
+      context of a previously parsed [sequence]. The [sequence] is needed
+      to assure the correct number of quality scores are provided. If not
+      provided, this check is omitted. *)
+  val qualities :
+    ?pos:Biocaml_pos.t ->
+    ?sequence:string ->
+    Biocaml_line.t ->
+    string
+
+end
+
 (** {2 [In_channel] Functions } *)
 
 exception Error of Error.t
