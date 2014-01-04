@@ -1,4 +1,4 @@
-OPAM_DEPENDS="ocamlfind core.$CORE_VERSION camlzip xmlm pcre-ocaml cfstream omake flow"
+OPAM_DEPENDS="ocamlfind core.$CORE_VERSION camlzip xmlm pcre-ocaml cfstream omake lwt flow"
 
 case "$OCAML_VERSION,$OPAM_VERSION" in
 3.12.1,1.0.0) ppa=avsm/ocaml312+opam10 ;;

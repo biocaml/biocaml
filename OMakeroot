@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: lib app tests run_tests benchmarks odoc doc \
+.PHONY: lib lib_lwt app tests run_tests benchmarks odoc doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
@@ -35,6 +35,12 @@ LIB_MODULES[] =
 LIB_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 
+LIB_LWT_NAME = $(PROJECT)_lwt
+LIB_LWT_MODULES[] =
+  $(removesuffix $(basename $(ls src/lib_lwt/*.ml)))
+LIB_LWT_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_LWT_MODULES))
+LIB_LWT_PACKAGES = lwt lwt.syntax
+
 APP_NAME = $(PROJECT)
 APP_MODULES[] =
   $(removesuffix $(basename $(ls src/app/*.ml)))
@@ -65,6 +71,7 @@ $(CONFIG_FILE):
   if $(not $(file-exists $(CONFIG_FILE)))
     echo "Generating default $@. Change as desired."
     echo "COMPILE_APP = true" > $(CONFIG_FILE)
+    echo "COMPILE_LIB_LWT = true" >> $(CONFIG_FILE)
     echo "COMPILE_TESTS = true" >> $(CONFIG_FILE)
     echo "PREFIX = $(DEFAULT_PREFIX)" >> $(CONFIG_FILE)
   else
@@ -84,6 +91,10 @@ if $(not $(defined DOCDIR))
   DOCDIR = $(PREFIX)/doc
   export
 
+if $(not $(defined COMPILE_LIB_LWT))
+  COMPILE_LIB_LWT = true
+  export
+
 if $(not $(defined COMPILE_APP))
   COMPILE_APP = true
   export
@@ -93,6 +104,7 @@ if $(not $(defined COMPILE_TESTS))
   export
 
 print_config:
+  echo "COMPILE_LIB_LWT: $(COMPILE_LIB_LWT)"
   echo "COMPILE_APP: $(COMPILE_APP)"
   echo "COMPILE_TESTS: $(COMPILE_TESTS)"
   echo "PREFIX: $(PREFIX)"
@@ -160,6 +172,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 # Sub-directories
 .SUBDIRS: .
   mkdir -p _build/lib
+  mkdir -p _build/lib_lwt
   mkdir -p _build/app
   mkdir -p _build/tests
   mkdir -p _build/benchmarks
@@ -194,6 +207,19 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     lib: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
 
     .DEFAULT: lib META
+
+
+  ################################################################################
+  # Lwt Library
+  .SUBDIRS: _build/lib_lwt
+    OCAMLINCLUDES += $(dir ../lib/)
+    OCAMLPACKS[] = $(PACKAGES) $(LIB_LWT_PACKAGES)
+
+    lib_lwt: $(OCamlLibrary $(LIB_LWT_NAME), $(LIB_LWT_MODULES))
+
+    if $(COMPILE_LIB_LWT)
+      echo "conf: Building biocaml lwt library"
+      .DEFAULT: lib_lwt
 
 
   ################################################################################
