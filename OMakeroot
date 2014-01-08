@@ -22,7 +22,6 @@ distclean: clean
 # General Project Information
 PROJECT = biocaml
 VERSION = 0.4-dev
-LIB_VERSION = $(VERSION)
 
 DEPENDENCIES = core threads zip unix xmlm pcre cfstream
 PACKAGES = $(DEPENDENCIES) sexplib.syntax
@@ -192,7 +191,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 
     META:
       echo "description = \"$(LIB_DESCRIPTION)\"" > META
-      echo "version = \"$(LIB_VERSION)\"" >> META
+      echo "version = \"$(VERSION)\"" >> META
       echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
       echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
       echo "requires = \"$(DEPENDENCIES)\"" >> META
