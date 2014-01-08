@@ -177,7 +177,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   mkdir -p _build/doc
   vmount(-l, src/, _build/)
 
-  ################################################################################
+  ##############################################################################
   # Library
   .SUBDIRS: _build/lib
     OCAMLPACKS[] = $(LIB_PACKAGES)
@@ -205,7 +205,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     .DEFAULT: lib META
 
 
-  ################################################################################
+  ##############################################################################
   # Lwt Library
   .SUBDIRS: _build/lib_lwt
     OCAMLINCLUDES += $(dir ../lib/)
@@ -218,7 +218,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       .DEFAULT: lib_lwt
 
 
-  ################################################################################
+  ##############################################################################
   # Command Line App
   .SUBDIRS: _build/app
     OCAML_LIBS = ../lib/biocaml
@@ -243,7 +243,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     rm -f $(BINDIR)/$(APP_NAME)
 
 
-  ################################################################################
+  ##############################################################################
   # Tests
   .SUBDIRS: _build/tests
     OCAML_LIBS = ../lib/biocaml
@@ -262,7 +262,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   run_tests: _build/tests/$(TESTS_NAME)
     $<
 
-  ################################################################################
+  ##############################################################################
   # Benchmarks
   .SUBDIRS: _build/benchmarks
     OCAML_LIBS = ../lib/biocaml
@@ -278,7 +278,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       .DEFAULT: benchmarks
 
 
-  ################################################################################
+  ##############################################################################
   # OCamldoc Custom Generator
   .SUBDIRS: _build/odoc
     OCAMLINCLUDES += $(dir ../lib/) +ocamldoc +compiler-libs
@@ -294,7 +294,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     .DEFAULT: odoc
 
 
-  ################################################################################
+  ##############################################################################
   # Documentation
   .SUBDIRS: _build/doc
 
@@ -302,7 +302,9 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       mkdir -p api
       cp $< $@
 
-    api/index.html: api/biocaml.css ../odoc/$(ODOC_NAME).cma ../lib/$(LIB_NAME).cma
+    api/index.html: api/biocaml.css \
+                    ../odoc/$(ODOC_NAME).cma \
+                    ../lib/$(LIB_NAME).cma
       rm -rf api
       mkdir api
       cp biocaml.css api/
@@ -334,7 +336,8 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 
 ################################################################################
 # OTAGS Support
-TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) -I $(shell ocamlfind query type_conv)
+TAGS_INCLUDE=-I $(shell ocamlfind query sexplib.syntax) \
+             -I $(shell ocamlfind query type_conv)
 TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
 TAGS_SOURCES=$(shell find src -name "*.ml")
 TAGS:
