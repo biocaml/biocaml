@@ -116,7 +116,7 @@ print_config:
 # Build Parameters
 USE_OCAMLFIND = true
 if $(not $(OCAMLFIND_EXISTS))
-  eprintln(This project requires ocamlfind, but is was not found.)
+  eprintln(This project requires ocamlfind, but it was not found.)
   eprintln(You need to install ocamlfind and run "omake --configure".)
   exit 1
 
