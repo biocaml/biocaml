@@ -147,7 +147,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   protected.STUB_C_FILES = $(addsuffix .o, $(c_files))
   foreach(f => ..., $(c_files))
     $(f).o: $(f).c
-      ocamlc -c $<
+      $(OCAMLC) -c $<
   #
   # Thanks to Gerd's recipes + OCaml.om in OMake's std-lib
   # http://www.camlcity.org/knowledge/kb_001_omake_recipes.html
@@ -204,7 +204,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     uninstall_lib:
       ocamlfind remove $(LIB_NAME)
 
-    lib: $(OCamlLibraryWithCFiles biocaml, $(LIB_MODULES), $(LIB_STUBS))
+    lib: $(OCamlLibraryWithCFiles $(LIB_NAME), $(LIB_MODULES), $(LIB_STUBS))
 
     .DEFAULT: lib META
 
@@ -293,7 +293,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     biocaml_odoc.cmxs: biohtml.ml
       ocamlfind ocamlopt -shared $^ -o $@ -I +ocamldoc -I +compiler-libs
 
-    odoc: biocaml_odoc.cmxs $(OCamlLibrary biocaml_odoc, biohtml)
+    odoc: biocaml_odoc.cmxs $(OCamlLibrary $(ODOC_NAME), biohtml)
 
     .DEFAULT: odoc
 
@@ -306,16 +306,16 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       mkdir -p api
       cp $< $@
 
-    api/index.html: api/biocaml.css ../odoc/biocaml_odoc.cma ../lib/$(LIB_NAME).cma
+    api/index.html: api/biocaml.css ../odoc/$(ODOC_NAME).cma ../lib/$(LIB_NAME).cma
       rm -rf api
       mkdir api
       cp biocaml.css api/
       cp ../../src/doc/figures/* api/
       ocamlfind ocamldoc \
-        -g ../odoc/biocaml_odoc.cma \
+        -g ../odoc/$(ODOC_NAME).cma \
         -css-style biocaml.css \
         -syntax camlp4o \
-        -package xmlm,zip,pcre,core,cfstream,sexplib.syntax \
+        -package $(concat \,, $(PACKAGES)) \
         -charset UTF-8 \
         -d api \
         -t "The Biocaml Library" \
