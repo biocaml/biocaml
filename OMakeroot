@@ -36,27 +36,27 @@ LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_lwt/*.ml)))
 LIB_LWT_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_LWT_MODULES))
-LIB_LWT_PACKAGES = lwt lwt.syntax
+LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax
 
 APP_NAME = $(PROJECT)
 APP_MODULES[] =
   $(removesuffix $(basename $(ls src/app/*.ml)))
-APP_PACKAGES = flow
+APP_PACKAGES = $(LIB_PACKAGES) flow
 
 TESTS_NAME = biocaml_tests
 TESTS_MODULES[] =
   $(removesuffix $(basename $(ls src/tests/test_*.ml)))
-TESTS_PACKAGES = oUnit
+TESTS_PACKAGES = $(LIB_PACKAGES) oUnit
 
 BENCHMARKS_NAME = biocaml_benchmarks
 BENCHMARKS_MODULES[] =
   $(removesuffix $(basename $(ls src/benchmarks/*.ml)))
-BENCHMARKS_PACKAGES =
+BENCHMARKS_PACKAGES = $(LIB_PACKAGES)
 
 ODOC_NAME = $(PROJECT)_odoc
 ODOC_MODULES[] =
   $(removesuffix $(basename $(ls src/odoc/*.ml)))
-ODOC_PACKAGES =
+ODOC_PACKAGES = $(LIB_PACKAGES)
 
 
 ################################################################################
@@ -180,7 +180,6 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   ################################################################################
   # Library
   .SUBDIRS: _build/lib
-
     OCAMLPACKS[] = $(LIB_PACKAGES)
 
     biocaml_about.ml: :value: $(VERSION)
@@ -210,7 +209,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   # Lwt Library
   .SUBDIRS: _build/lib_lwt
     OCAMLINCLUDES += $(dir ../lib/)
-    OCAMLPACKS[] = $(LIB_PACKAGES) $(LIB_LWT_PACKAGES)
+    OCAMLPACKS[] = $(LIB_LWT_PACKAGES)
 
     lib_lwt: $(OCamlLibrary $(LIB_LWT_NAME), $(LIB_LWT_MODULES))
 
@@ -224,7 +223,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   .SUBDIRS: _build/app
     OCAML_LIBS = ../lib/biocaml
     OCAMLINCLUDES += $(dir ../lib/)
-    OCAMLPACKS[] = $(LIB_PACKAGES) $(APP_PACKAGES)
+    OCAMLPACKS[] = $(APP_PACKAGES)
 
     %.ml: ../lib/biocaml.cma
 
@@ -249,7 +248,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   .SUBDIRS: _build/tests
     OCAML_LIBS = ../lib/biocaml
     OCAMLINCLUDES += $(dir ../lib/)
-    OCAMLPACKS[] = $(LIB_PACKAGES) $(TESTS_PACKAGES)
+    OCAMLPACKS[] = $(TESTS_PACKAGES)
 
     %.ml: ../lib/biocaml.cma
 
@@ -268,7 +267,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   .SUBDIRS: _build/benchmarks
     OCAML_LIBS = ../lib/biocaml
     OCAMLINCLUDES += $(dir ../lib/)
-    OCAMLPACKS[] = $(LIB_PACKAGES) $(BENCHMARKS_PACKAGES)
+    OCAMLPACKS[] = $(BENCHMARKS_PACKAGES)
 
     %.ml: ../lib/biocaml.cma
 
@@ -283,7 +282,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   # OCamldoc Custom Generator
   .SUBDIRS: _build/odoc
     OCAMLINCLUDES += $(dir ../lib/) +ocamldoc +compiler-libs
-    OCAMLPACKS[] = $(LIB_PACKAGES) $(ODOC_PACKAGES)
+    OCAMLPACKS[] = $(ODOC_PACKAGES)
 
     %.ml: ../lib/biocaml.cma
 
@@ -312,7 +311,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         -g ../odoc/$(ODOC_NAME).cma \
         -css-style biocaml.css \
         -syntax camlp4o \
-        -package $(concat \,, $(LIB_PACKAGES)) \
+        -package $(concat \,, $(ODOC_PACKAGES)) \
         -charset UTF-8 \
         -d api \
         -t "The Biocaml Library" \
