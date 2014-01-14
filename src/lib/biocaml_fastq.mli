@@ -1,5 +1,5 @@
 (** FASTQ data. *)
-
+open Biocaml_internal_pervasives
 
 (** {2 The Item Type } *)
 
@@ -66,7 +66,7 @@ exception Error of Error.t
 (** The only exception raised by this module. *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (item, [> Error.parsing]) Core.Result.t Stream.t
+  (item, [> Error.parsing]) Result.t Stream.t
 (** Parse an input-channel into a stream of [item] results. *)
 
 val in_channel_to_item_stream_exn:
@@ -93,7 +93,7 @@ module Transform: sig
 
   val string_to_item:
     ?filename:string -> unit ->
-    (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
+    (string, (item, [> Error.parsing]) Result.t) Biocaml_transform.t
   (** Create a [Biocaml_transform.t] from arbitrary strings to
       [item] values.*)
 
@@ -102,7 +102,7 @@ module Transform: sig
 
   val trim:
     [ `beginning of int | `ending of int ] ->
-    (item, (item, [> `invalid_size of int]) Core.Result.t) Biocaml_transform.t
+    (item, (item, [> `invalid_size of int]) Result.t) Biocaml_transform.t
   (** Create a [Biocaml_transform.t] that trims FASTQ items. *)
 
   val fasta_pair_to_fastq:
@@ -111,7 +111,7 @@ module Transform: sig
     (Biocaml_fasta.char_seq Biocaml_fasta.item *
        Biocaml_fasta.int_seq Biocaml_fasta.item,
      (item,
-      [> Error.fasta_pair_to_fastq ]) Core.Result.t)
+      [> Error.fasta_pair_to_fastq ]) Result.t)
       Biocaml_transform.t
   (** Create a transform that builds [item] records thanks
       to sequences from [Fasta.(char_seq item)] values
@@ -125,7 +125,7 @@ module Transform: sig
     (item,
      (Biocaml_fasta.char_seq Biocaml_fasta.item *
         Biocaml_fasta.int_seq Biocaml_fasta.item,
-      [> `cannot_convert_ascii_phred_score of string ]) Core.Result.t)
+      [> `cannot_convert_ascii_phred_score of string ]) Result.t)
       Biocaml_transform.t
   (** Create a transform that split a FASTQ item into to FASTA items
       (i.e. the inverse of {!fasta_pair_to_fastq}). *)
