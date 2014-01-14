@@ -59,34 +59,6 @@ exception Parse_error of Biocaml_pos.t * string
 (** Indicates a parse error at the given [pos]. The string is a
     message explaining the error. *)
 
-module Parse : sig
-  (** Parsing functions. Mostly needed only internally. Each function
-  takes:
-
-      - [line] - The line to parse.
-
-      - [pos] - Optional position of the line used in error
-      reporting. The column should always be 1 because by definition a
-      line starts at the beginning.
-
-  All raise [Parse_error].
-  *)
-
-  val name : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-  val sequence : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-  val comment : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-
-  (** [qualities sequence line] parses given qualities [line] in the
-      context of a previously parsed [sequence]. The [sequence] is needed
-      to assure the correct number of quality scores are provided. If not
-      provided, this check is omitted. *)
-  val qualities :
-    ?pos:Biocaml_pos.t ->
-    ?sequence:string ->
-    Biocaml_line.t ->
-    string
-
-end
 
 (** {2 [In_channel] Functions } *)
 
@@ -159,6 +131,34 @@ module Transform: sig
       (i.e. the inverse of {!fasta_pair_to_fastq}). *)
 
 end
+
+
+(** {2 Parsing }
+
+    Parsing functions. Mostly needed only internally. Each function takes:
+
+    - [line] - The line to parse.
+
+    - [pos] - Optional position of the line used in error
+    reporting. The column should always be 1 because by definition a
+    line starts at the beginning.
+
+    All raise [Parse_error].
+*)
+
+val name_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+val sequence_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+val comment_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+
+(** [qualities sequence line] parses given qualities [line] in the
+    context of a previously parsed [sequence]. The [sequence] is
+    needed to assure the correct number of quality scores are
+    provided. If not provided, this check is omitted. *)
+val qualities_of_line :
+  ?pos:Biocaml_pos.t ->
+  ?sequence:string ->
+  Biocaml_line.t ->
+  string
 
 
 (** {2 S-Expressions } *)

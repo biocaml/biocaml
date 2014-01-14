@@ -56,42 +56,41 @@ module Error = struct
 end
 
 exception Parse_error of Biocaml_pos.t * string
-module Parse = struct
 
-  let name ?(pos=Pos.unknown) line =
-    let line = (line : Line.t :> string) in
+let name_of_line ?(pos=Pos.unknown) line =
+  let line = (line : Line.t :> string) in
+  let n = String.length line in
+  if n = 0 || line.[0] <> '@' then
+    raise (Parse_error (pos, "name line must begin with '@'"))
+  else
+    String.sub line ~pos:1 ~len:(n-1)
+
+let sequence_of_line ?(pos=Pos.unknown) line =
+  (line : Line.t :> string)
+
+let comment_of_line ?(pos=Pos.unknown) line =
+  let line = (line : Line.t :> string) in
+  let n = String.length line in
+  if n = 0 || line.[0] <> '+' then
+    raise (Parse_error (pos, "comment line must begin with '+'"))
+  else
+    String.sub line ~pos:1 ~len:(n-1)
+
+let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
+  let line = (line : Line.t :> string) in
+  match sequence with
+  | None -> line
+  | Some sequence ->
+    let m = String.length sequence in
     let n = String.length line in
-    if n = 0 || line.[0] <> '@' then
-      raise (Parse_error (pos, "name line must begin with '@'"))
+    if m <> n then
+      raise (Parse_error (
+        pos,
+        sprintf "got %d quality scores for %d sequence items" m n
+      ))
     else
-      String.sub line ~pos:1 ~len:(n-1)
+      line
 
-  let sequence ?(pos=Pos.unknown) line =
-    (line : Line.t :> string)
-
-  let comment ?(pos=Pos.unknown) line =
-    let line = (line : Line.t :> string) in
-    let n = String.length line in
-    if n = 0 || line.[0] <> '+' then
-      raise (Parse_error (pos, "comment line must begin with '+'"))
-    else
-      String.sub line ~pos:1 ~len:(n-1)
-
-  let qualities ?(pos=Pos.unknown) ?sequence line =
-    let line = (line : Line.t :> string) in
-    match sequence with
-    | None -> line
-    | Some sequence ->
-      let m = String.length sequence in
-      let n = String.length line in
-      if m <> n then
-        raise (Parse_error (pos,
-          sprintf "got %d quality scores for %d sequence items" m n
-        ))
-      else
-        line
-
-end
 
 module Transform = struct
   let string_to_item ?filename () =

@@ -9,21 +9,21 @@ let get_lwt_stream ic =
     Lwt_stream.get strm >>= function
     | None -> return None
     | Some line -> (
-      let name = Parse.name (Line.of_string_unsafe line) in
+      let name = name_of_line (Line.of_string_unsafe line) in
       Lwt_stream.get strm >>= function
       | None -> fail (
         Parse_error
           (Pos.unknown, "premature end-of-input, no sequence line")
       )
       | Some line -> (
-        let sequence = Parse.sequence (Line.of_string_unsafe line) in
+        let sequence = sequence_of_line (Line.of_string_unsafe line) in
         Lwt_stream.get strm >>= function
         | None -> fail (
           Parse_error
             (Pos.unknown, "premature end-of-input, no comment line")
         )
         | Some line -> (
-          let comment = Parse.comment (Line.of_string_unsafe line) in
+          let comment = comment_of_line (Line.of_string_unsafe line) in
           Lwt_stream.get strm >>= function
           | None -> fail (
             Parse_error
@@ -32,7 +32,7 @@ let get_lwt_stream ic =
           )
           | Some line ->
             let qualities =
-              Parse.qualities (Line.of_string_unsafe line)
+              qualities_of_line (Line.of_string_unsafe line)
             in
             return (Some {name; sequence; comment; qualities})
         ) ) )
