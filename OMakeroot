@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: lib lib_lwt app tests run_tests benchmarks odoc doc \
+.PHONY: lib lib_lwt lib_async app tests run_tests benchmarks odoc doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
@@ -38,6 +38,12 @@ LIB_LWT_MODULES[] =
 LIB_LWT_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_LWT_MODULES))
 LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax future.lwt
 
+LIB_ASYNC_NAME = $(PROJECT)_async
+LIB_ASYNC_MODULES[] =
+  $(removesuffix $(basename $(ls src/lib_async/*.ml)))
+LIB_ASYNC_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_ASYNC_MODULES))
+LIB_ASYNC_PACKAGES = $(LIB_PACKAGES) async
+
 APP_NAME = $(PROJECT)
 APP_MODULES[] =
   $(removesuffix $(basename $(ls src/app/*.ml)))
@@ -69,6 +75,7 @@ $(CONFIG_FILE):
     echo "Generating default $@. Change as desired."
     echo "COMPILE_APP = true" > $(CONFIG_FILE)
     echo "COMPILE_LIB_LWT = true" >> $(CONFIG_FILE)
+    echo "COMPILE_LIB_ASYNC = true" >> $(CONFIG_FILE)
     echo "COMPILE_TESTS = true" >> $(CONFIG_FILE)
     echo "PREFIX = $(DEFAULT_PREFIX)" >> $(CONFIG_FILE)
   else
@@ -92,6 +99,10 @@ if $(not $(defined COMPILE_LIB_LWT))
   COMPILE_LIB_LWT = true
   export
 
+if $(not $(defined COMPILE_LIB_ASYNC))
+  COMPILE_LIB_ASYNC = true
+  export
+
 if $(not $(defined COMPILE_APP))
   COMPILE_APP = true
   export
@@ -102,6 +113,7 @@ if $(not $(defined COMPILE_TESTS))
 
 print_config:
   echo "COMPILE_LIB_LWT: $(COMPILE_LIB_LWT)"
+  echo "COMPILE_LIB_ASYNC: $(COMPILE_LIB_ASYNC)"
   echo "COMPILE_APP: $(COMPILE_APP)"
   echo "COMPILE_TESTS: $(COMPILE_TESTS)"
   echo "PREFIX: $(PREFIX)"
@@ -170,6 +182,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 .SUBDIRS: .
   mkdir -p _build/lib
   mkdir -p _build/lib_lwt
+  mkdir -p _build/lib_async
   mkdir -p _build/app
   mkdir -p _build/tests
   mkdir -p _build/benchmarks
@@ -216,6 +229,19 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     if $(COMPILE_LIB_LWT)
       echo "conf: Building biocaml lwt library"
       .DEFAULT: lib_lwt
+
+
+  ##############################################################################
+  # Async Library
+  .SUBDIRS: _build/lib_async
+    OCAMLINCLUDES += $(dir ../lib/)
+    OCAMLPACKS[] = $(LIB_ASYNC_PACKAGES)
+
+    lib_async: $(OCamlLibrary $(LIB_ASYNC_NAME), $(LIB_ASYNC_MODULES))
+
+    if $(COMPILE_LIB_ASYNC)
+      echo "conf: Building biocaml async library"
+      .DEFAULT: lib_async
 
 
   ##############################################################################
