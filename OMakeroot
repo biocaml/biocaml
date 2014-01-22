@@ -42,7 +42,7 @@ LIB_ASYNC_NAME = $(PROJECT)_async
 LIB_ASYNC_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_async/*.ml)))
 LIB_ASYNC_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_ASYNC_MODULES))
-LIB_ASYNC_PACKAGES = $(LIB_PACKAGES) async
+LIB_ASYNC_PACKAGES = $(LIB_PACKAGES) async future.async
 
 APP_NAME = $(PROJECT)
 APP_MODULES[] =
