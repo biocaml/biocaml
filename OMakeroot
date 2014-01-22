@@ -30,7 +30,7 @@ LIB_MODULES[] =
   $(PROJECT)_about
 LIB_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
-LIB_PACKAGES = core threads zip unix xmlm pcre cfstream sexplib.syntax
+LIB_PACKAGES = core threads zip unix xmlm pcre cfstream sexplib.syntax future.std
 
 LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =

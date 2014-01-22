@@ -74,6 +74,11 @@ val in_channel_to_item_stream_exn:
 (** Returns a stream of [item]s.
     [Stream.next] will raise [Error _] in case of any error. *)
 
+module MakeIO (Future : Future.S) : sig
+  open Future
+  val read : Reader.t -> item Pipe.Reader.t
+end
+include module type of MakeIO(Future_std)
 
 (** {2 [To_string] Function }
 
