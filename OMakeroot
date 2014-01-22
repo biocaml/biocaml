@@ -78,6 +78,10 @@ $(CONFIG_FILE):
   else
     echo "$@ exists. Will not change."
 
+if $(file-exists $(CONFIG_FILE))
+  include $(CONFIG_FILE)
+  export
+
 DefineCommandVars()
 
 if $(not $(defined PREFIX))
