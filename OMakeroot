@@ -36,7 +36,7 @@ LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_lwt/*.ml)))
 LIB_LWT_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_LWT_MODULES))
-LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax
+LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax future.lwt
 
 APP_NAME = $(PROJECT)
 APP_MODULES[] =
