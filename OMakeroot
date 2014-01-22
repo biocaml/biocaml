@@ -28,20 +28,17 @@ LIB_DESCRIPTION = The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
   $(PROJECT)_about
-LIB_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_MODULES))
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 LIB_PACKAGES = core threads zip unix xmlm pcre cfstream sexplib.syntax future.std
 
 LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_lwt/*.ml)))
-LIB_LWT_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_LWT_MODULES))
 LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax future.lwt
 
 LIB_ASYNC_NAME = $(PROJECT)_async
 LIB_ASYNC_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_async/*.ml)))
-LIB_ASYNC_SOURCES = $(add-wrapper src/lib/, .ml, $(LIB_ASYNC_MODULES))
 LIB_ASYNC_PACKAGES = $(LIB_PACKAGES) async future.async
 
 APP_NAME = $(PROJECT)
