@@ -10,12 +10,23 @@ type item = {
   sequence: string;
   comment: string;
   qualities: string;
-}
-with sexp
+} with sexp
 
 module Error = Biocaml_fastq_error
 exception Parse_error of Biocaml_pos.t * string
+exception Error of Error.t
 
+
+(******************************************************************************)
+(* Printing                                                                   *)
+(******************************************************************************)
+let item_to_string r =
+  sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
+
+
+(******************************************************************************)
+(* Parsing                                                                    *)
+(******************************************************************************)
 let name_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
@@ -51,45 +62,9 @@ let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
       line
 
 
-module MakeIO (Future : Future.S) = struct
-  open Future
-
-  let read ic =
-    let read_one ic =
-      Reader.read_line ic >>= function
-      | `Eof -> return `Eof
-      | `Ok line -> (
-        let name = name_of_line (Line.of_string_unsafe line) in
-        Reader.read_line ic >>= function
-        | `Eof -> fail (
-          Parse_error
-            (Pos.unknown, "premature end-of-input, no sequence line")
-        )
-        | `Ok line -> (
-          let sequence = sequence_of_line (Line.of_string_unsafe line) in
-          Reader.read_line ic >>= function
-          | `Eof -> fail (
-            Parse_error
-              (Pos.unknown, "premature end-of-input, no comment line")
-          )
-          | `Ok line -> (
-            let comment = comment_of_line (Line.of_string_unsafe line) in
-            Reader.read_line ic >>= function
-            | `Eof -> fail (
-              Parse_error
-                (Pos.unknown, "premature end-of-input, no qualities line")
-            )
-            | `Ok line ->
-              let qualities = qualities_of_line (Line.of_string_unsafe line) in
-              return (`Ok {name; sequence; comment; qualities})
-          ) ) )
-    in
-    Reader.read_all ic read_one
-
-end
-
-include MakeIO(Future_std)
-
+(******************************************************************************)
+(* Transforms                                                                 *)
+(******************************************************************************)
 module Transform = struct
   let string_to_item ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
@@ -121,11 +96,8 @@ module Transform = struct
               ))
       ) ()
 
-  let item_to_string_pure r =
-    sprintf "@%s\n%s\n+%s\n%s\n" r.name r.sequence r.comment r.qualities
-
   let item_to_string () =
-    Biocaml_transform.of_function ~name:"fastq_to_string" item_to_string_pure
+    Biocaml_transform.of_function ~name:"fastq_to_string" item_to_string
 
   let trim (specification: [`beginning of int|`ending of int]) =
     let items =  Queue.create () in
@@ -199,14 +171,15 @@ module Transform = struct
       end
     end
 
-
 end
 
+
+(******************************************************************************)
+(* Input/Output                                                               *)
+(******************************************************************************)
 let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   Transform.string_to_item ?filename ()
   |! Biocaml_transform.in_channel_strings_to_stream ~buffer_size inp
-
-exception Error of Error.t
 
 let error_to_exn err = Error err
 
@@ -215,4 +188,40 @@ let in_channel_to_item_stream_exn ?(buffer_size=65536) ?filename inp =
     in_channel_to_item_stream ~buffer_size ?filename inp
   )
 
-let item_to_string = Transform.item_to_string_pure
+module MakeIO (Future : Future.S) = struct
+  open Future
+
+  let read ic =
+    let read_one ic =
+      Reader.read_line ic >>= function
+      | `Eof -> return `Eof
+      | `Ok line -> (
+        let name = name_of_line (Line.of_string_unsafe line) in
+        Reader.read_line ic >>= function
+        | `Eof -> fail (
+          Parse_error
+            (Pos.unknown, "premature end-of-input, no sequence line")
+        )
+        | `Ok line -> (
+          let sequence = sequence_of_line (Line.of_string_unsafe line) in
+          Reader.read_line ic >>= function
+          | `Eof -> fail (
+            Parse_error
+              (Pos.unknown, "premature end-of-input, no comment line")
+          )
+          | `Ok line -> (
+            let comment = comment_of_line (Line.of_string_unsafe line) in
+            Reader.read_line ic >>= function
+            | `Eof -> fail (
+              Parse_error
+                (Pos.unknown, "premature end-of-input, no qualities line")
+            )
+            | `Ok line ->
+              let qualities = qualities_of_line (Line.of_string_unsafe line) in
+              return (`Ok {name; sequence; comment; qualities})
+          ) ) )
+    in
+    Reader.read_all ic read_one
+
+end
+include MakeIO(Future_std)

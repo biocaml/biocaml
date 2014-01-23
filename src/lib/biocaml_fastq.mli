@@ -1,36 +1,34 @@
 (** FASTQ data. *)
 open Biocaml_internal_pervasives
 
-(** {2 The Item Type } *)
-
 type item = {
   name: string;
   sequence: string;
   comment: string;
   qualities: string;
-}
-(** Type of FASTQ items. *)
+} with sexp
 
 module Error : module type of Biocaml_fastq_error
-
 exception Parse_error of Biocaml_pos.t * string
-(** Indicates a parse error at the given [pos]. The string is a
-    message explaining the error. *)
-
-
-(** {2 [In_channel] Functions } *)
-
 exception Error of Error.t
-(** The only exception raised by this module. *)
 
-val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (item, [> Error.parsing]) Result.t Stream.t
+
+(** {2 Input/Output } *)
+
 (** Parse an input-channel into a stream of [item] results. *)
+val in_channel_to_item_stream :
+  ?buffer_size:int ->
+  ?filename:string ->
+  in_channel ->
+  (item, [> Error.parsing]) Result.t Stream.t
 
-val in_channel_to_item_stream_exn:
-  ?buffer_size:int -> ?filename:string -> in_channel -> item Stream.t
-(** Returns a stream of [item]s.
-    [Stream.next] will raise [Error _] in case of any error. *)
+(** Returns a stream of [item]s. [Stream.next] will raise [Error _] in
+    case of any error. *)
+val in_channel_to_item_stream_exn :
+  ?buffer_size:int ->
+  ?filename:string ->
+  in_channel ->
+  item Stream.t
 
 module MakeIO (Future : Future.S) : sig
   open Future
@@ -38,15 +36,41 @@ module MakeIO (Future : Future.S) : sig
 end
 include module type of MakeIO(Future_std)
 
-(** {2 [To_string] Function }
 
-    This function converts [item] values to strings that can be
-    dumped to a file, i.e. they contain full-lines, including {i all}
-    end-of-line characters.
+(** {2 Printing } *)
+
+(** This function converts [item] values to strings that can be dumped
+    to a file, i.e. they contain full-lines, including {i all}
+    end-of-line characters. *)
+val item_to_string: item -> string
+
+
+(** {2 Parsing }
+
+    Parsing functions. Mostly needed only internally. Each function takes:
+
+    - [line] - The line to parse.
+
+    - [pos] - Optional position of the line used in error
+    reporting. The column should always be 1 because by definition a
+    line starts at the beginning.
+
+    All raise [Parse_error].
 *)
 
-val item_to_string: item -> string
-(** Convert a [item] to a string. *)
+val name_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+val sequence_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+val comment_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+
+(** [qualities sequence line] parses given qualities [line] in the
+    context of a previously parsed [sequence]. The [sequence] is
+    needed to assure the correct number of quality scores are
+    provided. If not provided, this check is omitted. *)
+val qualities_of_line :
+  ?pos:Biocaml_pos.t ->
+  ?sequence:string ->
+  Biocaml_line.t ->
+  string
 
 
 (** {2 Transforms } *)
@@ -94,37 +118,3 @@ module Transform: sig
       (i.e. the inverse of {!fasta_pair_to_fastq}). *)
 
 end
-
-
-(** {2 Parsing }
-
-    Parsing functions. Mostly needed only internally. Each function takes:
-
-    - [line] - The line to parse.
-
-    - [pos] - Optional position of the line used in error
-    reporting. The column should always be 1 because by definition a
-    line starts at the beginning.
-
-    All raise [Parse_error].
-*)
-
-val name_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-val sequence_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-val comment_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-
-(** [qualities sequence line] parses given qualities [line] in the
-    context of a previously parsed [sequence]. The [sequence] is
-    needed to assure the correct number of quality scores are
-    provided. If not provided, this check is omitted. *)
-val qualities_of_line :
-  ?pos:Biocaml_pos.t ->
-  ?sequence:string ->
-  Biocaml_line.t ->
-  string
-
-
-(** {2 S-Expressions } *)
-
-val item_of_sexp : Sexplib.Sexp.t -> item
-val sexp_of_item : item -> Sexplib.Sexp.t
