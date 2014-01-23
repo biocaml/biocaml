@@ -13,48 +13,7 @@ type item = {
 }
 with sexp
 
-module Error = struct
-
-  type fasta_pair_to_fastq =
-    [ `cannot_convert_to_phred_score of int list
-    | `sequence_names_mismatch of string * string ]
-  with sexp
-
-  type parsing =
-      [ `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
-      | `wrong_comment_line of Biocaml_pos.t * string
-      | `wrong_name_line of Biocaml_pos.t * string
-      | `incomplete_input of Biocaml_pos.t * string list * string option
-      ]
-  with sexp
-
-  type t = [ parsing | fasta_pair_to_fastq ]
-  with sexp
-
-  let string_sample s n =
-    let l = String.length s in
-    if n >= l then s else
-      String.sub s ~pos:0 ~len:n ^ "..."
-
-  let t_to_string = function
-    | `sequence_and_qualities_do_not_match (pos, s,q) ->
-        sprintf "[%s]: sequence and qualities do not match (%d Vs %d characters)"
-          (Pos.to_string pos) String.(length s) String.(length q)
-    | `wrong_comment_line (pos, line) ->
-        sprintf "[%s]: wrong comment line: %S"
-          (Pos.to_string pos) (string_sample line 14)
-    | `wrong_name_line (pos, line) ->
-        sprintf "[%s]: wrong name line: %S"
-          (Pos.to_string pos) (string_sample line 14)
-    | `incomplete_input (pos, sl, so) ->
-        sprintf "[%s]: end-of-stream reached with incomplete input: %S"
-          (Pos.to_string pos)
-          (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
-    | other ->
-      sexp_of_t other |> Sexplib.Sexp.to_string_hum
-
-end
-
+module Error = Biocaml_fastq_error
 exception Parse_error of Biocaml_pos.t * string
 
 let name_of_line ?(pos=Pos.unknown) line =
