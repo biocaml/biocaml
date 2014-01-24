@@ -81,6 +81,8 @@ module Result : sig
 end
 include module type of Result.Export
 module Set : module type of Core.Std.Set
+module Sexp : module type of Core.Std.Sexp
+module Sexpable : module type of Core.Std.Sexpable
 include module type of Sexplib.Conv
 module Stack : module type of Core.Std.Stack
 module String : module type of Core.Std.String

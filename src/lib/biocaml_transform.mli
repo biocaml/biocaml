@@ -179,26 +179,26 @@ val split_and_merge:
 val make_result:
   ?name:string ->
   feed: ('input -> unit) ->
-  next: (bool -> [ `output of ('a, 'b) Core.Result.t | `end_of_stream | `not_ready ]) ->
+  next: (bool -> [ `output of ('a, 'b) Result.t | `end_of_stream | `not_ready ]) ->
   unit ->
-  ('input, ('a, 'b) Core.Result.t) t
+  ('input, ('a, 'b) Result.t) t
 
 (** Like [on_output] but on the successful  part of the {i output}. *)
-val on_ok: ('input, ('ok, 'error) Core.Result.t) t ->
+val on_ok: ('input, ('ok, 'error) Result.t) t ->
   f:('ok -> 'still_ok) ->
-  ('input, ('still_ok, 'error) Core.Result.t) t
+  ('input, ('still_ok, 'error) Result.t) t
 
 (** Like [on_output] but on the erroneous  part of the {i output}. *)
-val on_error: ('input, ('ok, 'error) Core.Result.t) t ->
+val on_error: ('input, ('ok, 'error) Result.t) t ->
   f:('error -> 'another_errror) ->
-  ('input, ('ok, 'another_errror) Core.Result.t) t
+  ('input, ('ok, 'another_errror) Result.t) t
 
 
 val compose_results:
   on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
-  ( 'input_left, ('middle, 'error_left) Core.Result.t) t ->
-  ( 'middle, ('output_right, 'error_right) Core.Result.t) t ->
-  ( 'input_left, ('output_right, 'error) Core.Result.t) t
+  ( 'input_left, ('middle, 'error_left) Result.t) t ->
+  ( 'middle, ('output_right, 'error_right) Result.t) t ->
+  ( 'input_left, ('output_right, 'error) Result.t) t
 (** [compose_results t u] is like {!compose} but for transforms returning
     [Result.t]s. The [on_error] function specifies how errors in [t]
     or [u] should be converted into those in the resultant
@@ -208,16 +208,16 @@ val compose_results:
 *)
 
 val compose_results_merge_error:
-  ('a, ('b, 'el) Core.Result.t) t ->
-  ('b, ('d, 'er) Core.Result.t) t ->
-  ('a, ('d, [ `left of 'el | `right of 'er ]) Core.Result.t) t
+  ('a, ('b, 'el) Result.t) t ->
+  ('b, ('d, 'er) Result.t) t ->
+  ('a, ('d, [ `left of 'el | `right of 'er ]) Result.t) t
 (** Like {!compose_results} but with a pre-specified [on_error]
     function. *)
 
 val compose_result_left:
-  ( 'input_left, ('middle, 'error) Core.Result.t) t ->
+  ( 'input_left, ('middle, 'error) Result.t) t ->
   ( 'middle, 'output_right) t ->
-  ( 'input_left, ('output_right, 'error) Core.Result.t) t
+  ( 'input_left, ('output_right, 'error) Result.t) t
 (** Like {!compose_results} but only the first transform returns
     [Result.t]s.
     {figure src/doc/figures/transform_compose_result_left.svg 50%

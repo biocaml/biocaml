@@ -73,7 +73,7 @@ val in_range : 'a t -> 'a -> bool
 
 (** {6 Histograms With Float Bins} *)
 
-val make_uniform : float -> float -> int -> (float t, string) Core.Result.t
+val make_uniform : float -> float -> int -> (float t, string) Result.t
 (** [make_uniform min max n] returns a histogram with [n] bins
     uniformly dividing up the range from [min] to [max]. Bins will be
     inclusive of the lower limit and exclusive of the upper limit,

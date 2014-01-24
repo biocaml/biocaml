@@ -65,7 +65,7 @@ module Row : sig
     (** Serialize tags. *)
 
     val of_string: string ->
-      (t, [> `table_row of [> `tags_of_string of exn ] ]) Core.Result.t
+      (t, [> `table_row of [> `tags_of_string of exn ] ]) Result.t
     (** Parse the description of the tags (for now S-Expressions). *)
 
     val t_of_sexp: Sexplib.Sexp.t -> t
@@ -92,7 +92,7 @@ module Row : sig
   val of_line: ?separators:char list ->
     ?strict_row_length:bool -> ?strict_cell_type:bool -> ?format:t_type ->
     Line.t ->
-    (t, [> Error.line_parsing ]) Core.Result.t
+    (t, [> Error.line_parsing ]) Result.t
   (** Parse a [Line.t] into a row while specifying a [format].
      - If [format] is [None] (the default), then all the elements are
        put in [`string _] rows.
@@ -113,7 +113,7 @@ module Row : sig
 
     val line_to_item : ?tags:Tags.t -> unit ->
       (Biocaml_lines.item,
-       (t, [> `table_row of Error.line_parsing ]) Core.Result.t)
+       (t, [> `table_row of Error.line_parsing ]) Result.t)
         Biocaml_transform.t
    (** Create a {!Biocaml_transform.t} that converts lines to
        table-rows according to the [tags] (default: {!Tags.default}). *)

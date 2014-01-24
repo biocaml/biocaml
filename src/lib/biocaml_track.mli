@@ -89,7 +89,7 @@ module Transform: sig
   (** Low-level transforms. *)
 
   val string_to_string_content: ?filename:string -> unit ->
-    (string, ([ t | string content ], [> Error.parsing]) Core.Result.t)
+    (string, ([ t | string content ], [> Error.parsing]) Result.t)
       Biocaml_transform.t
   (** Create a parser that gets the "track", comment, and "browser"
       lines and puts the  other lines in [`content _]. *)
@@ -103,7 +103,7 @@ module Transform: sig
   val string_to_wig: ?filename:string -> unit ->
     (string,
      ([ t | Biocaml_wig.item ], [> Error.parsing | Biocaml_wig.Error.parsing ])
-       Core.Result.t)
+       Result.t)
       Biocaml_transform.t
   (** Create a composite parser for UCSC WIG files.  *)
 
@@ -114,7 +114,7 @@ module Transform: sig
   val string_to_gff: ?filename:string -> tags: Biocaml_gff.Tags.t -> unit ->
     (string,
      ([t | Biocaml_gff.item], [> Error.parsing | Biocaml_gff.Error.parsing])
-       Core.Result.t) Biocaml_transform.t
+       Result.t) Biocaml_transform.t
   (** Create a composite parser for UCSC GFF files.  *)
 
   val gff_to_string: tags: Biocaml_gff.Tags.t -> unit ->
@@ -125,7 +125,7 @@ module Transform: sig
     ?more_columns:Biocaml_bed.parsing_spec -> unit ->
     (string,
      ([t | Biocaml_bed.item content], [> Error.parsing | Biocaml_bed.Error.parsing ])
-       Core.Result.t) Biocaml_transform.t
+       Result.t) Biocaml_transform.t
   (** Create a composite parser for UCSC Bed(Graph) files.  *)
 
   val bed_to_string: unit ->

@@ -279,7 +279,7 @@ module Input_transform = struct
         (string, (Biocaml_table.Row.t, input_error) Result.t) Biocaml_transform.t
     | `two_files_to_fastq of
         (string * string,
-         (Biocaml_fastq.item, input_error) Core.Result.t) Biocaml_transform.t
+         (Biocaml_fastq.item, input_error) Result.t) Biocaml_transform.t
   ]
 
   let name = function

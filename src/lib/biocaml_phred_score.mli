@@ -92,4 +92,4 @@ val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexa_score.t
       provided to dictate this.
   *)
 
-include Core.Sexpable.S with type t := t
+include Sexpable.S with type t := t

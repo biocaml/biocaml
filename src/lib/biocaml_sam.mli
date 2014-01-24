@@ -70,7 +70,7 @@ module Flags : sig
   val not_passing_quality_controls     : t -> bool
   val pcr_or_optical_duplicate         : t -> bool
 
-  include Core.Sexpable.S with type t := t
+  include Sexpable.S with type t := t
 
 end
 
@@ -231,11 +231,11 @@ exception Error of  Error.t
 (** {2 Stream functions } *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (item, [> Error.parse]) Core.Result.t Stream.t
+  (item, [> Error.parse]) Result.t Stream.t
 (** Parse an input-channel into a stream of high-level items. *)
 
 val in_channel_to_raw_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (raw_item, [> Error.parse]) Core.Result.t Stream.t
+  (raw_item, [> Error.parse]) Result.t Stream.t
 (** Parse an input-channel into a stream of low-level (“raw”) items. *)
 
 val in_channel_to_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
@@ -259,12 +259,12 @@ val in_channel_to_raw_item_stream_exn : ?buffer_size:int -> ?filename:string -> 
 
 (** Parse CIGAR operations from a string. *)
 val parse_cigar_text: string ->
-  (cigar_op array, [> `wrong_cigar_text of string ]) Core.Result.t
+  (cigar_op array, [> `wrong_cigar_text of string ]) Result.t
 
 
 (** Parse optional content from a “tokenized” string. *)
 val parse_optional_content: (string * char * string) list ->
-  (optional_content, [> Error.optional_content_parsing]) Core.Result.t
+  (optional_content, [> Error.optional_content_parsing]) Result.t
 
 (** Parse a header line form a string. The first argument is used to
     pass the location to the error values
@@ -274,7 +274,7 @@ val parse_header_line:
   ([> `comment of string
    | `header of string * (string * string) list ],
    [> `invalid_header_tag of 'a * string
-   | `invalid_tag_value_list of 'a * string list ]) Core.Result.t
+   | `invalid_tag_value_list of 'a * string list ]) Result.t
 
 (** Parse a header line into a more detailed type. *)
 val expand_header_line:
@@ -283,7 +283,7 @@ val expand_header_line:
         string * [ `coordinate | `queryname | `unknown | `unsorted ] *
           (string * string) list ],
    [> `header_line_without_version of (string * string) list
-   | `header_line_wrong_sorting of string ]) Core.Result.t
+   | `header_line_wrong_sorting of string ]) Result.t
 
 (** {2 Low-level Transforms} *)
 
@@ -293,7 +293,7 @@ module Transform: sig
       (c.f. {!Biocaml_transform}). *)
 
   val string_to_raw: ?filename:string -> unit ->
-    (string, (raw_item, [> Error.string_to_raw]) Core.Result.t) Biocaml_transform.t
+    (string, (raw_item, [> Error.string_to_raw]) Result.t) Biocaml_transform.t
   (** Create a parsing "stoppable" transform. *)
 
   val raw_to_string: unit ->
@@ -301,11 +301,11 @@ module Transform: sig
   (** Create a printing "stoppable" transform. *)
 
   val raw_to_item: unit ->
-    (raw_item, (item,  [> Error.raw_to_item]) Core.Result.t) Biocaml_transform.t
+    (raw_item, (item,  [> Error.raw_to_item]) Result.t) Biocaml_transform.t
   (** Create a transform that lifts [raw_item]s to [item]s *)
 
   val item_to_raw: unit ->
-    (item, (raw_item, [> Error.item_to_raw]) Core.Result.t) Biocaml_transform.t
+    (item, (raw_item, [> Error.item_to_raw]) Result.t) Biocaml_transform.t
   (** Create a transform that downgrades [item]s to [raw_item]s *)
 
 end

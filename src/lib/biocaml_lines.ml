@@ -102,7 +102,7 @@ module Transform = struct
       ()
 
   let item_to_string ?(buffer:[`clear of int | `reset of int]= `reset 1024) () =
-    let module Buffer = Core.Caml.Buffer in
+    let module Buffer = Caml.Buffer in
     let buffer, clear_buffer =
       match buffer with
       | `clear s -> (Buffer.create s, Buffer.clear)
@@ -182,7 +182,7 @@ let of_char_stream cstr =
         try
           let c = Stream.next_exn cstr in
           if c <> '\n' then (Buffer.add_char ans c; loop())
-        with Core.Std.Caml.Stream.Failure -> ()
+        with Caml.Stream.Failure -> ()
       in
       loop();
       Some (Buffer.contents ans |! Line.of_string_unsafe)

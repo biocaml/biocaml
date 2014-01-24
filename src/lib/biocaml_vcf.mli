@@ -92,5 +92,5 @@ module Transform : sig
   val string_to_item :
     ?filename:string ->
     unit ->
-    (string, (item, vcf_parse_error) Core.Result.t) Biocaml_transform.t
+    (string, (item, vcf_parse_error) Result.t) Biocaml_transform.t
 end

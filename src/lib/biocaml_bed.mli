@@ -81,7 +81,7 @@ exception Error of  Error.t
 (** The exception raised by the [*_exn] functions. *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?more_columns:parsing_spec ->
-  in_channel -> (item, [> Error.parsing]) Core.Result.t Stream.t
+  in_channel -> (item, [> Error.parsing]) Result.t Stream.t
 (** Parse an input-channel into [item] values. *)
 
 val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spec ->
@@ -95,7 +95,7 @@ val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spe
 *)
 
 val item_of_line: how:parsing_spec -> Biocaml_lines.item ->
-  (item, [> Error.parsing]) Core.Result.t
+  (item, [> Error.parsing]) Result.t
 (** Basic parsing of a single line. *)
 
 val item_to_line: item -> Biocaml_lines.item
@@ -111,7 +111,7 @@ module Transform: sig
     unit ->
     (string,
      (string * int * int * Biocaml_table.Row.item array,
-      [> Error.parsing]) Core.Result.t) Biocaml_transform.t
+      [> Error.parsing]) Result.t) Biocaml_transform.t
   (** Create a [Biocaml_transform.t]-based parser, while providing the
      format of the additional columns (default [`strings]). *)
 

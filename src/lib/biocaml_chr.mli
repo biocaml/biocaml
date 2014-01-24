@@ -42,7 +42,7 @@ exception Error of Error.t
 val to_arabic : string -> string
 (** [to_arabic s] returns the canonical Arabic representation of [s]. *)
 
-val to_roman : string -> (string, Error.t) Core.Std.Result.t
+val to_roman : string -> (string, Error.t) Result.t
 (** [to_roman s] returns the canonical Roman representation of [s]. *)
 
 val to_roman_exn : string -> string

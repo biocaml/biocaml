@@ -127,7 +127,7 @@ val in_channel_to_raw_item_stream :
   (raw_item,
    [> `bam of [> Error.raw_bam ]
    | `unzip of [> Biocaml_zip.Error.unzip ] ])
-    Core.Result.t Stream.t
+    Result.t Stream.t
 (** Create a stream of raw_item results from an input-channel. *)
 
 val in_channel_to_raw_item_stream_exn :
@@ -144,7 +144,7 @@ val in_channel_to_item_stream :
   (Biocaml_sam.item,
    [> `bam of [> Error.t ]
    | `unzip of [> Biocaml_zip.Error.unzip ] ])
-    Core.Result.t Stream.t
+    Result.t Stream.t
 (** Create a stream of full [Sam.item] results from an input-channel. *)
 
 val in_channel_to_item_stream_exn :
@@ -160,7 +160,7 @@ module Transform: sig
   (** The low-level [Transform.t] implementations. *)
 
   val raw_to_item: unit ->
-    (raw_item, (Biocaml_sam.item, [> Error.raw_to_item]) Core.Result.t)
+    (raw_item, (Biocaml_sam.item, [> Error.raw_to_item]) Result.t)
       Biocaml_transform.t
   (** Create a transform that lifts [raw_item]s to the higher-level representation
       defined in the [Biocaml_sam] module. *)
@@ -171,7 +171,7 @@ module Transform: sig
     (string,
      (raw_item, [> `unzip of Biocaml_zip.Error.unzip
                 | `bam of Error.raw_bam ] )
-       Core.Result.t)
+       Result.t)
       Biocaml_transform.t
   (** Create a transform that parses a BAM file.
       The [zlib_buffer_size] is passed to the [Biocaml_zip] module. *)
@@ -179,7 +179,7 @@ module Transform: sig
 
   val item_to_raw: unit ->
     (Biocaml_sam.item,
-     (raw_item, [> Error.item_to_raw]) Core.Result.t) Biocaml_transform.t
+     (raw_item, [> Error.item_to_raw]) Result.t) Biocaml_transform.t
   (** Create a transform that downgrades [Sam.item]s to [raw_item]s. *)
 
   val raw_to_string: ?gzip_level:int -> ?zlib_buffer_size:int -> unit ->
@@ -193,11 +193,11 @@ end
 (** {2 Lower-level (parsing) functions} *)
 
 val parse_cigar: ?pos:int -> ?len:int -> string ->
-  (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Core.Result.t
+  (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Result.t
 (** Parse CIGAR operations from a string (c.f. [raw_alignment.cigar]). *)
 
 val parse_optional: ?pos:int -> ?len:int -> string ->
-  (Biocaml_sam.optional_content, [> Error.parse_optional]) Core.Result.t
+  (Biocaml_sam.optional_content, [> Error.parse_optional]) Result.t
 (** Parse optional content from a string (c.f. [raw_alignment.optional]). *)
 
 

@@ -57,7 +57,7 @@ end
 val unzip_in_channel :
   ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int ->
   ?buffer_size:int -> in_channel ->
-  (string, [> Error.t]) Core.Result.t Stream.t
+  (string, [> Error.t]) Result.t Stream.t
 (** Decompress an Input Channel. *)
 
 val zip_in_channel :
@@ -84,7 +84,7 @@ module Transform: sig
     ?format:[ `gzip | `raw ] ->
     ?zlib_buffer_size:int ->
     unit ->
-    (string, (string, [> Error.unzip]) Core.Result.t) Biocaml_transform.t
+    (string, (string, [> Error.unzip]) Result.t) Biocaml_transform.t
   (** Create a transform that uncompresses a stream.
       The default [format] is [`raw] (i.e. only apply the "deflate"
       algorithm to the stream); [`gzip] means that the transform must first

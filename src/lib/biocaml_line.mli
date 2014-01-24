@@ -1,4 +1,5 @@
 (** Single line of text. See also {!module: Biocaml_lines}. *)
+open Core.Std
 
 (** A line is simply a string, possibly empty, that does not contain a
     newline character. As the name suggests, usually such strings are

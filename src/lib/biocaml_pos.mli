@@ -1,4 +1,5 @@
 (** File positions. *)
+open Core.Std
 
 type t = private {
   file:string option; (** file name *)
@@ -48,5 +49,5 @@ val to_string : t -> string
 (** String representation of a position. Intended for human
     legibility, no particular format guaranteed. *)
 
-include Core.Sexpable.S with type t := t
+include Sexpable.S with type t := t
 

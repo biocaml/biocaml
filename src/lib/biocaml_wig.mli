@@ -111,7 +111,7 @@ module Tags: sig
   (** Default tags ([{allow_empty_lines = false; sharp_comments = true}]). *)
 
   val of_string: string ->
-    (t, [> `wig of [> `tags_of_string of exn ] ]) Core.Result.t
+    (t, [> `wig of [> `tags_of_string of exn ] ]) Result.t
   (** Parse tags (for now S-Expressions). *)
 
   val to_string: t -> string
@@ -127,7 +127,7 @@ exception Error of  Error.t
 (** The exceptions raised by the [Wig] module's [*_exn] functions. *)
 
 val in_channel_to_item_stream: ?buffer_size:int -> ?filename:string ->
-  ?tags:Tags.t -> in_channel -> (item, Error.t) Core.Result.t Stream.t
+  ?tags:Tags.t -> in_channel -> (item, Error.t) Result.t Stream.t
 (** Get a stream of [item] values out of an input-channel. *)
 
 val in_channel_to_item_stream_exn: ?buffer_size:int -> ?filename:string ->
@@ -137,7 +137,7 @@ val in_channel_to_item_stream_exn: ?buffer_size:int -> ?filename:string ->
 
 val in_channel_to_bed_graph:  ?buffer_size:int -> ?filename:string ->
   ?tags:Tags.t -> in_channel ->
-  (bed_graph_value, Error.t) Core.Result.t Stream.t
+  (bed_graph_value, Error.t) Result.t Stream.t
 (** Get a stream of [bed_graph_value] values out of a WIG-file input-channel. *)
 
 val in_channel_to_bed_graph_exn: ?buffer_size:int -> ?filename:string ->
@@ -166,7 +166,7 @@ module Transform: sig
     ?filename:string ->
     ?tags: Tags.t ->
     unit ->
-    (string, (item, [> Error.parsing]) Core.Result.t) Biocaml_transform.t
+    (string, (item, [> Error.parsing]) Result.t) Biocaml_transform.t
   (** Create the parsing [Biocaml_transform.t]. The parser is
       "best-effort" and stateless (i.e. a line containing ["1000 42."]
       will parsed succesfully as a [`variable_step_value (1000, 42.)]
@@ -177,7 +177,7 @@ module Transform: sig
 
   val item_to_bed_graph: unit ->
     (item,
-     (bed_graph_value, [> Error.to_bed_graph]) Core.Result.t)
+     (bed_graph_value, [> Error.to_bed_graph]) Result.t)
       Biocaml_transform.t
   (** Create a transform which converts [`variable_step_value _] and
       [`fixed_step_value _] values to [`bed_graph_value _] values, using the

@@ -8,7 +8,7 @@ module Range = Biocaml_range
 module Accu = Biocaml_accu
 
 module Map = struct
-  include Core.Std.Map.Poly.Tree
+  include Map.Poly.Tree
 
   let to_stream t = Stream.of_list (to_alist t)
   let of_stream xs =

@@ -302,7 +302,7 @@ module Random = struct
   type specification_list = specification list with sexp
 
   let specification_of_string s =
-    try Ok (specification_list_of_sexp (Core.Std.Sexp.of_string s))
+    try Ok (specification_list_of_sexp (Sexp.of_string s))
     with e -> Error (`fasta (`parse_specification e))
 
   let get_tags specification =

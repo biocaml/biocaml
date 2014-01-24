@@ -94,7 +94,7 @@ module Transform : sig
   val group2 :
     unit ->
     (item,
-    (item * item, [> `premature_end_of_input ]) Core.Std.Result.t) Biocaml_transform.t
+    (item * item, [> `premature_end_of_input ]) Result.t) Biocaml_transform.t
 
   val item_to_string: ?buffer:[ `clear of int | `reset of int ] ->
     unit -> (item, string) Biocaml_transform.t
@@ -105,13 +105,13 @@ module Transform : sig
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->
     next:(Buffer.t ->
-      [ `not_ready | `output of ('b, 'errnext) Core.Result.t ]) ->
+      [ `not_ready | `output of ('b, 'errnext) Result.t ]) ->
     on_error:(
       [`next of 'errnext
       | `incomplete_input of Pos.t * string list * string option] ->
         'err) ->
     unit ->
-    (string, ('b, 'err) Core.Result.t) Biocaml_transform.t
+    (string, ('b, 'err) Result.t) Biocaml_transform.t
 
   (** Do like [make] but merge [`incomplete_input _] with the
       errors of [~next] (which must be polymorphic variants). *)
@@ -123,9 +123,9 @@ module Transform : sig
       | `output of ('a,
                    [> `incomplete_input of
                      Pos.t * string list * string option ]
-                     as 'b) Core.Result.t ]) ->
+                     as 'b) Result.t ]) ->
     unit ->
-    (string, ('a, 'b) Core.Result.t) Biocaml_transform.t
+    (string, ('a, 'b) Result.t) Biocaml_transform.t
 
 end
 
