@@ -74,6 +74,7 @@ $(CONFIG_FILE):
     echo "COMPILE_LIB_LWT = true" >> $(CONFIG_FILE)
     echo "COMPILE_LIB_ASYNC = true" >> $(CONFIG_FILE)
     echo "COMPILE_TESTS = true" >> $(CONFIG_FILE)
+    echo "COMPILE_BENCHMARKS = true" >> $(CONFIG_FILE)
     echo "PREFIX = $(DEFAULT_PREFIX)" >> $(CONFIG_FILE)
   else
     echo "$@ exists. Will not change."
@@ -112,11 +113,16 @@ if $(not $(defined COMPILE_TESTS))
   COMPILE_TESTS = true
   export
 
+if $(not $(defined COMPILE_BENCHMARKS))
+  COMPILE_BENCHMARKS = true
+  export
+
 print_config:
   echo "COMPILE_LIB_LWT: $(COMPILE_LIB_LWT)"
   echo "COMPILE_LIB_ASYNC: $(COMPILE_LIB_ASYNC)"
   echo "COMPILE_APP: $(COMPILE_APP)"
   echo "COMPILE_TESTS: $(COMPILE_TESTS)"
+  echo "COMPILE_TESTS: $(COMPILE_BENCHMARKS)"
   echo "PREFIX: $(PREFIX)"
   echo "BINDIR: $(BINDIR)"
   echo "DOCDIR: $(DOCDIR)"
@@ -300,7 +306,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 
     benchmarks: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
 
-    if $(COMPILE_TESTS)
+    if $(COMPILE_BENCHMARKS)
       echo "conf: Building biocaml benchmarks"
       .DEFAULT: benchmarks
 
