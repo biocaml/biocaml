@@ -1,7 +1,6 @@
 open Biocaml_internal_pervasives
 open Result
-module Pos = Biocaml_pos
-module Line = Biocaml_line
+module Lines = Biocaml_lines
 
 let dbg = Debug.make "fastq"
 
@@ -13,7 +12,7 @@ type item = {
 } with sexp
 
 module Error = Biocaml_fastq_error
-exception Parse_error of Biocaml_pos.t * string
+exception Parse_error of Pos.t * string
 exception Error of Error.t
 
 
@@ -68,9 +67,9 @@ let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
 module Transform = struct
   let string_to_item ?filename () =
     let name = sprintf "fastq_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_lines.Transform.make_merge_error
+    Lines.Transform.make_merge_error
       ~name ?filename ~next:(fun p ->
-        let open Biocaml_lines.Buffer in
+        let open Lines.Buffer in
         if queued_lines p < 4 then
           `not_ready
         else (

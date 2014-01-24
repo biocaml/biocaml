@@ -1,4 +1,5 @@
 (** Jaspar data. *)
+open Biocaml_internal_pervasives
 
 (** The possible kinds of motifs. *)
 type collection =

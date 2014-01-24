@@ -62,8 +62,6 @@ type vcf_row = {
 
 type item = vcf_row
 
-module Pos : module type of Biocaml_pos
-
 type vcf_parse_row_error =
   [ `invalid_int of string
   | `invalid_float of string

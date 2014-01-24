@@ -1,5 +1,7 @@
 (** Transcripts are integer intervals containing a list of
     exons. Exons are themselves defined as a list of integer intervals. *)
+open Biocaml_internal_pervasives
+
 (*
 type 'a transcript = {
   exons : (int * int) list;

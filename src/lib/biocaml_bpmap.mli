@@ -1,4 +1,5 @@
 (** Affymetrix's BPMAP files. Only text format supported. Binary BPMAP files must first be converted to text using Affymetrix's probe exporter tool. *)
+open Biocaml_internal_pervasives
 
 type probe = {
   org_name: string;  (** name of organism on which probe is based *)

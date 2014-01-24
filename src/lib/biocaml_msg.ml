@@ -1,5 +1,4 @@
 open Biocaml_internal_pervasives
-module Pos = Biocaml_pos
 
 let msg ?(pre="MSG") ?pos msg =
   match pos with

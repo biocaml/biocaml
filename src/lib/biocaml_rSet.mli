@@ -1,4 +1,5 @@
 (** Efficient integer sets when many elements expected to be large contiguous sequences of integers. *)
+open Biocaml_internal_pervasives
 
 type t
     (** Type of a set of integers. *)

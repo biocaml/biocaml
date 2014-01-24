@@ -1,7 +1,6 @@
 open Biocaml_internal_pervasives
 module Lines = Biocaml_lines
 module Msg = Biocaml_msg
-module Pos = Biocaml_pos
 module Bpmap = Biocaml_bpmap
 
 type idata = {mean:float; stdv:float; npixels:int}

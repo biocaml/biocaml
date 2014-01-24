@@ -1,7 +1,5 @@
 open Biocaml_internal_pervasives
 open Result
-module Line = Biocaml_line
-module Pos = Biocaml_pos
 
 type item = Line.t with sexp
 
@@ -111,7 +109,7 @@ module Transform = struct
       | `reset s -> (Buffer.create s, Buffer.reset) in
     Biocaml_transform.make ~name:"lines_to_string" ()
       ~feed:(fun l ->
-        Buffer.add_string buffer (l : Biocaml_line.t :> string);
+        Buffer.add_string buffer (l : Line.t :> string);
         Buffer.add_char buffer '\n')
       ~next:(fun stopped ->
         match Buffer.contents buffer with

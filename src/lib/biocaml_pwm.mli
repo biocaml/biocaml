@@ -4,6 +4,7 @@
     to describe a DNA motif. Such matrices can then be searched on 
     a DNA sequence, given a threshold for alignment score.
  *)
+open Biocaml_internal_pervasives
 
 type count_matrix = int array array
   (** Type to represent gap-free alignments. First dimension is 

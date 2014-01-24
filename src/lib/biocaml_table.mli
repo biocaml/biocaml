@@ -1,4 +1,5 @@
 (** Generic “tables” (like CSV, TSV, Bed …). *)
+open Biocaml_internal_pervasives
 
 (** {2 Table Rows/Lines } *)
 
@@ -90,7 +91,7 @@ module Row : sig
 
   val of_line: ?separators:char list ->
     ?strict_row_length:bool -> ?strict_cell_type:bool -> ?format:t_type ->
-    Biocaml_line.t ->
+    Line.t ->
     (t, [> Error.line_parsing ]) Core.Result.t
   (** Parse a [Line.t] into a row while specifying a [format].
      - If [format] is [None] (the default), then all the elements are
@@ -103,7 +104,7 @@ module Row : sig
        then check that each cell has the exactly right format.
   *)
 
-  val to_line: sep:string -> t -> Biocaml_line.t
+  val to_line: sep:string -> t -> Line.t
   (** Write the row to a [Line.t]. *)
 
   (** {3 [Transform.t] Creations} *)

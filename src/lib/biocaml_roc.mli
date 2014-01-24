@@ -7,6 +7,7 @@
     sensitivity and specificity of the classifier as a function of a
     score threshold.
 *)
+open Biocaml_internal_pervasives
 
 type confusion_matrix = private {
   tp : int ;

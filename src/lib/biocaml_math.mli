@@ -1,5 +1,5 @@
 (** Numeric mathematics. *)
-
+open Biocaml_internal_pervasives
 
 (** {6 Arithmetic Operations} *)
 

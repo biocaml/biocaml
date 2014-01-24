@@ -1,7 +1,6 @@
 open Biocaml_internal_pervasives
 open Result
-module Line = Biocaml_line
-module Pos = Biocaml_pos
+module Lines = Biocaml_lines
 
 type item = {
   matches : int;
@@ -30,10 +29,10 @@ type item = {
 
 module Error = struct
   type t = [
-  | `incomplete_input of Biocaml_pos.t * string list * string option
-  | `invalid_int of Biocaml_pos.t * string * string
-  | `invalid_strands of Biocaml_pos.t * string * string
-  | `invalid_number_of_columns of Biocaml_pos.t * string * int
+  | `incomplete_input of Pos.t * string list * string option
+  | `invalid_int of Pos.t * string * string
+  | `invalid_strands of Pos.t * string * string
+  | `invalid_number_of_columns of Pos.t * string * int
   ]
 end
 
@@ -109,9 +108,9 @@ module Transform = struct
 
   let string_to_item ?filename () =
     let name = sprintf "psl_parser:%s" (Option.value ~default:"<>" filename) in
-    Biocaml_lines.Transform.make_merge_error
+    Lines.Transform.make_merge_error
       ~name ?filename ~next:(fun linebuf ->
-        let open Biocaml_lines.Buffer in
+        let open Lines.Buffer in
         let rec get_line () =
           match next_line linebuf with
           | None -> `not_ready

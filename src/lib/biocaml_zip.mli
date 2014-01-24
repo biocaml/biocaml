@@ -1,4 +1,5 @@
 (** Streaming interface to the Zlib library. *)
+open Biocaml_internal_pervasives
 
 (**
 

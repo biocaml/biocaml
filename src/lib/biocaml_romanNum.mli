@@ -1,4 +1,5 @@
 (** Roman numerals. Implementation employs Nathan Mishra Linger's [Roman] module, but an improved interface is provided here. Also, zero is deliberately not supported. *)
+open Biocaml_internal_pervasives
 
 type t
     (** Type of a roman numeral. *)

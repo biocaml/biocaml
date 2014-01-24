@@ -67,7 +67,7 @@ module Row = struct
 
   let of_line ?(separators=[' '; '\t']) ?(strict_row_length=false)
       ?(strict_cell_type=false) ?format line =
-    let l = (line : Biocaml_line.t :> string) in
+    let l = (line : Line.t :> string) in
     let module With_exns = struct
       exception Int_of_string of string
       exception Float_of_string of string
@@ -115,7 +115,7 @@ module Row = struct
       | `int i -> Int.to_string i
       | `float f -> sprintf "%g" f
       | `string s -> s in
-    Biocaml_line.of_string_unsafe
+    Line.of_string_unsafe
       (String.concat_array ~sep (Array.map t ~f:item_to_string))
 
 

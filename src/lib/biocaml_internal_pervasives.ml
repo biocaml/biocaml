@@ -1,3 +1,6 @@
+module Line = Biocaml_line
+module Pos = Biocaml_pos
+
 module Stream = CFStream_stream
 
 include Core.Common

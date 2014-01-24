@@ -17,6 +17,7 @@
     explicitly support buffered transforms where the output type is a
     [Result.t].
 *)
+open Biocaml_internal_pervasives
 
 (** Type of a buffered transform converting ['input]s to
     ['output]s. *)

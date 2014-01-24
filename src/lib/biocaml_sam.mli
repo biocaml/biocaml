@@ -1,4 +1,5 @@
 (** SAM files and SAM-alignements high-level representation. *)
+open Biocaml_internal_pervasives
 
 (** {2 Basic Types} *)
 
@@ -153,12 +154,12 @@ module Error : sig
   (** Errors which can happen while parsing optional content. *)
 
   type string_to_raw = [
-  | `incomplete_input of Biocaml_pos.t * string list * string option
-  | `invalid_header_tag of Biocaml_pos.t * string
-  | `invalid_tag_value_list of Biocaml_pos.t * string list
-  | `not_an_int of Biocaml_pos.t * string * string
-  | `wrong_alignment of Biocaml_pos.t * string
-  | `wrong_optional_field of Biocaml_pos.t * string
+  | `incomplete_input of Pos.t * string list * string option
+  | `invalid_header_tag of Pos.t * string
+  | `invalid_tag_value_list of Pos.t * string list
+  | `not_an_int of Pos.t * string * string
+  | `wrong_alignment of Pos.t * string
+  | `wrong_optional_field of Pos.t * string
   ]
   (** The possible errors one can get while parsing SAM files. *)
 

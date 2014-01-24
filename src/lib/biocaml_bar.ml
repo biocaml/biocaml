@@ -1,7 +1,6 @@
 open Biocaml_internal_pervasives
 module Lines = Biocaml_lines
 module Msg = Biocaml_msg
-module Pos = Biocaml_pos
 
 type header = (string * string) list
 (* list of tag-value pairs *)

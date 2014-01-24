@@ -1,4 +1,4 @@
-include Biocaml_internal_pervasives
+open Biocaml_internal_pervasives
 
 type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
 

@@ -1,6 +1,6 @@
 open Biocaml_internal_pervasives
 open Result
-module Pos = Biocaml_pos
+module Lines = Biocaml_lines
 
 type comment = [
 | `comment of string
@@ -111,7 +111,7 @@ module Transform = struct
       Not_found -> Error (`cannot_parse_key_values (loc, s))
 
   let rec next ~tags p =
-    let open Biocaml_lines.Buffer in
+    let open Lines.Buffer in
     let assoc_find ~missing l v =
       match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
     let assoc_find_map ~missing ~wrong ~f l v =
@@ -199,7 +199,7 @@ module Transform = struct
   let string_to_item ?filename ?(tags=Tags.default) () =
     let name = sprintf "wig_parser:%s" Option.(value ~default:"<>" filename) in
     let next = next ~tags in
-    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
+    Lines.Transform.make_merge_error ~name ?filename ~next ()
 
 
   let item_to_string ?(tags=Tags.default) () =

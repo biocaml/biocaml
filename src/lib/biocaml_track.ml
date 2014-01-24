@@ -3,6 +3,7 @@ open Result
 module Wig = Biocaml_wig
 module Gff = Biocaml_gff
 module Bed = Biocaml_bed
+module Lines = Biocaml_lines
 
 type t = [
 | `track of (string * string) list
@@ -17,8 +18,8 @@ type track = t
 
 module Error = struct
   type parsing =
-    [ `incomplete_input of Biocaml_pos.t * string list * string option
-    | `wrong_browser_position of Biocaml_pos.t * string
+    [ `incomplete_input of Pos.t * string list * string option
+    | `wrong_browser_position of Pos.t * string
     | `wrong_key_value_format of (string * string) list * string * string ]
   with sexp
 
@@ -78,7 +79,7 @@ module Transform = struct
     return (`track (List.rev kv))
 
   let rec next p =
-    let open Biocaml_lines.Buffer in
+    let open Lines.Buffer in
     match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" -> next p
@@ -96,7 +97,7 @@ module Transform = struct
 
   let string_to_string_content ?filename () =
     let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
+    Lines.Transform.make_merge_error ~name ?filename ~next ()
 
   let needs_escaping s =
     String.exists s

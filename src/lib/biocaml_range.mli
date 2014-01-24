@@ -1,4 +1,5 @@
 (** Ranges of contiguous integers (integer intervals). A range is a contiguous sequence of integers from a lower bound to an upper bound. For example, [\[2, 10\]] is the set of integers from 2 through 10, inclusive of 2 and 10. *)
+open Biocaml_internal_pervasives
 
 type t = private {lo:int; hi:int} with sexp
     (** Type of a range. *)

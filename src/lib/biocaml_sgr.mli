@@ -1,4 +1,5 @@
 (** Sequence Graph (SGR) files. *)
+open Biocaml_internal_pervasives
 
 type t
 

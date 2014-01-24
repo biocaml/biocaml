@@ -1,5 +1,4 @@
 open Biocaml_internal_pervasives
-module Pos = Biocaml_pos
 
 type ('input, 'output) t = {
   name: string option;

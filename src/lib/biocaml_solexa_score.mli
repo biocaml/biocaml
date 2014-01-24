@@ -17,6 +17,7 @@
     reason for this minimum based on the general definition of Solexa
     scores.
 *)
+open Biocaml_internal_pervasives
 
 exception Error of string
 

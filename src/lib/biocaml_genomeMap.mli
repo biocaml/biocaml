@@ -1,3 +1,5 @@
+open Biocaml_internal_pervasives
+
 type range = Biocaml_range.t
 type 'a location = 'a * range
 

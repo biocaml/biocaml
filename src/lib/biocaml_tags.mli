@@ -1,5 +1,5 @@
 (** Meta-information about files and their formats. *)
-
+open Biocaml_internal_pervasives
 
 type file_format = [
 | `gzip of file_format

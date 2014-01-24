@@ -9,7 +9,7 @@ type item = {
 } with sexp
 
 module Error : module type of Biocaml_fastq_error
-exception Parse_error of Biocaml_pos.t * string
+exception Parse_error of Pos.t * string
 exception Error of Error.t
 
 
@@ -58,18 +58,18 @@ val item_to_string: item -> string
     All raise [Parse_error].
 *)
 
-val name_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-val sequence_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
-val comment_of_line : ?pos:Biocaml_pos.t -> Biocaml_line.t -> string
+val name_of_line : ?pos:Pos.t -> Line.t -> string
+val sequence_of_line : ?pos:Pos.t -> Line.t -> string
+val comment_of_line : ?pos:Pos.t -> Line.t -> string
 
 (** [qualities sequence line] parses given qualities [line] in the
     context of a previously parsed [sequence]. The [sequence] is
     needed to assure the correct number of quality scores are
     provided. If not provided, this check is omitted. *)
 val qualities_of_line :
-  ?pos:Biocaml_pos.t ->
+  ?pos:Pos.t ->
   ?sequence:string ->
-  Biocaml_line.t ->
+  Line.t ->
   string
 
 

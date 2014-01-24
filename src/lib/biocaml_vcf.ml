@@ -1,6 +1,5 @@
 open Biocaml_internal_pervasives
-
-module Pos = Biocaml_pos
+module Lines = Biocaml_lines
 
 module Safe = struct
   type error = [ `invalid_int of string
@@ -426,7 +425,7 @@ type item = vcf_row
 
 module Transform = struct
   let next_vcf_header meta p =
-    let open Biocaml_lines.Buffer in
+    let open Lines.Buffer in
     let open Result in
     let { vcfm_info; vcfm_format; _ } = meta in
     let l = Option.value_exn (next_line p :> string option) in
@@ -468,7 +467,7 @@ module Transform = struct
     end
 
   let next_vcf_meta meta p =
-    let open Biocaml_lines.Buffer in
+    let open Lines.Buffer in
     let open Result in
     let { vcfm_info; vcfm_filters; vcfm_format; vcfm_alt; _ } = meta in
     match (peek_line p :> string option) with
@@ -520,8 +519,8 @@ module Transform = struct
       | None -> fail `not_ready
 
   let next_vcf_row meta p =
-    let open Biocaml_line in
-    let open Biocaml_lines.Buffer in
+    let open Line in
+    let open Lines.Buffer in
     let open Result in
     match (next_line p :> string option) with
       | Some l when not (String.is_empty l) ->
@@ -548,5 +547,5 @@ module Transform = struct
   let string_to_item ?filename () =
     let name = sprintf "vcf_parser:%s" Option.(value ~default:"<>" filename) in
     let meta_ref = ref (`partial default_meta) in
-    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next:(next meta_ref) ()
+    Lines.Transform.make_merge_error ~name ?filename ~next:(next meta_ref) ()
 end

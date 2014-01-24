@@ -27,6 +27,7 @@
     tab. Tag-value pairs must be in the form "tag=value" with no space
     around the '='.
 *)
+open Biocaml_internal_pervasives
 
 (** {2 Basic Types} *)
 
@@ -62,19 +63,19 @@ module Error: sig
 
 
   type parsing = [
-    | `cannot_parse_key_values of Biocaml_pos.t * string
-    | `empty_line of Biocaml_pos.t
-    | `incomplete_input of Biocaml_pos.t * string list * string option
-    | `missing_chrom_value of Biocaml_pos.t * string
-    | `missing_start_value of Biocaml_pos.t * string
-    | `missing_step_value of Biocaml_pos.t * string
-    | `wrong_start_value of Biocaml_pos.t * string
-    | `wrong_step_value of Biocaml_pos.t * string
-    | `unrecognizable_line of Biocaml_pos.t * string list
-    | `wrong_bed_graph_value of Biocaml_pos.t * string
-    | `wrong_fixed_step_value of Biocaml_pos.t * string
-    | `wrong_span_value of Biocaml_pos.t * string
-    | `wrong_variable_step_value of Biocaml_pos.t * string
+    | `cannot_parse_key_values of Pos.t * string
+    | `empty_line of Pos.t
+    | `incomplete_input of Pos.t * string list * string option
+    | `missing_chrom_value of Pos.t * string
+    | `missing_start_value of Pos.t * string
+    | `missing_step_value of Pos.t * string
+    | `wrong_start_value of Pos.t * string
+    | `wrong_step_value of Pos.t * string
+    | `unrecognizable_line of Pos.t * string list
+    | `wrong_bed_graph_value of Pos.t * string
+    | `wrong_fixed_step_value of Pos.t * string
+    | `wrong_span_value of Pos.t * string
+    | `wrong_variable_step_value of Pos.t * string
   ]
   (** The parsing errors. *)
 

@@ -4,19 +4,19 @@ open Biocaml_internal_pervasives
 (** [`sequence_qualities_mismatch (pos, sequence, qualities)]
     means [sequence] and [qualities] are of different lengths. *)
 type sequence_qualities_mismatch = [
-  `sequence_qualities_mismatch of Biocaml_pos.t * string * string
+  `sequence_qualities_mismatch of Pos.t * string * string
 ] with sexp
 
 (** [`invalid_name (pos, name)] means [name] doesn't start with
     '@'. *)
 type invalid_name = [
-  `invalid_name of Biocaml_pos.t * string
+  `invalid_name of Pos.t * string
 ] with sexp
 
 (** [`invalid_comment (pos, comment)] means [comment] doesn't start
     with '+'. *)
 type invalid_comment = [
-  `invalid_comment of Biocaml_pos.t * string
+  `invalid_comment of Pos.t * string
 ] with sexp
 
 (** [`incomplete_input (pos, lines, s)] means input ended prematurely
@@ -24,7 +24,7 @@ type invalid_comment = [
     [lines] parsed are provided, possibly followed by a partial line
     [s] that didn't end in a newline. *)
 type incomplete_input = [
-  `incomplete_input of Biocaml_pos.t * string list * string option
+  `incomplete_input of Pos.t * string list * string option
 ] with sexp
 
 (** [`cannot_convert_to_phred_score l] means the int list [l] cannot
@@ -73,16 +73,16 @@ let t_to_string (t : t) : string =
   match t with
   | `sequence_qualities_mismatch (pos, s,q) ->
     sprintf "[%s]: sequence and qualities do not match (%d Vs %d characters)"
-      (Biocaml_pos.to_string pos) String.(length s) String.(length q)
+      (Pos.to_string pos) String.(length s) String.(length q)
   | `invalid_comment (pos, line) ->
     sprintf "[%s]: wrong comment line: %S"
-      (Biocaml_pos.to_string pos) (string_sample line 14)
+      (Pos.to_string pos) (string_sample line 14)
   | `invalid_name (pos, line) ->
     sprintf "[%s]: wrong name line: %S"
-      (Biocaml_pos.to_string pos) (string_sample line 14)
+      (Pos.to_string pos) (string_sample line 14)
   | `incomplete_input (pos, sl, so) ->
     sprintf "[%s]: end-of-stream reached with incomplete input: %S"
-      (Biocaml_pos.to_string pos)
+      (Pos.to_string pos)
       (String.concat ~sep:"\n" sl ^ Option.value ~default:"" so)
   | other ->
     sexp_of_t other |> Sexplib.Sexp.to_string_hum

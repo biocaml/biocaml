@@ -3,6 +3,8 @@
     for the most part, this module simply includes Core modules, sometimes
     with a few functions added. A few modules are completely new.
 *)
+module Line : module type of Biocaml_line with type t = Biocaml_line.t
+module Pos : module type of Biocaml_pos with type t = Biocaml_pos.t
 
 module Stream : module type of CFStream_stream
 

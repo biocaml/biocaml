@@ -1,7 +1,7 @@
 (** Read mzData files (mass spectrometry data format).
 
  *)
-
+open Biocaml_internal_pervasives
 open Bigarray
 
 type vec = (float, float64_elt, fortran_layout) Array1.t

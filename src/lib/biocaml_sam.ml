@@ -1,6 +1,7 @@
 open Biocaml_internal_pervasives
 open Result
 module Phred_score = Biocaml_phred_score
+module Lines = Biocaml_lines
 
 let dbg fmt = Debug.make "SAM" fmt
 
@@ -151,12 +152,12 @@ module Error = struct
   with sexp
 
   type string_to_raw = [
-  | `incomplete_input of Biocaml_pos.t * string list * string option
-  | `invalid_header_tag of Biocaml_pos.t * string
-  | `invalid_tag_value_list of Biocaml_pos.t * string list
-  | `not_an_int of Biocaml_pos.t * string * string
-  | `wrong_alignment of Biocaml_pos.t * string
-  | `wrong_optional_field of Biocaml_pos.t * string
+  | `incomplete_input of Pos.t * string list * string option
+  | `invalid_header_tag of Pos.t * string
+  | `invalid_tag_value_list of Pos.t * string list
+  | `not_an_int of Pos.t * string * string
+  | `wrong_alignment of Pos.t * string
+  | `wrong_optional_field of Pos.t * string
   ]
   with sexp
 
@@ -434,7 +435,7 @@ module Transform = struct
 
 
   let rec next p =
-    let open Biocaml_lines.Buffer in
+    let open Lines.Buffer in
     match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" -> next p
@@ -445,7 +446,7 @@ module Transform = struct
 
   let string_to_raw ?filename () =
     let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
-    Biocaml_lines.Transform.make_merge_error ~name ?filename ~next ()
+    Lines.Transform.make_merge_error ~name ?filename ~next ()
 
   let reference_sequence_to_header rs =
     ("SN", rs.ref_name)

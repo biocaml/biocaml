@@ -47,6 +47,7 @@
     - [type] - "wiggle_0" is the only value currently supported,
       leaving this attribute unset handles other track types
 *)
+open Biocaml_internal_pervasives
 
 (** {2 Item Types} *)
 
@@ -67,8 +68,8 @@ type 'a content = [
 
 module Error: sig
   type parsing =
-    [ `incomplete_input of Biocaml_pos.t * string list * string option
-    | `wrong_browser_position of Biocaml_pos.t * string
+    [ `incomplete_input of Pos.t * string list * string option
+    | `wrong_browser_position of Pos.t * string
     | `wrong_key_value_format of (string * string) list * string * string ]
   (** The parsing errors that can happen while parsing Track-specific
       content. *)

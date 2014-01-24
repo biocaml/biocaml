@@ -53,6 +53,7 @@
     mean specifically a sequence of integers.
 
 *)
+open Biocaml_internal_pervasives
 
 (** {2 Fasta Content Type Definitions } *)
 
@@ -98,7 +99,7 @@ module Tags: sig
   val to_string: t -> string
   (** Serialize tags (for now S-Expressions). *)
 
-  val of_string: string -> (t, [> `tags_of_string of exn]) Core.Result.t
+  val of_string: string -> (t, [> `tags_of_string of exn]) Result.t
   (** Parse tags (for now S-Expressions). *)
 
   val t_of_sexp: Sexplib.Sexp.t -> t
@@ -137,10 +138,10 @@ module Error : sig
   *)
 
   type string_to_raw_item = [
-  | `empty_line of Biocaml_pos.t
-  | `incomplete_input of Biocaml_pos.t * string list * string option
-  | `malformed_partial_sequence of Biocaml_pos.t * string
-  | `sequence_is_too_long of Biocaml_pos.t * string
+  | `empty_line of Pos.t
+  | `incomplete_input of Pos.t * string list * string option
+  | `malformed_partial_sequence of Pos.t * string
+  | `sequence_is_too_long of Pos.t * string
   ]
   (** Errors raised when converting a string to a {!type: raw_item}. *)
 
@@ -168,7 +169,7 @@ val in_channel_to_char_seq_item_stream :
   ?filename:string ->
   ?tags:Tags.t ->
   in_channel ->
-  (char_seq item, [> Error.t]) Core.Result.t Stream.t
+  (char_seq item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [char_seq item] results. *)
 
 val in_channel_to_int_seq_item_stream :
@@ -176,7 +177,7 @@ val in_channel_to_int_seq_item_stream :
   ?filename:string ->
   ?tags:Tags.t ->
   in_channel ->
-  (int_seq item, [> Error.t]) Core.Result.t Stream.t
+  (int_seq item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq item] results. *)
 
 
@@ -242,7 +243,7 @@ val in_channel_to_char_seq_raw_item_stream :
   ?filename:string ->
   ?tags:Tags.t ->
   in_channel ->
-  (char_seq raw_item, [> Error.t]) Core.Result.t Stream.t
+  (char_seq raw_item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [char_seq raw_item] results. *)
 
 val in_channel_to_int_seq_raw_item_stream :
@@ -250,7 +251,7 @@ val in_channel_to_int_seq_raw_item_stream :
   ?filename:string ->
   ?tags:Tags.t ->
   in_channel ->
-  (int_seq raw_item, [> Error.t]) Core.Result.t Stream.t
+  (int_seq raw_item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq raw_item] results. *)
 
 val in_channel_to_char_seq_raw_item_stream_exn :
@@ -291,13 +292,13 @@ module Transform: sig
     ?filename:string ->
     ?tags:Tags.t ->
     unit ->
-    (string, (char_seq raw_item, [> Error.t]) Core.Result.t) Biocaml_transform.t
+    (string, (char_seq raw_item, [> Error.t]) Result.t) Biocaml_transform.t
   (** Parse a stream of strings as a char_seq FASTA file. *)
 
   val char_seq_raw_item_to_item:
     unit ->
     (char_seq raw_item,
-     (char_seq item, [> `unnamed_char_seq of char_seq ]) Core.Result.t)
+     (char_seq item, [> `unnamed_char_seq of char_seq ]) Result.t)
       Biocaml_transform.t
   (** Aggregate a stream of FASTA [char_seq raw_item]s into [char_seq
       item]s. Comments are discared. *)
@@ -328,13 +329,13 @@ module Transform: sig
     ?filename:string ->
     ?tags:Tags.t ->
     unit ->
-    (string, (int_seq raw_item, [> Error.t]) Core.Result.t) Biocaml_transform.t
+    (string, (int_seq raw_item, [> Error.t]) Result.t) Biocaml_transform.t
   (** Parse a stream of strings as an int_seq FASTA file. *)
 
   val int_seq_raw_item_to_item:
     unit ->
     (int_seq raw_item,
-     (int_seq item, [> `unnamed_int_seq of int_seq ]) Core.Result.t)
+     (int_seq item, [> `unnamed_int_seq of int_seq ]) Result.t)
       Biocaml_transform.t
   (** Aggregate a stream of FASTA [int_seq raw_item]s into [int_seq
       item]s. Comments are discared. *)
@@ -375,7 +376,7 @@ module Random: sig
 
   val specification_of_string: string ->
     (specification list, [> `fasta of [> `parse_specification of exn]])
-      Core.Std.Result.t
+      Result.t
   (** Parse a [specification] from a [string]. Right now, the DSL is
       based on S-Expressions. *)
 
@@ -384,7 +385,7 @@ module Random: sig
 
   val unit_to_random_char_seq_raw_item: [> specification] list ->
     ((unit, char_seq raw_item) Biocaml_transform.t,
-     [> `inconsistent_tags of [> `int_sequence ]]) Core.Result.t
+     [> `inconsistent_tags of [> `int_sequence ]]) Result.t
   (** Create a transformation that generates random [char_seq
       raw_item] values according to the specification. *)
 

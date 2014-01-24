@@ -5,6 +5,7 @@ This module provides parsing from [string] buffers to [raw_item]s
 (minimal parsing), and conversion from [raw_item]s to [Sam.item]s
 (higher-level constructs).
 *)
+open Biocaml_internal_pervasives
 
 (** {2 Item Types} *)
 

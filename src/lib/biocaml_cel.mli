@@ -2,6 +2,7 @@
     must be converted using Affymetrix's conversion tool. This tool does
     not change file extension, so be sure your file really is in text
     format. *)
+open Biocaml_internal_pervasives
 
 type t
 (** The type of a CEL file. *)

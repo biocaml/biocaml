@@ -1,4 +1,5 @@
 (** Strand names. *)
+open Biocaml_internal_pervasives
 
 type t
     (** Type of strand. *)

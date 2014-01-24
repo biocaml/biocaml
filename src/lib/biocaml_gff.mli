@@ -21,6 +21,7 @@
       }
     }
 *)
+open Biocaml_internal_pervasives
 
 (** {2 GFF Item Types} *)
 
@@ -46,15 +47,15 @@ module Error: sig
 
 
   type parsing =
-    [ `cannot_parse_float of Biocaml_pos.t * string
-    | `cannot_parse_int of Biocaml_pos.t * string
-    | `cannot_parse_strand of Biocaml_pos.t * string
-    | `cannot_parse_string of Biocaml_pos.t * string
-    | `empty_line of Biocaml_pos.t
-    | `incomplete_input of Biocaml_pos.t * string list * string option
-    | `wrong_attributes of Biocaml_pos.t * string
-    | `wrong_row of Biocaml_pos.t * string
-    | `wrong_url_escaping of Biocaml_pos.t * string ]
+    [ `cannot_parse_float of Pos.t * string
+    | `cannot_parse_int of Pos.t * string
+    | `cannot_parse_strand of Pos.t * string
+    | `cannot_parse_string of Pos.t * string
+    | `empty_line of Pos.t
+    | `incomplete_input of Pos.t * string list * string option
+    | `wrong_attributes of Pos.t * string
+    | `wrong_row of Pos.t * string
+    | `wrong_url_escaping of Pos.t * string ]
   (** The possible parsing errors. *)
 
   type t = parsing

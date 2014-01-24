@@ -1,6 +1,5 @@
 open Biocaml_internal_pervasives
 module Msg = Biocaml_msg
-module Pos = Biocaml_pos
 module Seq = Biocaml_seq
 module Lines = Biocaml_lines
 

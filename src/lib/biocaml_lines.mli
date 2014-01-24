@@ -1,7 +1,7 @@
 (** Manipulate the lines of a file. *)
+open Biocaml_internal_pervasives
 
-
-type item = Biocaml_line.t
+type item = Line.t
 (** [Lines.item] is a [Line.t] *)
 
 module Error : sig
@@ -67,7 +67,7 @@ module Buffer : sig
   (** Get the next line, but throw [No_next_line] if there is no line
       to return. *)
 
-  val current_position: t -> Biocaml_pos.t
+  val current_position: t -> Pos.t
   (** Get the current position in the stream. *)
 
   val contents : t -> item list * string option
@@ -108,7 +108,7 @@ module Transform : sig
       [ `not_ready | `output of ('b, 'errnext) Core.Result.t ]) ->
     on_error:(
       [`next of 'errnext
-      | `incomplete_input of Biocaml_pos.t * string list * string option] ->
+      | `incomplete_input of Pos.t * string list * string option] ->
         'err) ->
     unit ->
     (string, ('b, 'err) Core.Result.t) Biocaml_transform.t
@@ -122,7 +122,7 @@ module Transform : sig
       [ `not_ready
       | `output of ('a,
                    [> `incomplete_input of
-                     Biocaml_pos.t * string list * string option ]
+                     Pos.t * string list * string option ]
                      as 'b) Core.Result.t ]) ->
     unit ->
     (string, ('a, 'b) Core.Result.t) Biocaml_transform.t
