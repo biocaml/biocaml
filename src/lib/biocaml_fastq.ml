@@ -12,7 +12,7 @@ type item = {
 } with sexp
 
 module Error = Biocaml_fastq_error
-exception Parse_error of Pos.t * string
+exception Parse_error of Error.parsing
 exception Error of Error.t
 
 
@@ -30,9 +30,14 @@ let name_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
   if n = 0 || line.[0] <> '@' then
-    raise (Parse_error (pos, "name line must begin with '@'"))
+    Result.Error (`invalid_name (pos, line))
   else
-    String.sub line ~pos:1 ~len:(n-1)
+    Ok (String.sub line ~pos:1 ~len:(n-1))
+
+let name_of_line_exn ?(pos=Pos.unknown) line =
+  match name_of_line ~pos line with
+  | Ok x -> x
+  | Result.Error x -> raise (Parse_error x)
 
 let sequence_of_line ?(pos=Pos.unknown) line =
   (line : Line.t :> string)
@@ -41,24 +46,31 @@ let comment_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
   if n = 0 || line.[0] <> '+' then
-    raise (Parse_error (pos, "comment line must begin with '+'"))
+    Result.Error (`invalid_comment (pos,line))
   else
-    String.sub line ~pos:1 ~len:(n-1)
+    Ok (String.sub line ~pos:1 ~len:(n-1))
+
+let comment_of_line_exn ?(pos=Pos.unknown) line =
+  match comment_of_line ~pos line with
+  | Ok x -> x
+  | Result.Error x -> raise (Parse_error x)
 
 let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
   let line = (line : Line.t :> string) in
   match sequence with
-  | None -> line
+  | None -> Ok line
   | Some sequence ->
     let m = String.length sequence in
     let n = String.length line in
     if m <> n then
-      raise (Parse_error (
-        pos,
-        sprintf "got %d quality scores for %d sequence items" m n
-      ))
+      Result.Error (`sequence_qualities_mismatch (pos,sequence,line))
     else
-      line
+      Ok line
+
+let qualities_of_line_exn ?(pos=Pos.unknown) ?sequence line =
+  match qualities_of_line ~pos ?sequence line with
+  | Ok x -> x
+  | Result.Error x -> raise (Parse_error x)
 
 
 (******************************************************************************)
@@ -190,33 +202,35 @@ let in_channel_to_item_stream_exn ?(buffer_size=65536) ?filename inp =
 module MakeIO (Future : Future.S) = struct
   open Future
 
-  let read ic =
+  let read_exn ic =
     let read_one ic =
       Reader.read_line ic >>= function
       | `Eof -> return `Eof
       | `Ok line -> (
-        let name = name_of_line (Line.of_string_unsafe line) in
+        let name = name_of_line_exn (Line.of_string_unsafe line) in
         Reader.read_line ic >>= function
         | `Eof -> fail (
-          Parse_error
-            (Pos.unknown, "premature end-of-input, no sequence line")
+          Parse_error (`incomplete_input (Pos.unknown, [name], None))
         )
         | `Ok line -> (
           let sequence = sequence_of_line (Line.of_string_unsafe line) in
           Reader.read_line ic >>= function
           | `Eof -> fail (
-            Parse_error
-              (Pos.unknown, "premature end-of-input, no comment line")
+            Parse_error (`incomplete_input (Pos.unknown, [name;sequence], None))
           )
           | `Ok line -> (
-            let comment = comment_of_line (Line.of_string_unsafe line) in
+            let comment = comment_of_line_exn (Line.of_string_unsafe line) in
             Reader.read_line ic >>= function
             | `Eof -> fail (
-              Parse_error
-                (Pos.unknown, "premature end-of-input, no qualities line")
+              Parse_error (
+                `incomplete_input
+                  (Pos.unknown, [name;sequence;comment], None)
+              )
             )
             | `Ok line ->
-              let qualities = qualities_of_line (Line.of_string_unsafe line) in
+              let qualities =
+                qualities_of_line_exn (Line.of_string_unsafe line)
+              in
               return (`Ok {name; sequence; comment; qualities})
           ) ) )
     in

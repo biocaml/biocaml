@@ -9,7 +9,7 @@ type item = {
 } with sexp
 
 module Error : module type of Biocaml_fastq_error
-exception Parse_error of Pos.t * string
+exception Parse_error of Error.parsing
 exception Error of Error.t
 
 
@@ -32,7 +32,7 @@ val in_channel_to_item_stream_exn :
 
 module MakeIO (Future : Future.S) : sig
   open Future
-  val read : Reader.t -> item Pipe.Reader.t
+  val read_exn : Reader.t -> item Pipe.Reader.t
 end
 include module type of MakeIO(Future_std)
 
@@ -55,12 +55,20 @@ val item_to_string: item -> string
     reporting. The column should always be 1 because by definition a
     line starts at the beginning.
 
-    All raise [Parse_error].
+    Functions ending in _exn raise Parse_error.
 *)
 
-val name_of_line : ?pos:Pos.t -> Line.t -> string
+val name_of_line :
+  ?pos:Pos.t ->
+  Line.t ->
+  (string, [> Error.invalid_name]) Result.t
+
 val sequence_of_line : ?pos:Pos.t -> Line.t -> string
-val comment_of_line : ?pos:Pos.t -> Line.t -> string
+
+val comment_of_line :
+  ?pos:Pos.t ->
+  Line.t ->
+  (string, [> Error.invalid_comment]) Result.t
 
 (** [qualities sequence line] parses given qualities [line] in the
     context of a previously parsed [sequence]. The [sequence] is
@@ -70,7 +78,12 @@ val qualities_of_line :
   ?pos:Pos.t ->
   ?sequence:string ->
   Line.t ->
-  string
+  (string, [> Error.sequence_qualities_mismatch]) Result.t
+
+
+val name_of_line_exn : ?pos:Pos.t -> Line.t -> string
+val comment_of_line_exn : ?pos:Pos.t -> Line.t -> string
+val qualities_of_line_exn : ?pos:Pos.t -> ?sequence:string -> Line.t -> string
 
 
 (** {2 Transforms } *)
