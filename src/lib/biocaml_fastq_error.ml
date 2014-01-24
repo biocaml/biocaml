@@ -1,22 +1,22 @@
 (** Fastq errors. *)
 open Biocaml_internal_pervasives
 
-(** [`sequence_and_qualities_do_not_match (pos, sequence, qualities)]
+(** [`sequence_qualities_mismatch (pos, sequence, qualities)]
     means [sequence] and [qualities] are of different lengths. *)
-type sequence_and_qualities_do_not_match = [
-  `sequence_and_qualities_do_not_match of Biocaml_pos.t * string * string
+type sequence_qualities_mismatch = [
+  `sequence_qualities_mismatch of Biocaml_pos.t * string * string
 ] with sexp
 
-(** [`wrong_name_line (pos, name)] means [name] doesn't start with
+(** [`invalid_name (pos, name)] means [name] doesn't start with
     '@'. *)
-type wrong_name_line = [
-  `wrong_name_line of Biocaml_pos.t * string
+type invalid_name = [
+  `invalid_name of Biocaml_pos.t * string
 ] with sexp
 
-(** [`wrong_comment_line (pos, comment)] means [comment] doesn't start
+(** [`invalid_comment (pos, comment)] means [comment] doesn't start
     with '+'. *)
-type wrong_comment_line = [
-  `wrong_comment_line of Biocaml_pos.t * string
+type invalid_comment = [
+  `invalid_comment of Biocaml_pos.t * string
 ] with sexp
 
 (** [`incomplete_input (pos, lines, s)] means input ended prematurely
@@ -46,17 +46,17 @@ type fasta_pair_to_fastq = [
 
 (** Parse errors. *)
 type parsing = [
-| sequence_and_qualities_do_not_match
-| wrong_comment_line
-| wrong_name_line
+| sequence_qualities_mismatch
+| invalid_comment
+| invalid_name
 | incomplete_input
 ] with sexp
 
 (** Union of all possible errors. *)
 type t = [
-| sequence_and_qualities_do_not_match
-| wrong_comment_line
-| wrong_name_line
+| sequence_qualities_mismatch
+| invalid_comment
+| invalid_name
 | incomplete_input
 | cannot_convert_to_phred_score
 | sequence_names_mismatch
@@ -71,13 +71,13 @@ let t_to_string (t : t) : string =
       String.sub s ~pos:0 ~len:n ^ "..."
   in
   match t with
-  | `sequence_and_qualities_do_not_match (pos, s,q) ->
+  | `sequence_qualities_mismatch (pos, s,q) ->
     sprintf "[%s]: sequence and qualities do not match (%d Vs %d characters)"
       (Biocaml_pos.to_string pos) String.(length s) String.(length q)
-  | `wrong_comment_line (pos, line) ->
+  | `invalid_comment (pos, line) ->
     sprintf "[%s]: wrong comment line: %S"
       (Biocaml_pos.to_string pos) (string_sample line 14)
-  | `wrong_name_line (pos, line) ->
+  | `invalid_name (pos, line) ->
     sprintf "[%s]: wrong name line: %S"
       (Biocaml_pos.to_string pos) (string_sample line 14)
   | `incomplete_input (pos, sl, so) ->

@@ -76,17 +76,17 @@ module Transform = struct
         else (
           let name_line  = (next_line_exn p :> string) in
           if String.length name_line = 0 || name_line.[0] <> '@'
-          then output_error (`wrong_name_line (current_position p, name_line))
+          then output_error (`invalid_name (current_position p, name_line))
           else
             let sequence     = (next_line_exn p :> string) in
             let comment_line = (next_line_exn p :> string) in
             if String.length comment_line = 0 || comment_line.[0] <> '+'
-            then output_error (`wrong_comment_line (current_position p, comment_line))
+            then output_error (`invalid_comment (current_position p, comment_line))
             else
               let qualities    = (next_line_exn p :> string) in
               if String.length sequence <> String.length qualities
               then output_error
-                (`sequence_and_qualities_do_not_match (current_position p,
+                (`sequence_qualities_mismatch (current_position p,
                                                       sequence, qualities))
               else (
                 output_ok {
