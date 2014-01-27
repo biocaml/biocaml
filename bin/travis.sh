@@ -10,14 +10,12 @@ case "$OCAML_VERSION,$OPAM_VERSION" in
 *) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
 esac
 
-echo "yes" | sudo add-apt-repository ppa:$ppa
+sudo add-apt-repository ppa:$ppa
 sudo apt-get update -qq
 sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra opam
 export OPAMYES=1
 export OPAMVERBOSE=1
-echo OCaml version
 ocaml -version
-echo OPAM versions
 opam --version
 opam --git-version
 
@@ -27,16 +25,10 @@ opam remote add biorepo git://github.com/biocaml/dev-opam-repo.git
 opam update
 opam pin flow git://github.com/smondet/flow
 
-echo "==== Installing $OPAM_DEPENDS ===="
 opam install ${OPAM_DEPENDS}
 
 eval `opam config env`
-echo "==== Build ===="
 omake
-echo "==== Test ===="
 omake run_tests
-echo "==== Bench ===="
 _build/benchmarks/biocaml_benchmarks -help
-echo "==== Doc ===="
 omake doc
-
