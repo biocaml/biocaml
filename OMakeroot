@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: lib lib_lwt lib_async app tests run_tests benchmarks odoc doc \
+.PHONY: lib lib_lwt lib_async app tests benchmarks odoc doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
@@ -291,9 +291,6 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       echo "conf: Building biocaml tests"
       .DEFAULT: tests
 
-  # Run tests
-  run_tests: _build/tests/$(TESTS_NAME)
-    $<
 
   ##############################################################################
   # Benchmarks

@@ -27,6 +27,6 @@ opam update
 opam install ${OPAM_DEPENDS}
 
 omake
-omake run_tests
+_build/tests/biocaml_tests
 _build/benchmarks/biocaml_benchmarks -help
 omake doc
