@@ -20,12 +20,12 @@ opam --version
 opam --git-version
 
 opam init 
+eval `opam config env`
 opam remote add biorepo git://github.com/biocaml/dev-opam-repo.git
 opam update
 
 opam install ${OPAM_DEPENDS}
 
-eval `opam config env`
 omake
 omake run_tests
 _build/benchmarks/biocaml_benchmarks -help
