@@ -14,7 +14,6 @@ sudo add-apt-repository -y ppa:$ppa
 sudo apt-get update -qq
 sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra aspcud opam
 export OPAMYES=1
-export OPAMVERBOSE=1
 ocaml -version
 opam --version
 opam --git-version
