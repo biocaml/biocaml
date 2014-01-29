@@ -32,10 +32,6 @@ depends: [
 
 depopts: ["flow" "lwt" "async"]
 
-build-test: [
-  ["omake" "-j2" "tests"]
-]
-
 build-doc: [
   ["omake" "-j2" "doc"]
   ["omake" "install_doc" "DOCDIR=%{doc}%/biocaml"]
