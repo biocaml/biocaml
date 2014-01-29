@@ -5,6 +5,7 @@ _build/
 /OMakeroot.omc
 /configure.om
 /configure.omc
+biocaml.install
 *~
 tmp/
 .bzrignore

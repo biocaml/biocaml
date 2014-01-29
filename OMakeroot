@@ -366,6 +366,15 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 
 ################################################################################
 # OPAM Support
+if $(not $(defined OPAM_PACKAGE_NAME))
+  OPAM_PACKAGE_NAME = $(PROJECT)
+  export
+
+$(OPAM_PACKAGE_NAME).install:
+  echo $"bin: [" > $@
+  echo "  "\"?_build/app/$(APP_NAME).run\" {\"$(APP_NAME)\"} >> $@
+  echo "  "\"?_build/app/$(APP_NAME).opt\" {\"$(APP_NAME)\"} >> $@
+  echo $"]" >> $@
 
 
 ################################################################################
