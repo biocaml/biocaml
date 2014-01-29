@@ -214,11 +214,11 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       echo "requires = \"$(LIB_PACKAGES)\"" >> META
 
     install_lib: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_lib
-      ocamlfind install $(LIB_NAME) META \
+      ocamlfind install $(PROJECT) META \
         *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa *.a -dll *.so
 
     uninstall_lib:
-      ocamlfind remove $(LIB_NAME)
+      ocamlfind remove $(PROJECT)
 
     lib: $(OCamlLibraryWithCFiles $(LIB_NAME), $(LIB_MODULES), $(LIB_STUBS))
 
@@ -362,6 +362,10 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     rm -rf $(DOCDIR)
     mkdir -p $(DOCDIR)
     cp -r _build/doc/api $(DOCDIR)
+
+
+################################################################################
+# OPAM Support
 
 
 ################################################################################
