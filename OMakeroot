@@ -266,10 +266,11 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       echo "conf: Building biocaml application"
       .DEFAULT: app
 
-  install_app: _build/app/$(APP_NAME)
-    echo "Installing $< in $(BINDIR)"
-    mkdir -p $(BINDIR)
-    install $< $(BINDIR)
+  if $(COMPILE_APP)
+    install_app: _build/app/$(APP_NAME)
+      echo "Installing $< in $(BINDIR)"
+      mkdir -p $(BINDIR)
+      install $< $(BINDIR)
 
   uninstall_app:
     echo "Removing $(APP_NAME) from $(BINDIR)"
