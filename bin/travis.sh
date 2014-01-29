@@ -29,3 +29,11 @@ omake
 _build/tests/biocaml_tests
 _build/benchmarks/biocaml_benchmarks -help
 omake doc
+
+# publish documentation
+opam install travis-senv
+mkdir ~/.ssh
+chmod 700 ~/.ssh
+travis-senv decrypt -p ID_RSA > ~/.ssh/id_rsa
+chmod 600 ~/.ssh/id_rsa
+rsync -a _build/doc/api biocaml@biocaml.org:biocaml.org/doc/dev/
