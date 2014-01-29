@@ -1,0 +1,42 @@
+opam-version: "1"
+maintainer: "biocaml@googlegroups.com"
+homepage: "http://biocaml.org"
+
+build: [
+  ["omake" "-j2"
+     "PREFIX=%{prefix}%"
+     "COMPILE_LIB_LWT=%{lwt:installed}%"
+     "COMPILE_LIB_ASYNC=%{async:installed}%"
+     "COMPILE_APP=%{flow:installed}%"
+     "COMPILE_TESTS=false"
+     "COMPILE_BENCHMARKS=false"
+  ]
+  ["omake" "install"]
+]
+
+remove: [
+  ["ocamlfind" "remove" "biocaml"]
+]
+
+depends: [
+  "ocamlfind"
+  "core" {>= "109.27.00"}
+  "sexplib"
+  "camlzip"
+  "xmlm"
+  "pcre-ocaml"
+  "omake"
+  "cfstream"
+  "future"
+]
+
+depopts: ["flow" "lwt" "async"]
+
+build-test: [
+  ["omake" "-j2" "tests"]
+]
+
+build-doc: [
+  ["omake" "-j2" "doc"]
+  ["omake" "install_doc" "DOCDIR=%{doc}%/biocaml"]
+]
