@@ -22,6 +22,12 @@ distclean: clean
 # General Project Information
 PROJECT = biocaml
 VERSION = 0.4-dev
+if $(test -e .git)
+  GIT_COMMIT = $(shell git rev-parse HEAD)
+  export
+else
+  GIT_COMMIT =
+  export
 
 LIB_NAME = $(PROJECT)
 LIB_DESCRIPTION = The OCaml Bioinformatics Library <http://biocaml.org>
@@ -203,10 +209,16 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     OCAMLPACKS[] = $(LIB_PACKAGES)
 
     biocaml_about.ml: :value: $(VERSION)
-      echo '(** General information. *)' > $@
+      echo '(** General information about this library. *)' > $@
       echo '' >> $@
-      echo '(** Version string of the library: ["$(VERSION)"] *)' >> $@
+      echo '(** Version: ["$(VERSION)"] *)' >> $@
       echo 'let version = "$(VERSION)"' >> $@
+      echo '' >> $@
+      echo '(** Git commit if known. *)' >> $@
+      if $(equal $(GIT_COMMIT), $(EMPTY))
+        echo 'let git_commit = None' >> $@
+      else
+        echo 'let git_commit = Some "$(GIT_COMMIT)"' >> $@
 
     META:
       echo "description = \"$(LIB_DESCRIPTION)\"" > META
