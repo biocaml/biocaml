@@ -48,6 +48,6 @@ omake doc
 opam install travis-senv
 mkdir ~/.ssh
 chmod 700 ~/.ssh
-travis-senv decrypt -p ID_RSA > ~/.ssh/id_rsa
-chmod 600 ~/.ssh/id_rsa
+travis-senv decrypt -p id_dsa > ~/.ssh/id_dsa
+chmod 600 ~/.ssh/id_dsa
 rsync -a _build/doc/api biocaml@biocaml.org:biocaml.org/doc/dev/
