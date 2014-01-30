@@ -50,7 +50,7 @@ omake doc
 
 # publish documentation
 opam install travis-senv
-mkdir ~/.ssh
+mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 travis-senv decrypt -p id_dsa > ~/.ssh/id_dsa
 chmod 600 ~/.ssh/id_dsa
