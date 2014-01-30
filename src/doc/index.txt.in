@@ -1,4 +1,4 @@
-{C {{:http://biocaml.org}biocaml.org} }
+{C {{:http://biocaml.org}biocaml.org}}
 
 All modules are named with a [Biocaml_] prefix to avoid name clashes
 with other libraries. For convenience, every module Biocaml_foo is

@@ -347,7 +347,16 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       mkdir -p api
       cp $< $@
 
+    index.txt: index.txt.in
+      cat index.txt.in > $@
+      echo "" >> $@
+      echo "Documentation generated on: {i $(shell date)}" >> $@
+      if $(not $(equal $(GIT_COMMIT), $(EMPTY)))
+        echo "" >> $@
+        echo 'Git commit: {i $(GIT_COMMIT)}' >> $@
+
     api/index.html: api/biocaml.css \
+                    index.txt \
                     ../odoc/$(ODOC_NAME).cma \
                     ../lib/$(LIB_NAME).cma
       rm -rf api
@@ -361,11 +370,11 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         -package $(concat \,, $(ODOC_PACKAGES)) \
         -charset UTF-8 \
         -d api \
-        -t "The Biocaml Library" \
+        -t "Biocaml $(VERSION)" \
         -keep-code \
         -colorize-code \
         -sort \
-        -intro ../../src/doc/intro.txt \
+        -intro index.txt \
         -I ../lib \
         -thread \
         ../lib/*.mli ../lib/*.ml
