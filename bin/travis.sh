@@ -54,4 +54,7 @@ mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 travis-senv decrypt -p id_dsa > ~/.ssh/id_dsa
 chmod 600 ~/.ssh/id_dsa
+echo "Host biocaml.org" >> ~/.ssh/config
+echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+chmod 600 ~/.ssh/config
 rsync -a _build/doc/api biocaml@biocaml.org:biocaml.org/doc/dev/
