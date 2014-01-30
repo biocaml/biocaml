@@ -374,8 +374,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         -intro index.txt \
         -I ../lib \
         -thread \
-        ../lib/biocaml_transform.ml*
-#        ../lib/*.mli ../lib/*.ml
+        ../lib/*.mli ../lib/*.ml
 
     doc: odoc api/index.html
 
