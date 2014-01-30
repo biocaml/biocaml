@@ -36,7 +36,7 @@ opam install \
   flow.0.3
 
 cd ~
-git clone git@github.com:agarwal/future.git
+git clone https://github.com/agarwal/future.git
 opam repo add future-dev ~/future/etc/opam
 opam pin future ~/future
 opam install future
