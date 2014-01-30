@@ -67,6 +67,9 @@ ODOC_MODULES[] =
   $(removesuffix $(basename $(ls src/odoc/*.ml)))
 ODOC_PACKAGES = $(LIB_PACKAGES)
 
+IMAGES[] =
+  $(basename $(ls src/doc/api/*.svg))
+
 
 ################################################################################
 # Directory and File Names
@@ -343,10 +346,6 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   # Documentation
   .SUBDIRS: _build/doc
 
-    api/biocaml.css: biocaml.css
-      mkdir -p api
-      cp $< $@
-
     index.txt: index.txt.in
       cat index.txt.in > $@
       echo "" >> $@
@@ -355,14 +354,12 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         echo "" >> $@
         echo 'Git commit: {i $(GIT_COMMIT)}' >> $@
 
+
     api/index.html: api/biocaml.css \
+                    $(addprefix api/, $(IMAGES)) \
                     index.txt \
                     ../odoc/$(ODOC_NAME).cma \
                     ../lib/$(LIB_NAME).cma
-      rm -rf api
-      mkdir api
-      cp biocaml.css api/
-      cp ../../src/doc/figures/* api/
       ocamlfind ocamldoc \
         -g ../odoc/$(ODOC_NAME).cma \
         -css-style biocaml.css \
@@ -377,7 +374,8 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         -intro index.txt \
         -I ../lib \
         -thread \
-        ../lib/*.mli ../lib/*.ml
+        ../lib/biocaml_transform.ml*
+#        ../lib/*.mli ../lib/*.ml
 
     doc: odoc api/index.html
 
