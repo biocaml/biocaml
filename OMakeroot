@@ -203,7 +203,9 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     OCAMLPACKS[] = $(LIB_PACKAGES)
 
     biocaml_about.ml: :value: $(VERSION)
-      echo '(** Version string of the library: ["$(VERSION)"] *)' > $@
+      echo '(** General information. *)' > $@
+      echo '' >> $@
+      echo '(** Version string of the library: ["$(VERSION)"] *)' >> $@
       echo 'let version = "$(VERSION)"' >> $@
 
     META:
