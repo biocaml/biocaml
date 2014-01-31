@@ -68,7 +68,7 @@ ODOC_MODULES[] =
 ODOC_PACKAGES = $(LIB_PACKAGES)
 
 IMAGES[] =
-  $(basename $(ls src/doc/api/*.svg))
+  $(basename $(ls src/doc/img/*.svg))
 
 
 ################################################################################
@@ -355,11 +355,15 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         echo 'Git commit: {i $(GIT_COMMIT)}' >> $@
 
 
-    api/index.html: api/biocaml.css \
-                    $(addprefix api/, $(IMAGES)) \
+    api/index.html: biocaml.css \
+                    $(addprefix img/, $(IMAGES)) \
                     index.txt \
                     ../odoc/$(ODOC_NAME).cma \
                     ../lib/$(LIB_NAME).cma
+      rm -rf api
+      mkdir api
+      cp biocaml.css api/
+      cp img/* api/
       ocamlfind ocamldoc \
         -g ../odoc/$(ODOC_NAME).cma \
         -css-style biocaml.css \
