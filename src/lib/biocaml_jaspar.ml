@@ -1,15 +1,16 @@
 open Biocaml_internal_pervasives
+open Filename.Infix
 
 type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
 
 type motif = {
   id : string ;
+  jaspar_id : string ;
   collection : collection ;
   factor_name : string ;
   factor_class : string ;
-  information_contents : float ;
+  family : string option ;
   comment : string option ;
-  accession : string option ;
   medline : string ;
   matrix : int array array ;
 }
@@ -25,67 +26,99 @@ let collection_of_string = function
   | "SPLICE" -> SPLICE
   | "POLII" -> POLII
   | s -> failwithf "Jaspa.collection_of_string: unknown collection %s" s ()
-    
-    
-let attrs_of_string =
-  let lazy_rex = lazy (Pcre.regexp "; +(?<K>[^\"]+) \"(?<V>[^\"]*)\"") in
-  fun s ->
-    let rex = Lazy.force lazy_rex in
-    let r : Pcre.substrings array = Pcre.exec_all ~rex s in
-    Stream.(Infix.(combine
-      (Stream.of_array r /@ (Pcre.get_named_substring rex "K"),
-       Stream.of_array r /@ (Pcre.get_named_substring rex "V"))))
-    |! Stream.to_list
+
+let fold_data_file name ~init ~f =
+  let add_item accu l =
+    let fields = String.split ~on:'\t' (l : Biocaml_line.t :> string) in
+    f accu fields
+  in
+  In_channel.with_file name ~f:(fun ic ->
+    Stream.fold
+      (Biocaml_lines.of_channel ic)
+      ~init
+      ~f:add_item
+  )
+
+let load_matrix fn =
+  fold_data_file (fn / "MATRIX.txt") ~init:String.Map.empty ~f:(
+    fun accu -> function
+    | [ db_id ; collection ; jaspar_id ; _ ; factor_name ] ->
+      String.Map.add accu db_id (object
+	method collection = collection_of_string collection
+	method jaspar_id = jaspar_id
+	method factor_name = factor_name
+      end)
+    | _ -> assert false
+  )
+
+let load_matrix_data fn =
+  let parse = function
+    | [ id ; base ; col ; count ] ->
+       let col = int_of_string col in
+       object method id = id method base = base method col = col method count = count end
+    | _ -> assert false
+  in
+  let vector_of_lines l =
+    List.sort ~cmp:(fun l1 l2 -> String.compare l1#base l2#base) l
+    |> List.map ~f:(fun l -> Int.of_float (Float.of_string l#count))
+    |> Array.of_list
+  in
+  let matrix_of_lines l =
+    let id = (List.hd_exn l)#id in
+    let matrix =
+      List.sort l ~cmp:(fun x y -> compare x#col y#col)
+      |> List.group ~break:(fun l1 l2 -> l1#col <> l2#col)
+      |> List.map ~f:vector_of_lines
+      |> Array.of_list
+    in
+    id, matrix
+  in
+  let data = In_channel.with_file (fn / "MATRIX_DATA.txt") ~f:(fun ic ->
+    Biocaml_lines.of_channel ic
+    |> Stream.skip ~n:1
+    |> Stream.map ~f:(Biocaml_line.split ~on:'\t')
+    |> Stream.to_list
+    |> List.sort ~cmp:(fun x y -> compare (List.hd x) (List.hd y))
+    |> List.group ~break:(fun x y -> List.hd x<> List.hd y)
+    |> List.map ~f:(List.map ~f:parse)
+    |> List.map ~f:matrix_of_lines
+  )
+  in
+  String.Map.of_alist_exn data
 
 
-let transpose m = 
-  Array.init
-    (Array.length m.(0))
-    (fun i -> 
-       Array.init
-	 (Array.length m)
-	 (fun j -> m.(j).(i)))
-    
-let space_split =
-  let rex = Pcre.regexp "[ \t]+" in
-  Pcre.split ~rex
+module SS = struct
+  include Core.Tuple.Make(String)(String)
+  include Core.Tuple.Comparable(String)(String)
+end
 
-let load_matrix ~path ~id =
-  In_channel.read_lines (path ^ "/" ^ id ^ ".pfm")
-  |! List.map ~f:String.lstrip
-  |! List.map ~f:space_split
-  |! List.map ~f:Array.of_list
-  |! List.map ~f:(Array.map ~f:(fun x -> x |! Float.of_string |! Int.of_float))
-  |! Array.of_list
-  |! transpose
+module SSM = Map.Make(SS)
 
-let load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path = 
-  let attrs = attrs_of_string attrs in 
-  {
-    id ; factor_name ; factor_class ;
-    collection = collection_of_string (List.Assoc.find_exn attrs "collection") ;
-    information_contents = Float.of_string info ;
+let load_annotation fn =
+  fold_data_file (fn / "MATRIX_ANNOTATION.txt") ~init:SSM.empty ~f:(fun accu ->
+    function
+    | id :: field :: data :: _ -> SSM.add accu ~key:(id, field) ~data
+    | x -> assert false
+  )
+
+let load fn =
+  let matrix = load_matrix fn in
+  let matrix_data = load_matrix_data fn in
+  let annotations = load_annotation fn in
+  let res = String.Map.mapi matrix ~f:(fun ~key ~data -> {
+    id = key ;
+    jaspar_id = data#jaspar_id ;
+    collection = data#collection ;
+    factor_name = data#factor_name ;
+    factor_class = SSM.find_exn annotations (key, "class") ;
     comment = (
-      match List.Assoc.find attrs "comment" with
-      | None -> None
+      match SSM.find annotations (key, "comment") with
       | Some "-" -> None
       | x -> x
     ) ;
-    accession = (
-      match List.Assoc.find attrs "acc" with
-      | None -> None
-      | Some "" -> None
-      | x -> x
-    ) ;
-    medline = List.Assoc.find_exn attrs "medline" ;
-    matrix = load_matrix ~path ~id ;
-  }
-
-let load path =
-  In_channel.read_lines (path ^ "/matrix_list.txt")
-  |! List.map ~f:(fun l -> String.split l ~on:'\t')
-  |! List.map ~f:(function
-      | [ id ; info ; factor_name ; factor_class ; attrs ] -> 
-          load_motif ~id ~info ~factor_name ~factor_class ~attrs ~path
-      | l -> 
-          failwithf "Jaspa.load: incorrect fields\n%s" (String.concat ~sep:"\n" l) ())
+    family = SSM.find annotations (key, "family")  ;
+    medline = SSM.find_exn annotations (key, "medline") ;
+    matrix = String.Map.find_exn matrix_data key ;
+  })
+  in
+  String.Map.data res

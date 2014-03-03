@@ -28,7 +28,6 @@ opam install \
   omake \
   camlzip \
   xmlm \
-  pcre-ocaml \
   core.$CORE_VERSION \
   cfstream \
   lwt \
