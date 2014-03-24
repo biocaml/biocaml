@@ -2,20 +2,16 @@ open OUnit
 open Biocaml_internal_pervasives
 open Biocaml
 
-let auc pos neg =
-  Roc.make ~pos:(Stream.of_list pos) ~neg:(Stream.of_list neg)
-  |! Stream.map ~f:(fun (_,cm) -> Roc.sensitivity cm, Roc.specificity cm)
-  |! Roc.auc
-
 (*
  * This is a test against the R library ROCR. The reference result
  * (0.8341875) is obtained as follows:
  *
+ * data(ROCR.simple)
  * performance(prediction( ROCR.simple$predictions, ROCR.simple$labels), "auc")
  *
  *)
 
-let rocr_pos = [
+let rocr_pos = [|
   0.612547843 ; 0.364270971 ; 0.244415489 ; 0.970641299 ; 0.890172812 ; 0.781781371 ;
   0.716680598 ; 0.547983407 ; 0.628095575 ; 0.744769966 ; 0.657732644 ; 0.890078186 ;
   0.984667270 ; 0.014823599 ; 0.543533783 ; 0.701561487 ; 0.715459280 ; 0.714985914 ;
@@ -32,9 +28,9 @@ let rocr_pos = [
   0.537336015 ; 0.790240205 ; 0.883431431 ; 0.745110673 ; 0.012653524 ; 0.868331219 ;
   0.540221346 ; 0.567043171 ; 0.806543942 ; 0.336315317 ; 0.268138293 ; 0.728536415 ;
   0.739554341 ; 0.858970526 ; 0.606960209
-]
+  |]
 
-let rocr_neg = [
+let rocr_neg = [|
   0.432136142 ; 0.140291078 ; 0.384895941 ; 0.868751832 ; 0.360168796 ; 0.385240464 ;
   0.423739359 ; 0.101699993 ; 0.490119891 ; 0.072369921 ; 0.172741714 ; 0.105722115 ;
   0.945548941 ; 0.360180429 ; 0.448687336 ; 0.292368449 ; 0.120604738 ; 0.319672178 ;
@@ -53,13 +49,36 @@ let rocr_neg = [
   0.233160827 ; 0.461150807 ; 0.370549294 ; 0.463227453 ; 0.007746305 ; 0.439399995 ;
   0.035815400 ; 0.248707470 ; 0.696702150 ; 0.081439129 ; 0.126480399 ; 0.636728451 ;
   0.030235062 ; 0.983494405 ; 0.522384507 ; 0.383807972 ; 0.138387070
-]
+  |]
+
+let scores = Array.append rocr_pos rocr_neg
+let labels =
+  Array.append
+    (Array.map rocr_pos ~f:(fun _ -> true))
+    (Array.map rocr_neg ~f:(fun _ -> false))
+
+let assert_float_equal ?msg x y = assert_equal ~cmp:(fun x y -> Float.abs (x -. y) < 0.00001) ~printer:Float.to_string ?msg x y
+
+(* let p x = BatArray.print (BatTuple.Tuple2.print BatFloat.print BatFloat.print) BatIO.stdout x *)
+
+let test_empty_data () =
+  let _, auc = Bin_pred.roc_curve ~scores:[||] ~labels:[||] in
+  assert_bool "Test with empty data" (Float.is_nan auc)
+
+let test_2_points_good () =
+  let curve, auc = Bin_pred.roc_curve ~scores:[| 0. ; 2. |] ~labels:[| false ; true |] in
+  assert_float_equal ~msg:"Test with two points and a good classifier" 1. auc
+
+let test_2_points_bad () =
+  let curve, auc = Bin_pred.roc_curve ~scores:[| 0. ; 2. |] ~labels:[| true ; false |] in
+  assert_float_equal ~msg:"Test with two points and bad classifier" 0. auc
 
 let test_against_rocr () =
-  assert_bool
-    "Test against ROCR failed"
-    (Float.abs (auc rocr_pos rocr_neg -. 0.8341875) < 0.00001)
+  assert_float_equal ~msg:"Test against ROCR failed" (snd (Bin_pred.roc_curve ~scores ~labels)) 0.8341875
 
-let tests = "PhredScore" >::: [
-  "Test against ROCR implementation" >:: test_against_rocr;
+let tests = "Bin_pred" >::: [
+  "Test ROC with empty data" >:: test_empty_data ;
+  "Test ROC with two points (perfect classifier) " >:: test_2_points_good ;
+  "Test ROC with two points (worst classifier)" >:: test_2_points_bad ;
+  "Test against ROCR implementation" >:: test_against_rocr ;
 ]

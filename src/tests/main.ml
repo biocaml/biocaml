@@ -6,7 +6,7 @@ let all_tests = [
   Test_interval_tree.tests;
   Test_phred_score.tests;
   Test_pwm.tests;
-  Test_roc.tests;
+  Test_bin_pred.tests;
   Test_bed.tests;
   Test_wig.tests;
   Test_gff.tests;
