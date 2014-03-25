@@ -56,7 +56,7 @@ val performance_curve : scores:float array -> labels:bool array -> (float * conf
 
 val roc_curve : scores:float array -> labels:bool array -> (float * float) array * float
 (** [roc_curve ~scores ~labels] returns the
-    {{http://en.wikipedia.org/wiki/Receiver_operating_characteristic}ROC}
+    {{:http://en.wikipedia.org/wiki/Receiver_operating_characteristic}ROC}
     curve of the prediction, and the associated Area Under Curve (AUC) *)
 
 val rp_curve : scores:float array -> labels:bool array -> (float * float) array
