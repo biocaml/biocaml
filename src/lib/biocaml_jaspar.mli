@@ -1,5 +1,4 @@
-(** Jaspar data. *)
-open Biocaml_internal_pervasives
+(** Access to Jaspar database *)
 
 (** The possible kinds of motifs. *)
 type collection =
@@ -7,20 +6,19 @@ type collection =
 
 type motif = private {
   id : string ;
+  jaspar_id : string ;
   collection : collection ;
   factor_name : string ;
   factor_class : string ;
-  information_contents : float ;
+  family : string option ;
   comment : string option ;
-  accession : string option ;
   medline : string ;
   matrix : int array array ;
 }
-(** The main “Jaspar element”. *)
+(** A Jaspar motif *)
 
 val load : string -> motif list
-(** Load a [motif list] from a given [path] (reading file [path ^
-    "/matrix_list.txt"]). *)
+(** Loads a database in SQL dump format, as available at {{:http://jaspar.genereg.net/html/DOWNLOAD/database/}Jaspar website} *)
 
 
 

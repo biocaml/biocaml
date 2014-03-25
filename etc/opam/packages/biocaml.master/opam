@@ -25,7 +25,6 @@ depends: [
   "sexplib"
   "camlzip"
   "xmlm"
-  "pcre-ocaml"
   "omake"
   "cfstream"
   "future"

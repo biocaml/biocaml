@@ -35,7 +35,7 @@ LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
   $(PROJECT)_about
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
-LIB_PACKAGES = core threads zip unix xmlm pcre cfstream sexplib.syntax future.std
+LIB_PACKAGES = core threads zip unix xmlm cfstream sexplib.syntax future.std
 
 LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =
