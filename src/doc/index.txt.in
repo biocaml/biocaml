@@ -49,9 +49,9 @@ Biocaml_table
 
 {3 Analysis}
 {!modules:
+Biocaml_bin_pred
 Biocaml_math
 Biocaml_pwm
-Biocaml_roc
 }
 
 {3 Strings}
