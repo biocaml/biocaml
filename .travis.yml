@@ -8,7 +8,7 @@ notifications:
 
 env: 
   matrix: 
-  - OCAML_VERSION=4.01.0 OPAM_VERSION=1.1.0 CORE_VERSION=109.60.00
+  - OCAML_VERSION=4.01.0 OPAM_VERSION=1.1.0
 
   global: 
   - secure: TTQasUe/jfiA4r0t/Xwz1yEnfDI5dznVMbPiHIg4CN7axQD5HAI+aLkFHozLM6Sgp7K4fSLrqbs++22oaKsZ3rfVwp2WtqEQX981yzy1jrPBkffVXb1QEnk0rm/Rhe9M9Ql5uMSiRyTvABuQgbiJ+7JYmCBAc7vQO4QoICNwQxo=

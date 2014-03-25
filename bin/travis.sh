@@ -28,7 +28,7 @@ opam install \
   omake \
   camlzip \
   xmlm \
-  core.$CORE_VERSION \
+  core \
   cfstream \
   lwt \
   async \
