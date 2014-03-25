@@ -45,7 +45,6 @@ module Float : module type of Core.Std.Float
 module Fn : module type of Core.Std.Fn
 module Hashtbl : module type of Core.Std.Hashtbl
 module Int : module type of Core.Std.Int
-include module type of Int.Infix
 module In_channel : module type of Core.Std.In_channel
 module Int32 : module type of Core.Std.Int32
 module Int63 : module type of Core.Std.Int63

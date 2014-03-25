@@ -37,7 +37,6 @@ module Float = Core.Std.Float
 module Fn = Core.Std.Fn
 module Hashtbl = Core.Std.Hashtbl
 module Int = Core.Std.Int
-include Int.Infix
 module In_channel = Core.Std.In_channel
 module Int32 = Core.Std.Int32
 module Int63 = Core.Std.Int63
