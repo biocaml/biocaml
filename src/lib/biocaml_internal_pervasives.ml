@@ -25,6 +25,7 @@ module Caml = Core.Std.Caml
 module Char = Core.Std.Char
 module Command = Core.Std.Command
 module Dequeue = Core.Std.Dequeue
+module Error = Core.Std.Error
 module Exn = Core.Std.Exn
 module Filename = struct
   include Core.Std.Filename
@@ -50,6 +51,7 @@ module Map = Core.Std.Map
 module Monad = Core.Std.Monad
 module Nativeint = Core.Std.Nativeint
 module Option = Core.Std.Option
+module Or_error = Core.Std.Or_error
 module Out_channel = Core.Std.Out_channel
 module Printexc = Core.Std.Printexc
 module Printf = Core.Std.Printf

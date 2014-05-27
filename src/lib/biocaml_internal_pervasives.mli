@@ -32,6 +32,7 @@ module Caml : module type of Core.Std.Caml
 module Char : module type of Core.Std.Char
 module Command : module type of Core.Std.Command
 module Dequeue : module type of Core.Std.Dequeue
+module Error : module type of Core.Std.Error
 module Exn : module type of Core.Std.Exn
 module Filename : sig
   include module type of Core.Std.Filename
@@ -58,6 +59,7 @@ module Map : module type of Core.Std.Map
 module Monad : module type of Core.Std.Monad
 module Nativeint : module type of Core.Std.Nativeint
 module Option : module type of Core.Std.Option
+module Or_error : module type of Core.Std.Or_error
 module Out_channel : module type of Core.Std.Out_channel
 module Printexc : module type of Core.Std.Printexc
 module Printf : module type of Core.Std.Printf
