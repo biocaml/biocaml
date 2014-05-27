@@ -8,9 +8,10 @@ type item = {
   qualities: string;
 } with sexp
 
-module Error : module type of Biocaml_fastq_error
-exception Parse_error of Error.parsing
-exception Error of Error.t
+
+module Err : module type of Biocaml_fastq_error
+exception Parse_error of Err.parsing
+exception Err of Err.t
 
 
 (** {2 Input/Output } *)
@@ -20,9 +21,9 @@ val in_channel_to_item_stream :
   ?buffer_size:int ->
   ?filename:string ->
   in_channel ->
-  (item, [> Error.parsing]) Result.t Stream.t
+  (item, [> Err.parsing]) Result.t Stream.t
 
-(** Returns a stream of [item]s. [Stream.next] will raise [Error _] in
+(** Returns a stream of [item]s. [Stream.next] will raise [Err _] in
     case of any error. *)
 val in_channel_to_item_stream_exn :
   ?buffer_size:int ->
@@ -32,6 +33,7 @@ val in_channel_to_item_stream_exn :
 
 module MakeIO (Future : Future.S) : sig
   open Future
+  val read : Reader.t -> item Or_error.t Pipe.Reader.t
   val read_exn : Reader.t -> item Pipe.Reader.t
 end
 include module type of MakeIO(Future_std)
@@ -58,17 +60,9 @@ val item_to_string: item -> string
     Functions ending in _exn raise Parse_error.
 *)
 
-val name_of_line :
-  ?pos:Pos.t ->
-  Line.t ->
-  (string, [> Error.invalid_name]) Result.t
-
+val name_of_line : ?pos:Pos.t -> Line.t -> string Or_error.t
 val sequence_of_line : ?pos:Pos.t -> Line.t -> string
-
-val comment_of_line :
-  ?pos:Pos.t ->
-  Line.t ->
-  (string, [> Error.invalid_comment]) Result.t
+val comment_of_line : ?pos:Pos.t -> Line.t -> string Or_error.t
 
 (** [qualities sequence line] parses given qualities [line] in the
     context of a previously parsed [sequence]. The [sequence] is
@@ -78,12 +72,7 @@ val qualities_of_line :
   ?pos:Pos.t ->
   ?sequence:string ->
   Line.t ->
-  (string, [> Error.sequence_qualities_mismatch]) Result.t
-
-
-val name_of_line_exn : ?pos:Pos.t -> Line.t -> string
-val comment_of_line_exn : ?pos:Pos.t -> Line.t -> string
-val qualities_of_line_exn : ?pos:Pos.t -> ?sequence:string -> Line.t -> string
+  string Or_error.t
 
 
 (** {2 Transforms } *)
@@ -93,7 +82,7 @@ module Transform: sig
 
   val string_to_item:
     ?filename:string -> unit ->
-    (string, (item, [> Error.parsing]) Result.t) Biocaml_transform.t
+    (string, (item, [> Err.parsing]) Result.t) Biocaml_transform.t
   (** Create a [Biocaml_transform.t] from arbitrary strings to
       [item] values.*)
 
@@ -111,7 +100,7 @@ module Transform: sig
     (Biocaml_fasta.char_seq Biocaml_fasta.item *
        Biocaml_fasta.int_seq Biocaml_fasta.item,
      (item,
-      [> Error.fasta_pair_to_fastq ]) Result.t)
+      [> Err.fasta_pair_to_fastq ]) Result.t)
       Biocaml_transform.t
   (** Create a transform that builds [item] records thanks
       to sequences from [Fasta.(char_seq item)] values

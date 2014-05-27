@@ -1,8 +1,5 @@
 open Biocaml_internal_pervasives
-open Result
 module Lines = Biocaml_lines
-
-let dbg = Debug.make "fastq"
 
 type item = {
   name: string;
@@ -11,9 +8,10 @@ type item = {
   qualities: string;
 } with sexp
 
-module Error = Biocaml_fastq_error
-exception Parse_error of Error.parsing
-exception Error of Error.t
+
+module Err = Biocaml_fastq_error
+exception Parse_error of Err.parsing
+exception Err of Err.t
 
 
 (******************************************************************************)
@@ -30,14 +28,12 @@ let name_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
   if n = 0 || line.[0] <> '@' then
-    Result.Error (`invalid_name (pos, line))
+    error
+      "invalid name"
+      (pos, line)
+      <:sexp_of< Pos.t * string >>
   else
     Ok (String.sub line ~pos:1 ~len:(n-1))
-
-let name_of_line_exn ?(pos=Pos.unknown) line =
-  match name_of_line ~pos line with
-  | Ok x -> x
-  | Result.Error x -> raise (Parse_error x)
 
 let sequence_of_line ?(pos=Pos.unknown) line =
   (line : Line.t :> string)
@@ -46,14 +42,12 @@ let comment_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
   if n = 0 || line.[0] <> '+' then
-    Result.Error (`invalid_comment (pos,line))
+    error
+      "invalid comment"
+      (pos, line)
+      <:sexp_of< Pos.t * string >>
   else
     Ok (String.sub line ~pos:1 ~len:(n-1))
-
-let comment_of_line_exn ?(pos=Pos.unknown) line =
-  match comment_of_line ~pos line with
-  | Ok x -> x
-  | Result.Error x -> raise (Parse_error x)
 
 let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
   let line = (line : Line.t :> string) in
@@ -63,14 +57,12 @@ let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
     let m = String.length sequence in
     let n = String.length line in
     if m <> n then
-      Result.Error (`sequence_qualities_mismatch (pos,sequence,line))
+      error
+        "length of sequence and qualities differ"
+        (pos, sequence, line)
+        <:sexp_of< Pos.t * string * string >>
     else
       Ok line
-
-let qualities_of_line_exn ?(pos=Pos.unknown) ?sequence line =
-  match qualities_of_line ~pos ?sequence line with
-  | Ok x -> x
-  | Result.Error x -> raise (Parse_error x)
 
 
 (******************************************************************************)
@@ -87,20 +79,20 @@ module Transform = struct
         else (
           let name_line  = (next_line_exn p :> string) in
           if String.length name_line = 0 || name_line.[0] <> '@'
-          then output_error (`invalid_name (current_position p, name_line))
+          then Result.output_error (`invalid_name (current_position p, name_line))
           else
             let sequence     = (next_line_exn p :> string) in
             let comment_line = (next_line_exn p :> string) in
             if String.length comment_line = 0 || comment_line.[0] <> '+'
-            then output_error (`invalid_comment (current_position p, comment_line))
+            then Result.output_error (`invalid_comment (current_position p, comment_line))
             else
               let qualities    = (next_line_exn p :> string) in
               if String.length sequence <> String.length qualities
-              then output_error
+              then Result.output_error
                 (`sequence_qualities_mismatch (current_position p,
                                                       sequence, qualities))
               else (
-                output_ok {
+                Result.output_ok {
                   name = String.sub name_line 1 (String.length name_line - 1);
                   comment = String.sub comment_line 1 (String.length comment_line - 1);
                   sequence; qualities }
@@ -125,15 +117,15 @@ module Transform = struct
           let rlgth = String.length r.sequence in
           begin match specification with
           | `beginning i when i < rlgth ->
-            output_ok
+            Result.output_ok
               { r with sequence = String.sub r.sequence ~pos:i ~len:(rlgth - i);
                 qualities = String.sub r.qualities ~pos:i ~len:(rlgth - i) }
           | `ending i when i < rlgth ->
-            output_ok
+            Result.output_ok
               { r with sequence = String.sub r.sequence ~pos:0 ~len:(rlgth - i);
                 qualities = String.sub r.qualities ~pos:0 ~len:(rlgth - i) }
           | _ ->
-            output_error (`invalid_size rlgth)
+            Result.output_error (`invalid_size rlgth)
           end
         | None -> if stopped then `end_of_stream else `not_ready
         end)
@@ -192,7 +184,7 @@ let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   Transform.string_to_item ?filename ()
   |! Biocaml_transform.in_channel_strings_to_stream ~buffer_size inp
 
-let error_to_exn err = Error err
+let error_to_exn err = Err err
 
 let in_channel_to_item_stream_exn ?(buffer_size=65536) ?filename inp =
   Stream.result_to_exn ~error_to_exn (
@@ -202,39 +194,42 @@ let in_channel_to_item_stream_exn ?(buffer_size=65536) ?filename inp =
 module MakeIO (Future : Future.S) = struct
   open Future
 
-  let read_exn ic =
-    let read_one ic =
-      Reader.read_line ic >>= function
-      | `Eof -> return `Eof
-      | `Ok line -> (
-        let name = name_of_line_exn (Line.of_string_unsafe line) in
+  let read_item ic : item Or_error.t Reader.Read_result.t Deferred.t =
+    Reader.read_line ic >>= function
+    | `Eof -> return `Eof
+    | `Ok line ->
+      match name_of_line (Line.of_string_unsafe line) with
+      | Error _ as e -> return (`Ok e)
+      | Ok name ->
         Reader.read_line ic >>= function
-        | `Eof -> fail (
-          Parse_error (`incomplete_input (Pos.unknown, [name], None))
-        )
-        | `Ok line -> (
+        | `Eof ->
+          return (`Ok (Error (Error.of_string "incomplete input")))
+        | `Ok line ->
           let sequence = sequence_of_line (Line.of_string_unsafe line) in
           Reader.read_line ic >>= function
-          | `Eof -> fail (
-            Parse_error (`incomplete_input (Pos.unknown, [name;sequence], None))
-          )
-          | `Ok line -> (
-            let comment = comment_of_line_exn (Line.of_string_unsafe line) in
-            Reader.read_line ic >>= function
-            | `Eof -> fail (
-              Parse_error (
-                `incomplete_input
-                  (Pos.unknown, [name;sequence;comment], None)
-              )
-            )
-            | `Ok line ->
-              let qualities =
-                qualities_of_line_exn (Line.of_string_unsafe line)
-              in
-              return (`Ok {name; sequence; comment; qualities})
-          ) ) )
-    in
-    Reader.read_all ic read_one
+          | `Eof ->
+            return (`Ok (Error (Error.of_string "incomplete input")))
+          | `Ok line ->
+            match comment_of_line (Line.of_string_unsafe line) with
+            | Error _ as e -> return (`Ok e)
+            | Ok comment ->
+              Reader.read_line ic >>= function
+              | `Eof ->
+                return (`Ok (Error (Error.of_string "incomplete input")))
+              | `Ok line ->
+                match
+                  qualities_of_line ~sequence (Line.of_string_unsafe line)
+                with
+                | Error _ as e -> return (`Ok e)
+                | Ok qualities ->
+                  return (`Ok (Ok {name; sequence; comment; qualities}))
+
+  let read ic =
+    Reader.read_all ic read_item
+
+  let read_exn ic =
+    read ic
+    |> Pipe.map ~f:ok_exn
 
 end
 include MakeIO(Future_std)

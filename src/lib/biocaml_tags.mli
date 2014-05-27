@@ -118,7 +118,7 @@ module Input_transform: sig
     | `gff of Biocaml_gff.Error.parsing
     | `wig of Biocaml_wig.Error.parsing
     | `bed of Biocaml_bed.Error.parsing
-    | `fastq of Biocaml_fastq.Error.t
+    | `fastq of Biocaml_fastq.Err.t
     | `fasta of Biocaml_fasta.Error.t
     | `table_row of Biocaml_table.Row.Error.t
     | `fasta_lengths_mismatch
