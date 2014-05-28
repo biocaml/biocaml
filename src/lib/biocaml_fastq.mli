@@ -35,6 +35,7 @@ module MakeIO (Future : Future.S) : sig
   open Future
   val read : Reader.t -> item Or_error.t Pipe.Reader.t
   val read_exn : Reader.t -> item Pipe.Reader.t
+  val write : Writer.t -> item Pipe.Reader.t -> unit Deferred.t
 end
 include module type of MakeIO(Future_std)
 

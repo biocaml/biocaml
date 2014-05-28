@@ -231,5 +231,17 @@ module MakeIO (Future : Future.S) = struct
     read ic
     |> Pipe.map ~f:ok_exn
 
+  let write_item (w : Writer.t) (x : item) : unit Deferred.t =
+    let open Writer in
+    write_char w '@' >>= fun () ->
+    write_line w x.name >>= fun () ->
+    write_line w x.sequence >>= fun () ->
+    write_char w '+' >>= fun () ->
+    write_line w x.comment >>= fun () ->
+    write_line w x.qualities
+
+  let write w pipe_r =
+    Pipe.iter pipe_r ~f:(write_item w)
+
 end
 include MakeIO(Future_std)
