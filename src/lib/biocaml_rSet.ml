@@ -18,10 +18,12 @@ let rec is_canonical (vl : Range.t list) : bool =
         
 let to_canonical (vl : Range.t list) : Range.t list =
   (* Order relation such that subset and after are larger. *)
-  let compare_intervals =
-    Order.compose
-      (Order.reversep Range.compare_containment)
-      Range.compare_positional
+  let compare_intervals u v =
+    match Range.compare_containment u v with
+    | Some x -> -x
+    | None -> match Range.compare_positional u v with
+      | Some x -> x
+      | None -> assert false
   in
   
   let vl = List.sort ~cmp:compare_intervals vl in
