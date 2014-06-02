@@ -351,7 +351,7 @@ let find_min_window ?(init_direction="fwd") a pred i =
   if size < 1 then
     [||]
   else
-    let v = Range.make 0 (size - 1) in
+    let v = Range.make_unsafe 0 (size - 1) in
     let pred v = pred v.Range.lo v.Range.hi in
     let ans = Range.find_min_range ~init_direction v pred i in
     match ans with

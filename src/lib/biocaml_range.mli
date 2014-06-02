@@ -5,20 +5,15 @@
 open Biocaml_internal_pervasives
 
 (** Type of a range. *)
-type t = private {lo:int; hi:int} with sexp
+type t = private {lo:int; hi:int}
+with compare, sexp
 
-(** Raised when unable to produce a well-formed range. *)
-exception Bad of string
+val make : int -> int -> t Or_error.t
+(** [make lo hi] returns the range [{lo; hi}]. Return [Error] if [lo >
+    hi]. *)
 
-val make : int -> int -> t
-(** [make l u] returns the range from [l] to [u]. Raise [Bad] if [l >
-    u]. *)
-
-val to_pair : t -> int * int
-(** [to_pair t] returns the int * int pair. *)
-
-val make_opt : int -> int -> t option
-(** Like [make] but returns None instead of raising exception. *)
+val make_exn : int -> int -> t
+val make_unsafe : int -> int -> t
 
 val size : t -> int
 (** [size v] returns the number of integers in [v], i.e. [v.hi - v.lo
@@ -84,7 +79,7 @@ val compare_positional : t -> t -> int option
 
 
 (** {6 Containment Range}
-    Containment means an range is viewed as being inside, or a subset
+    Containment means a range is viewed as being inside, or a subset
     of, another.
 *)
 
@@ -106,24 +101,6 @@ val compare_containment : t -> t -> int option
     [v], 0 if [u] is equal to [v], +1 if [u] is a strict superset of [v],
     and returns None otherwise. *)
 
-
-(** {6 Order Relations}
-    A few total orders provided here, but {!Order.compose} allows
-    generating others. It is suitable to pass [compare_positional] as
-    the first or second argument, and [compare_containment] as the
-    second or first, respectively, argument to this function. Also,
-    either can be first reversed by {!Order.reversep}.
-*)
-
-val compare_lo_then_hi : t -> t -> int
-(** Return order between [lo] bounds unless they are equal, in which
-    case return order between [hi] bounds. *)
-
-val compare_lo : t -> t -> int
-(** Compare by ranges' [lo] bounds, ignoring [hi] bounds. *)
-
-val compare_hi : t -> t -> int
-(** Compare by ranges' [hi] bounds, ignoring [lo] bounds. *)
 
 
 (** {6 Range Lists} *)

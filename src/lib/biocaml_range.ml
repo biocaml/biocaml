@@ -1,24 +1,24 @@
 open Biocaml_internal_pervasives
 
-type t = {lo:int; hi:int} with sexp
-exception Bad of string
-let raise_bad msg = raise (Bad msg)
+type t = {lo:int; hi:int}
+with compare, sexp
 
-let make l u =
-  if l <= u then {lo=l; hi=u}
-  else raise_bad (
-    sprintf
-      "lower bound %d must be less than or equal to upper bound %d"
-      l u
+let make lo hi =
+  if lo <= hi then
+    Ok {lo; hi}
+  else (
+    error
+      "lower bound larger than upper bound"
+      (lo, hi)
+      <:sexp_of< int * int >>
   )
 
-let make_opt l u =
-  try Some (make l u)
-  with Bad _ -> None
+let make_exn lo hi = ok_exn (make lo hi)
 
-let to_pair t = t.lo, t.hi
+let make_unsafe lo hi = {lo; hi}
+
 let size v = v.hi - v.lo + 1
-let equal u v = u.lo = v.lo && u.hi = v.hi
+let equal u v = compare u v = 0
 let member t k = t.lo <= k && k <= t.hi
 
 let to_string t =
@@ -61,19 +61,8 @@ let compare_containment u v =
   else if strict_superset u v then Some 1
   else None
 
-let compare u v = Pervasives.compare u v
-let compare_lo u v = Pervasives.compare u.lo v.lo
-let compare_hi u v = Pervasives.compare u.hi v.hi
-
-let compare_lo_then_hi u v =
-  match Pervasives.compare u.lo v.lo with
-  | 0 -> Pervasives.compare u.hi v.hi
-  | -1 -> -1
-  | 1 -> 1
-  | _ -> assert false
-
 let any_overlap tl =
-  let tl = List.sort ~cmp:compare_lo tl in
+  let tl = List.sort tl ~cmp:(fun u v -> Int.compare u.lo v.lo) in
   let rec loop tl =
     match tl with
     | [] | _::[] -> false
@@ -81,7 +70,12 @@ let any_overlap tl =
   in loop tl
 
 let all_positional vl =
-  let cmp = Order.compose compare_containment compare_positional in
+  let cmp u v = match compare_containment u v with
+    | Some x -> x
+    | None -> match compare_positional u v with
+      | Some x -> x
+      | None -> assert false
+  in
   let vl = List.sort ~cmp vl in
   let rec loop vl =
     match vl with
@@ -90,7 +84,12 @@ let all_positional vl =
   in loop vl
 
 let max_gap_of_positional vl =
-  let cmp = Order.compose compare_containment compare_positional in
+  let cmp u v = match compare_containment u v with
+    | Some x -> x
+    | None -> match compare_positional u v with
+      | Some x -> x
+      | None -> assert false
+  in
   let vl = List.sort ~cmp vl in
   let rec loop ans vl =
     match vl with
@@ -148,7 +147,9 @@ let find_regions ?(max_gap=0) pred tal =
     failwith "overlapping ranges not allowed"
   ;
   let tal = List.sort tal ~cmp:(fun (u,_) (v,_) ->
-    Order.totalify compare_positional u v
+    match compare_positional u v with
+    | Some x -> x
+    | None -> assert false
   ) in
 
   (* see below for meaning of [curr] *)
@@ -156,8 +157,11 @@ let find_regions ?(max_gap=0) pred tal =
     match curr with
     | None -> ans
     | Some (v,gap) ->
-      try (make v.lo (v.hi - gap))::ans
-      with Bad _ ->
+      let x = v.lo in
+      let y = v.hi - gap in
+      if x <= y then
+        {lo=x; hi=y}::ans
+      else
         failwithf "gap = %d, range = %s" gap (to_string v) () in
 
   (* curr = Some (v,gap) means [v] is region built up thus far,
@@ -175,11 +179,11 @@ let find_regions ?(max_gap=0) pred tal =
         let extra_gap = t.lo - curr_v.hi - 1 in
         let t,pred,tal =
           if extra_gap > 0 then
-            make (curr_v.hi + 1) (t.lo - 1), false, ((t,a)::tal)
+            make_exn (curr_v.hi + 1) (t.lo - 1), false, ((t,a)::tal)
           else
             t, pred a, tal
         in
-        let curr_v = make curr_v.lo t.hi in
+        let curr_v = make_exn curr_v.lo t.hi in
         let curr_gap = if pred then 0 else size t + curr_gap in
         let curr = Some (curr_v, curr_gap) in
         if curr_gap > max_gap
@@ -190,6 +194,9 @@ let find_regions ?(max_gap=0) pred tal =
 
 let rec make_random t =
   let max = t.hi - t.lo + 1 in
-  let l = t.lo + Random.int max in
-  let u = t.lo + Random.int max in
-  try make l u with Bad _ -> make_random t
+  let lo = t.lo + Random.int max in
+  let hi = t.lo + Random.int max in
+  if lo <= hi then
+    {lo; hi}
+  else
+    make_random t

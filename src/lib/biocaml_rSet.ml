@@ -49,13 +49,14 @@ let to_canonical (vl : Range.t list) : Range.t list =
     
 let of_range_list l = 
   let f acc (x,y) =
-    match Range.make_opt x y with
-      | Some range -> range::acc 
-      | None -> acc
+    if x <= y then
+      (Range.make_unsafe x y)::acc
+    else
+      acc
   in
   to_canonical (List.fold ~f ~init:[] l)
 
-let to_range_list t = List.map ~f:Range.to_pair t
+let to_range_list t = List.map ~f:(fun {Range.lo; hi} -> lo,hi) t
 
 let to_list t = List.concat (List.map ~f:Range.to_list t)  
 let union s t = to_canonical (s @ t) (* better implementation possible *)
@@ -96,11 +97,11 @@ let diff s t =
             match Range.intersect u v with
               | None -> invalid_arg "impossible to get here"
               | Some w ->
-                  let u_pre = Range.make_opt u.Range.lo (w.Range.lo - 1) in
-                  let u_post = Range.make_opt (w.Range.hi + 1) u.Range.hi in
+                  let u_pre = Range.make u.Range.lo (w.Range.lo - 1) |> Result.ok in
+                  let u_post = Range.make (w.Range.hi + 1) u.Range.hi |> Result.ok in
                   (* v_pre = Range.make_opt v.Range.lo (w.Range.lo - 1)
                    ** v_pre not needed, note also that u_pre and v_pre cannot both be None *)
-                  let v_post = Range.make_opt (w.Range.hi + 1) v.Range.hi in
+                  let v_post = Range.make (w.Range.hi + 1) v.Range.hi |> Result.ok in
                   let ans = match u_pre with None -> ans | Some x -> x::ans in
                   let s = match u_post with None -> s | Some x -> x::s in
                   let t = match v_post with None -> t | Some x -> x::t in

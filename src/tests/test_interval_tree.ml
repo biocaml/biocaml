@@ -29,7 +29,7 @@ module ListImpl = struct
     if x < 0 then 0 else x
 
   let interval_dist lo hi lo' hi' = Range.(
-    pos (gap (make lo hi) (make lo' hi'))
+    pos (gap (make_exn lo hi) (make_exn lo' hi'))
   )
 
   let interval_overlap lo hi lo' hi' =

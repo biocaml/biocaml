@@ -19,7 +19,7 @@ let make_int_set (l : (int * int) list) : Int.Set.t =
     if lo > hi then
       accum
     else
-      let v = Range.make lo hi in
+      let v = Range.make_unsafe lo hi in
       Int.Set.union accum (Int.Set.of_list (Range.to_list v))
   in
   List.fold_left ~f ~init:Int.Set.empty l
