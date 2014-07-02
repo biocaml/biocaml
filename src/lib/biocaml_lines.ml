@@ -1,15 +1,28 @@
 open Biocaml_internal_pervasives
 open Result
 
-type item = Line.t with sexp
+type item = Line.t
+with sexp
 
-module Error = struct
+module MakeIO (Future : Future.S) = struct
+  open Future
 
-  type t = [
-  | `premature_end_of_input
-  ] with sexp
+  let read r =
+    Reader.lines r
+    |> Pipe.map ~f:Line.of_string_unsafe
+
+  let read_file ?buf_len file =
+    Reader.open_file ?buf_len file >>| read
+
+  let write w pipe_r = Pipe.iter pipe_r ~f:(fun item ->
+    Writer.write_line w (item : item :> string)
+  )
+
+  let write_file ?perm ?append file pipe_r =
+    Writer.with_file ?perm ?append file ~f:(fun w -> write w pipe_r)
 
 end
+include MakeIO(Future_std)
 
 module Buffer = struct
 
@@ -178,24 +191,24 @@ let of_char_stream cstr =
     | None -> None
     | Some _ ->
       let ans = Buffer.create 100 in
-      let rec loop () =
-        try
-          let c = Stream.next_exn cstr in
+      let rec loop () = match Stream.next cstr with
+        | Some c ->
           if c <> '\n' then (Buffer.add_char ans c; loop())
-        with Caml.Stream.Failure -> ()
+        | None -> ()
       in
       loop();
-      Some (Buffer.contents ans |! Line.of_string_unsafe)
+      Some (Buffer.contents ans |> Line.of_string_unsafe)
   in
   Stream.from f
 
 let of_channel cin =
   let f _ =
-    try Some (input_line cin |! Line.of_string_unsafe)
-    with End_of_file -> None
+    In_channel.input_line cin
+    |> Option.map ~f:Line.of_string_unsafe
   in Stream.from f
 
 let to_channel xs oc =
   Stream.iter xs ~f:(fun l ->
-    output_string oc (l : item :> string); output_char oc '\n'
+    Out_channel.output_string oc (l : item :> string);
+    Out_channel.newline oc
   )

@@ -2,25 +2,28 @@
 open Biocaml_internal_pervasives
 
 type item = Line.t
-(** [Lines.item] is a [Line.t] *)
+with sexp
 
-module Error : sig
-  (** The errors of the [Lines] module. *)
+module MakeIO (Future : Future.S) : sig
+  open Future
 
-  type t = [
-  | `premature_end_of_input
-  ]
-  (** Errors:
-    - [`premature_end_of_input] - expected more lines than available.
-  *)
+  val read : Reader.t -> item Pipe.Reader.t
+  val read_file : ?buf_len:int -> string -> item Pipe.Reader.t Deferred.t
 
-  val t_of_sexp: Sexplib.Sexp.t -> t
-  val sexp_of_t: t -> Sexplib.Sexp.t
+  val write : Writer.t -> item Pipe.Reader.t -> unit Deferred.t
+
+  val write_file
+    : ?perm:int
+    -> ?append:bool
+    -> string
+    -> item Pipe.Reader.t
+    -> unit Deferred.t
 
 end
+include module type of MakeIO(Future_std)
 
 val of_char_stream : char Stream.t -> item Stream.t
-(** Parse a stream of characters into a stream of lines.writing the *)
+(** Parse a stream of characters into a stream of lines. *)
 
 val of_channel : in_channel -> item Stream.t
 (** Get a stream of lines out of an input-channel. *)
