@@ -1,53 +1,44 @@
-(** File positions. *)
+(** File positions. A position within a file is defined by:
+
+    [source] - Name of the file or other kind of source such as a URL.
+
+    [line] - Line number within the [source]. The first line is
+    numbered 1. Set to [None] for binary files where the concept of a
+    line isn't applicable.
+
+    [offset] - If a [line] number is given, this is the position from
+    the start of the line. The first position is 1. If no line number
+    is given, this is the offset from the beginning of [source]. The
+    exact semantics of [offset] depends on the type of [source]. For
+    example, for Unicode text files, the offset might be the character
+    position instead of a byte position.
+
+    It is valid to omit any field. Omitting all fields denotes a dummy
+    or unknown position. Omitting [source] while providing [line] or
+    [offset] is probably not sensible but isn't disallowed. Even if
+    the source is an unnamed entity, some descriptive text should be
+    provided, e.g. "stdin" is better than saying None. Negative values
+    for [line] and [offset] also shouldn't be used, but we do not
+    bother disallowing it.
+*)
 open Core.Std
 
-type t = private {
-  file:string option; (** file name *)
-  line:int option; (** line number *)
-  col:int option; (** column number, can be defined only if line number is too *)
-}
+type t = {
+  source : string option;
+  line : int option;
+  offset : int option;
+} with sexp
 
-exception Bad of string
+val make: ?source:string -> ?line:int -> ?offset:int -> unit -> t
 
-exception Undefined
-(** Raised when asking for undefined position information. *)
-
-val make: ?file:string -> ?line:int -> ?col:int -> unit -> t
-
-val f : string -> t
-val l : int -> t
-val fl : string -> int -> t
-val lc : int -> int -> t
-
-val flc : string -> int -> int -> t
-(** Methods for creating a position. [f] stands for file name, [l] for
-    line number, and [c] for column number. The arguments required
-    correspond to the function name. There is no [fc] nor [c] function
-    because a line number is required when a column number is given. *)
-
+(** Position with all fields set to None. *)
 val unknown : t
-(** Represents an unknown position. Use sparingly. *)
 
-val file_exn : t -> string
-val line_exn : t -> int
+val incr_line : ?n:int -> t -> t
+(** [incr_line ?n pos] increments the line number of [pos] by
+    [n]. Default: [n = 1]. If [pos.line = None], it is treated as
+    zero, i.e. the returned line number is set to [n]. *)
 
-val col_exn : t -> int
-(** Return the file name, line number, or column number. Raise
-    {!Undefined} if given position does not have requested information. *)
-
-val set_file : t -> string -> t
-val set_line : t -> int -> t
-
-val set_col : t -> int -> t
-(** Set the file name, line number, or column number. Raise [Bad] if
-    resulting [t] would be ill-formed. *)
-
-val incrl : t -> int -> t
-(** [incrl pos k] increments the line number of [pos] by [k]. *)
-
+(** Print string in a human legible format. No particular format is
+    guaranteed. *)
 val to_string : t -> string
-(** String representation of a position. Intended for human
-    legibility, no particular format guaranteed. *)
-
-include Sexpable.S with type t := t
-

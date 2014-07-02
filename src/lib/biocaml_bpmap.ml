@@ -51,7 +51,7 @@ module Parser = struct
   let bpmap ~chr_map file =
     let parse file cin =
       let lines = Lines.of_channel cin in
-      let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
+      let err msg = Msg.err ~pos:(Pos.make ~source:file ~line:(Stream.count lines) ()) msg in
         try
           ignore (header ((Stream.next_exn lines) : Lines.item :> string));
           Stream.to_list (Stream.map ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string)) lines)

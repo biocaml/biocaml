@@ -145,7 +145,7 @@ module Parser = struct
   let cel file =
     let of_channel cin =
       let lines = Lines.of_channel cin in
-      let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
+      let err msg = Msg.err ~pos:(Pos.make ~source:file ~line:(Stream.count lines) ()) msg in
       try
         Stream.drop_while ~f:(fun (s : Lines.item) -> not (line_is_section isection_name (s :> string))) lines;
         if Stream.is_empty lines

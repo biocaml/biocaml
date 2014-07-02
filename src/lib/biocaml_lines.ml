@@ -67,7 +67,7 @@ module Buffer = struct
     | None -> raise No_next_line
 
   let current_position p =
-    Pos.make ?file:p.filename ~line:p.parsed_lines ()
+    Pos.make ?source:p.filename ~line:p.parsed_lines ()
 
   let is_empty p =
     Queue.is_empty p.lines && p.unfinished_line = None

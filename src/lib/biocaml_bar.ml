@@ -90,7 +90,7 @@ module Parser = struct
   let of_file file =
     let of_channel cin =
       let lines = Stream.map ~f:(fun (x : Lines.item) -> String.rstrip (x :> string)) (Lines.of_channel cin) in
-      let err msg = Msg.err ~pos:(Pos.fl file (Stream.count lines)) msg in
+      let err msg = Msg.err ~pos:(Pos.make ~source:file ~line:(Stream.count lines) ()) msg in
         try
           let hdr = header lines in
           let secs = ref [] in
