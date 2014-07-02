@@ -1,5 +1,3 @@
-open Biocaml_lwt_internal_pervasives
-
 module Lines = struct
   include Biocaml_lines
   include MakeIO(Future_lwt)
