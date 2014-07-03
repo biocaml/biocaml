@@ -1,4 +1,5 @@
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 open Result
 module Wig = Biocaml_wig
 module Gff = Biocaml_gff

@@ -1,9 +1,10 @@
+open Core.Std
+open Biocaml_internal_utils
 open OUnit
-open Biocaml_internal_pervasives
 open Biocaml
 
 let make_stream name =
-  let open Filename.Infix in
+  let (/) = Filename.concat in
   let filename = "src"/"tests"/"data"/name in
   let t  = Vcf.Transform.string_to_item ~filename () in
   let ic = open_in filename in

@@ -1,5 +1,5 @@
 open OUnit
-open Biocaml_internal_pervasives
+open Core.Std
 open Biocaml.Pwm
 
 let random_dna_char () = match Random.int 8 with

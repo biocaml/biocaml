@@ -18,7 +18,7 @@
     corresponds to using the fastq-sanger or fastq-illumina encodings,
     respectively, defined in this paper.
 *)
-open Biocaml_internal_pervasives
+open Core.Std
 
 exception Error of string
 

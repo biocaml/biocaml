@@ -1,4 +1,4 @@
-open Biocaml_internal_pervasives
+open Core.Std
 (*
 type 'a transcript = {
   exons : (int * int) list;

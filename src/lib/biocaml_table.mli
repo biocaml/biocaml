@@ -1,5 +1,6 @@
 (** Generic “tables” (like CSV, TSV, Bed …). *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 (** {2 Table Rows/Lines } *)
 

@@ -1,6 +1,5 @@
-
-
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 
 module Row = struct

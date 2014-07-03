@@ -1,63 +1,17 @@
+open Core.Std
+
 module Line = Biocaml_line
 module Pos = Biocaml_pos
 
 module Stream = CFStream_stream
 
-include Core.Common
 let ( |? ) x default = Core.Option.value ~default x
-module List = Core.Std.List
+
 module Array = struct
   include Core.Std.Array
   let range xs = Stream.Infix.(0 --^ (length xs))
 end
-include Array.Infix
-module Arg = Core.Std.Arg
-module Backtrace = Core.Std.Backtrace
-module Bag = Core.Std.Bag
-module Bigbuffer = Core.Std.Bigbuffer
-module Bigstring = Core.Std.Bigstring
-module Bigsubstring = Core.Std.Bigsubstring
-module Bin_prot = Core.Std.Bin_prot
-module Binary_packing = Core.Std.Binary_packing
-module Bool = Core.Std.Bool
-module Buffer = Core.Std.Caml.Buffer
-module Caml = Core.Std.Caml
-module Char = Core.Std.Char
-module Command = Core.Std.Command
-module Dequeue = Core.Std.Dequeue
-module Error = Core.Std.Error
-module Exn = Core.Std.Exn
-module Filename = struct
-  include Core.Std.Filename
 
-  module Infix = struct
-    let (/) = concat
-  end
-end
-module Float = Core.Std.Float
-module Fn = Core.Std.Fn
-module Hashtbl = Core.Std.Hashtbl
-module Int = Core.Std.Int
-module In_channel = Core.Std.In_channel
-module Int32 = Core.Std.Int32
-module Int63 = Core.Std.Int63
-module Int64 = Core.Std.Int64
-module Interfaces = Core.Std.Interfaces
-include Interfaces
-module Interval = Core.Std.Interval
-module Lazy = Core.Std.Lazy
-include List.Infix
-module Map = Core.Std.Map
-module Monad = Core.Std.Monad
-module Nativeint = Core.Std.Nativeint
-module Option = Core.Std.Option
-module Or_error = Core.Std.Or_error
-module Out_channel = Core.Std.Out_channel
-module Printexc = Core.Std.Printexc
-module Printf = Core.Std.Printf
-include Printf
-module Queue = Core.Std.Queue
-module Random = Core.Std.Random
 module Result = struct
 
   include Core.Std.Result
@@ -83,17 +37,6 @@ module Result = struct
   let output_error e = `output (Error e)
 
 end
-include Result.Export
-module Sequence = Core.Std.Sequence
-module Set = Core.Std.Set
-module Sexp = Core.Std.Sexp
-module Sexpable = Core.Std.Sexpable
-include Sexplib.Conv
-module Stack = Core.Std.Stack
-module String = Core.Std.String
-include String.Infix
-module Sys = Core.Std.Sys
-module Time = Core.Std.Time
 
 let try_finally_exn ~fend f x =
   match try `V (f x) with e -> `E e with

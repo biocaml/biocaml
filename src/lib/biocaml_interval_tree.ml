@@ -3,8 +3,8 @@
  * standard library and the BatSet module (from Batteries) for enum-related 
  * functions
  *)
-
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 type 'a t = Empty | Node of 'a node 
 and 'a node = {

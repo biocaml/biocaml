@@ -1,5 +1,6 @@
 (** Fastq errors. *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 (** [`sequence_qualities_mismatch (pos, sequence, qualities)]
     means [sequence] and [qualities] are of different lengths. *)

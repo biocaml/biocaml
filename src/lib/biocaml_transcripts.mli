@@ -1,6 +1,6 @@
 (** Transcripts are integer intervals containing a list of
     exons. Exons are themselves defined as a list of integer intervals. *)
-open Biocaml_internal_pervasives
+open Core.Std
 
 (*
 type 'a transcript = {

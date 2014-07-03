@@ -22,7 +22,7 @@
     because the Roman form is incomplete; e.g. it cannot represent chromosome
     number 10 because there would be an ambiguity with the maternal
     chromosome "chrX". *)
-open Biocaml_internal_pervasives
+open Core.Std
 
 module Error : sig
 

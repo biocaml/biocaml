@@ -1,4 +1,5 @@
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 type count_matrix = int array array
 type background = float array

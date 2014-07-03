@@ -2,6 +2,7 @@
 [biocaml] command line application *)
 
 open Core.Std
+open Biocaml_internal_utils
 open Flow
 open Biocaml
 
@@ -253,19 +254,19 @@ module Command_line = struct
   (** Append all the know verbosity flags (even if not relevant …). *)
   let verbosity_flags () =
     let set_verbosity v =
-      if v then Biocaml_internal_pervasives.Debug.enable "BAM";
-      if v then Biocaml_internal_pervasives.Debug.enable "SAM";
-      if v then Biocaml_internal_pervasives.Debug.enable "ZIP";
+      if v then Debug.enable "BAM";
+      if v then Debug.enable "SAM";
+      if v then Debug.enable "ZIP";
       Say.verbose := v;
     in
     Spec.(
       step (fun k v -> set_verbosity v; k)
       +> flag "verbose-all" ~aliases:["V"] no_arg ~doc:" make everything over-verbose"
-      ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "BAM"; k)
+      ++ step (fun k v -> if v then Debug.enable "BAM"; k)
       +> flag "verbose-bam"  no_arg ~doc:" make Biocaml_bam verbose"
-      ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "SAM"; k)
+      ++ step (fun k v -> if v then Debug.enable "SAM"; k)
       +> flag "verbose-sam"  no_arg ~doc:" make Biocaml_sam verbose"
-      ++ step (fun k v -> if v then Biocaml_internal_pervasives.Debug.enable "ZIP"; k)
+      ++ step (fun k v -> if v then Debug.enable "ZIP"; k)
       +> flag "verbose-zip"  no_arg ~doc:" make Biocaml_zip verbose"
       ++ step (fun k v ->  if v then Say.verbose := true; k)
       +> flag "verbose-app" ~aliases:["v"] no_arg ~doc:" make 'biocaml' itself verbose"

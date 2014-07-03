@@ -29,7 +29,7 @@
     each chromosome. This is not enforced, but you can use
     [any_overlap] to verify this property when needed.
 *)
-open Biocaml_internal_pervasives
+open Core.Std
 
 (** {2 Item Types} *)
 

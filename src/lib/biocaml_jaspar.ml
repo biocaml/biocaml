@@ -1,5 +1,6 @@
-open Biocaml_internal_pervasives
-open Filename.Infix
+open Core.Std
+open Biocaml_internal_utils
+let (/) = Filename.concat
 
 type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII
 

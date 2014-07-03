@@ -7,7 +7,7 @@
     numbered 0. The count of a bin is a floating point number,
     allowing fractional values if necessary.
 *)
-open Biocaml_internal_pervasives
+open Core.Std
 
 type 'a t
     (** The type of a histogram whose bin limits are of type ['a]. *)

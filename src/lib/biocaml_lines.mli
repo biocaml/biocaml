@@ -1,5 +1,6 @@
 (** Manipulate the lines of a file. *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 type item = Line.t
 with sexp

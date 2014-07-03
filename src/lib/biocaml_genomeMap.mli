@@ -1,4 +1,4 @@
-open Biocaml_internal_pervasives
+open Core.Std
 
 type range = Biocaml_range.t
 type 'a location = 'a * range

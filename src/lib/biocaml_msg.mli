@@ -1,5 +1,6 @@
 (** Consistent printing of errors, warnings, and bugs. An error is a user mistake that prevents continuing program execution, a warning is a milder problem that the program continues to execute through, and a bug is a mistake in the software. *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 val err : ?pos:Pos.t -> string -> string
 val warn : ?pos:Pos.t -> string -> string

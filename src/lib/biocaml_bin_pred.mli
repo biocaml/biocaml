@@ -8,7 +8,7 @@
     score threshold.
  *)
 
-open Biocaml_internal_pervasives
+open Core.Std
 
 type confusion_matrix = private {
   tp : int ;

@@ -6,7 +6,7 @@
     For a brief description of the implementation, see {{:http://en.wikipedia.org/wiki/Interval_tree#Augmented_tree}the matching Wikipedia article}
 
 *)
-open Biocaml_internal_pervasives
+open Core.Std
 
 type 'a t
 

@@ -1,5 +1,6 @@
+open Core.Std
+open Biocaml_internal_utils
 open OUnit
-open Biocaml_internal_pervasives
 open Biocaml
 
 let make_stream ?more_columns file : ((Bed.item, Bed.Error.parsing) Result.t) Stream.t =

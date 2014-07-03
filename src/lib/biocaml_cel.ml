@@ -1,4 +1,5 @@
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 module Lines = Biocaml_lines
 module Msg = Biocaml_msg
 module Bpmap = Biocaml_bpmap

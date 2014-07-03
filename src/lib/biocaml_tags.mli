@@ -1,5 +1,6 @@
 (** Meta-information about files and their formats. *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 type file_format = [
 | `gzip of file_format
@@ -98,7 +99,7 @@ module Output_transform: sig
   (** Get a string naming the transform (for debug/error messages). *)
 
   val from_tags : ?zip_level:int -> ?zlib_buffer_size:int -> tags ->
-    (t, [> `not_implemented of string ]) Biocaml_internal_pervasives.Result.t
+    (t, [> `not_implemented of string ]) Result.t
   (** Guess the [Output_transform.t] from file tags. *)
 
   val sexp_of_output_error: output_error -> Sexplib.Sexp.t

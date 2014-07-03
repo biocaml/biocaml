@@ -1,5 +1,6 @@
+open Core.Std
+open Biocaml_internal_utils
 open OUnit
-open Biocaml_internal_pervasives
 open Biocaml
 
 type error =

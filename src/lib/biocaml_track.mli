@@ -47,7 +47,8 @@
     - [type] - "wiggle_0" is the only value currently supported,
       leaving this attribute unset handles other track types
 *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 (** {2 Item Types} *)
 

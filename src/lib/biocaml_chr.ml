@@ -1,4 +1,4 @@
-open Biocaml_internal_pervasives
+open Core.Std
 
 module RomanNum = Biocaml_romanNum
 

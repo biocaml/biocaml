@@ -1,7 +1,7 @@
-open OUnit
-open Biocaml_internal_pervasives
-open Biocaml
 open Core.Std
+open Biocaml_internal_utils
+open OUnit
+open Biocaml
 
 let dbg fmt = eprintf ("DBG: " ^^ fmt ^^ "\n%!")
 

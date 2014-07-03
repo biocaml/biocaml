@@ -53,7 +53,8 @@
     mean specifically a sequence of integers.
 
 *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 (** {2 Fasta Content Type Definitions } *)
 

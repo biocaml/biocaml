@@ -27,7 +27,8 @@
     tab. Tag-value pairs must be in the form "tag=value" with no space
     around the '='.
 *)
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 (** {2 Basic Types} *)
 

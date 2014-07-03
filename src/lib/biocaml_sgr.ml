@@ -1,4 +1,5 @@
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 
 type t = (string * int * float) list
     (* Stored in ascending order by (string,int) pairs. *)

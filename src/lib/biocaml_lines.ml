@@ -1,4 +1,5 @@
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 open Result
 
 type item = Line.t
@@ -23,6 +24,33 @@ module MakeIO (Future : Future.S) = struct
 
 end
 include MakeIO(Future_std)
+
+let of_char_stream cstr =
+  let f _ = match Stream.peek cstr with
+    | None -> None
+    | Some _ ->
+      let ans = Buffer.create 100 in
+      let rec loop () = match Stream.next cstr with
+        | Some c ->
+          if c <> '\n' then (Buffer.add_char ans c; loop())
+        | None -> ()
+      in
+      loop();
+      Some (Buffer.contents ans |> Line.of_string_unsafe)
+  in
+  Stream.from f
+
+let of_channel cin =
+  let f _ =
+    In_channel.input_line cin
+    |> Option.map ~f:Line.of_string_unsafe
+  in Stream.from f
+
+let to_channel xs oc =
+  Stream.iter xs ~f:(fun l ->
+    Out_channel.output_string oc (l : item :> string);
+    Out_channel.newline oc
+  )
 
 module Buffer = struct
 
@@ -184,31 +212,3 @@ module Transform = struct
         | `incomplete_input e -> `incomplete_input e)
 
 end
-
-let of_char_stream cstr =
-  let module Buffer = Biocaml_internal_pervasives.Buffer in
-  let f _ = match Stream.peek cstr with
-    | None -> None
-    | Some _ ->
-      let ans = Buffer.create 100 in
-      let rec loop () = match Stream.next cstr with
-        | Some c ->
-          if c <> '\n' then (Buffer.add_char ans c; loop())
-        | None -> ()
-      in
-      loop();
-      Some (Buffer.contents ans |> Line.of_string_unsafe)
-  in
-  Stream.from f
-
-let of_channel cin =
-  let f _ =
-    In_channel.input_line cin
-    |> Option.map ~f:Line.of_string_unsafe
-  in Stream.from f
-
-let to_channel xs oc =
-  Stream.iter xs ~f:(fun l ->
-    Out_channel.output_string oc (l : item :> string);
-    Out_channel.newline oc
-  )

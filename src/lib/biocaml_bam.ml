@@ -1,4 +1,5 @@
-open Biocaml_internal_pervasives
+open Core.Std
+open Biocaml_internal_utils
 open Result
 module Sam = Biocaml_sam
 module Phred_score = Biocaml_phred_score

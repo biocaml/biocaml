@@ -1,4 +1,4 @@
-open Biocaml_internal_pervasives
+open Core.Std
 
 module Roman = struct
     (* Roman module courtesy of Nathan Mishra Linger, as posted on Caml List. *)

@@ -1,5 +1,5 @@
 open OUnit
-open Biocaml_internal_pervasives
+open Core.Std
 open Biocaml
 
 let test_parser () =
