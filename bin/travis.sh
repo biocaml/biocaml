@@ -31,14 +31,17 @@ opam install \
   core \
   cfstream \
   lwt \
-  async \
-  flow.0.3
+  async
 
 cd ~
 git clone https://github.com/agarwal/future.git
 opam repo add future-dev ~/future/etc/opam
 opam pin future ~/future
 opam install future
+
+git clone https://github.com/smondet/flow.git
+opam pin flow ~/flow
+opam install flow
 
 # run tests
 cd $TRAVIS_BUILD_DIR
