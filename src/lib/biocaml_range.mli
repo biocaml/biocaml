@@ -12,7 +12,6 @@ val make : int -> int -> t Or_error.t
 (** [make lo hi] returns the range [{lo; hi}]. Return [Error] if [lo >
     hi]. *)
 
-val make_exn : int -> int -> t
 val make_unsafe : int -> int -> t
 
 val size : t -> int

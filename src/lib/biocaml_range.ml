@@ -13,8 +13,6 @@ let make lo hi =
       <:sexp_of< int * int >>
   )
 
-let make_exn lo hi = ok_exn (make lo hi)
-
 let make_unsafe lo hi = {lo; hi}
 
 let size v = v.hi - v.lo + 1
@@ -179,11 +177,11 @@ let find_regions ?(max_gap=0) pred tal =
         let extra_gap = t.lo - curr_v.hi - 1 in
         let t,pred,tal =
           if extra_gap > 0 then
-            make_exn (curr_v.hi + 1) (t.lo - 1), false, ((t,a)::tal)
+            {lo=(curr_v.hi + 1); hi=(t.lo - 1)}, false, ((t,a)::tal)
           else
             t, pred a, tal
         in
-        let curr_v = make_exn curr_v.lo t.hi in
+        let curr_v = {lo=curr_v.lo; hi=t.hi} in
         let curr_gap = if pred then 0 else size t + curr_gap in
         let curr = Some (curr_v, curr_gap) in
         if curr_gap > max_gap

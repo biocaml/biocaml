@@ -65,7 +65,7 @@ module Selection = struct
       
   let to_stream dom =
     (Map.to_stream dom) 
-    /@ (fun (k,s) -> Stream.map ~f:(fun (lo,hi) -> k, Range.make_exn lo hi) (Biocaml_iset.to_stream s))
+    /@ (fun (k,s) -> Stream.map ~f:(fun (lo,hi) -> k, ok_exn (Range.make lo hi)) (Biocaml_iset.to_stream s))
       |! Stream.concat
 
   let of_stream e =
@@ -100,7 +100,7 @@ module LMap = struct
       Range.(fun x ->
 	try
 	  let lo,hi,label,d = T.find_closest r.lo r.hi x in
-	  Some ((k, make_exn lo hi), label, d)
+	  Some ((k, ok_exn (make lo hi)), label, d)
 	with T.Empty_tree -> None
       )
 
@@ -108,12 +108,12 @@ module LMap = struct
     match Map.find lmap k with
     | Some x ->
       T.find_intersecting_elem lo hi x
-      /@ (fun (lo,hi,x) -> (k, Range.make_exn lo hi), x)
+      /@ (fun (lo,hi,x) -> (k, ok_exn (Range.make lo hi)), x)
     | None -> Stream.empty ()
 
   let to_stream dom =
     (Map.to_stream dom) 
-    /@ (fun (k,t) -> Stream.map ~f:(fun (lo,hi,x) -> (k, Range.make_exn lo hi), x) (T.to_stream t))
+    /@ (fun (k,t) -> Stream.map ~f:(fun (lo,hi,x) -> (k, ok_exn (Range.make lo hi)), x) (T.to_stream t))
     |! Stream.concat
 
   let of_stream e =

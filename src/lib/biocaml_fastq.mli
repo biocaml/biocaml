@@ -37,17 +37,10 @@ module MakeIO (Future : Future.S) : sig
 
   val read : Reader.t -> item Or_error.t Pipe.Reader.t
 
-  val read_exn : Reader.t -> item Pipe.Reader.t
-
   val read_file
     : ?buf_len:int
     -> string
     -> item Or_error.t Pipe.Reader.t Deferred.t
-
-  val read_file_exn
-    : ?buf_len:int
-    -> string
-    -> item Pipe.Reader.t Deferred.t
 
   val write : Writer.t -> item Pipe.Reader.t -> unit Deferred.t
 

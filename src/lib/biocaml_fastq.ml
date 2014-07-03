@@ -228,16 +228,8 @@ module MakeIO (Future : Future.S) = struct
   let read ic =
     Reader.read_all ic read_item
 
-  let read_exn ic =
-    read ic
-    |> Pipe.map ~f:ok_exn
-
   let read_file ?buf_len file =
     Reader.open_file ?buf_len file >>| read
-
-  let read_file_exn ?buf_len file =
-    read_file ?buf_len file >>| fun pipe_r ->
-    Pipe.map pipe_r ~f:ok_exn
 
   let write_item (w : Writer.t) (x : item) : unit Deferred.t =
     let open Writer in

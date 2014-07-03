@@ -1,7 +1,7 @@
 open build/OCaml
 DefineCommandVars()
 
-.PHONY: lib lib_lwt lib_async app tests benchmarks odoc doc \
+.PHONY: lib lib_ez lib_lwt lib_async app tests benchmarks odoc doc \
         install install_lib install_app install_doc \
         uninstall uninstall_lib uninstall_app \
         clean distclean \
@@ -37,6 +37,11 @@ LIB_MODULES[] =
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 LIB_PACKAGES = core threads zip unix xmlm cfstream sexplib.syntax future.std \
                comparelib.syntax
+
+LIB_EZ_NAME = $(PROJECT)_ez
+LIB_EZ_MODULES[] =
+  $(removesuffix $(basename $(ls src/lib_ez/*.ml)))
+LIB_EZ_PACKAGES = $(LIB_PACKAGES)
 
 LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =
@@ -81,6 +86,7 @@ $(CONFIG_FILE):
   if $(not $(file-exists $(CONFIG_FILE)))
     echo "Generating default $@. Change as desired."
     echo "COMPILE_APP = true" > $(CONFIG_FILE)
+    echo "COMPILE_LIB_EZ = true" >> $(CONFIG_FILE)
     echo "COMPILE_LIB_LWT = true" >> $(CONFIG_FILE)
     echo "COMPILE_LIB_ASYNC = true" >> $(CONFIG_FILE)
     echo "COMPILE_TESTS = true" >> $(CONFIG_FILE)
@@ -107,6 +113,10 @@ if $(not $(defined DOCDIR))
   DOCDIR = $(PREFIX)/doc
   export
 
+if $(not $(defined COMPILE_LIB_EZ))
+  COMPILE_LIB_EZ = true
+  export
+
 if $(not $(defined COMPILE_LIB_LWT))
   COMPILE_LIB_LWT = true
   export
@@ -128,6 +138,7 @@ if $(not $(defined COMPILE_BENCHMARKS))
   export
 
 print_config:
+  echo "COMPILE_LIB_EZ: $(COMPILE_LIB_EZ)"
   echo "COMPILE_LIB_LWT: $(COMPILE_LIB_LWT)"
   echo "COMPILE_LIB_ASYNC: $(COMPILE_LIB_ASYNC)"
   echo "COMPILE_APP: $(COMPILE_APP)"
@@ -198,6 +209,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 # Sub-directories
 .SUBDIRS: .
   mkdir -p _build/lib
+  mkdir -p _build/lib_ez
   mkdir -p _build/lib_lwt
   mkdir -p _build/lib_async
   mkdir -p _build/app
@@ -241,6 +253,19 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     lib: $(OCamlLibraryWithCFiles $(LIB_NAME), $(LIB_MODULES), $(LIB_STUBS))
 
     .DEFAULT: lib META
+
+
+  ##############################################################################
+  # Ez Library
+  .SUBDIRS: _build/lib_ez
+    OCAMLINCLUDES += $(dir ../lib/)
+    OCAMLPACKS[] = $(LIB_EZ_PACKAGES)
+
+    lib_ez: $(OCamlLibrary $(LIB_EZ_NAME), $(LIB_EZ_MODULES))
+
+    if $(COMPILE_LIB_EZ)
+      echo "conf: Building biocaml ez library"
+      .DEFAULT: lib_ez
 
 
   ##############################################################################
