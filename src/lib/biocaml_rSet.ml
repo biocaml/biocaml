@@ -3,8 +3,6 @@ module Range = Biocaml_range
 
 type t = Range.t list (* retained in canonical form *)
 type range = Range.t
-exception Bad of string
-let raise_bad msg = raise (Bad msg)
 
 let empty = []
 let size t = List.fold_left ~f:(fun ans v -> ans + Range.size v) ~init:0 t

@@ -6,8 +6,6 @@ type t
 
 type range = Biocaml_range.t
 
-exception Bad of string
-
 val empty : t
   (** The empty set. *)
 
