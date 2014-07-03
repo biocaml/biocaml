@@ -39,9 +39,8 @@ let to_canonical (vl : Range.t list) : Range.t list =
             canonize ans (u::vl)
           else if Range.before u v then
             match Range.union u v with
-              | uv::[] -> canonize ans (uv::vl)
-              | u::v::[] -> canonize (u::ans) tail
-              | _ -> invalid_arg "impossible to get here"
+              | `Joint uv -> canonize ans (uv::vl)
+              | `Disjoint (u,_) -> canonize (u::ans) tail
           else
             invalid_arg "impossible to get here"
   in

@@ -29,8 +29,8 @@ let overlap u v = (min u.hi v.hi) - (max u.lo v.lo) + 1
 let gap u v = -(overlap u v)
 
 let union u v =
-  if overlap u v < 0 then [u;v]
-  else [{lo = min u.lo v.lo; hi = max u.hi v.hi}]
+  if overlap u v < 0 then `Disjoint (u, v)
+  else `Joint {lo = min u.lo v.lo; hi = max u.hi v.hi}
 
 let intersect u v =
   let l = max u.lo v.lo in

@@ -43,11 +43,11 @@ val gap : t -> t -> int
 
 (** {6 Set Operations} *)
 
-val union : t -> t -> t list
-(** [union u v] returns the ranges representing the union of [u] and
-    [v]. Returned list length will be 1 if ranges have non-negative
-    overlap or 2 if they do not. In other words, the answer is represented
-    with the fewest possible ranges. *)
+val union : t -> t -> [`Joint of t | `Disjoint of t * t]
+(** [union u v] returns the range(s) representing the union of [u] and
+    [v]. If [u] and [v] overlap, their union can be represented as a
+    single range. If not, their union is a disjoint combination of two
+    ranges. *)
 
 val intersect : t -> t -> t option
 (** [intersect u v] returns the range representing the intersection of
