@@ -24,14 +24,13 @@ module Result : sig
 
   include module type of Core.Std.Result
 
-  (** Map the function [f] on the list until the first error is
-      met. *)
-  val while_ok: 'a list -> f:(int -> 'a -> ('b, 'e) t) ->
-    ('b list, 'e) t
+  module List : sig
 
-  val output_result : 'a -> [> `output of 'a ]
-  val output_ok : 'a -> [> `output of ('a, 'b) t ]
-  val output_error : 'a -> [> `output of ('b, 'a) t ]
+    (** Map the function [f] over the list, stopping on the first
+        error encountered. *)
+    val mapi: 'a list -> f:(int -> 'a -> ('b, 'e) t) -> ('b list, 'e) t
+
+  end
 
 end
 

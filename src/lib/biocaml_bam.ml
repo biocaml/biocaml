@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 module Sam = Biocaml_sam
 module Phred_score = Biocaml_phred_score
 module Zip = Biocaml_zip
@@ -84,9 +83,11 @@ module Error = struct
 end
 
 module Transform = struct
+  open Result.Monad_infix
+
   let dbg fmt = Debug.make "BAM" fmt
 
-  let check b e = if b then return () else fail e
+  let check b e = if b then Ok () else Error e
 
   let signed_int ~buf ~pos =
     let b1 = Char.to_int buf.[pos + 0] |! Int32.of_int_exn in
@@ -98,7 +99,7 @@ module Transform = struct
                (bit_or (shift_left b2 8)
                   (bit_or (shift_left b3 16)
                      (shift_left b4 24)))) in
-    try return (Int32.to_int_exn i32) with e -> fail (`wrong_int32 buf)
+    try Ok (Int32.to_int_exn i32) with e -> Error (`wrong_int32 buf)
 
   let parse_header buf =
     check (String.length buf >= 12) `no
@@ -115,7 +116,7 @@ module Transform = struct
     signed_int ~buf ~pos:(8 + length)
     >>= fun nb_refs ->
     dbg "nb refs: %d" nb_refs;
-    return (`header sam_header, nb_refs, 4 + 4 + length + 4)
+    Ok (`header sam_header, nb_refs, 4 + 4 + length + 4)
 
   let parse_reference_information_item buf pos =
     check (String.length buf - pos >= 4) `no >>= fun () ->
@@ -130,7 +131,7 @@ module Transform = struct
     >>= fun () ->
     signed_int ~buf ~pos:(pos + 4 + l_name)
     >>= fun l_ref ->
-    return (4 + l_name + 4, name, l_ref)
+    Ok (4 + l_name + 4, name, l_ref)
 
   let parse_reference_information buf nb =
     let bytes_read = ref 0 in
@@ -248,7 +249,7 @@ module Transform = struct
       seq;
       qual;
       optional = aux_data } in
-    return (`alignment alignment, block_size + 4)
+    Ok (`alignment alignment, block_size + 4)
 
   let uncompressed_bam_parser () =
     let in_buffer = Buffer.create 42 in
@@ -267,7 +268,7 @@ module Transform = struct
           | Ok (o, nbrefs, nbread) ->
             state := `reference_information nbrefs;
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
-            output_ok  o
+            `output (Ok o)
           | Error `no ->
             dbg "rebuffering %d bytes" String.(length buffered);
             Buffer.add_string in_buffer buffered; `not_ready
@@ -278,7 +279,7 @@ module Transform = struct
           | `no ->
             dbg "(ri) rebuffering %d bytes" String.(length buffered);
             if len > 50000
-            then output_error (`reference_information_overflow (len, buffered))
+            then `output (Error (`reference_information_overflow (len, buffered)))
             else begin
               Buffer.add_string in_buffer buffered;
               `not_ready
@@ -287,18 +288,18 @@ module Transform = struct
           | `reference_information (refinfo, nbread) ->
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
             state := `alignments refinfo;
-            output_ok (`reference_information refinfo)
+            `output (Ok (`reference_information refinfo))
           end
         | `alignments refinfo ->
           begin match parse_alignment buffered with
           | Ok (o, nbread) ->
             dbg "len: %d nbread: %d" len nbread;
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
-            output_ok (o : raw_item)
+            `output (Ok (o : raw_item))
           | Error `no ->
             dbg "(al) rebuffering %d bytes" String.(length buffered);
             Buffer.add_string in_buffer buffered; `not_ready
-          | Error  e -> output_error e
+          | Error  e -> `output (Error e)
           end
         end
       end
@@ -326,8 +327,8 @@ module Transform = struct
     let from () = String.sub buf pos len in
     dbg "from: %S" (from ());
     let rec build ofs acc =
-      let error e = fail (`wrong_auxiliary_data (e, from ())) in
-      if ofs >= len then return acc
+      let error e = Error (`wrong_auxiliary_data (e, from ())) in
+      if ofs >= len then Ok acc
       else (
         if ofs + 2 >= len then error `out_of_bounds
         else (
@@ -335,7 +336,7 @@ module Transform = struct
           let typ = buf.[ofs + 2] in
           let check_size_and_return n r =
             if ofs + 2 + n >= len then error `out_of_bounds
-            else return (r, n) in
+            else Ok (r, n) in
           let parse_cCsSiIf pos typ =
             begin match typ with
             | 'i' ->
@@ -361,23 +362,23 @@ module Transform = struct
           | 'A' -> check_size_and_return 1 (`char buf.[pos])
           | 'Z' ->
             begin match String.index_from buf pos '\000' with
-            | Some e -> return (`string String.(slice buf pos e), e - pos + 1)
+            | Some e -> Ok (`string String.(slice buf pos e), e - pos + 1)
             | None -> error `null_terminated_string
             end
           | 'H' ->
             begin match String.index_from buf pos '\000' with
-            | Some e -> return (`string String.(slice buf pos e), e - pos + 1)
+            | Some e -> Ok (`string String.(slice buf pos e), e - pos + 1)
             | None -> error `null_terminated_hexarray
             end
           | 'B' ->
             check_size_and_return 1 buf.[pos] >>= fun (array_type, _) ->
             signed_int ~buf ~pos:(pos + 1) >>= fun i32 ->
             check_size_and_return 4 i32 >>= fun (size, _) ->
-            (if size > 4000 then error (`array_size size) else return ())
+            (if size > 4000 then error (`array_size size) else Ok ())
             >>= fun () ->
             let arr = Array.create size (`char 'B') in
             let rec loop p = function
-              | 0 -> return p
+              | 0 -> Ok p
               | n ->
                 parse_cCsSiIf p array_type
                 >>= fun (v, nb) ->
@@ -385,7 +386,7 @@ module Transform = struct
                 loop (p + nb) (n - 1) in
             loop (pos + 5) size
             >>= fun newpos ->
-            return (`array (array_type, arr), newpos - pos)
+            Ok (`array (array_type, arr), newpos - pos)
           | c -> parse_cCsSiIf pos c
           end
               >>= fun (v, nbread) ->
@@ -394,22 +395,22 @@ module Transform = struct
       )
     in
     match build pos [] with
-    | Ok r -> return (List.rev r)
-    | Error (`wrong_auxiliary_data e) -> fail (`wrong_auxiliary_data e)
-    | Error (`wrong_int32 e) -> fail (`wrong_auxiliary_data (`wrong_int32 e, from ()))
+    | Ok r -> Ok (List.rev r)
+    | Error (`wrong_auxiliary_data e) -> Error (`wrong_auxiliary_data e)
+    | Error (`wrong_int32 e) -> Error (`wrong_auxiliary_data (`wrong_int32 e, from ()))
 
 
   let parse_cigar ?(pos=0) ?len buf =
     let len =
       match len with Some s -> s | None -> String.length buf in
     begin match len mod 4 with
-    | 0 -> return (len / 4)
-    | n -> fail (`wrong_cigar_length len)
+    | 0 -> Ok (len / 4)
+    | n -> Error (`wrong_cigar_length len)
     end
     >>= fun n_cigar_op ->
     begin
       try
-        return (Array.init n_cigar_op (fun i ->
+        Ok (Array.init n_cigar_op (fun i ->
           let open Int64 in
           let int64 =
             let int8 pos =
@@ -435,7 +436,7 @@ module Transform = struct
           op))
       with
       | e ->
-        fail (`wrong_cigar
+        Error (`wrong_cigar
                  String.(sub buf pos (pos + n_cigar_op * 4)))
     end
 (* dbg "cigar: %s" (Array.to_list cigarray *)
@@ -444,17 +445,17 @@ module Transform = struct
 
   let parse_sam_header h =
     let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
-    while_ok lines (fun idx line ->
+    Result.List.mapi lines (fun idx line ->
       dbg "parse_sam_header %d %s" idx line;
       Sam.parse_header_line idx line
       >>= fun raw_sam ->
       begin match raw_sam with
-      | `comment s -> return (`comment s)
+      | `comment s -> Ok (`comment s)
       | `header ("HD", l) ->
         if idx <> 0
-        then fail (`header_line_not_first idx)
+        then Error (`header_line_not_first idx)
         else Sam.expand_header_line l
-      | `header h -> return (`header h)
+      | `header h -> Ok (`header h)
       end)
 
   let expand_alignment refinfo raw =
@@ -463,17 +464,17 @@ module Transform = struct
       pos (* : int *); mapq (* : int *); bin (* : int *); cigar (* : string *);
       next_ref_id (* : int *); pnext (* : int *); tlen (* : int *);
       seq (* : string *); qual (* : int array *); optional (* : string *);} = raw in
-    let check c e = if c then return () else fail e in
+    let check c e = if c then Ok () else Error e in
     check (1 <= String.length qname && String.length qname <= 255)
       (`wrong_qname raw)
     >>= fun () ->
     check (0 <= flag && flag <= 65535) (`wrong_flag raw) >>= fun () ->
     let find_ref id =
       begin match id with
-      | -1 -> return `none
+      | -1 -> Ok `none
       | other ->
-        begin try return (`reference_sequence refinfo.(other))
-          with e -> fail (`reference_sequence_not_found raw) end
+        begin try Ok (`reference_sequence refinfo.(other))
+          with e -> Error (`reference_sequence_not_found raw) end
       end in
     find_ref ref_id >>= fun reference_sequence ->
     check (-1 <= pos && pos <= 536870910) (`wrong_pos raw) >>= fun () ->
@@ -484,7 +485,7 @@ module Transform = struct
     check (-536870911 <= tlen && tlen <= 536870911) (`wrong_tlen raw)
     >>= fun () ->
     parse_optional optional >>= fun optional_content ->
-    return (`alignment {
+    Ok (`alignment {
       Sam.
       query_template_name = qname;
       flags = Sam.Flags.of_int flag;
@@ -513,7 +514,7 @@ module Transform = struct
       dbg "header_items: %d   raw_queue: %d  raw_items_count: %d"
         (List.length !header_items) (Dequeue.length raw_queue) !raw_items_count;
       begin match !header_items with
-      | h :: t -> header_items := t; output_ok h
+      | h :: t -> header_items := t; `output (Ok h)
       | [] ->
         begin match Dequeue.is_empty raw_queue, stopped with
         | true, true ->`end_of_stream
@@ -524,7 +525,7 @@ module Transform = struct
           | `header s ->
             begin match parse_sam_header s with
             | Ok h -> header_items := h; next stopped
-            | Error e -> output_error e
+            | Error e -> `output (Error e)
             end
           | `reference_information ri ->
             let make_ref_info (s, i) = Sam.reference_sequence s i in
@@ -534,9 +535,9 @@ module Transform = struct
             if !first_alignment then (
               first_alignment := false;
               Dequeue.enqueue raw_queue `front (`alignment a);
-              output_ok (`reference_sequence_dictionary !reference_information)
+              `output (Ok (`reference_sequence_dictionary !reference_information))
             ) else (
-              expand_alignment !reference_information a |! output_result
+              expand_alignment !reference_information a |! (fun x -> `output x)
             )
           end
         end
@@ -549,8 +550,8 @@ module Transform = struct
     let module S = Sam in
     let find_ref s =
       begin match Array.findi ref_dict (fun _ n -> n.S.ref_name = s) with
-      | Some (i, _) -> return i
-      | None -> fail (`reference_name_not_found (al, s))
+      | Some (i, _) -> Ok i
+      | None -> Error (`reference_name_not_found (al, s))
       end
     in
 
@@ -558,16 +559,16 @@ module Transform = struct
     let flag = (al.S.flags :> int) in
     begin match al.S.reference_sequence with
     | `name s -> find_ref s
-    | `none -> return (-1)
+    | `none -> Ok (-1)
     | `reference_sequence rs -> find_ref rs.S.ref_name
     end
     >>= fun ref_id ->
     let pos = (Option.value ~default:0 al.S.position) - 1 in
     let mapq = Option.value ~default:255 al.S.mapping_quality in
     begin match al.S.sequence with
-    | `string s -> return s
-    | `none -> return ""
-    | `reference -> fail (`cannot_get_sequence al)
+    | `string s -> Ok s
+    | `none -> Ok ""
+    | `reference -> Error (`cannot_get_sequence al)
     end
     >>= fun seq ->
     let bin =
@@ -608,7 +609,7 @@ module Transform = struct
     dbg "cigar: %S" cigar;
     begin match al.S.next_reference_sequence with
     | `qname -> find_ref qname
-    | `none -> return (-1)
+    | `none -> Ok (-1)
     | `name s -> find_ref s
     | `reference_sequence rs -> find_ref rs.S.ref_name
     end
@@ -659,7 +660,7 @@ module Transform = struct
         sprintf "%s%c%s" tag typ (content typ c))
       |! String.concat ~sep:""
     in
-    return {
+    Ok {
       qname; flag; ref_id; pos; mapq; bin; cigar;
       next_ref_id; pnext; tlen; seq; qual; optional;}
 
@@ -687,7 +688,7 @@ module Transform = struct
           next stopped
         | `header_line (version, ordering, rest) ->
           if Buffer.contents header <> "" then
-            output_error (`header_item_not_first (Buffer.contents header))
+            `output (Error (`header_item_not_first (Buffer.contents header)))
           else begin
             ksprintf (Buffer.add_string header) "@HD\tVN:%s\tSO:%s%s\n"
               version
@@ -709,21 +710,21 @@ module Transform = struct
           next stopped
         | `reference_sequence_dictionary r ->
           ref_dict := r;
-          output_ok (`header (Buffer.contents header))
+          `output (Ok (`header (Buffer.contents header)))
         | `alignment al ->
           if not !ref_dict_done
           then begin
             dbg "reference_information: %d" Array.(length !ref_dict);
             ref_dict_done := true;
             Dequeue.enqueue queue `front (`alignment al);
-            output_ok (`reference_information (Array.map !ref_dict ~f:(fun rs ->
+            `output (Ok (`reference_information (Array.map !ref_dict ~f:(fun rs ->
               let open Sam in
-              (rs.ref_name, rs.ref_length))))
+              (rs.ref_name, rs.ref_length)))))
           end
           else begin
             match downgrade_alignement al !ref_dict with
-            | Ok o -> output_ok (`alignment o)
-            | Error e -> output_error e
+            | Ok o -> `output (Ok (`alignment o))
+            | Error e -> `output (Error e)
           end
         end
       end

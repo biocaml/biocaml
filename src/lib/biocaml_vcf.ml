@@ -125,31 +125,29 @@ let vcf_format_type_to_string = function
   | `string_value    -> "string"
 
 let coerce_to_vcf_format_type t s =
-  let open Result in
   if s = "."
   then
     (** Note(superbobry): any value might be missing, according to VCF4.1
         specification. *)
-    return `missing
+    Ok `missing
   else match t with
     | `integer_value ->
-      map (Safe.int_of_string s) ~f:(fun x -> `integer x)
+      Result.map (Safe.int_of_string s) ~f:(fun x -> `integer x)
     | `float_value   ->
-      map (Safe.float_of_string s) ~f:(fun x -> `float x)
+      Result.map (Safe.float_of_string s) ~f:(fun x -> `float x)
     | `character_value when String.length s = 1 -> Ok (`character s.[0])
-    | `string_value  -> return (`string s)
-    | _ -> fail (`format_type_coersion_failure (t, s))
+    | `string_value  -> Ok (`string s)
+    | _ -> Error (`format_type_coersion_failure (t, s))
 
 let coerce_n ~f key n s =
-  let open Result in
   let open Result.Monad_infix in
-  let res = lazy (all (List.map ~f (String.split ~on:',' s))) in
+  let res = lazy (Result.all (List.map ~f (String.split ~on:',' s))) in
   match n with
     | Number n ->
       Lazy.force res >>= fun values ->
       if List.length values = n
-      then return values
-      else fail (`invalid_arguments_length (key, List.length values, n))
+      then Ok values
+      else Error (`invalid_arguments_length (key, List.length values, n))
     | Unknown
     (** TODO(superbobry): how do we know the nr. of alleles? *)
     | OnePerAllele
@@ -306,11 +304,10 @@ let default_meta = {
    +--------------------+ *)
 
 let string_to_vcfr_ref s =
-  let open Result in
   let s = String.uppercase s in
   if is_valid_dna s
-  then return s
-  else fail (`invalid_dna s)
+  then Ok s
+  else Error (`invalid_dna s)
 
 let string_to_vcfr_info { vcfm_info } s =
   let go values =
@@ -319,79 +316,75 @@ let string_to_vcfr_info { vcfm_info } s =
         Option.value ~default:(chunk, "") (String.lsplit2 ~on:'=' chunk)
       in
 
-      let open Result in
       let chunk_values = match Hashtbl.find vcfm_info key with
         | Some (Info (_t, `flag_value, _description))
-          when raw_value = "" -> return [`flag key]
+          when raw_value = "" -> Ok [`flag key]
         | Some (Info (n, t, _description)) ->
           coerce_n ~f:(coerce_to_vcf_info_type t) key n raw_value
-        | None -> fail (`unknown_info key)
-      in map chunk_values ~f:(fun data -> Hashtbl.set values ~key ~data))
+        | None -> Error (`unknown_info key)
+      in Result.map chunk_values ~f:(fun data -> Hashtbl.set values ~key ~data))
   and values = Hashtbl.Poly.create ()
   in Result.(map (all_ignore (go values)) ~f:(Fn.const values))
 
 let string_to_vcfr_filter { vcfm_filters } s =
-  let open Result in
   match String.split ~on:';' s with
-    | ["PASS"] -> return []
+    | ["PASS"] -> Ok []
     | chunks ->
       match List.find chunks
               ~f:(fun chunk -> not (List.Assoc.mem vcfm_filters chunk)) with
-        | Some unknown_filter -> fail (`unknown_filter unknown_filter)
-        | None -> return chunks
+        | Some unknown_filter -> Error (`unknown_filter unknown_filter)
+        | None -> Ok chunks
 
 let string_to_vcfr_ids { vcfm_id_cache } s =
-  let open Result in
   match String.split ~on:';' s with
-    | ["."] -> return []
+    | ["."] -> Ok []
     | chunks ->
       let duplicate_ids = List.filter chunks ~f:(Set.mem vcfm_id_cache)
       in if List.is_empty duplicate_ids
-      then return chunks
-      else fail (`duplicate_ids duplicate_ids)
+      then Ok chunks
+      else Error (`duplicate_ids duplicate_ids)
 
 let string_to_vcfr_alts { vcfm_alt } s =
-  let open Result in
   match String.split ~on:',' s with
-    | ["."]  -> return []
+    | ["."]  -> Ok []
     | chunks ->
       let res = List.map chunks ~f:(fun chunk ->
           let n = String.length chunk in
           match (chunk.[0] = '<' && chunk.[n - 1] = '>', is_valid_dna chunk) with
             | (true, _)  ->
               if Hashtbl.mem vcfm_alt (String.sub ~pos:1 ~len:(n - 2) chunk)
-              then return chunk
-              else fail (`unknown_alt chunk)
-            | (false, true)  -> return chunk
-            | (false, false) -> fail (`invalid_dna chunk))  (* Impossible. *)
-      in all res
+              then Ok chunk
+              else Error (`unknown_alt chunk)
+            | (false, true)  -> Ok chunk
+            | (false, false) -> Error (`invalid_dna chunk))  (* Impossible. *)
+      in Result.all res
 
 let list_to_vcfr_samples { vcfm_format; vcfm_samples } chunks =
-  let open Result in
+  let open Result.Monad_infix in
   let samples = Hashtbl.Poly.create () in
   let go sample_keys id raw_sample =
     let sample_chunks = String.split ~on:':' raw_sample in
     if List.(length sample_keys <> length sample_chunks)
-    then fail (`malformed_sample raw_sample)
+    then Error (`malformed_sample raw_sample)
     else
-      let open Result.Monad_infix in
       let res = List.map2_exn sample_keys sample_chunks
           ~f:(fun key raw_value ->
               match Hashtbl.find vcfm_format key with
                 | Some (Format (n, t, _description)) ->
                   coerce_n ~f:(coerce_to_vcf_format_type t) key n raw_value >>=
-                  fun value -> return (key, value)
-                | None -> fail (`unknown_format key))
+                  fun value -> Ok (key, value)
+                | None -> Error (`unknown_format key))
       in Result.(map (all res)
                    ~f:(fun data -> Hashtbl.set samples ~key:id ~data))
   in match chunks with
     | raw_sample_keys :: raw_samples ->
       let sample_keys = String.split ~on:':' raw_sample_keys in
       let res = List.map2_exn vcfm_samples raw_samples ~f:(go sample_keys)
-      in Result.map (all_ignore res) ~f:(Fn.const samples)
-    | [] -> return samples
+      in Result.map (Result.all_ignore res) ~f:(Fn.const samples)
+    | [] -> Ok samples
 
 let list_to_vcf_row meta chunks =
+  let open Result.Monad_infix in
   let n_chunks  = List.length chunks
   and n_columns =
     List.(length meta.vcfm_header + length meta.vcfm_samples)
@@ -399,7 +392,6 @@ let list_to_vcf_row meta chunks =
     | vcfr_chrom :: raw_pos :: raw_id :: raw_ref :: raw_alt :: raw_qual ::
         raw_filter :: raw_info :: raw_samples
       when n_chunks = n_columns ->
-      let open Result.Monad_infix in
       Safe.int_of_string raw_pos >>= fun vcfr_pos ->
       string_to_vcfr_ids meta raw_id >>= fun vcfr_ids ->
       string_to_vcfr_ref raw_ref >>= fun vcfr_ref ->
@@ -413,8 +405,8 @@ let list_to_vcf_row meta chunks =
         vcfr_chrom; vcfr_pos; vcfr_ids; vcfr_ref; vcfr_alts;
         vcfr_qual = Result.ok (Safe.float_of_string raw_qual);
         vcfr_filter; vcfr_info; vcfr_samples
-      } in Result.return row
-    | c -> Result.fail (`invalid_row_length (n_chunks, n_columns))
+      } in Ok row
+    | c -> Error (`invalid_row_length (n_chunks, n_columns))
 
 
 (** +-------------------+
@@ -427,7 +419,6 @@ type item = vcf_row
 module Transform = struct
   let next_vcf_header meta p =
     let open Lines.Buffer in
-    let open Result in
     let { vcfm_info; vcfm_format; _ } = meta in
     let l = Option.value_exn (next_line p :> string option) in
     let chunks =
@@ -460,16 +451,15 @@ module Transform = struct
               if samples = []
               then (chunks, samples)
               else List.split_n chunks List.(length chunks - length samples)
-            in return (`complete { meta with vcfm_info; vcfm_format;
+            in Ok (`complete { meta with vcfm_info; vcfm_format;
                                              vcfm_header; vcfm_samples })
-          | _ :: _ -> fail (`malformed_header (current_position p, l))
+          | _ :: _ -> Error (`malformed_header (current_position p, l))
         end
-      | _ -> fail (`malformed_header (current_position p, l))
+      | _ -> Error (`malformed_header (current_position p, l))
     end
 
   let next_vcf_meta meta p =
     let open Lines.Buffer in
-    let open Result in
     let { vcfm_info; vcfm_filters; vcfm_format; vcfm_alt; _ } = meta in
     match (peek_line p :> string option) with
       | Some l when String.is_prefix l ~prefix:"##" ->
@@ -477,7 +467,7 @@ module Transform = struct
         let s  = String.suffix l (String.length l - 2) in
         begin match String.lsplit2 s ~on:'=' with
           | Some ("fileformat", v) ->
-            return (`partial { meta with vcfm_version = v })
+            Ok (`partial { meta with vcfm_version = v })
           | Some ("INFO", v) ->
             Scanf.sscanf v "<ID=%s@,Number=%s@,Type=%s@,Description=%S>"
               (fun id n t description ->
@@ -485,14 +475,14 @@ module Transform = struct
                                        string_to_vcf_info_type t,
                                        description)
                  in Hashtbl.set vcfm_info id info_meta);
-            return (`partial meta)
+            Ok (`partial meta)
           | Some ("FILTER", v) ->
             Scanf.sscanf v "<ID=%s@,Description=%S>"
               (fun id description ->
                  let filter_meta = Filter description in
                  let meta = { meta with
                                 vcfm_filters = (id, filter_meta) :: vcfm_filters }
-                 in return (`partial meta))
+                 in Ok (`partial meta))
           | Some ("FORMAT", v) ->
             Scanf.sscanf v "<ID=%s@,Number=%s@,Type=%s@,Description=%S>"
               (fun id n t description ->
@@ -500,49 +490,47 @@ module Transform = struct
                                            string_to_vcf_format_type t,
                                            description)
                  in Hashtbl.set vcfm_format id format_meta);
-            return (`partial meta)
+            Ok (`partial meta)
           | Some ("ALT", v) ->
             Scanf.sscanf v "<ID=%s@,Description=%S>"
               (fun id description ->
                  let alt_meta = Alt description in
                  Hashtbl.set vcfm_alt id alt_meta);
-            return (`partial meta)
+            Ok (`partial meta)
           | Some (k, v) -> begin
               Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
-              return (`partial meta)
+              Ok (`partial meta)
             end
-          | None -> fail (`malformed_meta (current_position p, s))
+          | None -> Error (`malformed_meta (current_position p, s))
         end
       | Some _l ->
         (** Note(superbobry): if the line *does not* start with '##' it
             must be a header. *)
         next_vcf_header meta p
-      | None -> fail `not_ready
+      | None -> Error `not_ready
 
   let next_vcf_row meta p =
     let open Line in
     let open Lines.Buffer in
-    let open Result in
     match (next_line p :> string option) with
       | Some l when not (String.is_empty l) ->
         let chunks =
           List.filter ~f:(fun s -> s <> "") (String.split ~on:' ' l)
         in begin match list_to_vcf_row meta chunks with
-          | Ok row    -> output_ok row
+          | Ok row    -> `output (Ok row)
           | Error err ->
-            output_error (`malformed_row (current_position p, err, l))
+            `output (Error (`malformed_row (current_position p, err, l)))
         end
       | Some _ | None -> `not_ready  (* All done, boss! *)
 
   let rec next meta_ref p =
-    let open Result in
     match !meta_ref with
       | `complete meta -> next_vcf_row meta p
       | `partial meta  ->
         begin match next_vcf_meta meta p with
           | Ok meta -> meta_ref := meta; `not_ready
           | Error `not_ready -> `not_ready
-          | Error err -> output_error err
+          | Error err -> `output (Error err)
         end
 
   let string_to_item ?filename () =

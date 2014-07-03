@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 
 type item = string * int * int * Biocaml_table.Row.t
 with sexp
@@ -43,10 +42,10 @@ let item_of_line ~how line =
     let h = match row.(1) with `int i -> i | _ -> assert false in
     let l = match row.(2) with `int i -> i | _ -> assert false in
     let q = Array.slice row 3 (Array.length row) in
-    return (n, h, l, q)
+    Ok (n, h, l, q)
   | Ok row ->
-    fail (`bed (`wrong_number_of_columns row))
-  | Error e -> fail (`bed e)
+    Error (`bed (`wrong_number_of_columns row))
+  | Error e -> Error (`bed e)
   end
 
 let item_to_line (n, l, h, r) =

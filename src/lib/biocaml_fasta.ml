@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 module Lines = Biocaml_lines
 
 type char_seq = string with sexp
@@ -107,15 +106,15 @@ module Transform = struct
         let open Tags in
         if String.for_all line ~f:Char.is_whitespace then
           if tags.forbid_empty_lines then
-            output_error (`empty_line (current_position buffer))
+            `output (Error (`empty_line (current_position buffer)))
           else
             next stopped
         else if tags.sharp_comments && line.[0] = '#' then
-          output_ok (`comment (chopl line))
+          `output (Ok (`comment (chopl line)))
         else if tags.semicolon_comments && line.[0] = ';' then
-          output_ok (`comment (chopl line))
+          `output (Ok (`comment (chopl line)))
         else if line.[0] = '>' then
-          output_ok (`header (chopl line))
+          `output (Ok (`header (chopl line)))
         else
           string_to_partial_sequence ~pos:(current_position buffer) line
     in
@@ -126,18 +125,18 @@ module Transform = struct
     let check_alphabet ~pos s = match tags.Tags.sequence with
       | `int_sequence
       | `char_sequence None ->
-        output_ok (`partial_sequence s)
+        `output (Ok (`partial_sequence s))
       | `char_sequence (Some alphabet) ->
         if String.for_all s ~f:(List.mem alphabet) then
-          output_ok (`partial_sequence s)
+          `output (Ok (`partial_sequence s))
         else
-          output_error (`malformed_partial_sequence (pos,s))
+          `output (Error (`malformed_partial_sequence (pos,s)))
     in
     let string_to_partial_sequence ~pos s =
       match tags.Tags.max_items_per_line with
       | Some n ->
         if String.length s > n then
-          output_error (`sequence_is_too_long (pos,s))
+          `output (Error (`sequence_is_too_long (pos,s)))
         else
           check_alphabet ~pos s
       | None -> check_alphabet ~pos s
@@ -159,11 +158,11 @@ module Transform = struct
         match tags.Tags.max_items_per_line with
         | Some n ->
           if List.length il > n then
-            output_error (`sequence_is_too_long (pos,s))
+            `output (Error (`sequence_is_too_long (pos,s)))
           else
-            output_ok (`partial_sequence il)
-        | None -> output_ok (`partial_sequence il)
-      with _ -> output_error (`malformed_partial_sequence (pos,s))
+            `output (Ok (`partial_sequence il))
+        | None -> `output (Ok (`partial_sequence il))
+      with _ -> `output (Error (`malformed_partial_sequence (pos,s)))
     in
     string_to_raw_item
       ~string_to_partial_sequence
@@ -217,14 +216,14 @@ module Transform = struct
             | None -> `end_of_stream
             | Some name ->
               current_name := None;
-              output_ok {header=name; sequence=flush ()}
+              `output (Ok {header=name; sequence=flush ()})
             end
           else `not_ready
         | Some (None, stuff) when is_empty stuff -> `not_ready
         | Some (None, non_empty) ->
-          output_error (unnamed_sequence non_empty)
+          `output (Error (unnamed_sequence non_empty))
         | Some (Some name, seq) ->
-          output_ok {header=name; sequence=seq})
+          `output (Ok {header=name; sequence=seq}))
 
   let char_seq_raw_item_to_item () =
     let current_sequence = Buffer.create 42 in
@@ -310,7 +309,6 @@ module Random = struct
     List.find_map specification (function `tags t -> Some t | _ -> None)
 
   let unit_to_random_char_seq_raw_item specification =
-    let open Result in
     let tags =
       get_tags specification
       |> Option.value ~default:Tags.char_sequence_default in
@@ -370,7 +368,7 @@ module Random = struct
             end
       in
       let todo = ref 0 in
-      return (Biocaml_transform.make ()
+      Ok (Biocaml_transform.make ()
           ~next:(fun stopped ->
             match !todo, stopped with
             | 0, true -> `end_of_stream
@@ -381,7 +379,7 @@ module Random = struct
               `output (next_raw_item ()))
           ~feed:(fun () -> incr todo))
     | `int_sequence ->
-      fail (`inconsistent_tags `int_sequence)
+      Error (`inconsistent_tags `int_sequence)
     end
 
 end

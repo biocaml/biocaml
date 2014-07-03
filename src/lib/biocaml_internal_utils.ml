@@ -16,25 +16,25 @@ module Result = struct
 
   include Core.Std.Result
 
-  let while_ok (type error) l ~(f:(int -> 'a -> ('b, error) t)) =
-    let module M = struct
-      exception E of error
-      let the_fun () =
-        let run () =
-          List.mapi l (fun i x ->
-            match f i x with
-            | Ok o -> o
-            | Error e -> raise (E e))
-        in
-        try Ok (run ())
-        with
-        | E e -> Error e
-    end in
-    M.the_fun ()
+  module List = struct
 
-  let output_result r = `output r
-  let output_ok o = `output (Ok o)
-  let output_error e = `output (Error e)
+    let mapi (type error) l ~(f:(int -> 'a -> ('b, error) t)) =
+      let module M = struct
+        exception E of error
+        let the_fun () =
+          let run () =
+            List.mapi l (fun i x ->
+              match f i x with
+              | Ok o -> o
+              | Error e -> raise (E e))
+          in
+          try Ok (run ())
+          with
+          | E e -> Error e
+      end in
+      M.the_fun ()
+
+  end
 
 end
 

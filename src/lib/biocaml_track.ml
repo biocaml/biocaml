@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 module Wig = Biocaml_wig
 module Gff = Biocaml_gff
 module Bed = Biocaml_bed
@@ -43,13 +42,13 @@ module Transform = struct
       | Some dash ->
         let start = String.slice s (colon + 1) dash |! Int.of_string in
         let stop =  String.slice s (dash + 1) (String.length s) |! Int.of_string in
-        return (`browser (`position (name, start, stop)))
+        Ok (`browser (`position (name, start, stop)))
       | None -> failwith "A"
       end
     | None -> failwith "B"
     end
     with
-      e -> fail (`wrong_browser_position (position, s))
+      e -> Error (`wrong_browser_position (position, s))
 
   let parse_browser position line =
     let tokens =
@@ -59,8 +58,8 @@ module Transform = struct
       |! List.filter ~f:((<>) "") in
     begin match tokens with
     | "position" :: pos :: [] -> parse_chormpos position pos
-    | "hide" :: "all" :: [] -> return (`browser (`hide `all))
-    | any -> return (`browser (`unknown line))
+    | "hide" :: "all" :: [] -> Ok (`browser (`hide `all))
+    | any -> Ok (`browser (`unknown line))
     end
 
   (** Parse a string potentially escaped with OCaml string
@@ -110,20 +109,21 @@ module Transform = struct
     end
 
   let parse_track position stripped =
+    let open Result.Monad_infix in
     let rec loop s acc =
       match escapable_string s ~stop_before:['='] with
       | (tag, Some '=', rest) ->
         begin match escapable_string rest ~stop_before:[' '; '\t'] with
         | (value, _, rest) ->
           let str = String.strip rest in
-          if str = "" then return ((tag, value) :: acc)
+          if str = "" then Ok ((tag, value) :: acc)
           else loop str ((tag, value) :: acc)
         end
-      | (str, _, rest) -> fail (`wrong_key_value_format (List.rev acc, str, rest))
+      | (str, _, rest) -> Error (`wrong_key_value_format (List.rev acc, str, rest))
     in
     loop stripped []
     >>= fun kv ->
-    return (`track (List.rev kv))
+    Ok (`track (List.rev kv))
 
   let rec next p =
     let open Lines.Buffer in
@@ -131,16 +131,16 @@ module Transform = struct
     | None -> `not_ready
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
-      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
-    | Some l when String.strip l = "track"-> output_ok (`track [])
-    | Some l when String.strip l = "browser" -> output_ok (`browser (`unknown l))
+      `output (Ok (`comment String.(sub l ~pos:1 ~len:(length l - 1))))
+    | Some l when String.strip l = "track"-> `output (Ok (`track []))
+    | Some l when String.strip l = "browser" -> `output (Ok (`browser (`unknown l)))
     | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
       parse_track (current_position p)
         (String.chop_prefix_exn ~prefix:"track " l |! String.strip)
-      |! output_result
+      |! (fun x -> `output x)
     | Some l when String.(is_prefix (strip l) ~prefix:"browser ") ->
-      parse_browser (current_position p) l |! output_result
-    | Some l -> output_ok (`content l)
+      parse_browser (current_position p) l |! (fun x -> `output x)
+    | Some l -> `output (Ok (`content l))
 
   let string_to_string_content ?filename () =
     let name = sprintf "track_parser:%s" Option.(value ~default:"<>" filename) in

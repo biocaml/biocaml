@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 
 type item = Line.t
 with sexp
@@ -171,14 +170,14 @@ module Transform = struct
         | None -> item1 := Some item
       )
       ~next:(fun stopped -> match Queue.dequeue queue with
-        | Some ij -> output_ok ij
+        | Some ij -> `output (Ok ij)
         | None ->
           if not stopped then
             `not_ready
           else
             (match !item1 with
              | None -> `end_of_stream
-             | Some _ -> output_error `premature_end_of_input
+             | Some _ -> `output (Error `premature_end_of_input)
             )
       )
       ()

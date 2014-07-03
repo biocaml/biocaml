@@ -68,8 +68,7 @@ module Error = struct
 end
 
 module Transform = struct
-  open Result
-
+  open Result.Monad_infix
 
   let parse_string msg pos i =
     begin try Ok (Scanf.sscanf i "%S " ident) with
@@ -79,31 +78,32 @@ module Transform = struct
       | s -> Url.unescape ~error:(fun s -> `wrong_url_escaping (pos, s)) s
       end
     end
+
   let parse_string_opt m pos i =
     parse_string m pos i >>= fun s ->
     begin match s with
-    | "." -> return None
-    | s -> return (Some s)
+    | "." -> Ok None
+    | s -> Ok (Some s)
     end
 
   let parse_int msg pos i =
     parse_string msg pos i >>= fun s ->
-    (try return (Int.of_string s)
-     with e -> fail (`cannot_parse_int (pos, msg)))
+    (try Ok (Int.of_string s)
+     with e -> Error (`cannot_parse_int (pos, msg)))
 
   let parse_float_opt msg pos i =
     parse_string_opt msg pos i >>= function
     | Some s ->
-      (try return (Some (Float.of_string s))
-       with e -> fail (`cannot_parse_float (pos, msg)))
-    | None -> return None
+      (try Ok (Some (Float.of_string s))
+       with e -> Error (`cannot_parse_float (pos, msg)))
+    | None -> Ok None
 
   let parse_int_opt msg pos i =
     parse_string_opt msg pos i >>= function
     | Some s ->
-      (try return (Some (Int.of_string s))
-       with e -> fail (`cannot_parse_int (pos, msg)))
-    | None -> return None
+      (try Ok (Some (Int.of_string s))
+       with e -> Error (`cannot_parse_int (pos, msg)))
+    | None -> Ok None
 
   let parse_attributes_version_3 position i =
     let whole_thing = String.concat ~sep:"\t" i in
@@ -118,8 +118,8 @@ module Transform = struct
         (fun s -> parse_string "value" position String.(strip s))
       |! List.partition_map ~f:Result.ok_fst
       |! (function
-        | (ok, []) -> return ok
-        | (_, notok :: _) -> fail notok) in
+        | (ok, []) -> Ok ok
+        | (_, notok :: _) -> Error notok) in
     let rec loop pos acc =
       begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> c = '=') with
       | Some equal ->
@@ -136,16 +136,16 @@ module Transform = struct
           let delimited = String.(sub whole_thing pos (length whole_thing - pos)) in
           get_csv delimited
           >>= fun values ->
-          return ((tag, values) :: acc)
+          Ok ((tag, values) :: acc)
         end
       | None ->
         if pos >= String.length whole_thing then
-          return acc
+          Ok acc
         else
-          fail (`wrong_attributes (position, whole_thing))
+          Error (`wrong_attributes (position, whole_thing))
       end
     in
-    (try loop 0 [] with e -> fail (`wrong_attributes (position, whole_thing)))
+    (try loop 0 [] with e -> Error (`wrong_attributes (position, whole_thing)))
     >>| List.rev
 
   let parse_attributes_version_2 position l =
@@ -163,10 +163,10 @@ module Transform = struct
     let tokens =
       Stream.(from (fun _ -> parse_string inch) |! Fn.flip npeek Int.max_value) in
     let rec go_3_by_3 acc = function
-    | k  :: v :: [] -> return (List.rev ((k, [v]) :: acc))
+    | k  :: v :: [] -> Ok (List.rev ((k, [v]) :: acc))
     | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
-    | [] | [";"] -> return (List.rev acc)
-    | problem -> fail (`wrong_attributes (position, whole_thing))
+    | [] | [";"] -> Ok (List.rev acc)
+    | problem -> Error (`wrong_attributes (position, whole_thing))
     in
     go_3_by_3 [] tokens
 
@@ -185,11 +185,11 @@ module Transform = struct
         parse_float_opt "Score" pos score >>= fun score ->
         parse_string_opt "Strand" pos strand
         >>= (function
-        | Some "+" -> return `plus
-        | None -> return `not_applicable
-        | Some "-" -> return `minus
-        | Some "?" -> return `unknown
-        | Some s -> fail (`cannot_parse_strand (pos, s)))
+        | Some "+" -> Ok `plus
+        | None -> Ok `not_applicable
+        | Some "-" -> Ok `minus
+        | Some "?" -> Ok `unknown
+        | Some s -> Error (`cannot_parse_strand (pos, s)))
         >>= fun strand ->
         parse_int_opt "Phase/Frame" pos phase >>= fun phase ->
         begin match version with
@@ -197,27 +197,26 @@ module Transform = struct
         | `three -> parse_attributes_version_3 pos rest
         end
         >>= fun attributes ->
-        return (`record {seqname; source; feature; pos = (start, stop); score;
+        Ok (`record {seqname; source; feature; pos = (start, stop); score;
                          strand; phase; attributes})
       in
-      output_result result
+      `output result
 
     | other ->
-      output_error (`wrong_row (pos, s))
+      `output (Error (`wrong_row (pos, s)))
     end
 
   let rec next ~tags  p =
     let open Biocaml_lines.Buffer in
-    let open Result in
     match (next_line p :> string option) with
     | None -> `not_ready
     | Some "" ->
       if tags.Tags.allow_empty_lines
-      then output_error (`empty_line (current_position p))
+      then `output (Error (`empty_line (current_position p)))
       else next ~tags p
     | Some l when
         tags.Tags.sharp_comments && String.(is_prefix (strip l) ~prefix:"#") ->
-      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+      `output (Ok (`comment String.(sub l ~pos:1 ~len:(length l - 1))))
     | Some l -> parse_row ~version:tags.Tags.version (current_position p) l
 
   let string_to_item ?filename ~tags () =

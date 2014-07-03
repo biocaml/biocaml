@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 module Lines = Biocaml_lines
 
 type comment = [
@@ -98,6 +97,8 @@ module Error = struct
 end
 
 module Transform = struct
+  open Result.Monad_infix
+
   let explode_key_value loc s =
     try
       let by_space =
@@ -122,10 +123,10 @@ module Transform = struct
     match (next_line p :> string option) with
     | Some "" ->
       if tags.Tags.allow_empty_lines
-      then output_error (`empty_line (current_position p))
+      then `output (Error (`empty_line (current_position p)))
       else next ~tags p
     | Some l when tags.Tags.sharp_comments && String.is_prefix l ~prefix:"#" ->
-      output_ok (`comment String.(sub l ~pos:1 ~len:(length l - 1)))
+      `output (Ok (`comment String.(sub l ~pos:1 ~len:(length l - 1))))
     | Some l when String.is_prefix l ~prefix:"fixedStep" ->
       let output_m =
         explode_key_value (current_position p)
@@ -153,7 +154,7 @@ module Transform = struct
           end
         end
       in
-      output_result output_m
+      `output output_m
     | Some l when String.is_prefix l ~prefix:"variableStep" ->
       let output_m =
         explode_key_value (current_position p)
@@ -163,35 +164,35 @@ module Transform = struct
           ~missing:(`missing_chrom_value (current_position p, l))
         >>= fun chrom ->
         begin match List.Assoc.find assoc "span" with
-        | None -> return (`variable_step_state_change (chrom, None))
+        | None -> Ok (`variable_step_state_change (chrom, None))
         | Some span ->
           begin match Option.try_with (fun () -> Int.of_string span) with
-          | Some i -> return (`variable_step_state_change (chrom, Some i))
-          | None -> fail (`wrong_span_value (current_position p, span))
+          | Some i -> Ok (`variable_step_state_change (chrom, Some i))
+          | None -> Error (`wrong_span_value (current_position p, span))
           end
         end
       in
-      output_result output_m
+      `output output_m
     | Some l ->
       let by_space =
         String.split_on_chars l ~on:[' '; '\n'; '\t'; '\r']
         |! List.filter ~f:((<>) "") in
       begin match by_space with
       | [ one_value ] ->
-        (try output_ok (`fixed_step_value Float.(of_string one_value))
-         with e -> output_error (`wrong_fixed_step_value (current_position p, l)))
+        (try `output (Ok (`fixed_step_value Float.(of_string one_value)))
+         with e -> `output (Error (`wrong_fixed_step_value (current_position p, l))))
       | [ fst_val; snd_val] ->
-        (try output_ok (`variable_step_value (Int.of_string fst_val,
-                                            Float.of_string snd_val))
-         with e -> output_error (`wrong_variable_step_value (current_position p, l)))
+        (try `output (Ok (`variable_step_value (Int.of_string fst_val,
+                                            Float.of_string snd_val)))
+         with e -> `output (Error (`wrong_variable_step_value (current_position p, l))))
       | [ chr; b; e; v; ] ->
-        (try output_ok (`bed_graph_value (chr,
+        (try `output (Ok (`bed_graph_value (chr,
                                         Int.of_string b,
                                         Int.of_string e,
-                                        Float.of_string v))
-         with e -> output_error (`wrong_bed_graph_value (current_position p, l)))
+                                        Float.of_string v)))
+         with e -> `output (Error (`wrong_bed_graph_value (current_position p, l))))
       | l ->
-        output_error (`unrecognizable_line (current_position p, l))
+        `output (Error (`unrecognizable_line (current_position p, l)))
       end
     | None ->
       `not_ready
@@ -225,16 +226,16 @@ module Transform = struct
       ~feed:(function
       | `comment _ -> ()
       | `bed_graph_value already_done ->
-        Queue.enqueue queue (output_ok already_done)
+        Queue.enqueue queue (`output (Ok already_done))
       | `variable_step_state_change (chrom, span) ->
         current_state := Some (`variable (chrom, span))
       | `variable_step_value (pos, v) ->
         begin match !current_state with
         | Some (`variable (chrom, span)) ->
           let stop = pos + Option.(value ~default:1 span) - 1 in
-          Queue.enqueue queue (output_ok  (chrom, pos, stop, v))
+          Queue.enqueue queue (`output (Ok  (chrom, pos, stop, v)))
         | other ->
-          Queue.enqueue queue (output_error (`not_in_variable_step_state))
+          Queue.enqueue queue (`output (Error (`not_in_variable_step_state)))
         end
       | `fixed_step_state_change (chrom, start, step, span) ->
         current_state := Some (`fixed (chrom, start, step , span, 0))
@@ -243,10 +244,10 @@ module Transform = struct
         | Some (`fixed (chrom, start, step, span, current)) ->
           let pos = start + (step * current) in
           let stop = pos + Option.(value ~default:1 span) - 1 in
-          Queue.enqueue queue (output_ok (chrom, pos, stop, v));
+          Queue.enqueue queue (`output (Ok (chrom, pos, stop, v)));
           current_state := Some  (`fixed (chrom, start, step , span, current + 1))
         | other ->
-          Queue.enqueue queue (output_error (`not_in_fixed_step_state))
+          Queue.enqueue queue (`output (Error (`not_in_fixed_step_state)))
         end)
       ~next:(fun stopped ->
         match Queue.dequeue queue with

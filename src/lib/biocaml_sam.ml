@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 module Phred_score = Biocaml_phred_score
 module Lines = Biocaml_lines
 
@@ -209,9 +208,10 @@ let is_valid_tag s =
   else false
 
 let parse_header_line position line =
+  let open Result.Monad_infix in
   match String.(split ~on:'\t' (chop_prefix_exn line ~prefix:"@")) with
   | [] -> assert false
-  | "CO" :: rest -> return (`comment (String.concat ~sep:"\t" rest))
+  | "CO" :: rest -> Ok (`comment (String.concat ~sep:"\t" rest))
   | tag :: values ->
     if is_valid_tag tag then (
       let tag_values () =
@@ -221,13 +221,13 @@ let parse_header_line position line =
               if is_valid_tag tag then (tag, value)
               else failwith "A"
             | other ->  failwith "A") in
-      begin try return (tag_values ()) with
-      | Failure _ -> fail (`invalid_tag_value_list (position, values))
+      begin try Ok (tag_values ()) with
+      | Failure _ -> Error (`invalid_tag_value_list (position, values))
       end
       >>= fun tv ->
-      return (`header (tag, tv))
+      Ok (`header (tag, tv))
     ) else
-      fail (`invalid_header_tag (position, tag))
+      Error (`invalid_header_tag (position, tag))
 
 let parse_optional_field position s =
   match String.split s ~on:':' with
@@ -235,19 +235,20 @@ let parse_optional_field position s =
     if is_valid_tag tag then
       begin match typ with
       | "A" | "c" | "C" | "s" | "S" | "i" | "I" | "f" | "Z" | "H" | "B" ->
-        return (tag, typ.[0], value)
+        Ok (tag, typ.[0], value)
       | _ ->
-        fail (`wrong_optional_field (position, s))
+        Error (`wrong_optional_field (position, s))
       end
     else
-      fail (`wrong_optional_field (position, s))
+      Error (`wrong_optional_field (position, s))
   | _ ->
-    fail (`wrong_optional_field (position, s))
+    Error (`wrong_optional_field (position, s))
 
 let parse_alignment position s  =
+  let open Result.Monad_infix in
   let int field x =
-    try return (int_of_string x)
-    with Failure _ -> fail (`not_an_int (position, field, x)) in
+    try Ok (int_of_string x)
+    with Failure _ -> Error (`not_an_int (position, field, x)) in
   match String.split s ~on:'\t' with
   | qname  ::  flag :: rname :: pos :: mapq :: cigar :: rnext :: pnext
     :: tlen :: seq :: qual :: optional ->
@@ -257,14 +258,14 @@ let parse_alignment position s  =
       int "mapq" mapq >>= fun mapq ->
       int "pnext" pnext >>= fun pnext ->
       int "tlen" tlen >>= fun tlen ->
-      while_ok optional (fun _ -> parse_optional_field position)
+      Result.List.mapi optional (fun _ -> parse_optional_field position)
       >>= fun optional ->
-      return (`alignment {
+      Ok (`alignment {
           qname;  flag; rname; pos; mapq; cigar; rnext;
           pnext; tlen; seq; qual; optional })
     end
   | _ ->
-    fail (`wrong_alignment (position, s))
+    Error (`wrong_alignment (position, s))
 
 
 let expand_header_line l =
@@ -280,16 +281,17 @@ let expand_header_line l =
       | "SO", any -> sorting_order := Error any; None
       | other -> Some other) in
   match !version, !sorting_order with
-  | Some v, Ok so -> return (`header_line (v, so, unknown))
-  | None, _ -> fail (`header_line_without_version l)
-  | _, Error s -> fail (`header_line_wrong_sorting s)
+  | Some v, Ok so -> Ok (`header_line (v, so, unknown))
+  | None, _ -> Error (`header_line_without_version l)
+  | _, Error s -> Error (`header_line_wrong_sorting s)
 
 let parse_cigar_text text =
-  if text = "*" then return [| |]
+  let open Result.Monad_infix in
+  if text = "*" then Ok [| |]
   else begin
     let ch = Scanf.Scanning.from_string text in
     let rec loop acc =
-      if Scanf.Scanning.end_of_input ch then return acc
+      if Scanf.Scanning.end_of_input ch then Ok acc
       else begin
         try
           let v = Scanf.bscanf ch "%d" ident in
@@ -306,7 +308,7 @@ let parse_cigar_text text =
           | 'X' -> (loop (`X  v :: acc))
           | other -> failwith ""
         with
-          e -> fail (`wrong_cigar_text text)
+          e -> Error (`wrong_cigar_text text)
       end
     in
     loop [] >>| Array.of_list_rev
@@ -315,15 +317,16 @@ let parse_cigar_text text =
 
 
 let parse_optional_content raw =
-  let error e = fail (`wrong_optional (raw, e)) in
+  let open Result.Monad_infix in
+  let error e = Error (`wrong_optional (raw, e)) in
   let char tag typ raw =
     if String.length raw <> 1 then error (`not_a_char raw)
-    else return (tag, typ, `char raw.[0]) in
+    else Ok (tag, typ, `char raw.[0]) in
   let int tag typ raw =
-    try let i = Int.of_string raw in return (tag, typ, `int i)
+    try let i = Int.of_string raw in Ok (tag, typ, `int i)
     with e -> error (`not_an_int raw) in
   let float tag typ raw =
-    try let i = Float.of_string raw in return (tag, typ, `float i)
+    try let i = Float.of_string raw in Ok (tag, typ, `float i)
     with e -> error (`not_a_float raw) in
   let parse_cCsSiIf tag typ raw =
     begin match typ with
@@ -332,10 +335,10 @@ let parse_optional_content raw =
     | 'f' -> float tag typ raw
     | _ -> error (`unknown_type typ)
     end in
-  while_ok raw (fun _ (tag, typ, raw_v) ->
+  Result.List.mapi raw (fun _ (tag, typ, raw_v) ->
       begin match typ with
-      | 'Z' -> return (tag, typ, `string raw_v)
-      | 'H' -> return (tag, typ, `string raw_v)
+      | 'Z' -> Ok (tag, typ, `string raw_v)
+      | 'H' -> Ok (tag, typ, `string raw_v)
       | 'B' ->
         begin match String.split ~on:',' raw_v with
         | [] ->  error (`wrong_array (`wrong_type raw_v))
@@ -344,7 +347,7 @@ let parse_optional_content raw =
         | typs :: l ->
           let array = Array.create List.(length l) (`string "no") in
           let rec loop i = function
-          | [] -> return array
+          | [] -> Ok array
           | h :: t ->
             begin match parse_cCsSiIf "" typs.[0] h with
             | Ok (_, _, v) -> array.(i) <- v; loop (i + 1) t
@@ -353,16 +356,17 @@ let parse_optional_content raw =
           in
           loop 0 l
           >>= fun a ->
-          return (tag, typ, `array (typs.[0], a))
+          Ok (tag, typ, `array (typs.[0], a))
         end
       | c -> parse_cCsSiIf tag typ raw_v
       end)
 
 let expand_alignment raw ref_dict =
+  let open Result.Monad_infix in
   let {qname; flag; rname; pos;
        mapq; cigar; rnext; pnext;
        tlen; seq; qual; optional; } = raw in
-  let check c e = if c then return () else fail e in
+  let check c e = if c then Ok () else Error e in
   check (0 <= flag && flag <= 65535) (`wrong_flag raw) >>= fun () ->
   check (1 <= String.length qname && String.length qname <= 255)
     (`wrong_qname raw)
@@ -385,12 +389,12 @@ let expand_alignment raw ref_dict =
   check (0 <= mapq && mapq <= 255) (`wrong_mapq raw) >>= fun () ->
   parse_cigar_text cigar >>= fun cigar_operations ->
   begin match rnext with
-  | "*" -> return `none
-  | "=" -> return `qname
+  | "*" -> Ok `none
+  | "=" -> Ok `qname
   | s ->
     begin match tryfind s with
-    | None -> return (`name s)
-    | Some r -> return (`reference_sequence r)
+    | None -> Ok (`name s)
+    | Some r -> Ok (`reference_sequence r)
     end
   end
   >>= fun next_reference_sequence ->
@@ -402,7 +406,7 @@ let expand_alignment raw ref_dict =
     | "*" -> `none
     | "=" -> `reference
     | s -> `string s in
-  (if qual = "*" then return [| |] else begin
+  (if qual = "*" then Ok [| |] else begin
       try
         let quality =
           Array.create (String.length qual) Phred_score.(of_int_exn 0) in
@@ -411,13 +415,13 @@ let expand_alignment raw ref_dict =
         done;
         Ok quality
       with
-      | e -> fail (`wrong_phred_scores raw)
+      | e -> Error (`wrong_phred_scores raw)
     end)
   >>= fun quality ->
   parse_optional_content optional
   >>= fun optional_content ->
 
-  return {
+  Ok {
     query_template_name = qname;
     flags = flag;
     reference_sequence;
@@ -433,7 +437,7 @@ let expand_alignment raw ref_dict =
   }
 
 module Transform = struct
-
+  open Result.Monad_infix
 
   let rec next p =
     let open Lines.Buffer in
@@ -441,9 +445,9 @@ module Transform = struct
     | None -> `not_ready
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"@") ->
-      parse_header_line (current_position p) l |! output_result
+      parse_header_line (current_position p) l |! (fun x -> `output x)
     | Some l ->
-      parse_alignment (current_position p) l |! output_result
+      parse_alignment (current_position p) l |! (fun x -> `output x)
 
   let string_to_raw ?filename () =
     let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
@@ -489,19 +493,19 @@ module Transform = struct
           ref_species = !sp;
           ref_uri = !ur;
           ref_unknown } :: !refs;
-        return ()
-      | None, _ -> fail (`missing_ref_sequence_name line)
-      | _, Error "" -> fail (`missing_ref_sequence_length line)
-      | _, Error s -> fail (`wrong_ref_sequence_length line)
+        Ok ()
+      | None, _ -> Error (`missing_ref_sequence_name line)
+      | _, Error "" -> Error (`missing_ref_sequence_length line)
+      | _, Error s -> Error (`wrong_ref_sequence_length line)
     in
     let finish () =
       let deduped =
         List.dedup ~compare:(fun a b -> String.compare a.ref_name b.ref_name) !refs in
       if List.length deduped <> List.length !refs then
-        fail (`duplicate_in_reference_sequence_dictionary
+        Error (`duplicate_in_reference_sequence_dictionary
                  (Array.of_list_rev !refs))
       else
-        return (Array.of_list_rev !refs)
+        Ok (Array.of_list_rev !refs)
     in
     (get_line, finish)
 
@@ -521,33 +525,33 @@ module Transform = struct
         incr raw_items_count;
         begin match Dequeue.dequeue_exn raw_queue `front with
         | `comment c when !header_finished ->
-          output_error (`comment_after_end_of_header (!raw_items_count, c))
+          `output (Error (`comment_after_end_of_header (!raw_items_count, c)))
         | `header c when !header_finished ->
-          output_error (`header_after_end_of_header (!raw_items_count, c))
-        | `comment c ->  output_ok (`comment c)
+          `output (Error (`header_after_end_of_header (!raw_items_count, c)))
+        | `comment c ->  `output (Ok (`comment c))
         | `header ("HD", l) ->
           if !raw_items_count <> 1
-          then output_error (`header_line_not_first !raw_items_count)
-          else output_result (expand_header_line l)
+          then `output (Error (`header_line_not_first !raw_items_count))
+          else `output (expand_header_line l)
         | `header ("SQ", l) ->
           begin match refseq_line l with
-          | Error e -> output_error e
+          | Error e -> `output (Error e)
           | Ok () ->  next stopped
           end
-        | `header _ as other -> output_ok other
+        | `header _ as other -> `output (Ok other)
         | `alignment a ->
           if !header_finished then (
             expand_alignment a !ref_dictionary
             >>| (fun a -> `alignment a)
-                          |! output_result
+                          |! (fun x -> `output x)
           ) else begin
             header_finished := true;
             Dequeue.enqueue raw_queue `front (`alignment a);
             begin match refseq_end () with
             | Ok rd ->
               ref_dictionary := Some rd;
-              output_ok (`reference_sequence_dictionary rd)
-            | Error e -> output_error e
+              `output (Ok (`reference_sequence_dictionary rd))
+            | Error e -> `output (Error e)
             end
           end
         end
@@ -596,9 +600,9 @@ module Transform = struct
           |! Option.value_exn ?here:None ?error:None ?message:None
           |! Char.to_string)
         |! String.concat_array ~sep:""
-        |! return
+        |! Result.return
       with
-        e -> fail (`wrong_phred_scores al)
+        e -> Error (`wrong_phred_scores al)
     end
     >>= fun qual ->
     let optional =
@@ -614,7 +618,7 @@ module Transform = struct
         | c -> c in
       List.map al.optional_content (fun (tag, typ, v) -> (tag, typt typ, optv v))
     in
-    return (`alignment {qname; flag; rname; pos;
+    Ok (`alignment {qname; flag; rname; pos;
                         mapq; cigar; rnext; pnext;
                         tlen; seq; qual; optional; })
 
@@ -639,10 +643,10 @@ module Transform = struct
           incr raw_items_count;
           begin match Dequeue.dequeue_exn raw_queue `front with
           | `comment c ->
-            dbg "comment"; output_ok (`comment c)
+            dbg "comment"; `output (Ok (`comment c))
           | `header_line (version, sorting, rest) ->
             dbg "header";
-            output_ok (`header ("HD",
+            `output (Ok (`header ("HD",
                                 ("VN", version)
                                 :: ("SO",
                                     match sorting with
@@ -650,7 +654,7 @@ module Transform = struct
                                     | `unsorted -> "unsorted"
                                     | `queryname -> "queryname"
                                     | `coordinate -> "coordinate")
-                                :: rest))
+                                :: rest)))
           | `reference_sequence_dictionary rsd ->
             dbg "reference_sequence_dictionary %d" (Array.length rsd);
             reference_sequence_dictionary := rsd;
@@ -662,10 +666,10 @@ module Transform = struct
             next stopped
           | `header h ->
             dbg "header %s" (fst h);
-            output_ok (`header h)
+            `output (Ok (`header h))
           | `alignment al ->
             dbg "alignment";
-            downgrade_alignment al |! output_result
+            downgrade_alignment al |! (fun x -> `output x)
           end
         end
       | n ->
@@ -673,7 +677,7 @@ module Transform = struct
           !reference_sequence_dictionary.(
             Array.length !reference_sequence_dictionary - n) in
         reference_sequence_dictionary_to_output := n - 1;
-        output_ok (`header ("SQ", reference_sequence_to_header o))
+        `output (Ok (`header ("SQ", reference_sequence_to_header o)))
       end
     in
     Biocaml_transform.make ~name ~feed:(Dequeue.enqueue raw_queue `back) ()

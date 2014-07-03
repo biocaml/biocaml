@@ -80,23 +80,23 @@ module Transform = struct
         else (
           let name_line  = (next_line_exn p :> string) in
           if String.length name_line = 0 || name_line.[0] <> '@'
-          then Result.output_error (`invalid_name (current_position p, name_line))
+          then `output (Error (`invalid_name (current_position p, name_line)))
           else
             let sequence     = (next_line_exn p :> string) in
             let comment_line = (next_line_exn p :> string) in
             if String.length comment_line = 0 || comment_line.[0] <> '+'
-            then Result.output_error (`invalid_comment (current_position p, comment_line))
+            then `output (Error (`invalid_comment (current_position p, comment_line)))
             else
               let qualities    = (next_line_exn p :> string) in
               if String.length sequence <> String.length qualities
-              then Result.output_error
+              then `output (Error
                 (`sequence_qualities_mismatch (current_position p,
-                                                      sequence, qualities))
+                                                      sequence, qualities)))
               else (
-                Result.output_ok {
+                `output (Ok {
                   name = String.sub name_line 1 (String.length name_line - 1);
                   comment = String.sub comment_line 1 (String.length comment_line - 1);
-                  sequence; qualities }
+                  sequence; qualities })
               ))
       ) ()
 
@@ -118,22 +118,22 @@ module Transform = struct
           let rlgth = String.length r.sequence in
           begin match specification with
           | `beginning i when i < rlgth ->
-            Result.output_ok
+            `output (Ok
               { r with sequence = String.sub r.sequence ~pos:i ~len:(rlgth - i);
-                qualities = String.sub r.qualities ~pos:i ~len:(rlgth - i) }
+                qualities = String.sub r.qualities ~pos:i ~len:(rlgth - i) })
           | `ending i when i < rlgth ->
-            Result.output_ok
+            `output (Ok
               { r with sequence = String.sub r.sequence ~pos:0 ~len:(rlgth - i);
-                qualities = String.sub r.qualities ~pos:0 ~len:(rlgth - i) }
+                qualities = String.sub r.qualities ~pos:0 ~len:(rlgth - i) })
           | _ ->
-            Result.output_error (`invalid_size rlgth)
+            `output (Error (`invalid_size rlgth))
           end
         | None -> if stopped then `end_of_stream else `not_ready
         end)
 
 
   let fasta_pair_to_fastq ?(phred_score_offset=`offset33) () =
-    let open Result in
+    let open Result.Monad_infix in
     let module Fasta = Biocaml_fasta in
     Biocaml_transform.of_function begin fun (char_item, int_item) ->
       if char_item.Fasta.header = int_item.Fasta.header then
@@ -144,23 +144,22 @@ module Transform = struct
                   of_int_exn int
                   |> to_ascii_exn ~offset:phred_score_offset
                   |> Char.to_string))
-            |> String.concat ~sep:"" |> return
+            |> String.concat ~sep:"" |> Result.return
           with _ ->
-            fail (`cannot_convert_to_phred_score int_item.Fasta.sequence)
+            Error (`cannot_convert_to_phred_score int_item.Fasta.sequence)
           end
           >>= fun qualities ->
-          return {name = char_item.Fasta.header;
+          Ok {name = char_item.Fasta.header;
                   sequence = char_item.Fasta.sequence;
                   comment = char_item.Fasta.header;
                   qualities}
         end
       else
-        fail (`sequence_names_mismatch (char_item.Fasta.header,
+        Error (`sequence_names_mismatch (char_item.Fasta.header,
                                         int_item.Fasta.header))
     end
 
   let fastq_to_fasta_pair  ?(phred_score_offset=`offset33) () =
-    let open Result in
     Biocaml_transform.of_function begin fun {name; sequence; qualities; _} ->
       begin try
         let scores =
@@ -168,10 +167,10 @@ module Transform = struct
               Biocaml_phred_score.(
                 of_ascii_exn ~offset:phred_score_offset c |> to_int) :: prev)
           |> List.rev in
-        return Biocaml_fasta.({ header = name; sequence },
+        Ok Biocaml_fasta.({ header = name; sequence },
                               { header = name; sequence = scores })
       with e -> (* exception from the Phred-score convertions *)
-        fail (`cannot_convert_ascii_phred_score qualities)
+        Error (`cannot_convert_ascii_phred_score qualities)
       end
     end
 

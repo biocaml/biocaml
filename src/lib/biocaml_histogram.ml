@@ -89,11 +89,10 @@ let in_range hist x =
     (cmp_lo = 1 || cmp_lo = 0) && (cmp_hi = -1)
 
 let make_uniform min max n =
-  let open Result in
   if min >= max then
-    fail (sprintf "minimum %.3f must be strictly less than maximum %.3f" min max)
+    Error (sprintf "minimum %.3f must be strictly less than maximum %.3f" min max)
   else if n < 1 then
-    fail (sprintf "cannot create histogram with %d bins" n)
+    Error (sprintf "cannot create histogram with %d bins" n)
   else begin
     let delt = (max -. min) /. (Float.of_int n) in
     let bins = Array.init (n+1) (fun i -> min +. (delt *. Float.of_int i)) in

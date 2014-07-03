@@ -1,6 +1,5 @@
 open Core.Std
 open Biocaml_internal_utils
-open Result
 module Lines = Biocaml_lines
 
 type item = {
@@ -47,7 +46,7 @@ let parse_comma_ints msg pos s =
   let drop = function ' ' | '\n' | '\t' | '\r' | ',' -> true | _ -> false in
   String.strip ~drop s
   |> String.split ~on:','
-  |> while_ok ~f:(fun _ -> parse_int msg pos)
+  |> Result.List.mapi ~f:(fun _ -> parse_int msg pos)
 
 let parse_string s =
   Ok (String.strip s)
@@ -61,7 +60,9 @@ let parse_strands msg pos s = match String.strip s with
   | "--" -> Ok ('-', Some '-')
   | s -> Error (`invalid_strands (pos,msg,s))
 
-let parse_line pos line = match Line.split ~on:'\t' line with
+let parse_line pos line =
+  let open Result.Monad_infix in
+  match Line.split ~on:'\t' line with
   | [matches; mismatches; rep_matches; n_count; q_num_insert; q_base_insert;
      t_num_insert; t_base_insert; strands; q_name; q_size; q_start; q_end;
      t_name; t_size; t_start; t_end; block_count; block_sizes;
@@ -88,7 +89,7 @@ let parse_line pos line = match Line.split ~on:'\t' line with
     parse_comma_ints "block_sizes" pos block_sizes >>= fun block_sizes ->
     parse_comma_ints "q_starts" pos q_starts >>= fun q_starts ->
     parse_comma_ints "t_starts" pos t_starts >>= fun t_starts ->
-    return {
+    Ok {
       matches; mismatches; rep_matches; n_count; q_num_insert; q_base_insert;
       t_num_insert; t_base_insert; q_name; q_strand; q_size; q_start; q_end;
       t_name; t_strand; t_size; t_start; t_end; block_count; block_sizes;

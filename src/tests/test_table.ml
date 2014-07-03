@@ -1,9 +1,7 @@
-
+open Core.Std
 open OUnit
 open Biocaml
-open Core.Std
 
-open Result
 let (>><) = (|!)
 
 let test_row () =
