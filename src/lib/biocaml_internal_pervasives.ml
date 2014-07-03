@@ -84,6 +84,7 @@ module Result = struct
 
 end
 include Result.Export
+module Sequence = Core.Std.Sequence
 module Set = Core.Std.Set
 module Sexp = Core.Std.Sexp
 module Sexpable = Core.Std.Sexpable

@@ -21,7 +21,7 @@ remove: [
 
 depends: [
   "ocamlfind"
-  "core" {>= "109.27.00"}
+  "core" {>= "111.13.00"}
   "sexplib"
   "camlzip"
   "xmlm"
