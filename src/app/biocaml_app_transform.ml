@@ -40,7 +40,14 @@ let fastq_item_to_sam_item () =
       let quality =
         String.to_array qualities
         |! Array.map ~f:(fun c ->
-          Phred_score.(of_ascii c |! Option.value ~default:(of_probability_exn 0.1)))
+          Phred_score.(
+            of_ascii c
+            |! (function
+              | Ok x -> x
+              | Error _ -> ok_exn (of_probability 0.1)
+            )
+          )
+        )
       in
       Queue.enqueue queue
         (`alignment {
@@ -73,7 +80,15 @@ let sam_item_to_fastq_item () : (Sam.item, Fastq.item) Transform.t =
     | `alignment {Sam. query_template_name; sequence = `string seq; quality; _} ->
       let qualities =
         Array.map quality ~f:(fun c ->
-          Phred_score.(to_ascii c |> Option.value ~default:'{' |> Char.to_string))
+          Phred_score.(
+            to_ascii c
+            |> (function
+              | Ok x -> x
+              | Error _ -> '{'
+            )
+            |> Char.to_string
+          )
+        )
         |> String.concat_array ~sep:"" in
       Queue.enqueue queue
         { Fastq.name = query_template_name; sequence = seq;

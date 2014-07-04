@@ -497,7 +497,7 @@ module Transform = struct
       next_position = if pnext = -1 then None else Some (pnext + 1);
       template_length  = if tlen = 0 then None else Some tlen;
       sequence = `string seq;
-      quality = Array.map qual ~f:Phred_score.of_int_exn;
+      quality = Array.map qual ~f:(fun x -> ok_exn (Phred_score.of_int x));
       optional_content;
     })
 

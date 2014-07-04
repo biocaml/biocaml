@@ -111,7 +111,7 @@ module Transform: sig
   (** Create a [Biocaml_transform.t] that trims FASTQ items. *)
 
   val fasta_pair_to_fastq:
-    ?phred_score_offset:[ `offset33 | `offset64 ] ->
+    ?phred_score_offset:Biocaml_phred_score.offset ->
     unit ->
     (Biocaml_fasta.char_seq Biocaml_fasta.item *
        Biocaml_fasta.int_seq Biocaml_fasta.item,
@@ -125,7 +125,7 @@ module Transform: sig
       is [`offset33] (like in {!Biocaml_phred_score}). *)
 
   val fastq_to_fasta_pair :
-    ?phred_score_offset:[ `offset33 | `offset64 ] ->
+    ?phred_score_offset:Biocaml_phred_score.offset ->
     unit ->
     (item,
      (Biocaml_fasta.char_seq Biocaml_fasta.item *

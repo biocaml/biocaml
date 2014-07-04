@@ -409,9 +409,9 @@ let expand_alignment raw ref_dict =
   (if qual = "*" then Ok [| |] else begin
       try
         let quality =
-          Array.create (String.length qual) Phred_score.(of_int_exn 0) in
+          Array.create (String.length qual) (ok_exn (Phred_score.of_int 0)) in
         for i = 0 to String.length qual - 1 do
-          quality.(i) <- Phred_score.of_ascii_exn qual.[i];
+          quality.(i) <- ok_exn (Phred_score.of_ascii qual.[i]);
         done;
         Ok quality
       with
@@ -597,7 +597,7 @@ module Transform = struct
       try
         Array.map al.quality ~f:(fun q ->
           Phred_score.to_ascii q
-          |! Option.value_exn ?here:None ?error:None ?message:None
+          |! ok_exn
           |! Char.to_string)
         |! String.concat_array ~sep:""
         |! Result.return

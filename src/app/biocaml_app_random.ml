@@ -169,7 +169,7 @@ let random_dna ?(with_n=true) read_length_spec =
 
 let random_quality_array seq =
   Array.init (String.length seq) (fun _ ->
-    Phred_score.of_probability_exn (Random.float 1.0))
+    ok_exn (Phred_score.of_probability (Random.float 1.0)))
 
 
 let random_fastq_transform ~args () =
@@ -185,7 +185,11 @@ let random_fastq_transform ~args () =
   let make_read () = random_dna ~with_n read_length_spec in
   let make_qualities read =
     String.map read (fun _ ->
-      Phred_score.(of_int_exn (Random.int (126 - 33)) |! to_ascii_exn))
+      Phred_score.(
+        ok_exn (of_int (Random.int (126 - 33)))
+        |! fun x -> ok_exn (to_ascii x)
+      )
+    )
   in
   Transform.make ()
     ~next:(fun stopped ->

@@ -132,7 +132,7 @@ module Transform = struct
         end)
 
 
-  let fasta_pair_to_fastq ?(phred_score_offset=`offset33) () =
+  let fasta_pair_to_fastq ?(phred_score_offset=`Offset33) () =
     let open Result.Monad_infix in
     let module Fasta = Biocaml_fasta in
     Biocaml_transform.of_function begin fun (char_item, int_item) ->
@@ -141,8 +141,8 @@ module Transform = struct
           begin try
             List.map int_item.Fasta.sequence (fun int ->
                 Biocaml_phred_score.(
-                  of_int_exn int
-                  |> to_ascii_exn ~offset:phred_score_offset
+                  ok_exn (of_int int)
+                  |> fun x -> ok_exn (to_ascii ~offset:phred_score_offset x)
                   |> Char.to_string))
             |> String.concat ~sep:"" |> Result.return
           with _ ->
@@ -159,13 +159,13 @@ module Transform = struct
                                         int_item.Fasta.header))
     end
 
-  let fastq_to_fasta_pair  ?(phred_score_offset=`offset33) () =
+  let fastq_to_fasta_pair  ?(phred_score_offset=`Offset33) () =
     Biocaml_transform.of_function begin fun {name; sequence; qualities; _} ->
       begin try
         let scores =
           String.fold ~init:[] qualities ~f:(fun prev c ->
               Biocaml_phred_score.(
-                of_ascii_exn ~offset:phred_score_offset c |> to_int) :: prev)
+                of_ascii ~offset:phred_score_offset c |> ok_exn |> to_int) :: prev)
           |> List.rev in
         Ok Biocaml_fasta.({ header = name; sequence },
                               { header = name; sequence = scores })

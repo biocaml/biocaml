@@ -14,6 +14,16 @@ module Fastq = struct
 
 end
 
+module Phred_score = struct
+  include Biocaml_phred_score
+
+  let of_ascii ?offset x = ok_exn (of_ascii ?offset x)
+  let to_ascii ?offset t = ok_exn (to_ascii ?offset t)
+  let of_int x = ok_exn (of_int x)
+  let of_probability ?f x = ok_exn (of_probability ?f x)
+
+end
+
 module Range = struct
   include Biocaml_range
 

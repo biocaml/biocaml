@@ -16,80 +16,67 @@
     format for sequences with quality scores, and the Solexa/Illumina
     FASTQ variants}. Using an offset of 33 or 64 in this module
     corresponds to using the fastq-sanger or fastq-illumina encodings,
-    respectively, defined in this paper.
+    respectively, defined in this paper. However, note the term
+    fastq-illumina is now misleading since Illumina has also switched
+    to using an offset of 33.
 *)
 open Core.Std
 
-exception Error of string
+type t = private int
+with sexp
 
-type t
+type offset = [`Offset33 | `Offset64]
+with sexp
 
-val of_ascii : ?offset:[`offset33 | `offset64] -> char -> t option
+val of_ascii : ?offset:offset -> char -> t Or_error.t
 (** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
     character [x]. *)
 
-val of_ascii_exn : ?offset:[`offset33 | `offset64] -> char -> t
-(** Like [of_ascii] but may raise
-    [Error _] if [x] does not represent a valid score. *)
+val to_ascii : ?offset:offset -> t -> char Or_error.t
+(** [to_ascii t] encodes [t] as a visible ASCII character (codes 33 -
+    126) if possible. *)
 
-val to_ascii : ?offset:[`offset33 | `offset64] -> t -> char option
-(** [to_ascii t] encodes [t] as an ASCII character. *)
-
-val to_ascii_exn : ?offset:[`offset33 | `offset64] -> t -> char
-  (** [to_ascii_exn t] encodes [t] as an ASCII character.
-
-      @raise Error if [t] with the given [offset] cannot be encoded as
-      a visible ASCII character (codes 33 - 126).
-  *)
-
-val of_int_exn : int -> t
-  (** [of_int_exn x] returns the PHRED score with the same value [x], but
-      assures that [x] is non-negative.
-
-      @raise Error if [x] is negative.
-  *)
+val of_int : int -> t Or_error.t
+(** [of_int x] returns the PHRED score with the same value [x], or
+    returns Error if [x] is negative. *)
 
 val to_int : t -> int
-(** Convert a phred score to an integer. *)
+(** Convert a PHRED score to an integer. *)
 
-val of_probability : ?f:(float -> int) -> float -> t option
-  (** [of_probability ~f x] returns [-10 * log_10(x)], which is the
-      definition of PHRED scores.
+val of_probability : ?f:(float -> int) -> float -> t Or_error.t
+(** [of_probability ~f x] returns [-10 * log_10(x)], which is the
+    definition of PHRED scores.
 
-      PHRED scores are integral, and it is unclear what convention is
-      used to convert the resulting float value to an integer. Thus,
-      the optional [f] is provided to dictate this. The default is to
-      round the computed score to the closest integer.
-  *)
+    PHRED scores are integral, and it is only loosely specified that
+    float value returned by the above formula should be "rounded to
+    the closest integer". However, that statement is imprecise;
+    there is more than one way to do such a rounding. A reasonable
+    choice is made by default, but you can control the behavior by
+    providing [f].
 
-val of_probability_exn : ?f:(float -> int) -> float -> t
-(** See [of_probability]
-
-    @raise Error if [x] is not between 0.0 - 1.0. *)
+    Return Error if given a probability [x] not between not between
+    0.0 and 1.0.
+*)
 
 val to_probability : t -> float
-  (** [to_probablity x] converts [x] to a probablity score. Note this
-      is not the inverse of [of_probability] due to the rounding done by
-      the latter. *)
+(** [to_probablity x] converts [x] to a probablity score. Note this
+    is not the inverse of [of_probability] due to the rounding done
+    by the latter. *)
 
 val of_solexa_score : ?f:(float -> int) -> Biocaml_solexa_score.t -> t
-  (** [of_solexa_score x] converts Solexa score [x] to a PHRED
-      score.
+(** [of_solexa_score x] converts Solexa score [x] to a PHRED score.
 
-      The conversion produces a float, and it is unclear what
-      convention is used to convert the resulting float value to an
-      integer. As in {!of_probability}, the optional [f] parameter is
-      provided to dictate this.
-  *)
+    The conversion produces a float, and it is unclear what
+    convention is used to convert the resulting float value to an
+    integer. As in {!of_probability}, the optional [f] parameter is
+    provided to dictate this.
+*)
 
 val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexa_score.t
-  (** [to_solexa_score t] converts PHRED score [t] to a Solexa
-      score.
+(** [to_solexa_score t] converts PHRED score [t] to a Solexa score.
 
-      The conversion produces a float, and it is unclear what
-      convention is used to convert the resulting float value to an
-      integer. As in {!of_probability}, the optional [f] parameter is
-      provided to dictate this.
-  *)
-
-include Sexpable.S with type t := t
+    The conversion produces a float, and it is unclear what
+    convention is used to convert the resulting float value to an
+    integer. As in {!of_probability}, the optional [f] parameter is
+    provided to dictate this.
+*)
