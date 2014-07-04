@@ -445,9 +445,9 @@ module Transform = struct
     | None -> `not_ready
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"@") ->
-      parse_header_line (current_position p) l |! (fun x -> `output x)
+      parse_header_line (current_position p) l |> (fun x -> `output x)
     | Some l ->
-      parse_alignment (current_position p) l |! (fun x -> `output x)
+      parse_alignment (current_position p) l |> (fun x -> `output x)
 
   let string_to_raw ?filename () =
     let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
@@ -543,7 +543,7 @@ module Transform = struct
           if !header_finished then (
             expand_alignment a !ref_dictionary
             >>| (fun a -> `alignment a)
-                          |! (fun x -> `output x)
+                          |> (fun x -> `output x)
           ) else begin
             header_finished := true;
             Dequeue.enqueue raw_queue `front (`alignment a);
@@ -584,7 +584,7 @@ module Transform = struct
         | `P  v -> sprintf "%d%c" v 'P'
         | `Eq v -> sprintf "%d%c" v '='
         | `X  v -> sprintf "%d%c" v 'X')
-        |! String.concat_array ~sep:"" in
+        |> String.concat_array ~sep:"" in
     let rnext =
       match al.next_reference_sequence with
       | `qname -> "=" | `none -> "*" | `name s -> s
@@ -597,10 +597,10 @@ module Transform = struct
       try
         Array.map al.quality ~f:(fun q ->
           Phred_score.to_ascii q
-          |! ok_exn
-          |! Char.to_string)
-        |! String.concat_array ~sep:""
-        |! Result.return
+          |> ok_exn
+          |> Char.to_string)
+        |> String.concat_array ~sep:""
+        |> Result.return
       with
         e -> Error (`wrong_phred_scores al)
     end
@@ -608,7 +608,7 @@ module Transform = struct
     let optional =
       let rec optv = function
         | `array (t, a) ->
-          sprintf "B%c%s" t String.(Array.map a ~f:optv |! concat_array ~sep:"" )
+          sprintf "B%c%s" t String.(Array.map a ~f:optv |> concat_array ~sep:"" )
         | `char c -> Char.to_string c
         | `float f -> Float.to_string f
         | `int i -> Int.to_string i
@@ -669,7 +669,7 @@ module Transform = struct
             `output (Ok (`header h))
           | `alignment al ->
             dbg "alignment";
-            downgrade_alignment al |! (fun x -> `output x)
+            downgrade_alignment al |> (fun x -> `output x)
           end
         end
       | n ->
@@ -687,7 +687,7 @@ module Transform = struct
   let alignment_to_string x =
     sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n"
       x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual
-      (List.map x.optional (fun (a,b,c) -> sprintf "%s:%c:%s" a b c) |!
+      (List.map x.optional (fun (a,b,c) -> sprintf "%s:%c:%s" a b c) |>
           String.concat ~sep:"\t")
 
   let raw_to_string () =
@@ -715,7 +715,7 @@ let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   let y = Transform.raw_to_item () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! in_channel_strings_to_stream ~buffer_size inp
+    |> in_channel_strings_to_stream ~buffer_size inp
   )
 
 let in_channel_to_raw_item_stream_exn ?buffer_size ?filename inp =

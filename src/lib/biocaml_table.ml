@@ -76,8 +76,8 @@ module Row = struct
         try Float.of_string s with e -> raise (Float_of_string s)
       let of_line ~format l =
         let tokens =
-          String.split_on_chars ~on:separators l |! List.filter ~f:((<>) "")
-          |! Array.of_list in
+          String.split_on_chars ~on:separators l |> List.filter ~f:((<>) "")
+          |> Array.of_list in
         begin match format with
         | None ->
           Ok (Array.map tokens ~f:(fun s -> `string s))
@@ -129,7 +129,7 @@ module Row = struct
         ~f:begin fun s ->
           of_line ~separators ~strict_row_length ~strict_cell_type ?format
             (s : Biocaml_lines.item)
-          |! begin function
+          |> begin function
           | Ok o -> Ok o
           | Error e -> Error (`table_row (e : Error.line_parsing))
           end

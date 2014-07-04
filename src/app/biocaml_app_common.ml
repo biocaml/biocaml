@@ -403,22 +403,22 @@ let go_through_input ~transform ~max_read_bytes filename =
           if stopped then count_all stopped else return ()
         | `output (Error (`bed s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_bed.Error.sexp_of_parsing s |! Sexp.to_string_hum)
+            (Biocaml_bed.Error.sexp_of_parsing s |> Sexp.to_string_hum)
         | `output (Error (`bam s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_bam.Error.sexp_of_raw_bam s |! Sexp.to_string_hum)
+            (Biocaml_bam.Error.sexp_of_raw_bam s |> Sexp.to_string_hum)
         | `output (Error (`sam s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_sam.Error.sexp_of_string_to_raw s |! Sexp.to_string_hum)
+            (Biocaml_sam.Error.sexp_of_string_to_raw s |> Sexp.to_string_hum)
         | `output (Error (`unzip s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_zip.Error.sexp_of_unzip s |! Sexp.to_string_hum)
+            (Biocaml_zip.Error.sexp_of_unzip s |> Sexp.to_string_hum)
         | `output (Error (`bam_to_item s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_bam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
+            (Biocaml_bam.Error.sexp_of_raw_to_item s |> Sexp.to_string_hum)
         | `output (Error (`sam_to_item s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_sam.Error.sexp_of_raw_to_item s |! Sexp.to_string_hum)
+            (Biocaml_sam.Error.sexp_of_raw_to_item s |> Sexp.to_string_hum)
       in
       let rec loop c =
         wrap_deferred_lwt (fun () -> read ~count:input_buffer_size i)

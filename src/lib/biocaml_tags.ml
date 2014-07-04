@@ -85,7 +85,7 @@ let of_string s =
 
 let to_string t =
   let open Sexplib in
-  sexp_of_t t |! Sexp.to_string_hum
+  sexp_of_t t |> Sexp.to_string_hum
 
 module Output_transform = struct
   open Result.Monad_infix

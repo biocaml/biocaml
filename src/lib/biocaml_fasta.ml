@@ -405,7 +405,7 @@ let in_channel_to_char_seq_item_stream ?(buffer_size=65536) ?filename ?tags inp 
   let y = Transform.char_seq_raw_item_to_item () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! in_channel_strings_to_stream ~buffer_size inp
+    |> in_channel_strings_to_stream ~buffer_size inp
   )
 
 let in_channel_to_int_seq_item_stream ?(buffer_size=65536) ?filename ?tags inp =
@@ -413,7 +413,7 @@ let in_channel_to_int_seq_item_stream ?(buffer_size=65536) ?filename ?tags inp =
   let y = Transform.int_seq_raw_item_to_item () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! in_channel_strings_to_stream ~buffer_size inp
+    |> in_channel_strings_to_stream ~buffer_size inp
   )
 
 exception Error of Error.t

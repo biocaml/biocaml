@@ -182,7 +182,7 @@ end
 (******************************************************************************)
 let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
   Transform.string_to_item ?filename ()
-  |! Biocaml_transform.in_channel_strings_to_stream ~buffer_size inp
+  |> Biocaml_transform.in_channel_strings_to_stream ~buffer_size inp
 
 let error_to_exn err = Err err
 

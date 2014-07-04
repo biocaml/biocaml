@@ -53,7 +53,7 @@ module Selection = struct
     match Map.find dom k with
     | Some x -> 
       inter Range.(add_range empty r.lo r.hi) x
-      |! cardinal
+      |> cardinal
     | None -> 0
   )
 
@@ -66,7 +66,7 @@ module Selection = struct
   let to_stream dom =
     (Map.to_stream dom) 
     /@ (fun (k,s) -> Stream.map ~f:(fun (lo,hi) -> k, ok_exn (Range.make lo hi)) (Biocaml_iset.to_stream s))
-      |! Stream.concat
+      |> Stream.concat
 
   let of_stream e =
     let accu = Accu.create Biocaml_iset.empty fst (fun (_,r) -> Range.(fun x -> Biocaml_iset.add_range x r.lo r.hi)) in
@@ -114,11 +114,11 @@ module LMap = struct
   let to_stream dom =
     (Map.to_stream dom) 
     /@ (fun (k,t) -> Stream.map ~f:(fun (lo,hi,x) -> (k, ok_exn (Range.make lo hi)), x) (T.to_stream t))
-    |! Stream.concat
+    |> Stream.concat
 
   let of_stream e =
     let accu =
-      Accu.create T.empty (fun x -> fst x |! fst)
+      Accu.create T.empty (fun x -> fst x |> fst)
         (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
     Stream.iter ~f:(fun loc -> Accu.add accu loc loc ) e ;
     Map.of_stream (Accu.stream accu)
@@ -139,7 +139,7 @@ module LSet = struct
     LMap.intersecting_elems loc lset /@ fst
 
   let to_stream lset = LMap.to_stream lset /@ fst
-  let of_stream e = e /@ (fun x -> x, ()) |! LMap.of_stream
+  let of_stream e = e /@ (fun x -> x, ()) |> LMap.of_stream
 
 end
 

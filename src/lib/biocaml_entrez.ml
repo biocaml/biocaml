@@ -131,8 +131,8 @@ let search_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi
 
 let parameters l =
   List.filter_map ~f:Fn.id l
-  |! List.map ~f:(fun (k,v) -> sprintf "%s=%s" k v)
-  |! String.concat ~sep:"&"
+  |> List.map ~f:(fun (k,v) -> sprintf "%s=%s" k v)
+  |> String.concat ~sep:"&"
   
 let string_of_datetype = function
   | `pdat -> "pdat"
@@ -167,14 +167,14 @@ let esearch_answer_of_tree = function
       count = ileaf_exn "Count" t ;
       retmax = ileaf_exn "RetMax" t ;
       retstart = ileaf_exn "RetStart" t ;
-      ids = echild_exn "IdList" t |! sleaves "Id"
+      ids = echild_exn "IdList" t |> sleaves "Id"
     }
   | _ -> assert false
 
 let esearch_answer_of_string str = 
   tree_of_string str
-  |! snd
-  |! esearch_answer_of_tree
+  |> snd
+  |> esearch_answer_of_tree
 
 
 let summary_base_url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
@@ -230,13 +230,13 @@ module Make(F : Fetch) = struct
     let query_url = esearch_url database query in
     fetch query_url esearch_answer_of_string >>= fun answer ->
     let object_url = efetch_url ~retmode:`xml database answer.ids in
-    fetch object_url (fun x -> x |! tree_of_string |! snd |! of_xml)
+    fetch object_url (fun x -> x |> tree_of_string |> snd |> of_xml)
 
   let search_and_summary database of_xml query =
     let query_url = esearch_url database query in
     fetch query_url esearch_answer_of_string >>= fun answer ->
     let object_url = esummary_url database answer.ids in
-    fetch object_url (fun x -> x |! tree_of_string |! snd |! of_xml)
+    fetch object_url (fun x -> x |> tree_of_string |> snd |> of_xml)
 
   module Object_id = struct
     type t = [`int of int | `string of string ]
@@ -263,7 +263,7 @@ module Make(F : Fetch) = struct
 
     let of_xml x = {
       db = sleaf_exn "Dbtag_db" x ;
-      tag = Object_id.of_xml (x |! echild_exn "Dbtag_tag" |! echild_exn "Object-id")
+      tag = Object_id.of_xml (x |> echild_exn "Dbtag_tag" |> echild_exn "Object-id")
     }
       
   end
@@ -340,13 +340,13 @@ module Make(F : Fetch) = struct
     let parse_book_document bd =
       { pmid = ileaf_exn "PMID" bd ; 
         title = sleaf_exn "ArticleTitle" bd ;
-        abstract = echild_exn "Abstract" bd |! sleaf_exn "AbstractText" }
+        abstract = echild_exn "Abstract" bd |> sleaf_exn "AbstractText" }
 
     let parse_medline_citation mc = 
       let article = echild_exn "Article" mc in
       { pmid = ileaf_exn "PMID" mc ;
         title = sleaf_exn "ArticleTitle" article ;
-        abstract = echild_exn "Abstract" article |! sleaf_exn "AbstractText" }
+        abstract = echild_exn "Abstract" article |> sleaf_exn "AbstractText" }
 
     let parse_pubmed_article_set_element x = match tag_of_tree x with
     | Some "PubmedArticle" -> 
@@ -412,7 +412,7 @@ module Make(F : Fetch) = struct
       fetch query_url esearch_answer_of_string >>= fun answer ->
       let object_url = efetch_url ~retmode:`xml database answer.ids in
       (* print_endline object_url ; *)
-      fetch object_url (fun x -> x |! tree_of_string |! snd |! of_xml)
+      fetch object_url (fun x -> x |> tree_of_string |> snd |> of_xml)
   end
 end
 

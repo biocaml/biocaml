@@ -19,7 +19,7 @@ let spec_lexer = Genlex.make_lexer [":"; "with"; "without"; "="; "("; ")"; "and"
 
 let parse_spec_aux s =
   let open Genlex in
-  let char_stream = String.to_list (s ^ " special_end") |! Stream.of_list in
+  let char_stream = String.to_list (s ^ " special_end") |> Stream.of_list in
   begin try
     let tokens = Stream.to_list (spec_lexer char_stream) in
     match List.rev tokens with
@@ -177,7 +177,7 @@ let random_fastq_transform ~args () =
   let seq_num = ref 0 in
   let read_length_spec =
     List.find_map args (function `read_length m -> Some m | _ -> None)
-    |! Option.value ~default:(`int 50) in
+    |> Option.value ~default:(`int 50) in
   let with_n =
     match List.find args (function `without_n -> true | _ -> false) with
     | Some _ -> false
@@ -187,7 +187,7 @@ let random_fastq_transform ~args () =
     String.map read (fun _ ->
       Phred_score.(
         ok_exn (of_int (Random.int (126 - 33)))
-        |! fun x -> ok_exn (to_ascii x)
+        |> fun x -> ok_exn (to_ascii x)
       )
     )
   in
@@ -212,7 +212,7 @@ let random_fastq_transform ~args () =
 let random_bed_transform ~args () =
   let columns =
     List.find_map args (function `columns m -> Some m | _ -> None)
-    |! Option.value ~default:[] in
+    |> Option.value ~default:[] in
   let todo = ref 0 in
   let seq_num = ref 0 in
   let make_item seqnum =
@@ -239,7 +239,7 @@ let random_bed_transform ~args () =
 let random_table_transform ~args () =
   let columns =
     List.find_map args (function `columns m -> Some m | _ -> None)
-    |! Option.value ~default:[] in
+    |> Option.value ~default:[] in
   let todo = ref 0 in
   let make_item () =
     let cols =
@@ -263,7 +263,7 @@ let random_sam_item_transform ~args () =
   let total_chromosomes = 23 in
   let read_length_spec =
     List.find_map args (function `read_length m -> Some m | _ -> None)
-    |! Option.value ~default:(`int 50) in
+    |> Option.value ~default:(`int 50) in
   let with_n =
     match List.find args (function `without_n -> true | _ -> false) with
     | Some _ -> false
@@ -409,7 +409,7 @@ let do_random ~output_file ~nb_items spec =
     let transform =
       Transform.(
         compose (random_sam_item_transform ~args ()) tr
-        |! on_output ~f:(function
+        |> on_output ~f:(function
           | Ok o -> o
           | Error e ->
             failwith "ERROR in SAM/BAM OUTPUT")
@@ -449,7 +449,7 @@ let stringify m =
         | `tags_of_string of exn
         | `not_a_meta_int of Genlex.token list
         | `uknown_specification of Genlex.token list ]
-    ] >> e |! Sexp.to_string_hum)
+    ] >> e |> Sexp.to_string_hum)
   end
 
 let do_random ~output_file ~nb_items spec =

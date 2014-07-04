@@ -315,7 +315,7 @@ let perform ~mismatch ?do_statistics ~read_files ~demux_specification =
              verbose logging: *)
           Say.dbgi "demux.exclusive:\n  discarding matches:\n    %s"
             (List.map any_other_number (fun (name_prefix, _, _, _) -> name_prefix)
-             |! String.concat ~sep:", ");
+             |> String.concat ~sep:", ");
           the_undetermined ()
         | more (* inclusive *) -> more
       in
@@ -558,7 +558,7 @@ let more_help original_help : string =
     \                   (not AGTGGTC:1:1:2))) \
      ;; a ∧ b ∧ ¬c  matching\n\
      ))" in
-  let spec = Sexp.of_string example |! demux_specification_of_sexp in
+  let spec = Sexp.of_string example |> demux_specification_of_sexp in
   par buf "The following one uses the abbreviated syntax:";
   code buf example;
   par buf "which is equivalent to:";

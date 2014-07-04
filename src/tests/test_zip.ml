@@ -13,7 +13,7 @@ let some_ok x = Some (Ok x)
 let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
   let file = "src/tests/data/bed_03_more_cols.bed" in
   let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
-  Unix.system (sprintf "gzip -c %s > %s" file tmp) |! ignore;
+  Unix.system (sprintf "gzip -c %s > %s" file tmp) |> ignore;
 
   let unzip_and_parse =
     Transform.compose_results_merge_error

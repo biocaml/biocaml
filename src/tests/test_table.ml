@@ -2,7 +2,7 @@ open Core.Std
 open OUnit
 open Biocaml
 
-let (>><) = (|!)
+let (>><) = (|>)
 
 let test_row () =
   let tdash ?to_line s r =

@@ -14,7 +14,7 @@ let filename_chop_all_extensions filename =
   f filename
 
 let filename_make_new base extension =
-  sprintf "%s-%s.%s" base Time.(now () |! to_filename_string) extension
+  sprintf "%s-%s.%s" base Time.(now () |> to_filename_string) extension
 
 let transform_stringify_errors t =
   Transform.on_error t ~f:(function
@@ -39,10 +39,10 @@ let fastq_item_to_sam_item () =
     ~feed:(fun { Fastq.name; sequence; comment; qualities } ->
       let quality =
         String.to_array qualities
-        |! Array.map ~f:(fun c ->
+        |> Array.map ~f:(fun c ->
           Phred_score.(
             of_ascii c
-            |! (function
+            |> (function
               | Ok x -> x
               | Error _ -> ok_exn (of_probability 0.1)
             )
@@ -131,7 +131,7 @@ let transforms_to_do
           Transform.(
             compose_result_left
               (on_error tri (fun e -> `input e)) tro)
-          |! transform_stringify_errors in
+          |> transform_stringify_errors in
         let out_extension =
           Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in
@@ -144,7 +144,7 @@ let transforms_to_do
           Transform.compose_results
             ~on_error:(function `left e -> `input e | `right e -> `output e)
             tri tro
-          |! transform_stringify_errors in
+          |> transform_stringify_errors in
         let out_extension =
           Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in
@@ -157,7 +157,7 @@ let transforms_to_do
           Transform.(compose_results
             ~on_error:(function `left e -> `input e | `right e -> `output e)
             tri (compose (fastq_item_to_sam_item ()) tro))
-          |! transform_stringify_errors in
+          |> transform_stringify_errors in
         let out_extension =
           Tags.default_extensions output_tags |> List.hd_exn in
         let base = filename_chop_all_extensions filename in

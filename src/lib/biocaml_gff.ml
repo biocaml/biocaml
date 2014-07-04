@@ -116,8 +116,8 @@ module Transform = struct
     let get_csv s =
       List.map (String.split ~on:',' s)
         (fun s -> parse_string "value" position String.(strip s))
-      |! List.partition_map ~f:Result.ok_fst
-      |! (function
+      |> List.partition_map ~f:Result.ok_fst
+      |> (function
         | (ok, []) -> Ok ok
         | (_, notok :: _) -> Error notok) in
     let rec loop pos acc =
@@ -149,7 +149,7 @@ module Transform = struct
     >>| List.rev
 
   let parse_attributes_version_2 position l =
-    let whole_thing = String.(concat ~sep:"\t" l |! strip) in
+    let whole_thing = String.(concat ~sep:"\t" l |> strip) in
     let parse_string i =
       begin try Some (Scanf.bscanf i "%S " ident) with
       | e ->
@@ -161,7 +161,7 @@ module Transform = struct
     in
     let inch = Scanf.Scanning.from_string whole_thing in
     let tokens =
-      Stream.(from (fun _ -> parse_string inch) |! Fn.flip npeek Int.max_value) in
+      Stream.(from (fun _ -> parse_string inch) |> Fn.flip npeek Int.max_value) in
     let rec go_3_by_3 acc = function
     | k  :: v :: [] -> Ok (List.rev ((k, [v]) :: acc))
     | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
@@ -245,10 +245,10 @@ module Transform = struct
            match version with
            | `three ->
              sprintf "%s=%s" (Url.escape k)
-               (List.map v Url.escape |! String.concat ~sep:",")
+               (List.map v Url.escape |> String.concat ~sep:",")
            | `two ->
              sprintf "%S %s" k
-               (List.map v escape |! String.concat ~sep:",")
+               (List.map v escape |> String.concat ~sep:",")
          ));
     ] ^ "\n"
   )

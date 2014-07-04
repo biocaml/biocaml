@@ -53,7 +53,7 @@ let make mat bg = Array.(
       in
       let n_case = 
 	range p 
-        |! Stream.fold ~f:(fun accu i -> accu +. bg.(i) *. r.(i)) ~init:0. in
+        |> Stream.fold ~f:(fun accu i -> accu +. bg.(i) *. r.(i)) ~init:0. in
       append r [| n_case |])
     mat
 )

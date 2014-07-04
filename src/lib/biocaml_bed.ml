@@ -36,7 +36,7 @@ let item_of_line ~how line =
     | `enforce tt -> (Array.append base tt, true) in
   Biocaml_table.Row.of_line ~separators ~format
     ~strict_row_length:strict ~strict_cell_type:strict line
-  |! begin function
+  |> begin function
   | Ok row when Array.length row >= 3 ->
     let n = match row.(0) with `string s -> s | _ -> assert false in
     let h = match row.(1) with `int i -> i | _ -> assert false in

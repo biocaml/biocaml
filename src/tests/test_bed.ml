@@ -70,7 +70,7 @@ let test_printer () =
 
   let l = Stream.npeek camlstream Int.max_value in
   assert_equal
-    ~printer:(fun l -> List.map ~f:(sprintf "Output: %S") l |! String.concat ~sep:", ")
+    ~printer:(fun l -> List.map ~f:(sprintf "Output: %S") l |> String.concat ~sep:", ")
     l ["chrA\t42\t45\tsome_string\t42\t3.14\n";
        "chrB\t100\t130\tsome_string\t42\t3.14\n";
        "chrC\t200\t245\tsome_string\t42\t3.14\n"; ];

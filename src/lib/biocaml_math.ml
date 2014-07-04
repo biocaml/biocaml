@@ -63,7 +63,7 @@ let range_floats = prange (+.)
 let range step first last =
   assert (step > 0.0);
   let n =
-    (((last -. first) /. step) |! Float.abs |! Float.round_up |! Int.of_float) + 1 in
+    (((last -. first) /. step) |> Float.abs |> Float.round_up |> Int.of_float) + 1 in
   let a = Array.create n 0.0 in
   let (op,comp) = if first <= last then ((+.),(<=)) else ((-.),(>=)) in
   Array.iteri (fun i _ -> a.(i) <- op first (Float.of_int i *. step)) a;
@@ -85,9 +85,9 @@ let variance a =
   (Array.fold ~f:(+.) ~init:0. a) /. (Float.of_int (n - 1))
 
 let rms a =
-  Array.map ~f:(fun x -> x *. x) a |! mean |! sqrt
+  Array.map ~f:(fun x -> x *. x) a |> mean |> sqrt
 
-let stdv x = variance x |! sqrt
+let stdv x = variance x |> sqrt
 
 let median a =
   let n = Array.length a in

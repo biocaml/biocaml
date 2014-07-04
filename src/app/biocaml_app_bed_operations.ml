@@ -94,10 +94,10 @@ let rset_folding ~fold_operation ~fold_init max_read_bytes input_files =
   Set.fold !all_names ~init:(return ()) ~f:(fun munit name ->
     munit >>= fun () ->
     List.filter_map files_maps (fun fm ->
-      Map.find fm name |! Option.map ~f:(!))
-    |! List.fold ~init:fold_init ~f:fold_operation
-    |! Biocaml_rSet.to_range_list
-    |! List.fold ~init:(return ()) ~f:(fun m (low, high) ->
+      Map.find fm name |> Option.map ~f:(!))
+    |> List.fold ~init:fold_init ~f:fold_operation
+    |> Biocaml_rSet.to_range_list
+    |> List.fold ~init:(return ()) ~f:(fun m (low, high) ->
       m >>= fun () ->
       say "%s\t%d\t%d\n" name low high))
 

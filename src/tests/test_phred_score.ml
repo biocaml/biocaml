@@ -12,10 +12,10 @@ let test_ascii_conv () =
       let x = i - 33 in (* substract default offset *)
       Phred_score.(
         x
-        |! fun x -> ok_exn (of_int x)
-        |! fun x -> ok_exn (to_ascii x)
-        |! fun x -> ok_exn (of_ascii x)
-        |! to_int
+        |> fun x -> ok_exn (of_int x)
+        |> fun x -> ok_exn (to_ascii x)
+        |> fun x -> ok_exn (of_ascii x)
+        |> to_int
       ) = x)
     )
 

@@ -39,8 +39,8 @@ let of_string b =
   done;
   ans
 
-let of_buffer_unsafe b = Buffer.contents b |! String.uppercase
-let of_string_unsafe s = String.copy s |! String.uppercase
+let of_buffer_unsafe b = Buffer.contents b |> String.uppercase
+let of_string_unsafe s = String.copy s |> String.uppercase
 
 let to_string = String.copy
 let nth t i = String.get t (i-1)

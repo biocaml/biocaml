@@ -90,10 +90,10 @@ module Transform = struct
   let check b e = if b then Ok () else Error e
 
   let signed_int ~buf ~pos =
-    let b1 = Char.to_int buf.[pos + 0] |! Int32.of_int_exn in
-    let b2 = Char.to_int buf.[pos + 1] |! Int32.of_int_exn in
-    let b3 = Char.to_int buf.[pos + 2] |! Int32.of_int_exn in
-    let b4 = Char.to_int buf.[pos + 3] |! Int32.of_int_exn in
+    let b1 = Char.to_int buf.[pos + 0] |> Int32.of_int_exn in
+    let b2 = Char.to_int buf.[pos + 1] |> Int32.of_int_exn in
+    let b3 = Char.to_int buf.[pos + 2] |> Int32.of_int_exn in
+    let b4 = Char.to_int buf.[pos + 3] |> Int32.of_int_exn in
     let i32 =
       Int32.(bit_or  b1
                (bit_or (shift_left b2 8)
@@ -352,7 +352,7 @@ module Transform = struct
             | 'f' ->
               let f =
                 Binary_packing.unpack_signed_32
-                  ~byte_order:`Little_endian ~buf ~pos |! Int32.float_of_bits in
+                  ~byte_order:`Little_endian ~buf ~pos |> Int32.float_of_bits in
               check_size_and_return 4 (`float f)
             | _ -> error (`unknown_type typ)
             end
@@ -414,13 +414,13 @@ module Transform = struct
           let open Int64 in
           let int64 =
             let int8 pos =
-              Binary_packing.unpack_unsigned_8 ~buf ~pos |! Int64.of_int in
+              Binary_packing.unpack_unsigned_8 ~buf ~pos |> Int64.of_int in
             int8 Int.(pos + i * 4)
             + shift_left (int8 Int.(pos + i * 4 + 1)) 8
             + shift_left (int8 Int.(pos + i * 4 + 2)) 16
             + shift_left (int8 Int.(pos + i * 4 + 3)) 24
           in
-          let op_len = shift_right int64 4 |! Int64.to_int_exn in
+          let op_len = shift_right int64 4 |> Int64.to_int_exn in
           let op =
             match bit_and int64 0x0fL with
             | 0L -> `M op_len
@@ -440,11 +440,11 @@ module Transform = struct
                  String.(sub buf pos (pos + n_cigar_op * 4)))
     end
 (* dbg "cigar: %s" (Array.to_list cigarray *)
-(* |! List.map ~f:(fun (op, len) -> sprintf "%c:%d" op len) *)
-(* |! String.concat ~sep:"; "); *)
+(* |> List.map ~f:(fun (op, len) -> sprintf "%c:%d" op len) *)
+(* |> String.concat ~sep:"; "); *)
 
   let parse_sam_header h =
-    let lines = String.split ~on:'\n' h |! List.filter ~f:((<>) "") in
+    let lines = String.split ~on:'\n' h |> List.filter ~f:((<>) "") in
     Result.List.mapi lines (fun idx line ->
       dbg "parse_sam_header %d %s" idx line;
       Sam.parse_header_line idx line
@@ -537,7 +537,7 @@ module Transform = struct
               Dequeue.enqueue raw_queue `front (`alignment a);
               `output (Ok (`reference_sequence_dictionary !reference_information))
             ) else (
-              expand_alignment !reference_information a |! (fun x -> `output x)
+              expand_alignment !reference_information a |> (fun x -> `output x)
             )
           end
         end
@@ -595,15 +595,15 @@ module Transform = struct
         Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32 in
       let open Int32 in
       Array.iteri al.S.cigar_operations ~f:(fun idx -> function
-      | `M  i -> bit_or 0l (of_int_exn (i lsl 4)) |! write idx
-      | `I  i -> bit_or 1l (of_int_exn (i lsl 4)) |! write idx
-      | `D  i -> bit_or 2l (of_int_exn (i lsl 4)) |! write idx
-      | `N  i -> bit_or 3l (of_int_exn (i lsl 4)) |! write idx
-      | `S  i -> bit_or 4l (of_int_exn (i lsl 4)) |! write idx
-      | `H  i -> bit_or 5l (of_int_exn (i lsl 4)) |! write idx
-      | `P  i -> bit_or 6l (of_int_exn (i lsl 4)) |! write idx
-      | `Eq i -> bit_or 7l (of_int_exn (i lsl 4)) |! write idx
-      | `X  i -> bit_or 8l (of_int_exn (i lsl 4)) |! write idx);
+      | `M  i -> bit_or 0l (of_int_exn (i lsl 4)) |> write idx
+      | `I  i -> bit_or 1l (of_int_exn (i lsl 4)) |> write idx
+      | `D  i -> bit_or 2l (of_int_exn (i lsl 4)) |> write idx
+      | `N  i -> bit_or 3l (of_int_exn (i lsl 4)) |> write idx
+      | `S  i -> bit_or 4l (of_int_exn (i lsl 4)) |> write idx
+      | `H  i -> bit_or 5l (of_int_exn (i lsl 4)) |> write idx
+      | `P  i -> bit_or 6l (of_int_exn (i lsl 4)) |> write idx
+      | `Eq i -> bit_or 7l (of_int_exn (i lsl 4)) |> write idx
+      | `X  i -> bit_or 8l (of_int_exn (i lsl 4)) |> write idx);
       buf
     in
     dbg "cigar: %S" cigar;
@@ -620,7 +620,7 @@ module Transform = struct
     let optional =
       let rec content typ = function
         | `array (t, v) ->
-          sprintf "%c%s" t (Array.map ~f:(content t) v |! String.concat_array ~sep:"")
+          sprintf "%c%s" t (Array.map ~f:(content t) v |> String.concat_array ~sep:"")
         | `char c -> Char.to_string c
         | `float f ->
           let bits = Int32.bits_of_float f in
@@ -658,7 +658,7 @@ module Transform = struct
       in
       List.map al.S.optional_content (fun (tag, typ, c) ->
         sprintf "%s%c%s" tag typ (content typ c))
-      |! String.concat ~sep:""
+      |> String.concat ~sep:""
     in
     Ok {
       qname; flag; ref_id; pos; mapq; bin; cigar;
@@ -698,7 +698,7 @@ module Transform = struct
               | `queryname -> "queryname"
               | `coordinate -> "coordinate")
               (List.map rest (fun (t, v) -> sprintf "\t%s:%s" t v)
-               |! String.concat ~sep:"");
+               |> String.concat ~sep:"");
             next stopped
           end
         | `header (pretag, l) ->

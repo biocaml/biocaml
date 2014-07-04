@@ -103,7 +103,7 @@ module Transform = struct
     try
       let by_space =
         String.split_on_chars s ~on:[' '; '\n'; '\t'; '\r']
-        |! List.filter ~f:((<>) "") in
+        |> List.filter ~f:((<>) "") in
       Ok (List.map by_space (fun s ->
         begin match String.split ~on:'=' s with
         | [ key; value ] -> (key, value)
@@ -176,7 +176,7 @@ module Transform = struct
     | Some l ->
       let by_space =
         String.split_on_chars l ~on:[' '; '\n'; '\t'; '\r']
-        |! List.filter ~f:((<>) "") in
+        |> List.filter ~f:((<>) "") in
       begin match by_space with
       | [ one_value ] ->
         (try `output (Ok (`fixed_step_value Float.(of_string one_value)))
@@ -272,7 +272,7 @@ let in_channel_to_bed_graph ?(buffer_size=65536) ?filename ?tags inp =
   let y = Transform.item_to_bed_graph () in
   Biocaml_transform.(
     compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |! in_channel_strings_to_stream ~buffer_size inp
+    |> in_channel_strings_to_stream ~buffer_size inp
   )
 
 let in_channel_to_bed_graph_exn ?buffer_size ?filename ?tags inp =

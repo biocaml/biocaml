@@ -40,8 +40,8 @@ module Transform = struct
       let name = String.slice s 0 colon in
       begin match String.rindex s '-' with
       | Some dash ->
-        let start = String.slice s (colon + 1) dash |! Int.of_string in
-        let stop =  String.slice s (dash + 1) (String.length s) |! Int.of_string in
+        let start = String.slice s (colon + 1) dash |> Int.of_string in
+        let stop =  String.slice s (dash + 1) (String.length s) |> Int.of_string in
         Ok (`browser (`position (name, start, stop)))
       | None -> failwith "A"
       end
@@ -53,9 +53,9 @@ module Transform = struct
   let parse_browser position line =
     let tokens =
       String.chop_prefix ~prefix:"browser " line
-      |! Option.value ~default:""
-      |! String.split_on_chars ~on:[' '; '\t'; '\r']
-      |! List.filter ~f:((<>) "") in
+      |> Option.value ~default:""
+      |> String.split_on_chars ~on:[' '; '\t'; '\r']
+      |> List.filter ~f:((<>) "") in
     begin match tokens with
     | "position" :: pos :: [] -> parse_chormpos position pos
     | "hide" :: "all" :: [] -> Ok (`browser (`hide `all))
@@ -136,10 +136,10 @@ module Transform = struct
     | Some l when String.strip l = "browser" -> `output (Ok (`browser (`unknown l)))
     | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
       parse_track (current_position p)
-        (String.chop_prefix_exn ~prefix:"track " l |! String.strip)
-      |! (fun x -> `output x)
+        (String.chop_prefix_exn ~prefix:"track " l |> String.strip)
+      |> (fun x -> `output x)
     | Some l when String.(is_prefix (strip l) ~prefix:"browser ") ->
-      parse_browser (current_position p) l |! (fun x -> `output x)
+      parse_browser (current_position p) l |> (fun x -> `output x)
     | Some l -> `output (Ok (`content l))
 
   let string_to_string_content ?filename () =
@@ -159,7 +159,7 @@ module Transform = struct
         sprintf "track %s\n"
           (List.map l (fun (k,v) ->
             sprintf "%s=%s" (potentially_escape k) (potentially_escape v))
-            |! String.concat ~sep:" ")
+            |> String.concat ~sep:" ")
       | `browser (`hide `all) ->
         "browser hide all\n"
       | `browser (`position (n, s, e)) ->

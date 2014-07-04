@@ -94,7 +94,7 @@ let trapez_area x1 x2 y1 y2 = 0.5 *. (y1 +. y2) *. (x2 -. x1)
    decreasing x-coordinates. *)
 let auc points =
   let f ((x1,y1), sum) ((x2,y2) as p) = (p, sum +. trapez_area x1 x2 y1 y2) in
-  Array.fold points ~f ~init:(points.(0), 0.) |! snd
+  Array.fold points ~f ~init:(points.(0), 0.) |> snd
 
 let roc_curve ~scores ~labels =
   let matrices = performance_curve ~scores ~labels in
