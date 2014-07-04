@@ -54,8 +54,7 @@ val of_probability : ?f:(float -> int) -> float -> t Or_error.t
     choice is made by default, but you can control the behavior by
     providing [f].
 
-    Return Error if given a probability [x] not between not between
-    0.0 and 1.0.
+    Return Error if given probability [x] not between 0.0 and 1.0.
 *)
 
 val to_probability : t -> float
