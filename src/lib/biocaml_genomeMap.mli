@@ -7,10 +7,11 @@
    regions are annotated with some value.
 
    Genomic regions are represented as a pair formed by a range and an
-   abstract representation of a sequence/chromosome identifiers. The
+   abstract representation of a sequence/chromosome identifier. The
    data structures implemented here are parameterized over this
-   abstract type, but the module provides an implementation for the
-   most common case where chromosomes are identified with a string.
+   abstract type. To obtain an implementation for the most common case
+   where chromosomes are identified with a string, simply apply the
+   functor [Make] on the [String] module.
 
    The functor [Make] provides four datatypes, which corresponds to
    variants where:
@@ -30,7 +31,7 @@ module Make(Chromosome : Chromosome) : sig
   type range = Biocaml_range.t
   type location = Chromosome.t * range
 
-  (** A collection of non-overlapping regions *)
+  (** A collection of non-overlapping regions (e.g. a set of CpG islands) *)
   module Selection : sig
     type t
 
@@ -54,7 +55,7 @@ module Make(Chromosome : Chromosome) : sig
 
   end
 
-  (** Partial function over the genome
+  (** Partial function over the genome (e.g. conservation signal)
 
       This module implements a partial function over the genome: each
       base may be associated to a value. Alternatively, this can be
@@ -83,7 +84,7 @@ module Make(Chromosome : Chromosome) : sig
 
   end
 
-  (** A set of locations *)
+  (** A set of locations (e.g. a set of gene loci) *)
   module LSet : sig
     type t
 
