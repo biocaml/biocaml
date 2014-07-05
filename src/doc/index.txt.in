@@ -80,7 +80,7 @@ Biocaml_seq
 
 {3 Internal}
 {!modules:
-Biocaml_internal_pervasives
+Biocaml_internal_utils
 }
 
 {!indexlist}

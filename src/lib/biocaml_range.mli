@@ -148,7 +148,7 @@ val expand_assoc_list : (t * 'a) list -> (int * 'a list) list
 
 val find_regions : ?max_gap:int -> ('a -> bool) -> (t * 'a) list -> t list
 (** TO DO: fill in this documentation. For now see
-    {!Math.find_regions}. *)
+    {!Biocaml_math.find_regions}. *)
 
 
 val make_random : t -> t
