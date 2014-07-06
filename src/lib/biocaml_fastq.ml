@@ -142,7 +142,7 @@ module Transform = struct
             List.map int_item.Fasta.sequence (fun int ->
                 Biocaml_phred_score.(
                   ok_exn (of_int int)
-                  |> fun x -> ok_exn (to_ascii ~offset:phred_score_offset x)
+                  |> fun x -> ok_exn (to_char ~offset:phred_score_offset x)
                   |> Char.to_string))
             |> String.concat ~sep:"" |> Result.return
           with _ ->
@@ -165,7 +165,7 @@ module Transform = struct
         let scores =
           String.fold ~init:[] qualities ~f:(fun prev c ->
               Biocaml_phred_score.(
-                of_ascii ~offset:phred_score_offset c |> ok_exn |> to_int) :: prev)
+                of_char ~offset:phred_score_offset c |> ok_exn |> to_int) :: prev)
           |> List.rev in
         Ok Biocaml_fasta.({ header = name; sequence },
                               { header = name; sequence = scores })

@@ -17,8 +17,8 @@ end
 module Phred_score = struct
   include Biocaml_phred_score
 
-  let of_ascii ?offset x = ok_exn (of_ascii ?offset x)
-  let to_ascii ?offset t = ok_exn (to_ascii ?offset t)
+  let of_char ?offset x = ok_exn (of_char ?offset x)
+  let to_char ?offset t = ok_exn (to_char ?offset t)
   let of_int x = ok_exn (of_int x)
   let of_probability ?f x = ok_exn (of_probability ?f x)
 

@@ -28,12 +28,12 @@ with sexp
 type offset = [`Offset33 | `Offset64]
 with sexp
 
-val of_ascii : ?offset:offset -> char -> t Or_error.t
-(** [of_ascii ~offset x] returns the PHRED score encoded by ASCII
+val of_char : ?offset:offset -> char -> t Or_error.t
+(** [of_char ~offset x] returns the PHRED score encoded by ASCII
     character [x]. *)
 
-val to_ascii : ?offset:offset -> t -> char Or_error.t
-(** [to_ascii t] encodes [t] as a visible ASCII character (codes 33 -
+val to_char : ?offset:offset -> t -> char Or_error.t
+(** [to_char t] encodes [t] as a visible ASCII character (codes 33 -
     126) if possible. *)
 
 val of_int : int -> t Or_error.t

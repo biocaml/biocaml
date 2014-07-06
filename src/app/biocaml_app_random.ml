@@ -187,7 +187,7 @@ let random_fastq_transform ~args () =
     String.map read (fun _ ->
       Phred_score.(
         ok_exn (of_int (Random.int (126 - 33)))
-        |> fun x -> ok_exn (to_ascii x)
+        |> fun x -> ok_exn (to_char x)
       )
     )
   in

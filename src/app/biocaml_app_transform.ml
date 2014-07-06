@@ -41,7 +41,7 @@ let fastq_item_to_sam_item () =
         String.to_array qualities
         |> Array.map ~f:(fun c ->
           Phred_score.(
-            of_ascii c
+            of_char c
             |> (function
               | Ok x -> x
               | Error _ -> ok_exn (of_probability 0.1)
@@ -81,7 +81,7 @@ let sam_item_to_fastq_item () : (Sam.item, Fastq.item) Transform.t =
       let qualities =
         Array.map quality ~f:(fun c ->
           Phred_score.(
-            to_ascii c
+            to_char c
             |> (function
               | Ok x -> x
               | Error _ -> '{'

@@ -411,7 +411,7 @@ let expand_alignment raw ref_dict =
         let quality =
           Array.create (String.length qual) (ok_exn (Phred_score.of_int 0)) in
         for i = 0 to String.length qual - 1 do
-          quality.(i) <- ok_exn (Phred_score.of_ascii qual.[i]);
+          quality.(i) <- ok_exn (Phred_score.of_char qual.[i]);
         done;
         Ok quality
       with
@@ -596,7 +596,7 @@ module Transform = struct
     begin
       try
         Array.map al.quality ~f:(fun q ->
-          Phred_score.to_ascii q
+          Phred_score.to_char q
           |> ok_exn
           |> Char.to_string)
         |> String.concat_array ~sep:""

@@ -21,7 +21,7 @@ let to_int t = t
 let to_probability t =
   10.0 ** (Float.of_int t /. -10.0)
 
-let to_ascii ?(offset=`Offset33) t =
+let to_char ?(offset=`Offset33) t =
   let offset' = int_of_offset offset in
   let x = t + offset' in
   if offset' <= x && x <= max_as_char then
@@ -37,7 +37,7 @@ let of_int x =
   if x >= 0 then Ok x
   else error "invalid PHRED score" x sexp_of_int
 
-let of_ascii ?(offset=`Offset33) x =
+let of_char ?(offset=`Offset33) x =
   let offset' = int_of_offset offset in
   let c = Char.to_int x in
   if offset' <= c && c <= max_as_char then
