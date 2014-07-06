@@ -79,3 +79,13 @@ val to_solexa_score : ?f:(float -> int) -> t -> Biocaml_solexa_score.t
     integer. As in {!of_probability}, the optional [f] parameter is
     provided to dictate this.
 *)
+
+(** The min and max PHRED scores when encoded as ASCII
+    characters. Since PHRED scores are virtually always ASCII encoded,
+    you are unlikely to see values outside this range. However, this
+    module allows creating values outside this range,
+    e.g. [of_probability 1e-13] exceeds [max_as_char], and
+    [of_probability 0.9] is smaller than [min_as_char] (for either
+    offset). *)
+val min_as_char : offset -> t
+val max_as_char : t

@@ -6,6 +6,11 @@ with sexp
 type offset = [`Offset33 | `Offset64]
 with sexp
 
+let int_of_offset = function `Offset33 -> 33 | `Offset64 -> 64
+
+let min_as_char = int_of_offset
+let max_as_char = 126
+
 let round_float_to_int x =
   if Float.mod_float x 1.0 < 0.5
   then Float.(to_int (round_down x))
@@ -16,12 +21,10 @@ let to_int t = t
 let to_probability t =
   10.0 ** (Float.of_int t /. -10.0)
 
-let int_of_offset = function `Offset33 -> 33 | `Offset64 -> 64
-
 let to_ascii ?(offset=`Offset33) t =
   let offset' = int_of_offset offset in
   let x = t + offset' in
-  if offset' <= x && x <= 126 then
+  if offset' <= x && x <= max_as_char then
     Ok (Char.of_int_exn x)
   else
     error
@@ -37,7 +40,7 @@ let of_int x =
 let of_ascii ?(offset=`Offset33) x =
   let offset' = int_of_offset offset in
   let c = Char.to_int x in
-  if offset' <= c && c <= 126 then
+  if offset' <= c && c <= max_as_char then
     Ok (c - offset')
   else
     error
