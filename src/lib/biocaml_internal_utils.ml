@@ -34,6 +34,8 @@ module Result = struct
       end in
       M.the_fun ()
 
+    let map l ~f = mapi l ~f:(fun _ x -> f x)
+
   end
 
 end

@@ -29,7 +29,7 @@ module Result : sig
     (** Map the function [f] over the list, stopping on the first
         error encountered. *)
     val mapi: 'a list -> f:(int -> 'a -> ('b, 'e) t) -> ('b list, 'e) t
-
+    val map: 'a list -> f:('a -> ('b, 'err) t) -> ('b list, 'err) t
   end
 
 end
