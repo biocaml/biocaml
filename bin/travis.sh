@@ -31,7 +31,8 @@ opam install \
   core \
   cfstream \
   lwt \
-  async
+  async \
+  re
 
 cd ~
 git clone https://github.com/agarwal/future.git
