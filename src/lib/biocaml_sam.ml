@@ -1,62 +1,97 @@
 open Core.Std
 open Biocaml_internal_utils
 module Phred_score = Biocaml_phred_score
-module Lines = Biocaml_lines
+open Result.Monad_infix
 
-let dbg fmt = Debug.make "SAM" fmt
+let ( >>?~ )
+    (x : 'a option Or_error.t)
+    ~(f : 'a -> 'b Or_error.t)
+    : 'b option Or_error.t
+    =
+  let open Result.Monad_infix in
+  x >>= function
+  | None -> Ok None
+  | Some x -> f x >>| Option.some
 
-type raw_alignment = {
-  qname : string;
-  flag : int;
-  rname : string;
-  pos : int;
-  mapq : int;
-  cigar : string;
-  rnext : string;
-  pnext : int;
-  tlen : int;
-  seq : string;
-  qual : string;
-  optional : (string * char * string) list
-}
+(******************************************************************************)
+(* Header Types                                                               *)
+(******************************************************************************)
+type header_item_tag = [
+| `HD | `SQ | `RG | `PG | `CO
+| `Other of string
+] with sexp
+
+type tag_value = string * string
 with sexp
 
-type raw_item = [
-| `comment of string
-| `header of string * (string * string) list
-| `alignment of raw_alignment
-]
+type sort_order = [ `Unknown | `Unsorted | `Query_name | `Coordinate ]
 with sexp
 
-type reference_sequence = {
-  ref_name: string;
-  ref_length: int;
-  ref_assembly_identifier: string option;
-  ref_checksum: string option;
-  ref_species: string option;
-  ref_uri: string option;
-  ref_unknown: (string * string) list;
-}
-with sexp
+type header_line = {
+  version : string;
+  sort_order : sort_order option;
+} with sexp
 
-let reference_sequence
-    ?assembly_identifier ?checksum ?species ?uri ?(unknown_data=[]) name length =
-  {
-    ref_name                = name               ;
-    ref_length              = length             ;
-    ref_assembly_identifier = assembly_identifier;
-    ref_checksum            = checksum           ;
-    ref_species             = species            ;
-    ref_uri                 = uri                ;
-    ref_unknown             = unknown_data ;
-  }
+type ref_seq = {
+  name : string;
+  length : int;
+  assembly : string option;
+  md5 : string option;
+  species : string option;
+  uri : string option;
+} with sexp
+
+type platform = [
+| `Capillary | `LS454 | `Illumina | `Solid
+| `Helicos | `Ion_Torrent | `Pac_Bio
+] with sexp
+
+type read_group = {
+  id : string;
+  seq_center : string option;
+  description : string option;
+  run_date : [`Date of Date.t | `Time of Time.t] option;
+  flow_order : string option;
+  key_seq : string option;
+  library : string option;
+  program : string option;
+  predicted_median_insert_size : int option;
+  platform : platform option;
+  platform_unit : string option;
+  sample : string option;
+} with sexp
+
+type program = {
+  id : string;
+  name : string option;
+  command_line : string option;
+  previous_id : string option;
+  description : string option;
+  version : string option;
+} with sexp
+
+type header_item = [
+| `HD of header_line
+| `SQ of ref_seq
+| `RG of read_group
+| `PG of program
+| `CO of string
+| `Other of string * tag_value list
+] with sexp
 
 
+(******************************************************************************)
+(* Alignment Types                                                            *)
+(******************************************************************************)
 module Flags = struct
   type t = int
   with sexp
 
-  let of_int = ident
+  let of_int x =
+    if (0 <= x) && (x <= 65535) then
+      Ok x
+    else
+      error "flag out of range" x sexp_of_int
 
   let flag_is_set s f = (f land s) <> 0
 
@@ -74,654 +109,599 @@ module Flags = struct
 end
 
 type cigar_op = [
-| `D of int
-| `Eq of int
-| `H of int
-| `I of int
-| `M of int
-| `N of int
-| `P of int
-| `S of int
-| `X of int ]
-with sexp
+| `Alignment_match of int
+| `Insertion of int
+| `Deletion of int
+| `Skipped of int
+| `Soft_clipping of int
+| `Hard_clipping of int
+| `Padding of int
+| `Seq_match of int
+| `Seq_mismatch of int
+] with sexp
 
+type optional_field_value = [
+| `A of string
+| `i of Int32.t
+| `f of float
+| `Z of string
+| `H of string
+| `B of char * string list
+] with sexp
 
-type optional_content_value = [
-| `array of (char * optional_content_value array)
-| `char of char
-| `float of float
-| `int of int
-| `string of string ]
-with sexp
+type optional_field = {
+  tag : string;
+  value : optional_field_value
+} with sexp
 
-type optional_content = (string * char * optional_content_value) list
+type rnext = [`Value of string | `Equal_to_RNAME]
 with sexp
 
 type alignment = {
-  query_template_name: string;
-  flags: Flags.t;
-  reference_sequence: [ `reference_sequence of reference_sequence
-                      | `none
-                      | `name of string ];
-  position: int option;
-  mapping_quality: int option;
-  cigar_operations: cigar_op array;
+  qname : string option;
+  flags : Flags.t;
+  rname : string option;
+  pos : int option;
+  mapq : int option;
+  cigar : cigar_op list;
+  rnext : rnext option;
+  pnext : int option;
+  tlen : int option;
+  seq: string option;
+  qual: Biocaml_phred_score.t list;
+  optional_fields : optional_field list;
+} with sexp
 
-  next_reference_sequence: [`qname | `none | `name of string
-                 | `reference_sequence of reference_sequence ];
-  next_position: int option;
 
-  template_length: int option;
-
-  sequence: [ `string of string | `reference | `none];
-  quality: Phred_score.t array;
-
-  optional_content: optional_content;
-}
-with sexp
-
+(******************************************************************************)
+(* Main Item Type                                                             *)
+(******************************************************************************)
 type item = [
-| `comment of string
-| `header_line of
-    string * [`unknown | `unsorted | `queryname | `coordinate ] *
-      (string * string) list
-| `reference_sequence_dictionary of reference_sequence array
-| `header of string * (string * string) list
-| `alignment of alignment
-]
-with sexp
-
-module Error = struct
-
-  type optional_content_parsing = [
-  | `wrong_optional of (string * char * string) list *
-      [ `not_a_char of string
-      | `not_a_float of string
-      | `not_an_int of string
-      | `unknown_type of char
-      | `wrong_array of
-          [ `not_a_char of string
-          | `not_a_float of string
-          | `not_an_int of string
-          | `wrong_type of string
-          | `unknown_type of char
-          ]
-      | `wrong_type of string
-      ]
-  ]
-  with sexp
-
-  type string_to_raw = [
-  | `incomplete_input of Pos.t * string list * string option
-  | `invalid_header_tag of Pos.t * string
-  | `invalid_tag_value_list of Pos.t * string list
-  | `not_an_int of Pos.t * string * string
-  | `wrong_alignment of Pos.t * string
-  | `wrong_optional_field of Pos.t * string
-  ]
-  with sexp
-
-  type raw_to_item = [
-  | `comment_after_end_of_header of int * string
-  | `duplicate_in_reference_sequence_dictionary of reference_sequence array
-  | `header_after_end_of_header of int * (string * (string * string) list)
-  | `header_line_not_first of int
-  | `header_line_without_version of (string * string) list
-  | `header_line_wrong_sorting of string
-  | `missing_ref_sequence_length of (string * string) list
-  | `missing_ref_sequence_name of (string * string) list
-  | `wrong_cigar_text of string
-  | `wrong_flag of raw_alignment
-  | `wrong_mapq of raw_alignment
-  | `wrong_phred_scores of raw_alignment
-  | `wrong_pnext of raw_alignment
-  | `wrong_pos of raw_alignment
-  | `wrong_qname of raw_alignment
-  | `wrong_ref_sequence_length of (string * string) list
-  | `wrong_tlen of raw_alignment
-  | optional_content_parsing
-  ]
-  with sexp
-
-  type item_to_raw = [
-    `wrong_phred_scores of alignment
-  ]
-  with sexp
-
-  (** Errors possible during parsing. *)
-  type parse = [
-  | string_to_raw
-  | raw_to_item
-  ]
-  with sexp
-
-  type t = parse with sexp
-
-end
+| `Header_item of header_item
+| `Alignment of alignment
+] with sexp
 
 
-let is_tag_char = function
-| 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
-| _ -> false
-let is_valid_tag s =
-  if String.length s = 2 then (is_tag_char s.[0] && is_tag_char s.[1])
-  else false
-
-let parse_header_line position line =
-  let open Result.Monad_infix in
-  match String.(split ~on:'\t' (chop_prefix_exn line ~prefix:"@")) with
-  | [] -> assert false
-  | "CO" :: rest -> Ok (`comment (String.concat ~sep:"\t" rest))
-  | tag :: values ->
-    if is_valid_tag tag then (
-      let tag_values () =
-        List.map values (fun v ->
-            match String.split ~on:':' v with
-            | tag :: value :: [] ->
-              if is_valid_tag tag then (tag, value)
-              else failwith "A"
-            | other ->  failwith "A") in
-      begin try Ok (tag_values ()) with
-      | Failure _ -> Error (`invalid_tag_value_list (position, values))
-      end
-      >>= fun tv ->
-      Ok (`header (tag, tv))
-    ) else
-      Error (`invalid_header_tag (position, tag))
-
-let parse_optional_field position s =
-  match String.split s ~on:':' with
-  | [tag; typ; value] ->
-    if is_valid_tag tag then
-      begin match typ with
-      | "A" | "c" | "C" | "s" | "S" | "i" | "I" | "f" | "Z" | "H" | "B" ->
-        Ok (tag, typ.[0], value)
-      | _ ->
-        Error (`wrong_optional_field (position, s))
-      end
-    else
-      Error (`wrong_optional_field (position, s))
-  | _ ->
-    Error (`wrong_optional_field (position, s))
-
-let parse_alignment position s  =
-  let open Result.Monad_infix in
-  let int field x =
-    try Ok (int_of_string x)
-    with Failure _ -> Error (`not_an_int (position, field, x)) in
-  match String.split s ~on:'\t' with
-  | qname  ::  flag :: rname :: pos :: mapq :: cigar :: rnext :: pnext
-    :: tlen :: seq :: qual :: optional ->
-    begin
-      int "flag" flag >>= fun flag ->
-      int "pos" pos >>= fun pos ->
-      int "mapq" mapq >>= fun mapq ->
-      int "pnext" pnext >>= fun pnext ->
-      int "tlen" tlen >>= fun tlen ->
-      Result.List.mapi optional (fun _ -> parse_optional_field position)
-      >>= fun optional ->
-      Ok (`alignment {
-          qname;  flag; rname; pos; mapq; cigar; rnext;
-          pnext; tlen; seq; qual; optional })
-    end
-  | _ ->
-    Error (`wrong_alignment (position, s))
-
-
-let expand_header_line l =
-  let version = ref None in
-  let sorting_order = ref (Ok `unknown) in
-  let unknown =
-    List.filter_map l (function
-      | ("VN", s) -> version := Some s; None
-      | "SO", "unknown" ->     sorting_order := Ok `unknown; None
-      | "SO", "unsorted" ->    sorting_order := Ok `unsorted; None
-      | "SO", "queryname" ->   sorting_order := Ok `queryname; None
-      | "SO", "coordinate" ->  sorting_order := Ok `coordinate; None
-      | "SO", any -> sorting_order := Error any; None
-      | other -> Some other) in
-  match !version, !sorting_order with
-  | Some v, Ok so -> Ok (`header_line (v, so, unknown))
-  | None, _ -> Error (`header_line_without_version l)
-  | _, Error s -> Error (`header_line_wrong_sorting s)
-
-let parse_cigar_text text =
-  let open Result.Monad_infix in
-  if text = "*" then Ok [| |]
-  else begin
-    let ch = Scanf.Scanning.from_string text in
-    let rec loop acc =
-      if Scanf.Scanning.end_of_input ch then Ok acc
-      else begin
-        try
-          let v = Scanf.bscanf ch "%d" ident in
-          let c = Scanf.bscanf ch "%c" ident in
-          match c with
-          | 'M' -> (loop (`M  v :: acc))
-          | 'I' -> (loop (`I  v :: acc))
-          | 'D' -> (loop (`D  v :: acc))
-          | 'N' -> (loop (`N  v :: acc))
-          | 'S' -> (loop (`S  v :: acc))
-          | 'H' -> (loop (`H  v :: acc))
-          | 'P' -> (loop (`P  v :: acc))
-          | '=' -> (loop (`Eq v :: acc))
-          | 'X' -> (loop (`X  v :: acc))
-          | other -> failwith ""
-        with
-          e -> Error (`wrong_cigar_text text)
-      end
-    in
-    loop [] >>| Array.of_list_rev
-  end
-
-
-
-let parse_optional_content raw =
-  let open Result.Monad_infix in
-  let error e = Error (`wrong_optional (raw, e)) in
-  let char tag typ raw =
-    if String.length raw <> 1 then error (`not_a_char raw)
-    else Ok (tag, typ, `char raw.[0]) in
-  let int tag typ raw =
-    try let i = Int.of_string raw in Ok (tag, typ, `int i)
-    with e -> error (`not_an_int raw) in
-  let float tag typ raw =
-    try let i = Float.of_string raw in Ok (tag, typ, `float i)
-    with e -> error (`not_a_float raw) in
-  let parse_cCsSiIf tag typ raw =
-    begin match typ with
-    | 'i' | 's' | 'I' | 'S' -> int tag typ raw
-    | 'A' | 'c' | 'C' -> char tag typ raw
-    | 'f' -> float tag typ raw
-    | _ -> error (`unknown_type typ)
-    end in
-  Result.List.mapi raw (fun _ (tag, typ, raw_v) ->
-      begin match typ with
-      | 'Z' -> Ok (tag, typ, `string raw_v)
-      | 'H' -> Ok (tag, typ, `string raw_v)
-      | 'B' ->
-        begin match String.split ~on:',' raw_v with
-        | [] ->  error (`wrong_array (`wrong_type raw_v))
-        | f :: _ when String.length f <> 1 ->
-          error (`wrong_array (`wrong_type raw_v))
-        | typs :: l ->
-          let array = Array.create List.(length l) (`string "no") in
-          let rec loop i = function
-          | [] -> Ok array
-          | h :: t ->
-            begin match parse_cCsSiIf "" typs.[0] h with
-            | Ok (_, _, v) -> array.(i) <- v; loop (i + 1) t
-            | Error (`wrong_optional (_, e)) -> error (`wrong_array e)
-            end
-          in
-          loop 0 l
-          >>= fun a ->
-          Ok (tag, typ, `array (typs.[0], a))
-        end
-      | c -> parse_cCsSiIf tag typ raw_v
-      end)
-
-let expand_alignment raw ref_dict =
-  let open Result.Monad_infix in
-  let {qname; flag; rname; pos;
-       mapq; cigar; rnext; pnext;
-       tlen; seq; qual; optional; } = raw in
-  let check c e = if c then Ok () else Error e in
-  check (0 <= flag && flag <= 65535) (`wrong_flag raw) >>= fun () ->
-  check (1 <= String.length qname && String.length qname <= 255)
-    (`wrong_qname raw)
-  >>= fun () ->
-  let tryfind rname =
-    let open Option in
-    ref_dict
-    >>= fun ri ->
-    Array.find ri ~f:(fun r -> r.ref_name = rname) in
-  let reference_sequence =
-    match rname with
-    | "*" -> `none
-    | s ->
-      begin match tryfind rname with
-      | Some r -> `reference_sequence r
-      | None -> `name s
-      end
+(******************************************************************************)
+(* Header Parsers and Constructors                                            *)
+(******************************************************************************)
+let header_line ~version ?sort_order () =
+  let err =
+    error "invalid version" (`HD, version)
+    <:sexp_of< header_item_tag * string >>
   in
-  check (0 <= pos && pos <= 536870911) (`wrong_pos raw) >>= fun () ->
-  check (0 <= mapq && mapq <= 255) (`wrong_mapq raw) >>= fun () ->
-  parse_cigar_text cigar >>= fun cigar_operations ->
-  begin match rnext with
-  | "*" -> Ok `none
-  | "=" -> Ok `qname
-  | s ->
-    begin match tryfind s with
-    | None -> Ok (`name s)
-    | Some r -> Ok (`reference_sequence r)
-    end
-  end
-  >>= fun next_reference_sequence ->
-  check (0 <= pnext && pnext <= 536870911) (`wrong_pnext raw) >>= fun () ->
-  check (-536870911 <= tlen && tlen <= 536870911) (`wrong_tlen raw)
-  >>= fun () ->
-  let sequence =
-    match seq with
-    | "*" -> `none
-    | "=" -> `reference
-    | s -> `string s in
-  (if qual = "*" then Ok [| |] else begin
-      try
-        let quality =
-          Array.create (String.length qual) (ok_exn (Phred_score.of_int 0)) in
-        for i = 0 to String.length qual - 1 do
-          quality.(i) <- ok_exn (Phred_score.of_char qual.[i]);
-        done;
-        Ok quality
-      with
-      | e -> Error (`wrong_phred_scores raw)
-    end)
-  >>= fun quality ->
-  parse_optional_content optional
-  >>= fun optional_content ->
+  (match String.lsplit2 ~on:'.' version with
+  | None -> err
+  | Some (a,b) ->
+    if (String.for_all a ~f:Char.is_digit)
+      && (String.for_all b ~f:Char.is_digit)
+    then
+      Ok version
+    else
+      err
+  ) >>| fun version ->
+  {version; sort_order}
 
-  Ok {
-    query_template_name = qname;
-    flags = flag;
-    reference_sequence;
-    position = if pos = 0 then None else Some pos;
-    mapping_quality =if mapq = 255 then None else Some mapq;
-    cigar_operations;
-    next_reference_sequence;
-    next_position = if pnext = 0 then None else Some pnext;
-    template_length  = if tlen = 0 then None else Some tlen;
-    sequence;
-    quality;
-    optional_content;
+let ref_seq
+    ~name ~length
+    ?assembly ?md5 ?species ?uri
+    ()
+    =
+  let is_name_first_char_ok = function
+    | '!' .. ')' | '+' .. '<' | '>' .. '~' -> true
+    | _ -> false
+  in
+
+  let is_name_other_char_ok = function '!' .. '~' -> true | _ -> false in
+
+  (if (1 <= length) && (length <= 2147483647) then
+      Ok length
+   else
+      error "invalid reference sequence length" length sexp_of_int
+  ) >>= fun length ->
+
+  (if (String.length name > 0)
+      && (String.foldi name ~init:true ~f:(fun i accum c ->
+        accum && (
+          if i = 0 then is_name_first_char_ok c
+          else is_name_other_char_ok c
+        ) ) )
+   then
+      Ok name
+   else
+      error "invalid ref seq name" name sexp_of_string
+  ) >>= fun name ->
+
+  Ok {name; length; assembly; md5; species; uri}
+
+
+let read_group
+    ~id ?seq_center ?description ?run_date ?flow_order
+    ?key_seq ?library ?program ?predicted_median_insert_size
+    ?platform ?platform_unit ?sample
+    ()
+    =
+  (match run_date with
+  | None -> Ok None
+  | Some run_date ->
+    try Ok (Some (`Date (Date.of_string run_date)))
+    with _ ->
+      try Ok (Some (`Time (Time.of_string run_date)))
+      with _ ->
+        error "invalid run date/time" run_date sexp_of_string
+  ) >>= fun run_date ->
+
+  (match flow_order with
+  | None -> Ok None
+  | Some "" -> Or_error.error_string "invalid empty flow order"
+  | Some "*" -> Ok flow_order
+  | Some x ->
+    if String.for_all x ~f:(function
+    | 'A' | 'C' | 'M' | 'G' | 'R' | 'S' | 'V' | 'T' | 'W'| 'Y' | 'H'
+    | 'K' | 'D' | 'B' | 'N' -> true
+    | _ -> false
+    )
+    then
+      Ok flow_order
+    else
+      error "invalid flow order" x sexp_of_string
+  ) >>| fun flow_order ->
+
+  {
+    id; seq_center; description; run_date; flow_order; key_seq;
+    library; program; predicted_median_insert_size;
+    platform; platform_unit; sample;
   }
 
-module Transform = struct
-  open Result.Monad_infix
+let parse_header_item_tag s =
+  let is_letter = function 'A' .. 'Z' | 'a' .. 'z' -> true | _ -> false in
+  match String.chop_prefix s ~prefix:"@" with
+  | None -> error "header item tag must begin with @" s sexp_of_string
+  | Some "HD" -> Ok `HD
+  | Some "SQ" -> Ok `SQ
+  | Some "RG" -> Ok `RG
+  | Some "PG" -> Ok `PG
+  | Some "CO" -> Ok `CO
+  | Some x ->
+    if (String.length x = 2)
+      && (String.for_all x ~f:is_letter)
+    then
+      Ok (`Other x)
+    else
+      error "invalid header item tag" s sexp_of_string
 
-  let rec next p =
-    let open Lines.Buffer in
-    match (next_line p :> string option) with
-    | None -> `not_ready
-    | Some "" -> next p
-    | Some l when String.(is_prefix (strip l) ~prefix:"@") ->
-      parse_header_line (current_position p) l |> (fun x -> `output x)
-    | Some l ->
-      parse_alignment (current_position p) l |> (fun x -> `output x)
+let parse_tag_value s =
+  let parse_tag s =
+    if (String.length s = 2)
+      && (match s.[0] with 'A' .. 'Z' | 'a' .. 'z' -> true | _ -> false)
+      && (match s.[1] with
+          | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
+          | _ -> false
+      )
+    then
+      Ok s
+    else
+      error "invalid tag" s sexp_of_string
+  in
+  let parse_value tag s =
+    if (s <> "")
+      && (String.for_all s ~f:(function ' ' .. '~' -> true | _ -> false))
+    then
+      Ok s
+    else
+      error "tag has invalid value" (tag,s)
+      <:sexp_of< string * string >>
+  in
+  match String.lsplit2 s ~on:':' with
+  | None ->
+    error "tag-value not colon separated" s sexp_of_string
+  | Some (tag,value) ->
+    parse_tag tag >>= fun tag ->
+    parse_value tag value >>= fun value ->
+    Ok (tag, value)
 
-  let string_to_raw ?filename () =
-    let name = sprintf "sam_raw_parser:%s" Option.(value ~default:"<>" filename) in
-    Lines.Transform.make_merge_error ~name ?filename ~next ()
+(** Find all occurrences of [x'] in the association list [l]. *)
+let find_all l x' =
+  let rec loop accum = function
+    | [] -> accum
+    | (x,y)::l ->
+      let accum = if x = x' then y::accum else accum in
+      loop accum l
+  in
+  List.rev (loop [] l)
 
-  let reference_sequence_to_header rs =
-    ("SN", rs.ref_name)
-    :: ("LN", Int.to_string rs.ref_length)
-    :: (List.filter_opt [
-      Option.map rs.ref_assembly_identifier (fun s -> ("AS", s));
-      Option.map rs.ref_checksum (fun s -> ("M5", s));
-      Option.map rs.ref_species (fun s -> ("SP", s));
-      Option.map rs.ref_uri (fun s -> ("UR", s)); ]
-        @ rs.ref_unknown)
+(** Find exactly 1 occurrence [x] in association list [l]. Return
+    error if [x] is not defined exactly once. *)
+let find1 header_item_tag l x =
+  match find_all l x with
+  | [] ->
+    error "required tag not found" (header_item_tag, x)
+    <:sexp_of< header_item_tag * string >>
+  | y::[] -> Ok y
+  | ys ->
+    error "tag found multiple times" (header_item_tag, x, ys)
+    <:sexp_of< header_item_tag * string * string list >>
 
-  let reference_sequence_aggregator () =
-    let refs = ref [] in
-    let get_line line =
-      let sn = ref None in
-      let ln = ref (Error "") in
-      let asi = ref None in
-      let m5 = ref None in
-      let sp = ref None in
-      let ur = ref None in
-      let ios s = try Ok (Int.of_string s) with e -> Error s in
-      let set r v = r := Some v; None in
-      let ref_unknown =
-        List.filter_map line (function
-        | "SN", name -> set sn name
-        | "LN", l -> ln := ios l; None
-        | "AS", a -> set asi a
-        | "M5", m -> set m5 m
-        | "SP", s -> set sp s
-        | "UR", u -> set ur u
-        | other -> Some other) in
-      match !sn, !ln with
-      | Some sn, Ok ln ->
-        refs := {
-          ref_name = sn;
-          ref_length = ln;
-          ref_assembly_identifier = !asi;
-          ref_checksum = !m5;
-          ref_species = !sp;
-          ref_uri = !ur;
-          ref_unknown } :: !refs;
-        Ok ()
-      | None, _ -> Error (`missing_ref_sequence_name line)
-      | _, Error "" -> Error (`missing_ref_sequence_length line)
-      | _, Error s -> Error (`wrong_ref_sequence_length line)
-    in
-    let finish () =
-      let deduped =
-        List.dedup ~compare:(fun a b -> String.compare a.ref_name b.ref_name) !refs in
-      if List.length deduped <> List.length !refs then
-        Error (`duplicate_in_reference_sequence_dictionary
-                 (Array.of_list_rev !refs))
+(** Find 0 or 1 occurrence [x] in association list [l]. Return
+    error if [x] is defined more than once. *)
+let find01 header_item_tag l x =
+  match find_all l x with
+  | [] -> Ok None
+  | y::[] -> Ok (Some y)
+  | ys ->
+    error "tag found multiple times" (header_item_tag, x, ys)
+    <:sexp_of< header_item_tag * string * string list >>
+
+(** Assert that [tvl] contains at most the given [tags]. *)
+let assert_tags header_item_tag tvl tags =
+  let expected_tags = String.Set.of_list tags in
+  let got_tags = List.map tvl ~f:fst |> String.Set.of_list in
+  let unexpected_tags = Set.diff got_tags expected_tags in
+  if Set.length unexpected_tags = 0 then
+    Ok ()
+  else
+    error
+      "unexpected tag for given header item type"
+      (header_item_tag, unexpected_tags)
+      <:sexp_of< header_item_tag * String.Set.t >>
+
+let parse_sort_order = function
+  | "unknown" -> Ok `Unknown
+  | "unsorted" -> Ok `Unsorted
+  | "queryname" -> Ok `Query_name
+  | "coordinate" -> Ok `Coordinate
+  | x -> error "invalid sort order" x sexp_of_string
+
+let parse_header_line tvl =
+  find1 `HD tvl "VN" >>= fun version ->
+  find01 `HD tvl "SO" >>?~
+  parse_sort_order >>= fun sort_order ->
+  assert_tags `HD tvl ["VN"; "SO"] >>= fun () ->
+  header_line ~version ?sort_order ()
+
+let parse_ref_seq tvl =
+  find1 `SQ tvl "SN" >>= fun name ->
+  find1 `SQ tvl "LN" >>= fun length ->
+  (try Ok (Int.of_string length)
+   with _ ->
+     error "invalid ref seq length" length sexp_of_string
+  ) >>= fun length ->
+  find01 `SQ tvl "AS" >>= fun assembly ->
+  find01 `SQ tvl "M5" >>= fun md5 ->
+  find01 `SQ tvl "SP" >>= fun species ->
+  find01 `SQ tvl "UR" >>= fun uri ->
+  assert_tags `SQ tvl ["SN";"LN";"AS";"M5";"SP";"UR"] >>= fun () ->
+  ref_seq ~name ~length ?assembly ?md5 ?species ?uri ()
+
+let parse_platform = function
+  | "CAPILLARY" -> Ok `Capillary
+  | "LS454" -> Ok `LS454
+  | "ILLUMINA" -> Ok `Illumina
+  | "SOLID" -> Ok `Solid
+  | "HELICOS" -> Ok `Helicos
+  | "IONTORRENT" -> Ok `Ion_Torrent
+  | "PACBIO" -> Ok `Pac_Bio
+  | x -> error "unknown platform" x sexp_of_string
+
+let parse_read_group tvl =
+  find1 `RG tvl "ID" >>= fun id ->
+  find01 `RG tvl "CN" >>= fun seq_center ->
+  find01 `RG tvl "DS" >>= fun description ->
+  find01 `RG tvl "DT" >>= fun run_date ->
+  find01 `RG tvl "FO" >>= fun flow_order ->
+  find01 `RG tvl "KS" >>= fun key_seq ->
+  find01 `RG tvl "LB" >>= fun library ->
+  find01 `RG tvl "PG" >>= fun program ->
+  find01 `RG tvl "PI" >>?~ (fun predicted_median_insert_size ->
+  try Ok (Int.of_string predicted_median_insert_size)
+  with _ ->
+    error
+      "invalid predicted median insert size"
+      predicted_median_insert_size
+      sexp_of_string
+  ) >>= fun predicted_median_insert_size ->
+  find01 `RG tvl "PL" >>?~
+  parse_platform >>= fun platform ->
+  find01 `RG tvl "PU" >>= fun platform_unit ->
+  find01 `RG tvl "SM" >>= fun sample ->
+  assert_tags `RG tvl
+    ["ID";"CN";"DS";"DT";"FO";"KS";"LB";"PG";"PI";"PL";"PU";"SM"]
+  >>= fun () ->
+  read_group
+    ~id ?seq_center ?description ?run_date ?flow_order ?key_seq
+    ?library ?program ?predicted_median_insert_size
+    ?platform ?platform_unit ?sample ()
+
+let parse_program tvl =
+  find1 `PG tvl "ID" >>= fun id ->
+  find01 `PG tvl "PN" >>= fun name ->
+  find01 `PG tvl "CL" >>= fun command_line ->
+  find01 `PG tvl "PP" >>= fun previous_id ->
+  find01 `PG tvl "DS" >>= fun description ->
+  find01 `PG tvl "VN" >>= fun version ->
+  assert_tags `PG tvl ["ID";"PN";"CL";"PP";"DS";"VN"] >>| fun () ->
+  {id; name; command_line; previous_id; description; version}
+
+let parse_header_item line =
+  let parse_data tag tvl = match tag with
+    | `HD -> parse_header_line tvl >>| fun x -> `HD x
+    | `SQ -> parse_ref_seq tvl >>| fun x -> `SQ x
+    | `RG -> parse_read_group tvl >>| fun x -> `RG x
+    | `PG -> parse_program tvl >>| fun x -> `PG x
+    | `Other tag -> Ok (`Other (tag,tvl))
+    | `CO -> assert false
+  in
+  match String.lsplit2 ~on:'\t' (line : Line.t :> string) with
+  | None ->
+    error "header line contains no tabs" line Line.sexp_of_t
+  | Some (tag, data) ->
+    parse_header_item_tag tag >>= function
+    | `CO -> Ok (`CO data)
+    | tag ->
+      match String.split ~on:'\t' data with
+      | [] -> assert false
+      | ""::[] ->
+        error "header contains no data" tag sexp_of_header_item_tag
+      | tvl ->
+        Result.List.map tvl ~f:parse_tag_value >>= fun tvl ->
+        parse_data tag tvl
+
+
+(******************************************************************************)
+(* Alignment Parsers and Constructors                                         *)
+(******************************************************************************)
+let alignment
+    ?qname ~flags ?rname ?pos ?mapq ?(cigar=[])
+    ?rnext ?pnext ?tlen ?seq ?(qual=[])
+    ?(optional_fields=[])
+    ()
+    =
+  Ok {
+    qname; flags; rname; pos; mapq; cigar;
+    rnext; pnext; tlen; seq; qual; optional_fields
+  }
+
+let parse_int_range field lo hi s =
+  let out_of_range = sprintf "%s out of range" field in
+  let not_an_int = sprintf "%s not an int" field in
+  try
+    let n = Int.of_string s in
+    if (lo <= n) && (n <= hi) then
+      Ok n
+    else
+      error out_of_range (n,lo,hi) <:sexp_of< int * int * int >>
+  with _ ->
+    error not_an_int s sexp_of_string
+
+(** Parse a string that can either by "*" or some other regexp, with
+    "*" denoting [None]. The given regexp [re] should include "*" as
+    one of the alternatives. *)
+let parse_opt_string field re s =
+  if not (Re.execp re s) then
+    error (sprintf "invalid %s" field) s sexp_of_string
+  else
+    match s with
+    | "*" -> Ok None
+    | _ -> Ok (Some s)
+
+let qname_re =
+  let open Re in
+  alt [
+    char '*';
+    repn (alt [rg '!' '?'; rg 'A' '~']) 1 (Some 255);
+  ]
+  |> compile
+
+let parse_qname s =
+  parse_opt_string "QNAME" qname_re s
+
+let parse_flags s =
+  try Flags.of_int (Int.of_string s)
+  with _ ->
+    error "invalid FLAG" s sexp_of_string
+
+let rname_re = Re_perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
+let parse_rname s =
+  parse_opt_string "RNAME" rname_re s
+
+let parse_pos s =
+  parse_int_range "POS" 0 2147483647 s >>| function
+  | 0 -> None
+  | x -> Some x
+
+let parse_mapq s =
+  parse_int_range "MAPQ" 0 255 s >>| function
+  | 255 -> None
+  | x -> Some x
+
+let parse_cigar text =
+  match text with
+  | "*" -> Ok []
+  | "" ->
+    error "invalid cigar string" text sexp_of_string
+  | _ ->
+    let ch = Scanf.Scanning.from_string text in
+    let rec loop accum =
+      if Scanf.Scanning.end_of_input ch then Ok accum
       else
-        Ok (Array.of_list_rev !refs)
+        try
+          let n = Scanf.bscanf ch "%d" ident in
+          if n < 0 then
+            error "invalid cigar string" text sexp_of_string
+          else
+            let c = Scanf.bscanf ch "%c" ident in
+            let x = match c with
+              | 'M' -> `Alignment_match n
+              | 'I' -> `Insertion n
+              | 'D' -> `Deletion n
+              | 'N' -> `Skipped n
+              | 'S' -> `Soft_clipping n
+              | 'H' -> `Hard_clipping n
+              | 'P' -> `Padding n
+              | '=' -> `Seq_match n
+              | 'X' -> `Seq_mismatch n
+              | other -> failwith ""
+            in
+            loop (x::accum)
+        with
+          _ ->
+            error "invalid cigar string" text sexp_of_string
     in
-    (get_line, finish)
+    loop [] >>| List.rev
+
+let rnext_re = Re_perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
+let parse_rnext s =
+  if not (Re.execp rnext_re s) then
+    error "invalid RNEXT" s sexp_of_string
+  else
+    match s with
+    | "*" -> Ok None
+    | "=" -> Ok (Some `Equal_to_RNAME)
+    | _ -> Ok (Some (`Value s))
+
+let parse_pnext s =
+  parse_int_range "PNEXT" 0 2147483647 s >>| function
+  | 0 -> None
+  | x -> Some x
+
+let parse_tlen s =
+  parse_int_range "TLEN" ~-2147483647 2147483647 s >>| function
+  | 0 -> None
+  | x -> Some x
+
+let seq_re = Re_perl.compile_pat "^\\*|[A-Za-z=.]+$"
+let parse_seq s =
+  parse_opt_string "SEQ" seq_re s
+
+let parse_qual s =
+  match s with
+  | "" -> Or_error.error_string "invalid empty QUAL"
+  | "*" -> Ok []
+  | _ ->
+    String.to_list s
+    |> Result.List.map ~f:(Phred_score.of_char ~offset:`Offset33)
+
+let opt_field_tag_re = Re_perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
+let opt_field_A_re = Re_perl.compile_pat "^[!-~]$"
+let opt_field_Z_re = Re_perl.compile_pat "^[ !-~]+$"
+let opt_field_H_re = Re_perl.compile_pat "^[0-9A-F]+$"
+let opt_field_B_re =
+  Re_perl.compile_pat "^[cCsSiIf](,[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)+$"
+
+let parse_optional_field s =
+  match String.lsplit2 s ~on:':' with
+  | None ->
+    error "missing TAG in optional field" s sexp_of_string
+  | Some (tag,s) ->
+    if not (Re.execp opt_field_tag_re tag) then
+      error "invalid TAG" tag sexp_of_string
+    else
+      match String.lsplit2 s ~on:':' with
+      | None ->
+        error "missing TYPE in optional field" s sexp_of_string
+      | Some (typ,value) ->
+        let err_val =
+          error "invalid value" (typ,value) <:sexp_of< string * string >>
+        in
+        (
+          match typ with
+          | "A" ->
+            if Re.execp opt_field_A_re value
+            then Ok (`A value)
+            else err_val
+          | "i" ->
+            (try Ok (`i (Int32.of_string value))
+             with _ -> err_val)
+          | "f" ->
+            (try Ok (`f (Float.of_string value))
+             with _ -> err_val)
+          | "Z" ->
+            if Re.execp opt_field_Z_re value
+            then Ok (`Z value)
+            else err_val
+          | "H" ->
+            if Re.execp opt_field_H_re value
+            then Ok (`H value)
+            else err_val
+          | "B" -> (
+            if not (Re.execp opt_field_B_re value) then
+              err_val
+            else
+              match String.split ~on:',' value with
+              | num_typ::values ->
+                if String.length num_typ = 1 then
+                  Ok (`B (num_typ.[0],values))
+                else
+                  error "invalid array type" num_typ sexp_of_string
+              | _ -> assert false (* since opt_field_B_re matched *)
+          )
+          | _ -> error "invalid type" typ sexp_of_string
+        )
+        >>| fun value -> {tag; value}
+
+let parse_optional_fields sl =
+  Result.List.map sl ~f:parse_optional_field
+
+let parse_alignment line =
+  match String.split ~on:'\t' (line : Line.t :> string) with
+  | qname::flags::rname::pos::mapq::cigar::rnext
+    ::pnext::tlen::seq::qual::optional_fields
+    -> (
+      parse_qname qname >>= fun qname ->
+      parse_flags flags >>= fun flags ->
+      parse_rname rname >>= fun rname ->
+      parse_pos pos >>= fun pos ->
+      parse_mapq mapq >>= fun mapq ->
+      parse_cigar cigar >>= fun cigar ->
+      parse_rnext rnext >>= fun rnext ->
+      parse_pnext pnext >>= fun pnext ->
+      parse_tlen tlen >>= fun tlen ->
+      parse_seq seq >>= fun seq ->
+      parse_qual qual >>= fun qual ->
+      parse_optional_fields optional_fields >>= fun optional_fields ->
+      alignment
+        ?qname ~flags ?rname ?pos ?mapq ~cigar
+        ?rnext ?pnext ?tlen ?seq ~qual ~optional_fields
+        ()
+    )
+  | _ ->
+    Or_error.error_string "alignment line contains < 12 fields"
 
 
-  let raw_to_item () :
-      (raw_item, (item, [> Error.raw_to_item]) Result.t) Biocaml_transform.t =
-    let name = "sam_item_parser" in
-    let raw_queue = Dequeue.create () in
-    let raw_items_count = ref 0 in
-    let refseq_line, refseq_end = reference_sequence_aggregator () in
-    let header_finished = ref false in
-    let ref_dictionary = ref None in
-    let rec next stopped =
-      if Dequeue.is_empty raw_queue
-      then (if stopped then `end_of_stream else `not_ready)
-      else begin
-        incr raw_items_count;
-        begin match Dequeue.dequeue_exn raw_queue `front with
-        | `comment c when !header_finished ->
-          `output (Error (`comment_after_end_of_header (!raw_items_count, c)))
-        | `header c when !header_finished ->
-          `output (Error (`header_after_end_of_header (!raw_items_count, c)))
-        | `comment c ->  `output (Ok (`comment c))
-        | `header ("HD", l) ->
-          if !raw_items_count <> 1
-          then `output (Error (`header_line_not_first !raw_items_count))
-          else `output (expand_header_line l)
-        | `header ("SQ", l) ->
-          begin match refseq_line l with
-          | Error e -> `output (Error e)
-          | Ok () ->  next stopped
-          end
-        | `header _ as other -> `output (Ok other)
-        | `alignment a ->
-          if !header_finished then (
-            expand_alignment a !ref_dictionary
-            >>| (fun a -> `alignment a)
-                          |> (fun x -> `output x)
-          ) else begin
-            header_finished := true;
-            Dequeue.enqueue raw_queue `front (`alignment a);
-            begin match refseq_end () with
-            | Ok rd ->
-              ref_dictionary := Some rd;
-              `output (Ok (`reference_sequence_dictionary rd))
-            | Error e -> `output (Error e)
-            end
-          end
-        end
-      end
-    in
-    Biocaml_transform.make ~name ~feed:(Dequeue.enqueue raw_queue `back) ()
-      ~next
-
-  let downgrade_alignment al =
-    let qname = al.query_template_name in
-    let flag = al.flags in
-    let rname =
-      match al.reference_sequence with
-      | `none -> "*"
-      | `name s -> s
-      | `reference_sequence rs -> rs.ref_name in
-    let pos = Option.value ~default:0 al.position in
-    let mapq = Option.value ~default:255 al.mapping_quality in
-    let cigar =
-      match al.cigar_operations with
-      | [| |] -> "*"
-      | some ->
-        Array.map some ~f:(function
-        | `M  v -> sprintf "%d%c" v 'M'
-        | `I  v -> sprintf "%d%c" v 'I'
-        | `D  v -> sprintf "%d%c" v 'D'
-        | `N  v -> sprintf "%d%c" v 'N'
-        | `S  v -> sprintf "%d%c" v 'S'
-        | `H  v -> sprintf "%d%c" v 'H'
-        | `P  v -> sprintf "%d%c" v 'P'
-        | `Eq v -> sprintf "%d%c" v '='
-        | `X  v -> sprintf "%d%c" v 'X')
-        |> String.concat_array ~sep:"" in
-    let rnext =
-      match al.next_reference_sequence with
-      | `qname -> "=" | `none -> "*" | `name s -> s
-      | `reference_sequence rs -> rs.ref_name in
-    let pnext = Option.value ~default:0 al.next_position in
-    let tlen =  Option.value ~default:0 al.template_length in
-    let seq =
-      match al.sequence with | `string s -> s | `reference -> "=" | `none -> "*" in
-    begin
-      try
-        Array.map al.quality ~f:(fun q ->
-          Phred_score.to_char q
-          |> ok_exn
-          |> Char.to_string)
-        |> String.concat_array ~sep:""
-        |> Result.return
-      with
-        e -> Error (`wrong_phred_scores al)
-    end
-    >>= fun qual ->
-    let optional =
-      let rec optv = function
-        | `array (t, a) ->
-          sprintf "B%c%s" t String.(Array.map a ~f:optv |> concat_array ~sep:"" )
-        | `char c -> Char.to_string c
-        | `float f -> Float.to_string f
-        | `int i -> Int.to_string i
-        | `string s -> s in
-      let typt = function
-        | 'i' | 'I' | 's' | 'S' | 'c' | 'C' -> 'i'
-        | c -> c in
-      List.map al.optional_content (fun (tag, typ, v) -> (tag, typt typ, optv v))
-    in
-    Ok (`alignment {qname; flag; rname; pos;
-                        mapq; cigar; rnext; pnext;
-                        tlen; seq; qual; optional; })
+(******************************************************************************)
+(* Main Item Parser                                                           *)
+(******************************************************************************)
+let parse_item line =
+  if String.length (line : Line.t :> string) = 0 then
+    Or_error.error_string "invalid empty line"
+  else if (line : Line.t :> string).[0] = '@' then
+    parse_header_item line >>| fun x -> `Header_item x
+  else
+    parse_alignment line >>| fun x -> `Alignment x
 
 
-  let item_to_raw () =
-    let name = "sam_item_to_raw" in
-    let raw_queue = Dequeue.create () in
-    let raw_items_count = ref 0 in
-    let reference_sequence_dictionary = ref [| |] in
-    let reference_sequence_dictionary_to_output = ref 0 in
-    let rec next stopped =
-      dbg "raw_items_count: %d refdict-to-out: %d   raw_queue: %d  "
-        !raw_items_count
-        !reference_sequence_dictionary_to_output
-        (Dequeue.length raw_queue);
-      begin match !reference_sequence_dictionary_to_output with
-      | 0 ->
-        begin match Dequeue.is_empty raw_queue with
-        | true when stopped -> `end_of_stream
-        | true (* when not stopped *) -> `not_ready
-        | false ->
-          incr raw_items_count;
-          begin match Dequeue.dequeue_exn raw_queue `front with
-          | `comment c ->
-            dbg "comment"; `output (Ok (`comment c))
-          | `header_line (version, sorting, rest) ->
-            dbg "header";
-            `output (Ok (`header ("HD",
-                                ("VN", version)
-                                :: ("SO",
-                                    match sorting with
-                                    | `unknown -> "unknown"
-                                    | `unsorted -> "unsorted"
-                                    | `queryname -> "queryname"
-                                    | `coordinate -> "coordinate")
-                                :: rest)))
-          | `reference_sequence_dictionary rsd ->
-            dbg "reference_sequence_dictionary %d" (Array.length rsd);
-            reference_sequence_dictionary := rsd;
-            reference_sequence_dictionary_to_output := Array.length rsd;
-            next stopped
-          | `header ("SQ", _) ->
-            dbg "skipping SQ line";
-          (* we simply skip this one *)
-            next stopped
-          | `header h ->
-            dbg "header %s" (fst h);
-            `output (Ok (`header h))
-          | `alignment al ->
-            dbg "alignment";
-            downgrade_alignment al |> (fun x -> `output x)
-          end
-        end
-      | n ->
-        let o =
-          !reference_sequence_dictionary.(
-            Array.length !reference_sequence_dictionary - n) in
-        reference_sequence_dictionary_to_output := n - 1;
-        `output (Ok (`header ("SQ", reference_sequence_to_header o)))
-      end
-    in
-    Biocaml_transform.make ~name ~feed:(Dequeue.enqueue raw_queue `back) ()
-      ~next
+(******************************************************************************)
+(* Input/Output                                                               *)
+(******************************************************************************)
+module MakeIO(Future : Future.S) = struct
+  open Future
+  module Lines = Biocaml_lines.MakeIO(Future)
 
+  let read ?(start=Pos.(incr_line unknown)) r =
+    let pos = ref start in
+    Lines.read r
+    |> Pipe.map ~f:(fun line ->
+      let item =
+        parse_item line
+        |> fun x -> Or_error.tag_arg x "position" !pos Pos.sexp_of_t
+      in
+      pos := Pos.incr_line !pos;
+      item
+    )
 
-  let alignment_to_string x =
-    sprintf "%s\t%d\t%s\t%d\t%d\t%s\t%s\t%d\t%d\t%s\t%s\t%s\n"
-      x.qname x.flag x.rname x.pos x.mapq x.cigar x.rnext x.pnext x.tlen x.seq x.qual
-      (List.map x.optional (fun (a,b,c) -> sprintf "%s:%c:%s" a b c) |>
-          String.concat ~sep:"\t")
-
-  let raw_to_string () =
-    let to_string = function
-    | `comment c -> sprintf "@CO\t%s\n" c
-    | `header (t, l) ->
-      sprintf "@%s\t%s\n" t
-        (List.map l (fun (a,b) -> sprintf "%s:%s" a b)
-         |> String.concat ~sep:"\t")
-    | `alignment a -> alignment_to_string a
-    in
-    Biocaml_transform.of_function ~name:"sam_to_string" to_string
+  let read_file ?buf_len file =
+    let start = Pos.make ~source:file ~line:1 () in
+    Reader.open_file ?buf_len file >>| (read ~start)
 
 end
-
-exception Error of  Error.t
-let error_to_exn e = Error e
-
-let in_channel_to_raw_item_stream ?(buffer_size=65536) ?filename inp =
-  let x = Transform.string_to_raw ?filename () in
-  Biocaml_transform.(in_channel_strings_to_stream inp x ~buffer_size)
-
-let in_channel_to_item_stream ?(buffer_size=65536) ?filename inp =
-  let x = Transform.string_to_raw ?filename () in
-  let y = Transform.raw_to_item () in
-  Biocaml_transform.(
-    compose_results x y ~on_error:(function `left x -> x | `right x -> x)
-    |> in_channel_strings_to_stream ~buffer_size inp
-  )
-
-let in_channel_to_raw_item_stream_exn ?buffer_size ?filename inp =
-  Stream.result_to_exn ~error_to_exn
-    (in_channel_to_raw_item_stream ?filename ?buffer_size inp)
-
-let in_channel_to_item_stream_exn ?buffer_size ?filename inp =
-  Stream.result_to_exn ~error_to_exn
-    (in_channel_to_item_stream ?filename ?buffer_size inp)
+include MakeIO(Future_std)

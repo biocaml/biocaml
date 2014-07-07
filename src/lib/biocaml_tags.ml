@@ -92,7 +92,7 @@ module Output_transform = struct
 
   type output_error = [
     | `bam of Biocaml_bam.Error.item_to_raw
-    | `sam of Biocaml_sam.Error.item_to_raw
+    | `sam of Biocaml_sam_deprecated.Error.item_to_raw
     | `fastq of [ `cannot_convert_ascii_phred_score of string ]
   ] with sexp_of
 
@@ -101,7 +101,7 @@ module Output_transform = struct
   (** Generic union of possible output transforms. *)
   type t = [
     | `sam_item_to_file of
-        (Biocaml_sam.item, (string, output_error) Result.t)
+        (Biocaml_sam_deprecated.item, (string, output_error) Result.t)
           Biocaml_transform.t
     | `gff_to_file of(Biocaml_gff.item, string) Biocaml_transform.t
     | `wig_to_file of (Biocaml_wig.item, string) Biocaml_transform.t
@@ -164,9 +164,9 @@ module Output_transform = struct
         sam_item_to_file (
           Biocaml_transform.compose_result_left
             (Biocaml_transform.on_output
-               (Biocaml_sam.Transform.item_to_raw ())
+               (Biocaml_sam_deprecated.Transform.item_to_raw ())
                (function Ok o -> Ok o | Error e -> Error (`sam e)))
-            (Biocaml_sam.Transform.raw_to_string ()))
+            (Biocaml_sam_deprecated.Transform.raw_to_string ()))
       | `gff tag_list ->
         let t = Biocaml_gff.Transform.item_to_string ~tags:tag_list () in
         Ok (`gff_to_file (with_zip_no_error t) : t)
@@ -244,8 +244,8 @@ module Input_transform = struct
   type input_error = [
     | `bam of Biocaml_bam.Error.raw_bam
     | `bam_to_item of [ Biocaml_bam.Error.raw_to_item ]
-    | `sam of [ Biocaml_sam.Error.string_to_raw ]
-    | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
+    | `sam of [ Biocaml_sam_deprecated.Error.string_to_raw ]
+    | `sam_to_item of [ Biocaml_sam_deprecated.Error.raw_to_item ]
     | `unzip of Biocaml_zip.Error.unzip
     | `gff of Biocaml_gff.Error.parsing
     | `wig of Biocaml_wig.Error.parsing
@@ -261,7 +261,7 @@ module Input_transform = struct
 
   type t = [
     | `file_to_sam_item of
-        (string, (Biocaml_sam.item, input_error) Result.t) Biocaml_transform.t
+        (string, (Biocaml_sam_deprecated.item, input_error) Result.t) Biocaml_transform.t
     | `file_to_gff of
         (string, (Biocaml_gff.item, input_error) Result.t) Biocaml_transform.t
     | `file_to_wig of
@@ -325,8 +325,8 @@ module Input_transform = struct
         from_sam_item (
           Biocaml_transform.compose_results
             ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
-            (Biocaml_sam.Transform.string_to_raw ())
-            (Biocaml_sam.Transform.raw_to_item ()))
+            (Biocaml_sam_deprecated.Transform.string_to_raw ())
+            (Biocaml_sam_deprecated.Transform.raw_to_item ()))
       | `gff gff_tag_list ->
         let t =
           Biocaml_transform.on_output

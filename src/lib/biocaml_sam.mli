@@ -1,63 +1,102 @@
-(** SAM files and SAM-alignements high-level representation. *)
+(** SAM files. Documentation here assumes familiarity with the {{:
+    http://samtools.github.io/hts-specs/SAMv1.pdf } SAM
+    specification}. *)
 open Core.Std
 open Biocaml_internal_utils
 
-(** {2 Basic Types} *)
+(******************************************************************************)
+(** {2 Types} *)
+(******************************************************************************)
 
-(** {3 Low-Level Items} *)
+(******************************************************************************)
+(** {3 Header Types} *)
+(******************************************************************************)
+(** Header item tags define the different types of header lines. The
+    term "tag" in this context should not be confused with its use in
+    "tag-value" pairs, which comprise the content of header items. *)
+type header_item_tag = private [>
+| `HD | `SQ | `RG | `PG | `CO
+| `Other of string
+] with sexp
 
-type raw_alignment = {
-  qname : string;
-  flag : int;
-  rname : string;
-  pos : int;
-  mapq : int;
-  cigar : string;
-  rnext : string;
-  pnext : int;
-  tlen : int;
-  seq : string;
-  qual : string;
-  optional : (string * char * string) list
-}
-(** The contents of an alignment line. *)
+(** A tag-value pair comprising the content of header items. *)
+type tag_value = private string * string
+with sexp
 
-type raw_item = [
-| `comment of string
-| `header of string * (string * string) list
-| `alignment of raw_alignment
-]
-(** The "items" of a parsed SAM file stream. *)
+type sort_order = [ `Unknown | `Unsorted | `Query_name | `Coordinate ]
+with sexp
 
-(** {3 High-Level Items} *)
+(** @HD. A header consists of different types of lines. Confusingly, one of
+    these types is called {i the} "header line", which is what this
+    type refers to. It does not refer generically to any line within a
+    header. *)
+type header_line = private {
+  version : string; (** VN *)
+  sort_order : sort_order option; (** SO *)
+} with sexp
 
-type reference_sequence = {
-  ref_name: string;
-  ref_length: int;
-  ref_assembly_identifier: string option;
-  ref_checksum: string option;
-  ref_species: string option;
-  ref_uri: string option;
-  ref_unknown: (string * string) list;
-}
-(** Definition of a reference sequence. *)
+(** @SQ. Reference sequence. *)
+type ref_seq = private {
+  name : string; (** SN *)
+  length : int; (** LN *)
+  assembly : string option; (** AS *)
+  md5 : string option; (** M5 *)
+  species : string option; (** SP *)
+  uri : string option; (** UR *)
+} with sexp
 
-val reference_sequence :
-  ?assembly_identifier:string ->
-  ?checksum:string ->
-  ?species:string ->
-  ?uri:string ->
-  ?unknown_data:(string * string) list ->
-  string -> int -> reference_sequence
-(** Create a reference sequence. *)
+type platform = [
+| `Capillary | `LS454 | `Illumina | `Solid
+| `Helicos | `Ion_Torrent | `Pac_Bio
+] with sexp
 
+(** @RG. *)
+type read_group = private {
+  id : string; (** ID *)
+  seq_center : string option; (** CN *)
+  description : string option; (** DS *)
+  run_date : [`Date of Date.t | `Time of Time.t] option; (** DT *)
+  flow_order : string option; (** FO *)
+  key_seq : string option; (** KS *)
+  library : string option; (** LB *)
+  program : string option; (** PG *)
+  predicted_median_insert_size : int option; (** PI *)
+  platform : platform option; (** PL *)
+  platform_unit : string option; (** PU *)
+  sample : string option; (** SM *)
+} with sexp
+
+(** @PG. *)
+type program = private {
+  id : string; (** ID *)
+  name : string option; (** PN *)
+  command_line : string option; (** CL *)
+  previous_id : string option; (** PP *)
+  description : string option; (** DS *)
+  version : string option; (** VN *)
+} with sexp
+
+type header_item = private [>
+| `HD of header_line
+| `SQ of ref_seq
+| `RG of read_group
+| `PG of program
+| `CO of string
+| `Other of string * tag_value list
+] with sexp
+
+
+
+(******************************************************************************)
+(** {3 Alignment Types} *)
+(******************************************************************************)
 module Flags : sig
-  (** Manipulate the alignment flags. *)
 
+  (** Flags are represented as a "bit map". *)
   type t = private int
-  (** Flags are represented as “bit map”. *)
+  with sexp
 
-  val of_int: int -> t
+  val of_int: int -> t Or_error.t
 
   val has_multiple_segments            : t -> bool
   val each_segment_properly_aligned    : t -> bool
@@ -71,255 +110,176 @@ module Flags : sig
   val not_passing_quality_controls     : t -> bool
   val pcr_or_optical_duplicate         : t -> bool
 
-  include Sexpable.S with type t := t
-
 end
 
-type cigar_op = [
-| `D of int
-| `Eq of int
-| `H of int
-| `I of int
-| `M of int
-| `N of int
-| `P of int
-| `S of int
-| `X of int ]
 (** CIGAR operations. *)
+type cigar_op = private [>
+| `Alignment_match of int
+| `Insertion of int
+| `Deletion of int
+| `Skipped of int
+| `Soft_clipping of int
+| `Hard_clipping of int
+| `Padding of int
+| `Seq_match of int
+| `Seq_mismatch of int
+] with sexp
 
-type optional_content_value = [
-| `array of char * optional_content_value array
-| `char of char
-| `float of float
-| `int of int
-| `string of string ]
-(** Meta-value used to store “optional content”. *)
+(** The constructor encodes the TYPE and each carries its
+    corresponding VALUE. *)
+type optional_field_value = private [>
+| `A of string
+| `i of Int32.t
+| `f of float
+| `Z of string
+| `H of string
+| `B of char * string list
+] with sexp
 
-type optional_content = (string * char * optional_content_value) list
-(** Alignment optional content. *)
+type optional_field = private {
+  tag : string;
+  value : optional_field_value
+} with sexp
 
-type alignment = {
-  query_template_name: string;
-  flags: Flags.t;
-  reference_sequence: [ `reference_sequence of reference_sequence
-                      | `none
-                      | `name of string ];
-  position: int option;
-  mapping_quality: int option;
-  cigar_operations: cigar_op array;
+type rnext = [`Value of string | `Equal_to_RNAME]
+with sexp
 
-  next_reference_sequence: [`qname | `none | `name of string
-                 | `reference_sequence of reference_sequence ];
-  next_position: int option;
+(** For [cigar] and [qual], empty list indicates no value, i.e. '*',
+    was given. *)
+type alignment = private {
+  qname : string option; (** QNAME *)
+  flags : Flags.t; (** FLAG *)
+  rname : string option; (** RNAME *)
+  pos : int option; (** POS *)
+  mapq : int option; (** MAPQ *)
+  cigar : cigar_op list; (** CIGAR *)
+  rnext : rnext option; (** RNEXT *)
+  pnext : int option; (** PNEXT *)
+  tlen : int option; (** TLEN *)
+  seq: string option; (** SEQ *)
+  qual: Biocaml_phred_score.t list; (** QUAL *)
+  optional_fields : optional_field list;
+} with sexp
 
-  template_length: int option;
 
-  sequence: [ `string of string | `reference | `none];
-  quality: Biocaml_phred_score.t array;
-  optional_content: optional_content;
-}
-(** High-level representation of a parsed alignment. *)
 
+(******************************************************************************)
+(** {3 Main Item Type} *)
+(******************************************************************************)
+(** Every item in a SAM file is either a header item or an alignment
+    record. *)
 type item = [
-| `comment of string
-| `header_line of
-    string * [`unknown | `unsorted | `queryname | `coordinate ] *
-      (string * string) list
-| `reference_sequence_dictionary of reference_sequence array
-| `header of string * (string * string) list
-| `alignment of alignment
-]
-(** High-level representation of a parsed entity. *)
+| `Header_item of header_item
+| `Alignment of alignment
+] with sexp
 
-(** {2 Error Types} *)
 
-module Error : sig
-  (** The possible errors. *)
+(******************************************************************************)
+(** {2 Input/Output } *)
+(******************************************************************************)
+module MakeIO (Future : Future.S) : sig
+  open Future
 
-  type optional_content_parsing = [
-  | `wrong_optional of (string * char * string) list *
-      [ `not_a_char of string
-      | `not_a_float of string
-      | `not_an_int of string
-      | `unknown_type of char
-      | `wrong_array of
-          [ `not_a_char of string
-          | `not_a_float of string
-          | `not_an_int of string
-          | `wrong_type of string
-          | `unknown_type of char
-          ]
-      | `wrong_type of string
-      ]
-  ]
-  (** Errors which can happen while parsing optional content. *)
+  val read : ?start:Pos.t -> Reader.t -> item Or_error.t Pipe.Reader.t
 
-  type string_to_raw = [
-  | `incomplete_input of Pos.t * string list * string option
-  | `invalid_header_tag of Pos.t * string
-  | `invalid_tag_value_list of Pos.t * string list
-  | `not_an_int of Pos.t * string * string
-  | `wrong_alignment of Pos.t * string
-  | `wrong_optional_field of Pos.t * string
-  ]
-  (** The possible errors one can get while parsing SAM files. *)
-
-  type raw_to_item = [
-  | `comment_after_end_of_header of int * string
-  | `duplicate_in_reference_sequence_dictionary of reference_sequence array
-  | `header_after_end_of_header of int * (string * (string * string) list)
-  | `header_line_not_first of int
-  | `header_line_without_version of (string * string) list
-  | `header_line_wrong_sorting of string
-  | `missing_ref_sequence_length of (string * string) list
-  | `missing_ref_sequence_name of (string * string) list
-  | `wrong_cigar_text of string
-  | `wrong_flag of raw_alignment
-  | `wrong_mapq of raw_alignment
-  | `wrong_phred_scores of raw_alignment
-  | `wrong_pnext of raw_alignment
-  | `wrong_pos of raw_alignment
-  | `wrong_qname of raw_alignment
-  | `wrong_ref_sequence_length of (string * string) list
-  | `wrong_tlen of raw_alignment
-  | optional_content_parsing
-  ]
-  (** The possible errors one can get while lifting SAM raw_items to
-      higher-level representations. (Note: [raw_to_item]
-      explicitly contains [optional_content_parsing] but OCamldoc
-      pastes it inline) *)
-
-  type item_to_raw = [
-    `wrong_phred_scores of alignment
-  ]
-  (** The error that may happen while downgrading the
-      higher-level represtation of an alignment. *)
-
-  type parse = [
-  | string_to_raw
-  | raw_to_item
-  ]
-  (** All possible parsing errors. It is defined as: {[
-      type parse = [
-      | string_to_raw
-      | raw_to_item
-      ]
-      ]}*)
-
-  type t = parse
-  (** The union of all possible errors. *)
-
-  (** {3 S-Expressions conversions for Errors} *)
-
-  val optional_content_parsing_of_sexp : Sexplib.Sexp.t -> optional_content_parsing
-  val sexp_of_optional_content_parsing : optional_content_parsing -> Sexplib.Sexp.t
-  val string_to_raw_of_sexp : Sexplib.Sexp.t -> string_to_raw
-  val sexp_of_string_to_raw : string_to_raw -> Sexplib.Sexp.t
-  val raw_to_item_of_sexp : Sexplib.Sexp.t -> raw_to_item
-  val sexp_of_raw_to_item : raw_to_item -> Sexplib.Sexp.t
-  val item_to_raw_of_sexp : Sexplib.Sexp.t -> item_to_raw
-  val sexp_of_item_to_raw : item_to_raw -> Sexplib.Sexp.t
-  val parse_of_sexp : Sexplib.Sexp.t -> parse
-  val sexp_of_parse : parse -> Sexplib.Sexp.t
-  val t_of_sexp : Sexplib.Sexp.t -> parse
-  val sexp_of_t : parse -> Sexplib.Sexp.t
+  val read_file
+    : ?buf_len:int
+    -> string
+    -> item Or_error.t Pipe.Reader.t Deferred.t
 
 end
-
-exception Error of  Error.t
-(** The only exception raised by [*_exn] functions in this module. *)
-
-(** {2 Stream functions } *)
-
-val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (item, [> Error.parse]) Result.t Stream.t
-(** Parse an input-channel into a stream of high-level items. *)
-
-val in_channel_to_raw_item_stream : ?buffer_size:int -> ?filename:string -> in_channel ->
-  (raw_item, [> Error.parse]) Result.t Stream.t
-(** Parse an input-channel into a stream of low-level (“raw”) items. *)
-
-val in_channel_to_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
-  item Stream.t
-(** Like in_channel_to_item_stream but each call to [Stream.next] may
-    raise [Error _] *)
-
-val in_channel_to_raw_item_stream_exn : ?buffer_size:int -> ?filename:string -> in_channel ->
-  raw_item Stream.t
-(** Like in_channel_to_raw_item_stream but each call to [Stream.next] may
-    raise [Error _] *)
+include module type of MakeIO(Future_std)
 
 
-(** {2 Low-level partial parsing} *)
+
+(******************************************************************************)
+(** {2 Low-level Parsers and Constructors} *)
+(** {3 Low-level Header Parsers and Constructors} *)
+(******************************************************************************)
+val header_line
+  :  version:string
+  -> ?sort_order:sort_order
+  -> unit
+  -> header_line Or_error.t
+
+val ref_seq
+  :  name:string
+  -> length:int
+  -> ?assembly:string
+  -> ?md5:string
+  -> ?species:string
+  -> ?uri:string
+  -> unit
+  -> ref_seq Or_error.t
+
+(** The [run_date] string will be parsed as a Date.t or Time.t,
+    whichever is possible. If it is a time without a timezone, local
+    timezone will be assumed. *)
+val read_group
+  :  id:string
+  -> ?seq_center:string
+  -> ?description:string
+  -> ?run_date:string
+  -> ?flow_order:string
+  -> ?key_seq:string
+  -> ?library:string
+  -> ?program:string
+  -> ?predicted_median_insert_size:int
+  -> ?platform:platform
+  -> ?platform_unit:string
+  -> ?sample:string
+  -> unit
+  -> read_group Or_error.t
+
+val parse_header_item_tag : string -> header_item_tag Or_error.t
+val parse_tag_value : string -> tag_value Or_error.t
+val parse_sort_order : string -> sort_order Or_error.t
+val parse_header_line : tag_value list -> header_line Or_error.t
+val parse_ref_seq : tag_value list -> ref_seq Or_error.t
+val parse_platform : string -> platform Or_error.t
+val parse_read_group : tag_value list -> read_group Or_error.t
+val parse_program : tag_value list -> program Or_error.t
+val parse_header_item : Line.t -> header_item Or_error.t
 
 
-(** Here we expose functions used both in {!Biocaml_sam.Transform} and
-      {!Biocaml_bam.Transform} for parsing.
-      It can be ignored by most users but can be useful.
-*)
 
-(** Parse CIGAR operations from a string. *)
-val parse_cigar_text: string ->
-  (cigar_op array, [> `wrong_cigar_text of string ]) Result.t
+(******************************************************************************)
+(** {3 Low-level Alignment Parsers and Constructors} *)
+(******************************************************************************)
+val alignment
+  :  ?qname : string
+  -> flags : Flags.t
+  -> ?rname : string
+  -> ?pos : int
+  -> ?mapq : int
+  -> ?cigar : cigar_op list
+  -> ?rnext : rnext
+  -> ?pnext : int
+  -> ?tlen : int
+  -> ?seq: string
+  -> ?qual : Biocaml_phred_score.t list
+  -> ?optional_fields : optional_field list
+  -> unit
+  -> alignment Or_error.t
+
+val parse_qname : string -> string option Or_error.t
+val parse_flags : string -> Flags.t Or_error.t
+val parse_rname : string -> string option Or_error.t
+val parse_pos : string -> int option Or_error.t
+val parse_mapq : string -> int option Or_error.t
+val parse_cigar : string -> cigar_op list Or_error.t
+val parse_rnext : string -> rnext option Or_error.t
+val parse_pnext : string -> int option Or_error.t
+val parse_tlen : string -> int option Or_error.t
+val parse_seq : string -> string option Or_error.t
+val parse_qual :  string -> Biocaml_phred_score.t list Or_error.t
+val parse_optional_field : string -> optional_field Or_error.t
+val parse_optional_fields : string list -> optional_field list Or_error.t
+val parse_alignment : Line.t -> alignment Or_error.t
 
 
-(** Parse optional content from a “tokenized” string. *)
-val parse_optional_content: (string * char * string) list ->
-  (optional_content, [> Error.optional_content_parsing]) Result.t
 
-(** Parse a header line form a string. The first argument is used to
-    pass the location to the error values
-    (c.f. {!type:Error.string_to_raw}). *)
-val parse_header_line:
-  'a -> string ->
-  ([> `comment of string
-   | `header of string * (string * string) list ],
-   [> `invalid_header_tag of 'a * string
-   | `invalid_tag_value_list of 'a * string list ]) Result.t
-
-(** Parse a header line into a more detailed type. *)
-val expand_header_line:
-  (string * string) list ->
-  ([> `header_line of
-        string * [ `coordinate | `queryname | `unknown | `unsorted ] *
-          (string * string) list ],
-   [> `header_line_without_version of (string * string) list
-   | `header_line_wrong_sorting of string ]) Result.t
-
-(** {2 Low-level Transforms} *)
-
-module Transform: sig
-
-  (** Low-level, threading-model agnostic transforms
-      (c.f. {!Biocaml_transform}). *)
-
-  val string_to_raw: ?filename:string -> unit ->
-    (string, (raw_item, [> Error.string_to_raw]) Result.t) Biocaml_transform.t
-  (** Create a parsing "stoppable" transform. *)
-
-  val raw_to_string: unit ->
-    (raw_item, string) Biocaml_transform.t
-  (** Create a printing "stoppable" transform. *)
-
-  val raw_to_item: unit ->
-    (raw_item, (item,  [> Error.raw_to_item]) Result.t) Biocaml_transform.t
-  (** Create a transform that lifts [raw_item]s to [item]s *)
-
-  val item_to_raw: unit ->
-    (item, (raw_item, [> Error.item_to_raw]) Result.t) Biocaml_transform.t
-  (** Create a transform that downgrades [item]s to [raw_item]s *)
-
-end
-
-(** {2 S-Expressions } *)
-
-val cigar_op_of_sexp : Sexplib.Sexp.t -> cigar_op
-val sexp_of_cigar_op : cigar_op -> Sexplib.Sexp.t
-val optional_content_value_of_sexp : Sexplib.Sexp.t -> optional_content_value
-val sexp_of_optional_content_value : optional_content_value -> Sexplib.Sexp.t
-val optional_content_of_sexp : Sexplib.Sexp.t -> optional_content
-val sexp_of_optional_content : optional_content -> Sexplib.Sexp.t
-val alignment_of_sexp : Sexplib.Sexp.t -> alignment
-val sexp_of_alignment : alignment -> Sexplib.Sexp.t
-val item_of_sexp : Sexplib.Sexp.t -> item
-val sexp_of_item : item -> Sexplib.Sexp.t
+(******************************************************************************)
+(** {3 Main Item Parser} *)
+(******************************************************************************)
+val parse_item : Line.t -> item Or_error.t

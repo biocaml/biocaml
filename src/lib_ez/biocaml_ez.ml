@@ -30,3 +30,15 @@ module Range = struct
   let make lo hi = ok_exn (make lo hi)
 
 end
+
+module Sam = struct
+  include Biocaml_sam
+
+  let read ?start ic =
+    read ?start ic |> Pipe.map ~f:ok_exn
+
+  let read_file ?buf_len file =
+    read_file ?buf_len file >>| fun pipe_r ->
+    Pipe.map pipe_r ~f:ok_exn
+
+end

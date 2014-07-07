@@ -3,7 +3,7 @@ open Core.Std
 open Flow
 open Biocaml_app_common
 open Biocaml
-
+module Sam = Biocaml_sam_deprecated
 
 let filename_chop_all_extensions filename =
   let rec f filename =

@@ -1,6 +1,6 @@
 open Core.Std
 open Biocaml_internal_utils
-module Sam = Biocaml_sam
+module Sam = Biocaml_sam_deprecated
 module Phred_score = Biocaml_phred_score
 module Zip = Biocaml_zip
 

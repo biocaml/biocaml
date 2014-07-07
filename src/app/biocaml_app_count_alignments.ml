@@ -87,8 +87,8 @@ let build_wig ?(max_read_bytes=Int.max_value)
     return (
       Biocaml_transform.compose_results
         ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
-        (Biocaml_sam.Transform.string_to_raw ())
-        (Biocaml_sam.Transform.raw_to_item ()))
+        (Biocaml_sam_deprecated.Transform.string_to_raw ())
+        (Biocaml_sam_deprecated.Transform.raw_to_item ()))
   | `gzip `sam ->
     return (
       Biocaml_transform.compose_results
@@ -98,8 +98,8 @@ let build_wig ?(max_read_bytes=Int.max_value)
            ~format:`gzip ())
         (Biocaml_transform.compose_results
            ~on_error:(function `left l -> `sam l | `right r -> `sam_to_item r)
-           (Biocaml_sam.Transform.string_to_raw ())
-           (Biocaml_sam.Transform.raw_to_item ())))
+           (Biocaml_sam_deprecated.Transform.string_to_raw ())
+           (Biocaml_sam_deprecated.Transform.raw_to_item ())))
   | _ ->
     failf "cannot handle file format"
   end
@@ -109,7 +109,7 @@ let build_wig ?(max_read_bytes=Int.max_value)
   let transform =
     Biocaml_transform.on_output transfo ~f:(function
     | Ok (`alignment al) ->
-      let open Biocaml_sam in
+      let open Biocaml_sam_deprecated in
       Option.iter al.position (fun pos ->
         begin match al with
         | { reference_sequence = `reference_sequence rs;

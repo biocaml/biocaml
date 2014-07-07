@@ -5,7 +5,7 @@ open Core.Std
 open Biocaml_internal_utils
 open Flow
 open Biocaml
-
+module Sam = Biocaml_sam_deprecated
 
 let failf fmt =
   ksprintf (fun s -> error (`failure s)) fmt
@@ -409,7 +409,7 @@ let go_through_input ~transform ~max_read_bytes filename =
             (Biocaml_bam.Error.sexp_of_raw_bam s |> Sexp.to_string_hum)
         | `output (Error (`sam s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_sam.Error.sexp_of_string_to_raw s |> Sexp.to_string_hum)
+            (Sam.Error.sexp_of_string_to_raw s |> Sexp.to_string_hum)
         | `output (Error (`unzip s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
             (Biocaml_zip.Error.sexp_of_unzip s |> Sexp.to_string_hum)
@@ -418,7 +418,7 @@ let go_through_input ~transform ~max_read_bytes filename =
             (Biocaml_bam.Error.sexp_of_raw_to_item s |> Sexp.to_string_hum)
         | `output (Error (`sam_to_item s)) ->
           failf "go_throught_input:   ERROR: %s\n%!"
-            (Biocaml_sam.Error.sexp_of_raw_to_item s |> Sexp.to_string_hum)
+            (Sam.Error.sexp_of_raw_to_item s |> Sexp.to_string_hum)
       in
       let rec loop c =
         wrap_deferred_lwt (fun () -> read ~count:input_buffer_size i)

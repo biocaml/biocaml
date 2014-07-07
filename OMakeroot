@@ -36,7 +36,7 @@ LIB_MODULES[] =
   $(PROJECT)_about
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
 LIB_PACKAGES = core threads zip unix xmlm cfstream sexplib.syntax future.std \
-               comparelib.syntax
+               comparelib.syntax re.perl
 
 LIB_EZ_NAME = $(PROJECT)_ez
 LIB_EZ_MODULES[] =

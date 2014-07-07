@@ -64,11 +64,11 @@ module Output_transform: sig
 
   type output_error = [
     | `bam of Biocaml_bam.Error.item_to_raw
-    | `sam of Biocaml_sam.Error.item_to_raw
+    | `sam of Biocaml_sam_deprecated.Error.item_to_raw
     | `fastq of [ `cannot_convert_ascii_phred_score of string ]
   ]
   (** Union possible output errors of the transforms
-      leading to {!Biocaml_sam.item} values.
+      leading to {!Biocaml_sam_deprecated.item} values.
       (the other output transforms are error-free).  *)
 
   type tags = t
@@ -76,7 +76,7 @@ module Output_transform: sig
 
   type t = [
     | `sam_item_to_file of
-        (Biocaml_sam.item, (string, output_error) Result.t)
+        (Biocaml_sam_deprecated.item, (string, output_error) Result.t)
           Biocaml_transform.t
     | `gff_to_file of(Biocaml_gff.item, string) Biocaml_transform.t
     | `wig_to_file of (Biocaml_wig.item, string) Biocaml_transform.t
@@ -113,8 +113,8 @@ module Input_transform: sig
   type input_error = [
     | `bam of Biocaml_bam.Error.raw_bam
     | `bam_to_item of [ Biocaml_bam.Error.raw_to_item ]
-    | `sam of [ Biocaml_sam.Error.string_to_raw ]
-    | `sam_to_item of [ Biocaml_sam.Error.raw_to_item ]
+    | `sam of [ Biocaml_sam_deprecated.Error.string_to_raw ]
+    | `sam_to_item of [ Biocaml_sam_deprecated.Error.raw_to_item ]
     | `unzip of Biocaml_zip.Error.unzip
     | `gff of Biocaml_gff.Error.parsing
     | `wig of Biocaml_wig.Error.parsing
@@ -132,7 +132,7 @@ module Input_transform: sig
 
   type t = [
     | `file_to_sam_item of
-        (string, (Biocaml_sam.item, input_error) Result.t) Biocaml_transform.t
+        (string, (Biocaml_sam_deprecated.item, input_error) Result.t) Biocaml_transform.t
     | `file_to_gff of
         (string, (Biocaml_gff.item, input_error) Result.t) Biocaml_transform.t
     | `file_to_wig of

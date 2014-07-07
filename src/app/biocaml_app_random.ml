@@ -2,6 +2,7 @@ open Core.Std
 open Flow
 open Biocaml_app_common
 open Biocaml
+module Sam = Biocaml_sam_deprecated
 module Stream = CFStream_stream
 
 module Genlex = struct

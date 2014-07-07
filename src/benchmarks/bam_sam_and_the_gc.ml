@@ -4,6 +4,7 @@ open CFStream
 
 let main ?gc_call input_file () =
   let open Biocaml in
+  let module Sam = Biocaml_sam_deprecated in
   let open Sam.Flags in
   let call_gc, experiment_description = 
     match gc_call with

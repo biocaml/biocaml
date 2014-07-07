@@ -6,6 +6,7 @@ This module provides parsing from [string] buffers to [raw_item]s
 (higher-level constructs).
 *)
 open Core.Std
+open Biocaml_sam_deprecated
 
 (** {2 Item Types} *)
 
@@ -87,9 +88,9 @@ module Error: sig
       [Sam.item]s. *)
 
   type item_to_raw =
-  [ `cannot_get_sequence of Biocaml_sam.alignment
+  [ `cannot_get_sequence of alignment
   | `header_item_not_first of string
-  | `reference_name_not_found of Biocaml_sam.alignment * string ]
+  | `reference_name_not_found of alignment * string ]
   (** Inconsistency errors that may happen while trnasforming a
       [Sam.item] to a [raw_item]. *)
 
@@ -141,7 +142,7 @@ val in_channel_to_item_stream :
   ?zlib_buffer_size:int ->
   ?buffer_size:int ->
   in_channel ->
-  (Biocaml_sam.item,
+  (item,
    [> `bam of [> Error.t ]
    | `unzip of [> Biocaml_zip.Error.unzip ] ])
     Result.t Stream.t
@@ -149,7 +150,7 @@ val in_channel_to_item_stream :
 
 val in_channel_to_item_stream_exn :
   ?zlib_buffer_size:int -> ?buffer_size:int -> in_channel ->
-  Biocaml_sam.item Stream.t
+  item Stream.t
 (** Create a stream of [Sam.item]s from an input-channel (any call to
     [Stream.next] may throw an [Error _] exception). *)
 
@@ -160,7 +161,7 @@ module Transform: sig
   (** The low-level [Transform.t] implementations. *)
 
   val raw_to_item: unit ->
-    (raw_item, (Biocaml_sam.item, [> Error.raw_to_item]) Result.t)
+    (raw_item, (item, [> Error.raw_to_item]) Result.t)
       Biocaml_transform.t
   (** Create a transform that lifts [raw_item]s to the higher-level representation
       defined in the [Biocaml_sam] module. *)
@@ -178,7 +179,7 @@ module Transform: sig
 
 
   val item_to_raw: unit ->
-    (Biocaml_sam.item,
+    (item,
      (raw_item, [> Error.item_to_raw]) Result.t) Biocaml_transform.t
   (** Create a transform that downgrades [Sam.item]s to [raw_item]s. *)
 
@@ -193,11 +194,11 @@ end
 (** {2 Lower-level (parsing) functions} *)
 
 val parse_cigar: ?pos:int -> ?len:int -> string ->
-  (Biocaml_sam.cigar_op array, [> Error.parse_cigar]) Result.t
+  (cigar_op array, [> Error.parse_cigar]) Result.t
 (** Parse CIGAR operations from a string (c.f. [raw_alignment.cigar]). *)
 
 val parse_optional: ?pos:int -> ?len:int -> string ->
-  (Biocaml_sam.optional_content, [> Error.parse_optional]) Result.t
+  (optional_content, [> Error.parse_optional]) Result.t
 (** Parse optional content from a string (c.f. [raw_alignment.optional]). *)
 
 

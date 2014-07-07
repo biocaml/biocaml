@@ -1,6 +1,7 @@
 open OUnit
 open Core.Std
 open Biocaml
+module Sam = Biocaml_sam_deprecated
 
 let test_parser () =
   let transfo = Sam.Transform.string_to_raw () in
