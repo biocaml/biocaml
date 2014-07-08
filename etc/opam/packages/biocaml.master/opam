@@ -5,6 +5,7 @@ homepage: "http://biocaml.org"
 build: [
   ["omake" "-j%{jobs}%"
      "PREFIX=%{prefix}%"
+     "COMPILE_LIB_EZ=true"
      "COMPILE_LIB_LWT=%{lwt:installed}%"
      "COMPILE_LIB_ASYNC=%{async:installed}%"
      "COMPILE_APP=%{flow:installed}%"
@@ -12,7 +13,7 @@ build: [
      "COMPILE_BENCHMARKS=false"
   ]
   ["omake" "biocaml.install"]
-  ["omake" "install"]
+  ["omake" "install_lib"]
 ]
 
 remove: [

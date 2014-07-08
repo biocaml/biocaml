@@ -2,15 +2,10 @@ open build/OCaml
 DefineCommandVars()
 
 .PHONY: lib lib_ez lib_lwt lib_async app tests benchmarks odoc doc \
-        install install_lib install_app install_doc \
-        uninstall uninstall_lib uninstall_app \
+        install_lib install_app install_doc \
+        uninstall_lib uninstall_app \
         clean distclean \
         print_config
-
-################################################################################
-# Primary Commands
-install: install_lib install_app
-uninstall: uninstall_lib uninstall_app
 
 clean:
   rm -rf _build
@@ -21,6 +16,7 @@ distclean: clean
 ################################################################################
 # General Project Information
 PROJECT = biocaml
+DESCRIPTION = The OCaml Bioinformatics Library
 VERSION = 0.4-dev
 if $(test -e .git)
   GIT_COMMIT = $(shell git rev-parse HEAD)
@@ -30,7 +26,6 @@ else
   export
 
 LIB_NAME = $(PROJECT)
-LIB_DESCRIPTION = The OCaml Bioinformatics Library <http://biocaml.org>
 LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
   $(PROJECT)_about
@@ -58,12 +53,12 @@ APP_MODULES[] =
   $(removesuffix $(basename $(ls src/app/*.ml)))
 APP_PACKAGES = $(LIB_PACKAGES) flow
 
-TESTS_NAME = biocaml_tests
+TESTS_NAME = $(PROJECT)_tests
 TESTS_MODULES[] =
   $(removesuffix $(basename $(ls src/tests/test_*.ml)))
 TESTS_PACKAGES = $(LIB_PACKAGES) oUnit
 
-BENCHMARKS_NAME = biocaml_benchmarks
+BENCHMARKS_NAME = $(PROJECT)_benchmarks
 BENCHMARKS_MODULES[] =
   $(removesuffix $(basename $(ls src/benchmarks/*.ml)))
 BENCHMARKS_PACKAGES = $(LIB_PACKAGES)
@@ -224,7 +219,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
   .SUBDIRS: _build/lib
     OCAMLPACKS[] = $(LIB_PACKAGES)
 
-    biocaml_about.ml: :value: $(VERSION)
+    $(PROJECT)_about.ml: :value: $(VERSION)
       echo '(** General information about this library. *)' > $@
       echo '' >> $@
       echo '(** Version: ["$(VERSION)"] *)' >> $@
@@ -236,23 +231,9 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
       else
         echo 'let git_commit = Some "$(GIT_COMMIT)"' >> $@
 
-    META:
-      echo "description = \"$(LIB_DESCRIPTION)\"" > META
-      echo "version = \"$(VERSION)\"" >> META
-      echo "archive(byte) = \"$(LIB_NAME).cma\"" >> META
-      echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> META
-      echo "requires = \"$(LIB_PACKAGES)\"" >> META
-
-    install_lib: $(LIB_NAME).cma $(LIB_NAME).cmxa META uninstall_lib
-      ocamlfind install $(PROJECT) META \
-        *.cm[iox] *.o $(LIB_NAME).cma $(LIB_NAME).cmxa *.a -dll *.so
-
-    uninstall_lib:
-      ocamlfind remove $(PROJECT)
-
     lib: $(OCamlLibraryWithCFiles $(LIB_NAME), $(LIB_MODULES), $(LIB_STUBS))
 
-    .DEFAULT: lib META
+    .DEFAULT: lib
 
 
   ##############################################################################
@@ -264,7 +245,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     lib_ez: $(OCamlLibrary $(LIB_EZ_NAME), $(LIB_EZ_MODULES))
 
     if $(COMPILE_LIB_EZ)
-      echo "conf: Building biocaml ez library"
+      echo "conf: Building $(PROJECT) ez library"
       .DEFAULT: lib_ez
 
 
@@ -277,7 +258,7 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     lib_lwt: $(OCamlLibrary $(LIB_LWT_NAME), $(LIB_LWT_MODULES))
 
     if $(COMPILE_LIB_LWT)
-      echo "conf: Building biocaml lwt library"
+      echo "conf: Building $(PROJECT) lwt library"
       .DEFAULT: lib_lwt
 
 
@@ -290,65 +271,55 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     lib_async: $(OCamlLibrary $(LIB_ASYNC_NAME), $(LIB_ASYNC_MODULES))
 
     if $(COMPILE_LIB_ASYNC)
-      echo "conf: Building biocaml async library"
+      echo "conf: Building $(PROJECT) async library"
       .DEFAULT: lib_async
 
 
   ##############################################################################
   # Command Line App
   .SUBDIRS: _build/app
-    OCAML_LIBS = ../lib/biocaml
+    OCAML_LIBS = ../lib/$(PROJECT)
     OCAMLINCLUDES += $(dir ../lib/)
     OCAMLPACKS[] = $(APP_PACKAGES)
 
-    %.ml: ../lib/biocaml.cma
+    %.ml: ../lib/$(PROJECT).cma
 
     app: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
 
     if $(COMPILE_APP)
-      echo "conf: Building biocaml application"
+      echo "conf: Building $(PROJECT) application"
       .DEFAULT: app
-
-  if $(COMPILE_APP)
-    install_app: _build/app/$(APP_NAME)
-      echo "Installing $< in $(BINDIR)"
-      mkdir -p $(BINDIR)
-      install $< $(BINDIR)
-
-  uninstall_app:
-    echo "Removing $(APP_NAME) from $(BINDIR)"
-    rm -f $(BINDIR)/$(APP_NAME)
 
 
   ##############################################################################
   # Tests
   .SUBDIRS: _build/tests
-    OCAML_LIBS = ../lib/biocaml
+    OCAML_LIBS = ../lib/$(PROJECT)
     OCAMLINCLUDES += $(dir ../lib/)
     OCAMLPACKS[] = $(TESTS_PACKAGES)
 
-    %.ml: ../lib/biocaml.cma
+    %.ml: ../lib/$(PROJECT).cma
 
     tests: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
 
     if $(COMPILE_TESTS)
-      echo "conf: Building biocaml tests"
+      echo "conf: Building $(PROJECT) tests"
       .DEFAULT: tests
 
 
   ##############################################################################
   # Benchmarks
   .SUBDIRS: _build/benchmarks
-    OCAML_LIBS = ../lib/biocaml
+    OCAML_LIBS = ../lib/$(PROJECT)
     OCAMLINCLUDES += $(dir ../lib/)
     OCAMLPACKS[] = $(BENCHMARKS_PACKAGES)
 
-    %.ml: ../lib/biocaml.cma
+    %.ml: ../lib/$(PROJECT).cma
 
     benchmarks: $(OCamlProgram $(BENCHMARKS_NAME), $(BENCHMARKS_MODULES))
 
     if $(COMPILE_BENCHMARKS)
-      echo "conf: Building biocaml benchmarks"
+      echo "conf: Building $(PROJECT) benchmarks"
       .DEFAULT: benchmarks
 
 
@@ -358,12 +329,12 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
     OCAMLINCLUDES += $(dir ../lib/) +ocamldoc +compiler-libs
     OCAMLPACKS[] = $(ODOC_PACKAGES)
 
-    %.ml: ../lib/biocaml.cma
+    %.ml: ../lib/$(PROJECT).cma
 
-    biocaml_odoc.cmxs: biohtml.ml
+    $(PROJECT)_odoc.cmxs: biohtml.ml
       ocamlfind ocamlopt -shared $^ -o $@ -I +ocamldoc -I +compiler-libs
 
-    odoc: biocaml_odoc.cmxs $(OCamlLibrary $(ODOC_NAME), biohtml)
+    odoc: $(PROJECT)_odoc.cmxs $(OCamlLibrary $(ODOC_NAME), biohtml)
 
     .DEFAULT: odoc
 
@@ -381,23 +352,23 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
         echo 'Git commit: {i $(GIT_COMMIT)}' >> $@
 
 
-    api/index.html: biocaml.css \
+    api/index.html: $(PROJECT).css \
                     $(addprefix img/, $(IMAGES)) \
                     index.txt \
                     ../odoc/$(ODOC_NAME).cma \
                     ../lib/$(LIB_NAME).cma
       rm -rf api
       mkdir api
-      cp biocaml.css api/
+      cp $(PROJECT).css api/
       cp img/* api/
       ocamlfind ocamldoc \
         -g ../odoc/$(ODOC_NAME).cma \
-        -css-style biocaml.css \
+        -css-style $(PROJECT).css \
         -syntax camlp4o \
         -package $(concat \,, $(ODOC_PACKAGES)) \
         -charset UTF-8 \
         -d api \
-        -t "Biocaml $(VERSION)" \
+        -t "$(capitalize $(PROJECT)) $(VERSION)" \
         -keep-code \
         -colorize-code \
         -sort \
@@ -408,25 +379,6 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
 
     doc: odoc api/index.html
 
-  install_doc: doc
-    echo "Installing documentation in $(DOCDIR)"
-    rm -rf $(DOCDIR)
-    mkdir -p $(DOCDIR)
-    cp -r _build/doc/api $(DOCDIR)
-
-
-################################################################################
-# OPAM Support
-if $(not $(defined OPAM_PACKAGE_NAME))
-  OPAM_PACKAGE_NAME = $(PROJECT)
-  export
-
-$(OPAM_PACKAGE_NAME).install:
-  echo $"bin: [" > $@
-  echo "  "\"?_build/app/$(APP_NAME).run\" {\"$(APP_NAME)\"} >> $@
-  echo "  "\"?_build/app/$(APP_NAME).opt\" {\"$(APP_NAME)\"} >> $@
-  echo $"]" >> $@
-
 
 ################################################################################
 # OTAGS Support
@@ -436,3 +388,88 @@ TAGS_LINK=-pa pa_type_conv.cma -pa pa_sexp_conv.cma
 TAGS_SOURCES=$(shell find src -name "*.ml")
 TAGS:
   otags $(TAGS_INCLUDE) $(TAGS_LINK) -o TAGS $(TAGS_SOURCES)
+
+
+################################################################################
+# Install and Uninstall
+# - libraries, app, and doc
+# - support for findlib and OPAM
+
+if $(not $(defined OPAM_PACKAGE_NAME))
+  OPAM_PACKAGE_NAME = $(PROJECT)
+  export
+
+_build/META:
+  echo "description = \"$(DESCRIPTION)\"" > $@
+  echo "version = \"$(VERSION)\"" >> $@
+  echo "requires = \"$(LIB_PACKAGES)\"" >> $@
+  echo "archive(byte) = \"$(LIB_NAME).cma\"" >> $@
+  echo "archive(native) = \"$(LIB_NAME).cmxa\"" >> $@
+  echo "exists_if = \"$(LIB_NAME).cma\"" >> $@
+  echo "" >> $@
+  echo "package \"ez\" (" >> $@
+  echo "  description = \"$(DESCRIPTION)\"" >> $@
+  echo "  version = \"$(VERSION)\"" >> $@
+  echo "  requires = \"$(LIB_EZ_PACKAGES)\"" >> $@
+  echo "  archive(byte) = \"$(LIB_EZ_NAME).cma\"" >> $@
+  echo "  archive(native) = \"$(LIB_EZ_NAME).cmxa\"" >> $@
+  echo "  exists_if = \"$(LIB_EZ_NAME).cma\"" >> $@
+  echo ")" >> $@
+  echo "" >> $@
+  echo "package \"lwt\" (" >> $@
+  echo "  description = \"$(DESCRIPTION)\"" >> $@
+  echo "  version = \"$(VERSION)\"" >> $@
+  echo "  requires = \"$(LIB_LWT_PACKAGES)\"" >> $@
+  echo "  archive(byte) = \"$(LIB_LWT_NAME).cma\"" >> $@
+  echo "  archive(native) = \"$(LIB_LWT_NAME).cmxa\"" >> $@
+  echo "  exists_if = \"$(LIB_LWT_NAME).cma\"" >> $@
+  echo ")" >> $@
+  echo "" >> $@
+  echo "package \"async\" (" >> $@
+  echo "  description = \"$(DESCRIPTION)\"" >> $@
+  echo "  version = \"$(VERSION)\"" >> $@
+  echo "  requires = \"$(LIB_ASYNC_PACKAGES)\"" >> $@
+  echo "  archive(byte) = \"$(LIB_ASYNC_NAME).cma\"" >> $@
+  echo "  archive(native) = \"$(LIB_ASYNC_NAME).cmxa\"" >> $@
+  echo "  exists_if = \"$(LIB_ASYNC_NAME).cma\"" >> $@
+  echo ")" >> $@
+
+install_lib: uninstall_lib _build/META
+  ocamlfind install $(PROJECT) \
+    _build/META \
+    _build/lib/$(PROJECT).a \
+    _build/lib/$(PROJECT).cm[aix] \
+    _build/lib/$(PROJECT).cmx[as] \
+    _build/lib/$(PROJECT).ml \
+    _build/lib/$(PROJECT)_*.mli \
+    -optional \
+      _build/lib_{ez,lwt,async}/$(PROJECT)_*.a \
+      _build/lib_{ez,lwt,async}/$(PROJECT)_*.cm[aix] \
+      _build/lib_{ez,lwt,async}/$(PROJECT)_*.cmx[as] \
+      _build/lib_{ez,lwt,async}/$(PROJECT)_*.ml
+
+uninstall_lib:
+  ocamlfind remove $(PROJECT)
+
+if $(COMPILE_APP)
+  install_app: _build/app/$(APP_NAME)
+    echo "Installing $< in $(BINDIR)"
+    mkdir -p $(BINDIR)
+    cp -f _build/app/$(APP_NAME).run $(BINDIR)/$(APP_NAME)
+    cp -f _build/app/$(APP_NAME).opt $(BINDIR)/$(APP_NAME)
+
+uninstall_app:
+  echo "Removing $(APP_NAME) from $(BINDIR)"
+  rm -f $(BINDIR)/$(APP_NAME)
+
+install_doc: doc
+  echo "Installing documentation in $(DOCDIR)"
+  rm -rf $(DOCDIR)
+  mkdir -p $(DOCDIR)
+  cp -r _build/doc/api $(DOCDIR)
+
+$(OPAM_PACKAGE_NAME).install:
+  echo $"bin: [" > $@
+  echo "  "\"?_build/app/$(APP_NAME).run\" {\"$(APP_NAME)\"} >> $@
+  echo "  "\"?_build/app/$(APP_NAME).opt\" {\"$(APP_NAME)\"} >> $@
+  echo $"]" >> $@
