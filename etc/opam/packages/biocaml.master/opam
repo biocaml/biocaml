@@ -3,7 +3,7 @@ maintainer: "biocaml@googlegroups.com"
 homepage: "http://biocaml.org"
 
 build: [
-  ["omake" "-j2"
+  ["omake" "-j%{jobs}%"
      "PREFIX=%{prefix}%"
      "COMPILE_LIB_LWT=%{lwt:installed}%"
      "COMPILE_LIB_ASYNC=%{async:installed}%"
@@ -35,6 +35,6 @@ depopts: ["flow" "lwt" "async"]
 ocaml-version: [ >= "4.01.0" ]
 
 build-doc: [
-  ["omake" "-j2" "doc"]
+  ["omake" "-j%{jobs}%" "doc"]
   ["omake" "install_doc" "DOCDIR=%{doc}%/biocaml"]
 ]
