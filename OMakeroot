@@ -437,16 +437,17 @@ _build/META:
 install_lib: uninstall_lib _build/META
   ocamlfind install $(PROJECT) \
     _build/META \
-    _build/lib/$(PROJECT).a \
-    _build/lib/$(PROJECT).cm[aix] \
-    _build/lib/$(PROJECT).cmx[as] \
-    _build/lib/$(PROJECT).ml \
-    _build/lib/$(PROJECT)_*.mli \
     -optional \
-      _build/lib_{ez,lwt,async}/$(PROJECT)_*.a \
-      _build/lib_{ez,lwt,async}/$(PROJECT)_*.cm[aix] \
-      _build/lib_{ez,lwt,async}/$(PROJECT)_*.cmx[as] \
-      _build/lib_{ez,lwt,async}/$(PROJECT)_*.ml
+      _build/lib/*.[ao] \
+      _build/lib/*.cm[aiox] \
+      _build/lib/*.cmx[as] \
+      _build/lib/$(PROJECT).ml \
+      _build/lib/*.mli \
+      _build/lib_{ez,lwt,async}/*.[ao] \
+      _build/lib_{ez,lwt,async}/*.cm[aiox] \
+      _build/lib_{ez,lwt,async}/*.cmx[as] \
+      _build/lib_{ez,lwt,async}/$(PROJECT)_*.ml \
+      -dll _build/lib/*.so
 
 uninstall_lib:
   ocamlfind remove $(PROJECT)
