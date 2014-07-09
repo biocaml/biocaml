@@ -1,4 +1,5 @@
 
+(*
 open Core.Std
 open Flow
 open Biocaml_app_common
@@ -157,3 +158,4 @@ let command =
       ("extract-wig", cmd_extract_wig);
     ])
 
+  *)

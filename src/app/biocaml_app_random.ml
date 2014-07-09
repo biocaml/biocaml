@@ -1,3 +1,4 @@
+(*
 open Core.Std
 open Flow
 open Biocaml_app_common
@@ -473,3 +474,4 @@ let command =
     ++ uses_lwt ()
   in
   basic ~summary:"Generate random files" spec do_random
+  *)

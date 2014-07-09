@@ -1,4 +1,28 @@
+open Core.Std
+open Async.Std
 
+
+
+let () =
+  let version =
+    sprintf "%s%s"
+      Biocaml_about.version
+      (Option.value_map Biocaml_about.git_commit ~default:"" ~f:(sprintf "+%s"))
+  in
+  Command.async_basic
+    ~summary:"Say bouh"
+    Command.Spec.(
+      empty
+      +> flag "-uppercase" no_arg
+        ~doc:" Convert to uppercase"
+    )
+    (fun uppercase () -> 
+       let message = if uppercase then "BOUH!" else "bouh!" in
+       printf "%s\n%!" message;
+       return ())
+  |> Command.run ~version
+
+(*
 open Core.Std
 open Flow
 open Biocaml_app_common
@@ -62,4 +86,4 @@ let () =
       eprintf "ERROR: %s\n%!" s
     end
   )
-
+*)

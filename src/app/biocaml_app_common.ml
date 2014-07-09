@@ -1,6 +1,7 @@
 (** This module is a “standard library” for all the components of the
 [biocaml] command line application *)
 
+(*
 open Core.Std
 open Biocaml_internal_utils
 open Flow
@@ -658,3 +659,4 @@ let file_to_two_files ~input t ~output_left ~output_right =
     ~mixer:Transform.(compose_result_left t tuple_to_queue
                       |> on_input ~f:List.hd_exn)
     [output_left; output_right]
+  *)

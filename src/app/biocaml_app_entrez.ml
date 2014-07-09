@@ -1,4 +1,5 @@
 
+(*
 open Core.Std
 open Flow
 open Biocaml_app_common
@@ -121,4 +122,4 @@ let command =
          )
          (fun l -> gene l >>= (fun o -> return (Ok o))));
     ])
-
+*)

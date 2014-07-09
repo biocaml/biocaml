@@ -1,4 +1,5 @@
 
+(*
 open Core.Std
 open Flow
 open Biocaml_app_common
@@ -415,3 +416,4 @@ let command =
           Say.problem "Expecting either -help, -manual, or -output-tags"
           >>< fun _ -> return ()
         end)
+  *)
