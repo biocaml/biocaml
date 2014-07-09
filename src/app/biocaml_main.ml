@@ -1,7 +1,31 @@
 open Core.Std
 open Async.Std
+open Biocaml_async
 
-
+let dump_sam = 
+  Command.async_basic
+    ~summary:"Dump SAM file"
+    Command.Spec.(
+      Biocaml_app_common.Command_line.global_input_buffer_size_flag ()
+      +> flag "-pretty" no_arg
+        ~doc:" Convert to uppercase"
+      +> anon (sequence ("INPUT-FILE:tag-definition" %: string))
+    )
+    (fun pretty input_files () -> 
+       Deferred.List.iter ~how:`Sequential input_files ~f:(fun input_file ->
+           let buf_len =
+             !Biocaml_app_common.Global_configuration.input_buffer_size in
+           Reader.with_file ~buf_len input_file ~f:(fun reader ->
+               let pipe = Sam.read reader in
+               Pipe.iter pipe ~f:(fun sam_item_or_error ->
+                   let sexp_str = 
+                     Or_error.sexp_of_t Sam.sexp_of_item sam_item_or_error
+                     |> (if pretty then Sexp.to_string_hum ~indent:4
+                         else Sexp.to_string)
+                   in
+                   printf "%s%s" sexp_str 
+                     (if pretty then "\n" ^ String.make 80 ';' ^ "\n" else "");
+                   return ()))))
 
 let () =
   let version =
@@ -9,18 +33,13 @@ let () =
       Biocaml_about.version
       (Option.value_map Biocaml_about.git_commit ~default:"" ~f:(sprintf "+%s"))
   in
-  Command.async_basic
-    ~summary:"Say bouh"
-    Command.Spec.(
-      empty
-      +> flag "-uppercase" no_arg
-        ~doc:" Convert to uppercase"
-    )
-    (fun uppercase () -> 
-       let message = if uppercase then "BOUH!" else "bouh!" in
-       printf "%s\n%!" message;
-       return ())
-  |> Command.run ~version
+  let open Command in
+  let whole_thing =
+    group ~summary:"Biocaml's command-line application" [
+      (* ("transform", Biocaml_app_transform.command); *)
+      ("dump-sam", dump_sam);
+    ] in
+  run ~version whole_thing
 
 (*
 open Core.Std

@@ -1,6 +1,71 @@
 (** This module is a “standard library” for all the components of the
 [biocaml] command line application *)
 
+open Core.Std
+open Async.Std
+open Biocaml_async
+
+module Global_configuration = struct
+  (** This module contains global configuration variables and their
+     usage/access functions. *)
+
+  (** [input_buffer_size] and [output_buffer_size] are the
+     buffer-sizes used for [Lwt] channels.
+
+     In the future we may make more distinctions:
+     - possible different buffer-sizes for different files
+     - use these numbers for the Lwt-channels creations but have a
+       different configuration variable for the calls to
+       [Lwt_io.read].
+  *)
+  let default_output_buffer_size = 64_000
+  let default_input_buffer_size = 64_000
+  let output_buffer_size = ref default_output_buffer_size
+  let input_buffer_size = ref default_input_buffer_size
+
+end
+
+
+module Command_line = struct
+  (** This module provides a few predefined command-line flags. *)
+
+  (** Add the [-input-buffer] size flag to the CL. It configures
+     [Global_configuration.input_buffer_size]. *)
+  let global_input_buffer_size_flag () =
+    Command.Spec.(
+      step (fun k v ->
+        Option.iter v (fun v ->
+          Global_configuration.input_buffer_size := v);
+        k)
+      +> flag "input-buffer" ~aliases:["ib"] (optional int)
+        ~doc:(sprintf
+            "<int> set the input buffer size\n(default: %d)"
+            Global_configuration.default_input_buffer_size)
+    )
+
+  (** Like [input_buffer_size_flag] but for the output-buffers. *)
+  let global_output_buffer_size_flag () =
+    Command.Spec.(
+      step (fun k v ->
+          Option.iter v (fun v ->
+              Global_configuration.output_buffer_size := v);
+          k)
+      +> flag "output-buffer" ~aliases:["ob"] (optional int)
+        ~doc:(sprintf
+                "<int> set the output buffer size\n(default: %d)"
+                Global_configuration.default_output_buffer_size)
+    )
+
+  (** Add flags relevant for file-to-file conversions. *)
+  let file_to_file_global_configuration_flags () =
+    Command.Spec.(
+      empty
+      ++ global_input_buffer_size_flag ()
+      ++ global_output_buffer_size_flag ()
+    )
+
+end
+
 (*
 open Core.Std
 open Biocaml_internal_utils
