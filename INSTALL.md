@@ -75,6 +75,15 @@ running
 
     omake TAGS
 
+## Merlin
+
+One can generate a `.merlin` file with the following command:
+
+    omake merlinize
+
+See [`the-lambda-church/merlin`](https://github.com/the-lambda-church/merlin)
+for usage instructions on Merlin itself.
+
 
 ## Tests
 Compile tests by doing

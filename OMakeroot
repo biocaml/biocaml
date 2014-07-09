@@ -5,7 +5,7 @@ DefineCommandVars()
         install_lib install_app install_doc \
         uninstall_lib uninstall_app \
         clean distclean \
-        print_config
+        print_config merlinize
 
 clean:
   rm -rf _build
@@ -199,6 +199,27 @@ public.OCamlLibraryWithCFiles(name, files, c_files) =
              $(if $(BYTE_ENABLED), $(BYTELIB)) \
           )
 
+merlinize: .merlin
+
+.merlin:
+  rm -f .merlin
+  echo 'S ./src/app/' >> .merlin
+  echo 'S ./src/lib/' >> .merlin
+  echo 'S ./src/lib_async/' >> .merlin
+  echo 'S ./src/lib_lwt/' >> .merlin
+  echo 'S ./src/lib_ez/' >> .merlin
+  echo 'S ./src/tests/' >> .merlin
+  echo 'B _build/app/' >> .merlin
+  echo 'B _build/benchmarks' >> .merlin
+  echo 'B _build/lib' >> .merlin
+  echo 'B _build/lib_async' >> .merlin
+  echo 'B _build/lib_ez' >> .merlin
+  echo 'B _build/lib_lwt' >> .merlin
+  echo 'B _build/tests' >> .merlin
+  foreach(m => ..., $(LIB_ASYNC_PACKAGES))
+    echo "PKG $(m)" >> .merlin
+  foreach(m => ..., $(LIB_LWT_PACKAGES))
+    echo "PKG $(m)" >> .merlin
 
 ################################################################################
 # Sub-directories
