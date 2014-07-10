@@ -431,7 +431,7 @@ _build/META:
   echo "package \"ez\" (" >> $@
   echo "  description = \"$(DESCRIPTION)\"" >> $@
   echo "  version = \"$(VERSION)\"" >> $@
-  echo "  requires = \"$(LIB_EZ_PACKAGES)\"" >> $@
+  echo "  requires = \"$(LIB_EZ_PACKAGES) $(PROJECT)\"" >> $@
   echo "  archive(byte) = \"$(LIB_EZ_NAME).cma\"" >> $@
   echo "  archive(native) = \"$(LIB_EZ_NAME).cmxa\"" >> $@
   echo "  exists_if = \"$(LIB_EZ_NAME).cma\"" >> $@
@@ -440,7 +440,7 @@ _build/META:
   echo "package \"lwt\" (" >> $@
   echo "  description = \"$(DESCRIPTION)\"" >> $@
   echo "  version = \"$(VERSION)\"" >> $@
-  echo "  requires = \"$(LIB_LWT_PACKAGES)\"" >> $@
+  echo "  requires = \"$(LIB_LWT_PACKAGES) $(PROJECT)\"" >> $@
   echo "  archive(byte) = \"$(LIB_LWT_NAME).cma\"" >> $@
   echo "  archive(native) = \"$(LIB_LWT_NAME).cmxa\"" >> $@
   echo "  exists_if = \"$(LIB_LWT_NAME).cma\"" >> $@
@@ -449,7 +449,7 @@ _build/META:
   echo "package \"async\" (" >> $@
   echo "  description = \"$(DESCRIPTION)\"" >> $@
   echo "  version = \"$(VERSION)\"" >> $@
-  echo "  requires = \"$(LIB_ASYNC_PACKAGES)\"" >> $@
+  echo "  requires = \"$(LIB_ASYNC_PACKAGES) $(PROJECT)\"" >> $@
   echo "  archive(byte) = \"$(LIB_ASYNC_NAME).cma\"" >> $@
   echo "  archive(native) = \"$(LIB_ASYNC_NAME).cmxa\"" >> $@
   echo "  exists_if = \"$(LIB_ASYNC_NAME).cma\"" >> $@
