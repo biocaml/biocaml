@@ -79,6 +79,16 @@ type header_item = [
 | `Other of string * tag_value list
 ] with sexp
 
+type header = {
+  version : string option;
+  sort_order : sort_order option;
+  ref_seqs : ref_seq list;
+  read_groups : read_group list;
+  programs : program list;
+  comments : string list;
+  others : (string * tag_value list) list;
+}
+
 
 (******************************************************************************)
 (* Alignment Types                                                            *)
@@ -165,21 +175,23 @@ type item = [
 (******************************************************************************)
 (* Header Parsers and Constructors                                            *)
 (******************************************************************************)
-let header_line ~version ?sort_order () =
+let parse_header_version s =
   let err =
-    error "invalid version" (`HD, version)
+    error "invalid version" (`HD, s)
     <:sexp_of< header_item_tag * string >>
   in
-  (match String.lsplit2 ~on:'.' version with
+  match String.lsplit2 ~on:'.' s with
   | None -> err
   | Some (a,b) ->
     if (String.for_all a ~f:Char.is_digit)
       && (String.for_all b ~f:Char.is_digit)
     then
-      Ok version
+      Ok s
     else
       err
-  ) >>| fun version ->
+
+let header_line ~version ?sort_order () =
+  parse_header_version version >>| fun version ->
   {version; sort_order}
 
 let ref_seq
@@ -252,6 +264,47 @@ let read_group
     library; program; predicted_median_insert_size;
     platform; platform_unit; sample;
   }
+
+
+let header
+    ?version ?sort_order ?(ref_seqs=[]) ?(read_groups=[])
+    ?(programs=[]) ?(comments=[]) ?(others=[])
+    ()
+    =
+  [
+    (
+      match version with
+      | None -> None
+      | Some x -> match parse_header_version x with
+        | Error e -> Some e
+        | Ok _ -> None
+    );
+    (
+      if Option.is_some sort_order && (version = None) then
+        Some (Error.create
+                "sort order cannot be defined without version"
+                (sort_order, version)
+                <:sexp_of< sort_order option * string option >>
+        )
+      else
+        None
+    );
+    (
+      List.map ref_seqs ~f:(fun (x:ref_seq) -> x.name)
+      |> List.find_a_dup
+      |> Option.map ~f:(fun name ->
+         Error.create "duplicate ref seq name" name sexp_of_string
+      )
+    );
+  ]
+  |> List.filter_map ~f:Fn.id
+  |> function
+     | [] -> Ok {
+       version; sort_order; ref_seqs; read_groups;
+       programs; comments; others;
+     }
+     | errs -> Error (Error.of_list errs)
+
 
 let parse_header_item_tag s =
   let is_letter = function 'A' .. 'Z' | 'a' .. 'z' -> true | _ -> false in
@@ -688,6 +741,62 @@ module MakeIO(Future : Future.S) = struct
   module Lines = Biocaml_lines.MakeIO(Future)
 
   let read ?(start=Pos.(incr_line unknown)) r =
+    let init_hdr = {
+      version = None;
+      sort_order = None;
+      ref_seqs = [];
+      read_groups = [];
+      programs = [];
+      comments = [];
+      others = [];
+    }
+    in
+    let lines = Pipe.map (Lines.read r) ~f:parse_item in
+    let rec loop hdr : header Or_error.t Deferred.t =
+      Pipe.peek_deferred lines >>= (function
+      | `Ok (Error _ as e) -> return e
+      | `Eof
+      | `Ok (Ok (`Alignment _)) -> return (Ok hdr)
+      | `Ok (Ok (`Header_item x)) ->
+        Pipe.junk lines >>= fun () -> match x with
+        | `HD ({version; sort_order} : header_line) -> (
+          match hdr.version with
+          | Some _ ->
+            return (Or_error.error_string "multiple @HD lines not allowed")
+          | None ->
+            loop {hdr with version = Some version; sort_order}
+        )
+        | `SQ x -> loop {hdr with ref_seqs = x::hdr.ref_seqs}
+        | `RG x -> loop {hdr with read_groups = x::hdr.read_groups}
+        | `PG x -> loop {hdr with programs = x::hdr.programs}
+        | `CO x -> loop {hdr with comments = x::hdr.comments}
+        | `Other x -> loop {hdr with others = x::hdr.others}
+      )
+    in
+    loop init_hdr >>= function
+    | Error _ as e -> return e
+    | Ok {version; sort_order; ref_seqs; read_groups; programs; comments} ->
+      header ?version ?sort_order ~ref_seqs ~read_groups ~programs ~comments ()
+      |> function
+         | Error _ as e -> return e
+         | Ok hdr ->
+           let alignments = Pipe.map lines ~f:(function
+             | Error _ as e -> e
+             | Ok (`Alignment x) -> Ok x
+             | Ok (`Header_item _) ->
+               Or_error.error_string
+                 "header line occurs after start of alignments"
+           )
+           in
+           return (Ok (hdr, alignments))
+
+
+  let read_file ?buf_len file =
+    let start = Pos.make ~source:file ~line:1 () in
+    Reader.open_file ?buf_len file >>= (read ~start)
+
+
+  let read_items ?(start=Pos.(incr_line unknown)) r =
     let pos = ref start in
     Lines.read r
     |> Pipe.map ~f:(fun line ->
@@ -699,9 +808,9 @@ module MakeIO(Future : Future.S) = struct
       item
     )
 
-  let read_file ?buf_len file =
+  let read_items_file ?buf_len file =
     let start = Pos.make ~source:file ~line:1 () in
-    Reader.open_file ?buf_len file >>| (read ~start)
+    Reader.open_file ?buf_len file >>| (read_items ~start)
 
 end
 include MakeIO(Future_std)

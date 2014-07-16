@@ -85,6 +85,27 @@ type header_item = private [>
 | `Other of string * tag_value list
 ] with sexp
 
+(**
+   - [sort_order]: Guaranteed to be [None] if [version = None].
+
+   - [ref_seqs]: List of @SQ items. Order matters.
+
+   - [read_groups]: Unordered list of @RG items.
+
+   - [programs]: List of @PG lines. Currently unordered, but we should
+   topologically sort.
+
+   - [comments]: Unordered list of @CO lines.
+*)
+type header = private {
+  version : string option;
+  sort_order : sort_order option;
+  ref_seqs : ref_seq list;
+  read_groups : read_group list;
+  programs : program list;
+  comments : string list;
+  others : (string * tag_value list) list;
+}
 
 
 (******************************************************************************)
@@ -180,9 +201,20 @@ type item = [
 module MakeIO (Future : Future.S) : sig
   open Future
 
-  val read : ?start:Pos.t -> Reader.t -> item Or_error.t Pipe.Reader.t
+  val read
+    :  ?start:Pos.t
+    -> Reader.t
+    -> (header * alignment Or_error.t Pipe.Reader.t) Or_error.t Deferred.t
 
   val read_file
+    : ?buf_len:int
+    -> string
+    -> (header * alignment Or_error.t Pipe.Reader.t) Or_error.t Deferred.t
+
+
+  val read_items : ?start:Pos.t -> Reader.t -> item Or_error.t Pipe.Reader.t
+
+  val read_items_file
     : ?buf_len:int
     -> string
     -> item Or_error.t Pipe.Reader.t Deferred.t
@@ -231,8 +263,20 @@ val read_group
   -> unit
   -> read_group Or_error.t
 
+val header
+   : ?version:string
+  -> ?sort_order:sort_order
+  -> ?ref_seqs : ref_seq list
+  -> ?read_groups : read_group list
+  -> ?programs : program list
+  -> ?comments : string list
+  -> ?others : (string * tag_value list) list
+  -> unit
+  -> header Or_error.t
+
 val parse_header_item_tag : string -> header_item_tag Or_error.t
 val parse_tag_value : string -> tag_value Or_error.t
+val parse_header_version : string -> string Or_error.t
 val parse_sort_order : string -> sort_order Or_error.t
 val parse_header_line : tag_value list -> header_line Or_error.t
 val parse_ref_seq : tag_value list -> ref_seq Or_error.t

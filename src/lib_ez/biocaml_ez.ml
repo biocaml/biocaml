@@ -35,10 +35,18 @@ module Sam = struct
   include Biocaml_sam
 
   let read ?start ic =
-    read ?start ic |> Pipe.map ~f:ok_exn
+    (read ?start ic >>| ok_exn) >>= fun (hdr, pipe_r) ->
+    hdr, Pipe.map pipe_r ~f:ok_exn
 
   let read_file ?buf_len file =
-    read_file ?buf_len file >>| fun pipe_r ->
+    (read_file ?buf_len file >>| ok_exn) >>= fun (hdr, pipe_r) ->
+    hdr, Pipe.map pipe_r ~f:ok_exn
+
+  let read_items ?start ic =
+    read_items ?start ic |> Pipe.map ~f:ok_exn
+
+  let read_items_file ?buf_len file =
+    read_items_file ?buf_len file >>| fun pipe_r ->
     Pipe.map pipe_r ~f:ok_exn
 
 end
