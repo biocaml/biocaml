@@ -103,3 +103,9 @@ module Debug = struct
 
 
 end
+
+let compare_of_list ?(equal = (=)) l =
+  fun a b ->
+    let i,_ = Option.value_exn (List.findi l ~f:(fun _ a' -> equal a a')) in
+    let j,_ = Option.value_exn (List.findi l ~f:(fun _ b' -> equal b b')) in
+    Int.compare i j

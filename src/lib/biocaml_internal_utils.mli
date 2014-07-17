@@ -66,3 +66,11 @@ module Debug: sig
   val make : string -> ('a, unit, string, unit) format4 -> 'a
 
 end
+
+(** [compare_of_list l] returns a comparison function that defines [a
+    < b] if [a] comes before [b] in [l]. The returned function will
+    raise an exception if it is applied to any element not in [l]. *)
+val compare_of_list
+  :  ?equal:('a -> 'a -> bool)
+  -> 'a list
+  -> ('a -> 'a -> int)
