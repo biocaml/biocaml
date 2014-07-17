@@ -770,6 +770,175 @@ let parse_alignment ?ref_seqs line =
 
 
 (******************************************************************************)
+(* Header Printers                                                            *)
+(******************************************************************************)
+let print_header_item_tag = function
+  | `HD -> "@HD"
+  | `SQ -> "@SQ"
+  | `RG -> "@RG"
+  | `PG -> "@PG"
+  | `CO -> "@CO"
+  | `Other x -> sprintf "@%s" x
+
+let print_tag_value (tag,value) = sprintf "%s:%s" tag value
+let print_tag_value' = sprintf "%s:%s"
+
+let print_header_version x = print_tag_value' "VN" x
+
+let print_sort_order x =
+  print_tag_value' "SO"
+    (match x with
+    | `Unknown -> "unknown"
+    | `Unsorted -> "unsorted"
+    | `Query_name -> "queryname"
+    | `Coordinate -> "coordinate"
+    )
+
+let print_header_line ({version; sort_order} : header_line) =
+  sprintf "@HD\tVN:%s%s"
+    version
+    (match sort_order with
+    | None -> ""
+    | Some x -> sprintf "\t%s" (print_sort_order x)
+    )
+
+let print_ref_seq (x:ref_seq) =
+  sprintf "@SQ\tSN:%s\tLN:%d%s%s%s%s"
+    x.name
+    x.length
+    (match x.assembly with None -> "" | Some x -> sprintf "\tAS:%s" x)
+    (match x.md5 with None -> "" | Some x -> sprintf "\tM5:%s" x)
+    (match x.species with None -> "" | Some x -> sprintf "\tSP:%s" x)
+    (match x.uri with None -> "" | Some x -> sprintf "\tUR:%s" x)
+
+let print_platform = function
+  | `Capillary -> "CAPILLARY"
+  | `LS454 -> "LS454"
+  | `Illumina -> "ILLUMINA"
+  | `Solid -> "SOLID"
+  | `Helicos -> "HELICOS"
+  | `Ion_Torrent -> "IONTORRENT"
+  | `Pac_Bio -> "PACBIO"
+
+let print_read_group (x:read_group) =
+  let s tag value = match value with
+    |  None -> ""
+    | Some x -> sprintf "\t%s:%s" tag x
+  in
+  sprintf "@RG\tID:%s%s%s%s%s%s%s%s%s%s%s%s"
+    x.id
+    (s "CN" x.seq_center)
+    (s "DS" x.description)
+    (s "DT" (Option.map x.run_date
+               ~f:(function
+               | `Date x -> Date.to_string x
+               | `Time x -> Time.to_string x) )
+    )
+    (s "FO" x.flow_order)
+    (s "KS" x.key_seq)
+    (s "LB" x.library)
+    (s "PG" x.program)
+    (s "PI" (Option.map x.predicted_median_insert_size ~f:Int.to_string))
+    (s "PL" (Option.map x.platform ~f:print_platform))
+    (s "PU" x.platform_unit)
+    (s "SM" x.sample)
+
+let print_program (x:program) =
+  let s tag value = match value with
+    |  None -> ""
+    | Some x -> sprintf "\t%s:%s" tag x
+  in
+  sprintf "@PG\tID:%s%s%s%s%s%s"
+    x.id
+    (s "PN" x.name)
+    (s "CL" x.command_line)
+    (s "PP" x.previous_id)
+    (s "DS" x.description)
+    (s "VN" x.version)
+
+let print_other ((tag,l) : string * tag_value list) =
+  sprintf "@%s%s"
+    tag
+    (
+      List.map l ~f:(fun (x,y) -> sprintf "\t%s:%s" x y)
+      |> String.concat ~sep:""
+    )
+
+
+(******************************************************************************)
+(* Alignment Printers                                                         *)
+(******************************************************************************)
+let print_qname = function Some x -> x | None -> "*"
+let print_flags = Int.to_string
+let print_rname = function Some x -> x | None -> "*"
+let print_pos = function Some x -> Int.to_string x | None -> "0"
+let print_mapq = function Some x -> Int.to_string x | None -> "255"
+
+let print_cigar_op = function
+  | `Alignment_match x -> sprintf "%dM" x
+  | `Insertion x -> sprintf "%dI" x
+  | `Deletion x -> sprintf "%dD" x
+  | `Skipped x -> sprintf "%dN" x
+  | `Soft_clipping x -> sprintf "%dS" x
+  | `Hard_clipping x -> sprintf "%dH" x
+  | `Padding x -> sprintf "%dP" x
+  | `Seq_match x -> sprintf "%d=" x
+  | `Seq_mismatch x -> sprintf "%dX" x
+
+let print_cigar = function
+  | [] -> "*"
+  | cigar_ops ->
+    List.map cigar_ops ~f:print_cigar_op
+    |> String.concat ~sep:""
+
+let print_rnext = function
+  | None -> "*"
+  | Some `Equal_to_RNAME -> "="
+  | Some (`Value x) -> x
+
+let print_pnext = function Some x -> Int.to_string x | None -> "0"
+let print_tlen = function Some x -> Int.to_string x | None -> "0"
+let print_seq = function Some x -> x | None -> "*"
+
+let print_qual = function
+  | [] -> "*"
+  | quals ->
+    List.map quals ~f:(fun x ->
+      ok_exn (Phred_score.to_char ~offset:`Offset33 x)
+    )
+    |> String.of_char_list
+
+let print_optional_field (x:optional_field) =
+  let typ,value = match x.value with
+    | `A x -> 'A', x
+    | `i x -> 'i', Int32.to_string x
+    | `f x -> 'f', Float.to_string x
+    | `Z x -> 'Z', x
+    | `H x -> 'H', x
+    | `B (c,l) -> 'B', (String.concat ~sep:"," ((String.of_char c)::l))
+  in
+  sprintf "%s:%c:%s" x.tag typ value
+
+let print_alignment a =
+  sprintf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
+    (print_qname a.qname)
+    (print_flags a.flags)
+    (print_rname a.rname)
+    (print_pos a.pos)
+    (print_mapq a.mapq)
+    (print_cigar a.cigar)
+    (print_rnext a.rnext)
+    (print_pnext a.pnext)
+    (print_tlen a.tlen)
+    (print_seq a.seq)
+    (print_qual a.qual)
+    (
+      List.map a.optional_fields ~f:print_optional_field
+      |> String.concat ~sep:"\t"
+    )
+
+
+(******************************************************************************)
 (* Input/Output                                                               *)
 (******************************************************************************)
 module MakeIO(Future : Future.S) = struct
@@ -852,6 +1021,44 @@ module MakeIO(Future : Future.S) = struct
   let read_file ?buf_len file =
     let start = Pos.make ~source:file ~line:1 () in
     Reader.open_file ?buf_len file >>= (read ~start)
+
+  let write_header w (h:header) =
+    let open Writer in
+    (match h.version with
+    | None -> Deferred.unit
+    | Some version ->
+      write_line w (print_header_line {version; sort_order=h.sort_order})
+    ) >>= fun () ->
+    Deferred.List.iter h.ref_seqs ~f:(fun x ->
+      write_line w (print_ref_seq x)
+    ) >>= fun () ->
+    Deferred.List.iter h.read_groups ~f:(fun x ->
+      write_line w (print_read_group x)
+    ) >>= fun () ->
+    Deferred.List.iter h.programs ~f:(fun x ->
+      write_line w (print_program x)
+    ) >>= fun () ->
+    Deferred.List.iter h.comments ~f:(fun x ->
+      write w "@CO\t" >>= fun () ->
+      write_line w x
+    ) >>= fun () ->
+    Deferred.List.iter h.others ~f:(fun x ->
+      write_line w (print_other x)
+    )
+
+  let write w ?header alignments =
+    (match header with
+    | None -> Deferred.unit
+    | Some header -> write_header w header
+    ) >>= fun () ->
+    Pipe.iter alignments ~f:(fun a ->
+      Writer.write_line w (print_alignment a)
+    )
+
+  let write_file ?perm ?append file ?header alignments =
+    Writer.with_file ?perm ?append file ~f:(fun w ->
+      write w ?header alignments
+    )
 
 end
 include MakeIO(Future_std)

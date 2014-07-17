@@ -203,6 +203,20 @@ module MakeIO (Future : Future.S) : sig
     -> string
     -> (header * alignment Or_error.t Pipe.Reader.t) Or_error.t Deferred.t
 
+  val write
+    :  Writer.t
+    -> ?header:header
+    -> alignment Pipe.Reader.t
+    -> unit Deferred.t
+
+  val write_file
+    :  ?perm:int
+    -> ?append:bool
+    -> string
+    -> ?header:header
+    -> alignment Pipe.Reader.t
+    -> unit Deferred.t
+
 end
 include module type of MakeIO(Future_std)
 
@@ -210,6 +224,9 @@ include module type of MakeIO(Future_std)
 
 (******************************************************************************)
 (** {2 Low-level Parsers and Constructors} *)
+(******************************************************************************)
+
+(******************************************************************************)
 (** {3 Low-level Header Parsers and Constructors} *)
 (******************************************************************************)
 val header_line
@@ -304,3 +321,40 @@ val parse_seq : string -> string option Or_error.t
 val parse_qual :  string -> Biocaml_phred_score.t list Or_error.t
 val parse_optional_field : string -> optional_field Or_error.t
 val parse_alignment : ?ref_seqs:String.Set.t -> Line.t -> alignment Or_error.t
+
+
+(******************************************************************************)
+(** {2 Low-level Printers} *)
+(******************************************************************************)
+
+(******************************************************************************)
+(** {3 Low-level Header Printers} *)
+(******************************************************************************)
+val print_header_item_tag : header_item_tag -> string
+val print_tag_value : tag_value -> string
+val print_header_version : string -> string
+val print_sort_order : sort_order -> string
+val print_header_line : header_line -> string
+val print_ref_seq : ref_seq -> string
+val print_platform : platform -> string
+val print_read_group : read_group -> string
+val print_program : program -> string
+
+
+(******************************************************************************)
+(** {3 Low-level Alignment Printers} *)
+(******************************************************************************)
+val print_qname : string option -> string
+val print_flags : Flags.t -> string
+val print_rname : string option -> string
+val print_pos : int option -> string
+val print_mapq : int option -> string
+val print_cigar_op : cigar_op -> string
+val print_cigar : cigar_op list -> string
+val print_rnext : rnext option -> string
+val print_pnext : int option -> string
+val print_tlen : int option -> string
+val print_seq : string option -> string
+val print_qual :  Biocaml_phred_score.t list -> string
+val print_optional_field : optional_field -> string
+val print_alignment : alignment -> string
