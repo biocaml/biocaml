@@ -496,15 +496,71 @@ let parse_header_item line =
 (* Alignment Parsers and Constructors                                         *)
 (******************************************************************************)
 let alignment
-    ?qname ~flags ?rname ?pos ?mapq ?(cigar=[])
+    ?ref_seqs ?qname ~flags ?rname ?pos ?mapq ?(cigar=[])
     ?rnext ?pnext ?tlen ?seq ?(qual=[])
     ?(optional_fields=[])
     ()
     =
-  Ok {
-    qname; flags; rname; pos; mapq; cigar;
-    rnext; pnext; tlen; seq; qual; optional_fields
-  }
+  [
+    (match ref_seqs, rname with
+    | (None,_) | (_,None) -> None
+    | Some ref_seqs, Some rname ->
+      if Set.mem ref_seqs rname then
+        None
+      else
+        Some (
+          Error.create
+            "RNAME not defined in any SQ line"
+            rname sexp_of_string
+        )
+    );
+
+    (match ref_seqs, rnext with
+    | (None,_) | (_,None) -> None
+    | Some _, Some `Equal_to_RNAME ->
+      None (* error will already be detected in RNAME check above *)
+    | Some ref_seqs, Some (`Value rnext) ->
+      if Set.mem ref_seqs rnext then
+        None
+      else
+        Some (
+          Error.create
+            "RNEXT not defined in any SQ line"
+            rnext sexp_of_string
+        )
+    );
+
+    (match seq, qual with
+    | _, [] -> None
+    | None, _ ->
+      Some (Error.of_string "QUAL provided without SEQ")
+    | Some seq, _ ->
+      let s = String.length seq in
+      let q = List.length qual in
+      if s = q then
+        None
+      else
+        Some (Error.create
+                "SEQ and QUAL lengths differ"
+                (s, q) <:sexp_of< int * int >>
+        )
+    );
+
+    (
+      List.map optional_fields ~f:(fun x -> x.tag)
+      |> List.find_a_dup
+      |> Option.map ~f:(fun dup ->
+        Error.create "TAG occurs more than once" dup sexp_of_string)
+    );
+  ]
+  |> List.filter_map ~f:Fn.id
+  |> function
+    | [] -> Ok {
+      qname; flags; rname; pos; mapq; cigar;
+      rnext; pnext; tlen; seq; qual; optional_fields
+    }
+    | errs -> Error (Error.of_list errs)
+
 
 let parse_int_range field lo hi s =
   let out_of_range = sprintf "%s out of range" field in
@@ -684,10 +740,8 @@ let parse_optional_field s =
         )
         >>| fun value -> {tag; value}
 
-let parse_optional_fields sl =
-  Result.List.map sl ~f:parse_optional_field
 
-let parse_alignment line =
+let parse_alignment ?ref_seqs line =
   match String.split ~on:'\t' (line : Line.t :> string) with
   | qname::flags::rname::pos::mapq::cigar::rnext
     ::pnext::tlen::seq::qual::optional_fields
@@ -703,9 +757,10 @@ let parse_alignment line =
       parse_tlen tlen >>= fun tlen ->
       parse_seq seq >>= fun seq ->
       parse_qual qual >>= fun qual ->
-      parse_optional_fields optional_fields >>= fun optional_fields ->
+      Result.List.map optional_fields ~f:parse_optional_field
+      >>= fun optional_fields ->
       alignment
-        ?qname ~flags ?rname ?pos ?mapq ~cigar
+        ?ref_seqs ?qname ~flags ?rname ?pos ?mapq ~cigar
         ?rnext ?pnext ?tlen ?seq ~qual ~optional_fields
         ()
     )

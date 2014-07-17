@@ -275,7 +275,8 @@ val parse_header_item : Line.t -> header_item Or_error.t
 (** {3 Low-level Alignment Parsers and Constructors} *)
 (******************************************************************************)
 val alignment
-  :  ?qname : string
+  :  ?ref_seqs : String.Set.t
+  -> ?qname : string
   -> flags : Flags.t
   -> ?rname : string
   -> ?pos : int
@@ -302,5 +303,4 @@ val parse_tlen : string -> int option Or_error.t
 val parse_seq : string -> string option Or_error.t
 val parse_qual :  string -> Biocaml_phred_score.t list Or_error.t
 val parse_optional_field : string -> optional_field Or_error.t
-val parse_optional_fields : string list -> optional_field list Or_error.t
-val parse_alignment : Line.t -> alignment Or_error.t
+val parse_alignment : ?ref_seqs:String.Set.t -> Line.t -> alignment Or_error.t
