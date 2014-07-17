@@ -19,7 +19,9 @@ type header_item_tag = private [>
 | `Other of string
 ] with sexp
 
-(** A tag-value pair comprising the content of header items. *)
+(** A tag-value pair comprising the content of header items. Tag-value
+    pairs occur in other places too, but this type is specifically for
+    those in the header. *)
 type tag_value = private string * string
 with sexp
 
@@ -88,7 +90,8 @@ type header_item = private [>
 (**
    - [sort_order]: Guaranteed to be [None] if [version = None].
 
-   - [ref_seqs]: List of @SQ items. Order matters.
+   - [ref_seqs]: List of @SQ items. Order matters; it dictates
+   alignment sorting order when [sort_order = `Coordinate].
 
    - [read_groups]: Unordered list of @RG items.
 
@@ -162,7 +165,7 @@ type optional_field = private {
   value : optional_field_value
 } with sexp
 
-type rnext = [`Value of string | `Equal_to_RNAME]
+type rnext = private [> `Value of string | `Equal_to_RNAME]
 with sexp
 
 (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
@@ -185,17 +188,6 @@ type alignment = private {
 
 
 (******************************************************************************)
-(** {3 Main Item Type} *)
-(******************************************************************************)
-(** Every item in a SAM file is either a header item or an alignment
-    record. *)
-type item = [
-| `Header_item of header_item
-| `Alignment of alignment
-] with sexp
-
-
-(******************************************************************************)
 (** {2 Input/Output } *)
 (******************************************************************************)
 module MakeIO (Future : Future.S) : sig
@@ -210,14 +202,6 @@ module MakeIO (Future : Future.S) : sig
     : ?buf_len:int
     -> string
     -> (header * alignment Or_error.t Pipe.Reader.t) Or_error.t Deferred.t
-
-
-  val read_items : ?start:Pos.t -> Reader.t -> item Or_error.t Pipe.Reader.t
-
-  val read_items_file
-    : ?buf_len:int
-    -> string
-    -> item Or_error.t Pipe.Reader.t Deferred.t
 
 end
 include module type of MakeIO(Future_std)
@@ -320,10 +304,3 @@ val parse_qual :  string -> Biocaml_phred_score.t list Or_error.t
 val parse_optional_field : string -> optional_field Or_error.t
 val parse_optional_fields : string list -> optional_field list Or_error.t
 val parse_alignment : Line.t -> alignment Or_error.t
-
-
-
-(******************************************************************************)
-(** {3 Main Item Parser} *)
-(******************************************************************************)
-val parse_item : Line.t -> item Or_error.t

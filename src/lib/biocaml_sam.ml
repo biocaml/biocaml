@@ -163,14 +163,6 @@ type alignment = {
 } with sexp
 
 
-(******************************************************************************)
-(* Main Item Type                                                             *)
-(******************************************************************************)
-type item = [
-| `Header_item of header_item
-| `Alignment of alignment
-] with sexp
-
 
 (******************************************************************************)
 (* Header Parsers and Constructors                                            *)
@@ -721,17 +713,6 @@ let parse_alignment line =
     Or_error.error_string "alignment line contains < 12 fields"
 
 
-(******************************************************************************)
-(* Main Item Parser                                                           *)
-(******************************************************************************)
-let parse_item line =
-  if String.length (line : Line.t :> string) = 0 then
-    Or_error.error_string "invalid empty line"
-  else if (line : Line.t :> string).[0] = '@' then
-    parse_header_item line >>| fun x -> `Header_item x
-  else
-    parse_alignment line >>| fun x -> `Alignment x
-
 
 (******************************************************************************)
 (* Input/Output                                                               *)
@@ -751,66 +732,71 @@ module MakeIO(Future : Future.S) = struct
       others = [];
     }
     in
-    let lines = Pipe.map (Lines.read r) ~f:parse_item in
-    let rec loop hdr : header Or_error.t Deferred.t =
-      Pipe.peek_deferred lines >>= (function
-      | `Ok (Error _ as e) -> return e
-      | `Eof
-      | `Ok (Ok (`Alignment _)) -> return (Ok hdr)
-      | `Ok (Ok (`Header_item x)) ->
-        Pipe.junk lines >>= fun () -> match x with
-        | `HD ({version; sort_order} : header_line) -> (
-          match hdr.version with
-          | Some _ ->
-            return (Or_error.error_string "multiple @HD lines not allowed")
-          | None ->
-            loop {hdr with version = Some version; sort_order}
-        )
-        | `SQ x -> loop {hdr with ref_seqs = x::hdr.ref_seqs}
-        | `RG x -> loop {hdr with read_groups = x::hdr.read_groups}
-        | `PG x -> loop {hdr with programs = x::hdr.programs}
-        | `CO x -> loop {hdr with comments = x::hdr.comments}
-        | `Other x -> loop {hdr with others = x::hdr.others}
+
+    let pos = ref start in
+    let lines =
+      Pipe.map (Lines.read r) ~f:(fun line ->
+        pos := Pos.incr_line !pos;
+        line
       )
     in
-    loop init_hdr >>= function
-    | Error _ as e -> return e
-    | Ok {version; sort_order; ref_seqs; read_groups; programs; comments} ->
-      header ?version ?sort_order ~ref_seqs ~read_groups ~programs ~comments ()
-      |> function
-         | Error _ as e -> return e
-         | Ok hdr ->
-           let alignments = Pipe.map lines ~f:(function
-             | Error _ as e -> e
-             | Ok (`Alignment x) -> Ok x
-             | Ok (`Header_item _) ->
-               Or_error.error_string
-                 "header line occurs after start of alignments"
-           )
-           in
-           return (Ok (hdr, alignments))
+
+    let rec loop hdr : header Or_error.t Deferred.t =
+      Pipe.peek_deferred lines >>= (function
+      | `Eof -> return (Ok hdr)
+      | `Ok line ->
+        if String.length (line : Line.t :> string) = 0 then
+          return (Or_error.error_string "invalid empty line")
+        else if (line : Line.t :> string).[0] <> '@' then
+          return (Ok hdr)
+        else (
+          Pipe.junk lines >>= fun () ->
+          parse_header_item line |> function
+          | Error _ as e -> return e
+          | Ok (`HD ({version; sort_order} : header_line)) -> (
+            match hdr.version with
+            | Some _ ->
+              return (Or_error.error_string "multiple @HD lines not allowed")
+            | None ->
+              loop {hdr with version = Some version; sort_order}
+          )
+          | Ok (`SQ x) -> loop {hdr with ref_seqs = x::hdr.ref_seqs}
+          | Ok (`RG x) -> loop {hdr with read_groups = x::hdr.read_groups}
+          | Ok (`PG x) -> loop {hdr with programs = x::hdr.programs}
+          | Ok (`CO x) -> loop {hdr with comments = x::hdr.comments}
+          | Ok (`Other x) -> loop {hdr with others = x::hdr.others}
+        )
+      )
+    in
+
+    loop init_hdr >>| function
+    | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
+    | Ok ({version; sort_order; _} as x) ->
+      let ref_seqs = List.rev x.ref_seqs in
+      let read_groups = List.rev x.read_groups in
+      let programs = List.rev x.programs in
+      let comments = List.rev x.comments in
+      let others = List.rev x.others in
+      let hdr =
+        header
+          ?version ?sort_order ~ref_seqs ~read_groups
+          ~programs ~comments ~others ()
+      in
+      match hdr with
+      | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
+      | Ok hdr ->
+        let alignments = Pipe.map lines ~f:(fun line ->
+          Or_error.tag_arg
+            (parse_alignment line)
+            "position" !pos Pos.sexp_of_t
+        )
+        in
+        Ok (hdr, alignments)
 
 
   let read_file ?buf_len file =
     let start = Pos.make ~source:file ~line:1 () in
     Reader.open_file ?buf_len file >>= (read ~start)
-
-
-  let read_items ?(start=Pos.(incr_line unknown)) r =
-    let pos = ref start in
-    Lines.read r
-    |> Pipe.map ~f:(fun line ->
-      let item =
-        parse_item line
-        |> fun x -> Or_error.tag_arg x "position" !pos Pos.sexp_of_t
-      in
-      pos := Pos.incr_line !pos;
-      item
-    )
-
-  let read_items_file ?buf_len file =
-    let start = Pos.make ~source:file ~line:1 () in
-    Reader.open_file ?buf_len file >>| (read_items ~start)
 
 end
 include MakeIO(Future_std)
