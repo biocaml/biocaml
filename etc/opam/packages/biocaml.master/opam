@@ -29,6 +29,7 @@ depends: [
   "omake"
   "cfstream"
   "future"
+  "re"
 ]
 
 depopts: ["flow" "lwt" "async"]
