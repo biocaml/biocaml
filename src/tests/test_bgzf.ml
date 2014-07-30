@@ -23,7 +23,7 @@ let test_parse_of_unparse n () =
   assert_equal ~printer:ident s s'
 
 let tests = "Bgzf" >::: [
-  "Unparse/Parse 1-bloc file"  >:: test_parse_of_unparse 0x100 ;
+  "Unparse/Parse 1-block file" >:: test_parse_of_unparse 0x100 ;
   "Unparse/Parse 2-block file" >:: test_parse_of_unparse 0x10000 ;
   "Unparse/Parse big file"     >:: test_parse_of_unparse 0x1000000 ;
 ]

@@ -1,3 +1,19 @@
+(***********************************************************************)
+(*                                                                     *)
+(*                         The CamlZip library                         *)
+(*                                                                     *)
+(*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         *)
+(*                                                                     *)
+(*  Copyright 2001 Institut National de Recherche en Informatique et   *)
+(*  en Automatique.  All rights reserved.  This file is distributed    *)
+(*  under the terms of the GNU Library General Public License, with    *)
+(*  the special exception on linking described in file LICENSE.        *)
+(*                                                                     *)
+(***********************************************************************)
+
+(* Various parts of this module, as well as its global structure are
+   adapted from the gzip module in the camlzip library. *)
+
 open Printf
 
 let max_block_size = 0x10000
