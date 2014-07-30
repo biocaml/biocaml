@@ -116,6 +116,7 @@ module Flags = struct
   let secondary_alignment              = flag_is_set 0x100
   let not_passing_quality_controls     = flag_is_set 0x200
   let pcr_or_optical_duplicate         = flag_is_set 0x400
+  let supplementary_alignment          = flag_is_set 0x800
 end
 
 type cigar_op = [

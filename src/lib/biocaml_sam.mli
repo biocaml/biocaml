@@ -133,7 +133,8 @@ module Flags : sig
   val secondary_alignment              : t -> bool
   val not_passing_quality_controls     : t -> bool
   val pcr_or_optical_duplicate         : t -> bool
-
+  val pcr_or_optical_duplicate         : t -> bool
+  val supplementary_alignment          : t -> bool
 end
 
 (** CIGAR operations. *)
