@@ -282,8 +282,11 @@ let rec output oz buf pos len =
   let remaining = len - ncopy in
   if remaining > 0 then output oz buf (pos + ncopy) remaining
 
+let bgzf_eof = "\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+
 let close_out oz =
   if oz.out_pos > 0 then push_block oz ;
+  Pervasives.output_string oz.out_chan bgzf_eof ;
   Pervasives.close_out oz.out_chan
 
 let with_file_out ?level fn ~f =
