@@ -11,7 +11,8 @@ val of_in_channel : Pervasives.in_channel -> in_channel
 (** Uses a regular channel to read a BGZF compressed file. *)
 
 val close_in : in_channel -> unit
-(** Closes an open file. The channel cannot be used after that call. *)
+(** Closes an open file. The channel cannot be used after that
+    call. *)
 
 val dispose_in : in_channel -> unit
 (** Releases the ressources associated to a (BGZF) channel (it can
@@ -20,7 +21,7 @@ val dispose_in : in_channel -> unit
 
 exception Parse_error of string
 (** Exception signaling an incorrect format while reading data from an
-    open file. All input function may raise this exception. *)
+    open file. All input functions may raise this exception. *)
 
 val input_char : in_channel -> char
 val input_byte : in_channel -> int
@@ -32,7 +33,14 @@ val input: in_channel -> string -> int -> int -> int
     the number of characters actually read. *)
 
 val really_input : in_channel -> string -> int -> int -> unit
-(** Same as [input] but reads exactly [len] characters. *)
+(** Same as [input] but reads exactly [len] characters. If there are
+    less than [len] characters (say [len']) available until the end of
+    the file, the returned string will be of size [len']. @raise
+    End_of_file if no character is available.  *)
+
+val input_string : in_channel -> int -> string
+(** Same as [really_input] but returns the result in a fresh
+    string. *)
 
 val with_file_in : string -> f:(in_channel -> 'a) -> 'a
 (** [with_file_in fn ~f] opens a channel for reading, pass it to [f],

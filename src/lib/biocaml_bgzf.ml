@@ -176,6 +176,11 @@ let rec really_input iz buf pos len =
     else really_input iz buf (pos + n) (len - n)
   )
 
+let input_string iz n =
+  let r = String.make n ' ' in
+  really_input iz r 0 n ;
+  r
+
 let input_char =
   let buf = String.create 1 in
   fun iz ->
