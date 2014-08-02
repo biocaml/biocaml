@@ -7,8 +7,16 @@ val open_in : string -> in_channel
 (** Opens a BGZF file for reading. @raise Sys_error if the path
     given in argument does not refer to an existing file. *)
 
+val of_in_channel : Pervasives.in_channel -> in_channel
+(** Uses a regular channel to read a BGZF compressed file. *)
+
 val close_in : in_channel -> unit
 (** Closes an open file. The channel cannot be used after that call. *)
+
+val dispose_in : in_channel -> unit
+(** Releases the ressources associated to a (BGZF) channel (it can
+    thus not be used after that call), apart from the underlying
+    regular channel (which can be used further). *)
 
 exception Parse_error of string
 (** Exception signaling an incorrect format while reading data from an
@@ -38,14 +46,22 @@ type out_channel
 
 val open_out : ?level:int -> string -> out_channel
 (** [open_out ~level fn] opens the file at path [fn] for writing a
-    BGZF-compressed file with compression level [level] (default is
-    6). @raise Sys_error if [fn] does not refer to an existing
-    file *)
+    BGZF-compressed file with compression level [level] (default is 6,
+    legal values are 1 to 9). @raise Sys_error if [fn] does not refer
+    to an existing file. @raise Invalid_arg if [level] is not between
+    1 and 9. *)
+
+val of_out_channel : ?level:int -> Pervasives.out_channel -> out_channel
+(** Uses a regular channel to write a BGZF compressed file. *)
 
 val close_out : out_channel -> unit
 (** Closes a file opened for writing. The channel must not be used
     after that call. *)
 
+val dispose_out : out_channel -> unit
+(** Releases the ressources associated to a (BGZF) channel (it can
+    thus not be used after that call), apart from the underlying
+    regular channel (which can be used further). *)
 
 
 val output : out_channel -> string -> int -> int -> unit

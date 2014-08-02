@@ -44,8 +44,8 @@ type in_channel = {
   mutable in_stream : Zlib.stream;
 }
 
-let open_in fn = {
-  ic = Pervasives.open_in_bin fn ;
+let of_in_channel ic = {
+  ic ;
   in_block = String.create max_block_size ;
   in_pos = 0 ;
   in_avail = 0 ;
@@ -57,10 +57,17 @@ let open_in fn = {
   in_eof = false
 }
 
-let close_in iz =
+let open_in fn = of_in_channel (Pervasives.open_in_bin fn)
+
+let dispose_in iz =
   iz.in_eof <- true ;
-  Zlib.inflate_end iz.in_stream ;
+  Zlib.inflate_end iz.in_stream
+
+let close_in iz =
+  dispose_in iz ;
   close_in iz.ic
+
+
 
 let may_eof f x =
   try Some (f x)
@@ -242,9 +249,8 @@ let write_block oc buf len crc32 =
   output_int32 oc crc32 ;               (* CRC32 *)
   output_int32 oc (Int32.of_int len)    (* ISIZE *)
 
-let open_out ?(level = 6) filename =
-  let oc = Pervasives.open_out_bin filename in
-  if level < 1 || level > 9 then raise (invalid_arg "Biocaml_bgzf.open_out: bad level") ;
+let of_out_channel ?(level = 6) oc =
+  if level < 1 || level > 9 then raise (invalid_arg "Biocaml_bgzf: bad compression level") ;
   {
     out_chan = oc;
     out_ubuffer = String.create max_isize ;
@@ -252,6 +258,9 @@ let open_out ?(level = 6) filename =
     out_pos = 0 ;
     out_level = level ;
   }
+
+let open_out ?(level = 6) filename =
+  of_out_channel ~level (Pervasives.open_out_bin filename)
 
 
 let push_block oz =
@@ -284,9 +293,12 @@ let rec output oz buf pos len =
 
 let bgzf_eof = "\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-let close_out oz =
+let dispose_out oz =
   if oz.out_pos > 0 then push_block oz ;
-  Pervasives.output_string oz.out_chan bgzf_eof ;
+  Pervasives.output_string oz.out_chan bgzf_eof
+
+let close_out oz =
+  dispose_out oz ;
   Pervasives.close_out oz.out_chan
 
 let with_file_out ?level fn ~f =
