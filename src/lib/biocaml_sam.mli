@@ -110,6 +110,8 @@ type header = private {
   others : (string * tag_value list) list;
 }
 
+val empty_header : header
+
 
 (******************************************************************************)
 (** {3 Alignment Types} *)

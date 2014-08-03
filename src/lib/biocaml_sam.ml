@@ -89,6 +89,16 @@ type header = {
   others : (string * tag_value list) list;
 }
 
+let empty_header = {
+  version = None;
+  sort_order = None;
+  ref_seqs = [];
+  read_groups = [];
+  programs = [];
+  comments = [];
+  others = [];
+}
+
 
 (******************************************************************************)
 (* Alignment Types                                                            *)
@@ -947,17 +957,6 @@ module MakeIO(Future : Future.S) = struct
   module Lines = Biocaml_lines.MakeIO(Future)
 
   let read ?(start=Pos.(incr_line unknown)) r =
-    let init_hdr = {
-      version = None;
-      sort_order = None;
-      ref_seqs = [];
-      read_groups = [];
-      programs = [];
-      comments = [];
-      others = [];
-    }
-    in
-
     let pos = ref start in
     let lines =
       Pipe.map (Lines.read r) ~f:(fun line ->
@@ -994,7 +993,7 @@ module MakeIO(Future : Future.S) = struct
       )
     in
 
-    loop init_hdr >>| function
+    loop empty_header >>| function
     | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
     | Ok ({version; sort_order; _} as x) ->
       let ref_seqs = List.rev x.ref_seqs in
@@ -1047,11 +1046,8 @@ module MakeIO(Future : Future.S) = struct
       write_line w (print_other x)
     )
 
-  let write w ?header alignments =
-    (match header with
-    | None -> Deferred.unit
-    | Some header -> write_header w header
-    ) >>= fun () ->
+  let write w ?(header=empty_header) alignments =
+    write_header w header >>= fun () ->
     Pipe.iter alignments ~f:(fun a ->
       Writer.write_line w (print_alignment a)
     )
