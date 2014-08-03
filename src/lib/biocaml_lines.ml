@@ -45,6 +45,23 @@ let of_channel cin =
     |> Option.map ~f:Line.of_string_unsafe
   in Stream.from f
 
+let of_string s =
+  let n = String.length s in
+  let f pos =
+    if pos >= n then None
+    else if s.[pos] = '\n' then Some (Line.of_string_unsafe "", pos + 1)
+    else
+      let sub, new_pos =
+        match String.lfindi ~pos s ~f:(fun _ c -> c = '\n') with
+        | Some pos' ->
+          String.sub s ~pos ~len:(pos' - pos), pos' + 1
+        | None ->
+          String.suffix s (n - pos), n
+      in
+      Some (Line.of_string_unsafe sub, new_pos)
+  in
+  Stream.unfold 0 f
+
 let to_channel xs oc =
   Stream.iter xs ~f:(fun l ->
     Out_channel.output_string oc (l : item :> string);

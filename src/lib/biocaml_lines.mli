@@ -29,6 +29,9 @@ val of_char_stream : char Stream.t -> item Stream.t
 val of_channel : in_channel -> item Stream.t
 (** Get a stream of lines out of an input-channel. *)
 
+val of_string : string -> item Stream.t
+(** Get a stream of lines out a string *)
+
 val to_channel : item Stream.t -> out_channel -> unit
 (** Write a stream of lines to an output-channel. *)
 
