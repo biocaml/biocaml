@@ -286,7 +286,7 @@ val parse_platform : string -> platform Or_error.t
 val parse_read_group : tag_value list -> read_group Or_error.t
 val parse_program : tag_value list -> program Or_error.t
 val parse_header_item : Line.t -> header_item Or_error.t
-
+val parse_header : string -> header Or_error.t
 
 
 (******************************************************************************)
