@@ -2,6 +2,8 @@ open Core.Std
 
 type t = string with sexp
 
+let to_string = Fn.id
+
 let string_to_lines s =
   match String.split ~on:'\n' s with
   | [] -> assert false

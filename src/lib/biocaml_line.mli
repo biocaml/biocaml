@@ -6,6 +6,8 @@ open Core.Std
     obtained by reading a file line by line. *)
 type t = private string
 
+val to_string : t -> string
+
 (** [string_to_lines s] splits [s] on newline characters, returning
     the resuling list of lines. The returned bool is true if the final
     line ended with a newline, or false otherwise. *)
