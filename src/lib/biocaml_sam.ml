@@ -956,15 +956,7 @@ module MakeIO(Future : Future.S) = struct
   open Future
   module Lines = Biocaml_lines.MakeIO(Future)
 
-  let read ?(start=Pos.(incr_line unknown)) r =
-    let pos = ref start in
-    let lines =
-      Pipe.map (Lines.read r) ~f:(fun line ->
-        pos := Pos.incr_line !pos;
-        line
-      )
-    in
-
+  let read_header lines =
     let rec loop hdr : header Or_error.t Deferred.t =
       Pipe.peek_deferred lines >>= (function
       | `Eof -> return (Ok hdr)
@@ -992,30 +984,37 @@ module MakeIO(Future : Future.S) = struct
         )
       )
     in
-
     loop empty_header >>| function
-    | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
+    | Error _ as e -> e
     | Ok ({version; sort_order; _} as x) ->
       let ref_seqs = List.rev x.ref_seqs in
       let read_groups = List.rev x.read_groups in
       let programs = List.rev x.programs in
       let comments = List.rev x.comments in
       let others = List.rev x.others in
-      let hdr =
-        header
-          ?version ?sort_order ~ref_seqs ~read_groups
-          ~programs ~comments ~others ()
+      header
+        ?version ?sort_order ~ref_seqs ~read_groups
+        ~programs ~comments ~others ()
+
+
+  let read ?(start=Pos.(incr_line unknown)) r =
+    let pos = ref start in
+    let lines =
+      Pipe.map (Lines.read r) ~f:(fun line ->
+        pos := Pos.incr_line !pos;
+        line
+      )
+    in
+    read_header lines >>| function
+    | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
+    | Ok hdr ->
+      let alignments = Pipe.map lines ~f:(fun line ->
+        Or_error.tag_arg
+          (parse_alignment line)
+          "position" !pos Pos.sexp_of_t
+      )
       in
-      match hdr with
-      | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
-      | Ok hdr ->
-        let alignments = Pipe.map lines ~f:(fun line ->
-          Or_error.tag_arg
-            (parse_alignment line)
-            "position" !pos Pos.sexp_of_t
-        )
-        in
-        Ok (hdr, alignments)
+      Ok (hdr, alignments)
 
 
   let read_file ?buf_len file =
@@ -1059,3 +1058,6 @@ module MakeIO(Future : Future.S) = struct
 
 end
 include MakeIO(Future_std)
+
+let parse_header text =
+  read_header (Biocaml_lines.of_string text)
