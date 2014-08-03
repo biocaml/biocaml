@@ -1017,10 +1017,6 @@ module MakeIO(Future : Future.S) = struct
       Ok (hdr, alignments)
 
 
-  let read_file ?buf_len file =
-    let start = Pos.make ~source:file ~line:1 () in
-    Reader.open_file ?buf_len file >>= (read ~start)
-
   let write_header w (h:header) =
     let open Writer in
     (match h.version with

@@ -11,9 +11,6 @@ module MakeIO (Future : Future.S) = struct
     Reader.lines r
     |> Pipe.map ~f:Line.of_string_unsafe
 
-  let read_file ?buf_len file =
-    Reader.open_file ?buf_len file >>| read
-
   let write w pipe_r = Pipe.iter pipe_r ~f:(fun item ->
     Writer.write_line w (item : item :> string)
   )

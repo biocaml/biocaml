@@ -201,11 +201,6 @@ module MakeIO (Future : Future.S) : sig
     -> Reader.t
     -> (header * alignment Or_error.t Pipe.Reader.t) Or_error.t Deferred.t
 
-  val read_file
-    : ?buf_len:int
-    -> string
-    -> (header * alignment Or_error.t Pipe.Reader.t) Or_error.t Deferred.t
-
   val write
     :  Writer.t
     -> ?header:header

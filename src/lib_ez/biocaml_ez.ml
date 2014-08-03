@@ -8,10 +8,6 @@ module Fastq = struct
     read ic
     |> Pipe.map ~f:ok_exn
 
-  let read_file ?buf_len file =
-    read_file ?buf_len file >>| fun pipe_r ->
-    Pipe.map pipe_r ~f:ok_exn
-
 end
 
 module Phred_score = struct
@@ -36,10 +32,6 @@ module Sam = struct
 
   let read ?start ic =
     (read ?start ic >>| ok_exn) >>= fun (hdr, pipe_r) ->
-    hdr, Pipe.map pipe_r ~f:ok_exn
-
-  let read_file ?buf_len file =
-    (read_file ?buf_len file >>| ok_exn) >>= fun (hdr, pipe_r) ->
     hdr, Pipe.map pipe_r ~f:ok_exn
 
 end

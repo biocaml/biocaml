@@ -227,9 +227,6 @@ module MakeIO (Future : Future.S) = struct
   let read ic =
     Reader.read_all ic read_item
 
-  let read_file ?buf_len file =
-    Reader.open_file ?buf_len file >>| read
-
   let write_item (w : Writer.t) (x : item) : unit Deferred.t =
     let open Writer in
     write_char w '@' >>= fun () ->
