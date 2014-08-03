@@ -95,6 +95,7 @@ let input_int32 ic =
       (Int32.logor (Int32.shift_left (Int32.of_int b3) 16)
                    (Int32.shift_left (Int32.of_int b4) 24)))
 
+(* Raises End_of_file iff there is no more block to read *)
 let read_header iz =
   match may_eof input_byte iz.ic with
   | None -> iz.in_eof <- true ; raise End_of_file
@@ -118,9 +119,9 @@ let read_header iz =
     with End_of_file -> raise (Parse_error "premature end of file, not a bgzf file")
 
 let read_block iz =
+  let cdata_size = read_header iz in (* read_header raises End_of_file iff there is no more block to read *)
   try
-    let cdata_size = read_header iz in
-    Pervasives.really_input iz.ic iz.in_block 0 cdata_size ; 
+    Pervasives.really_input iz.ic iz.in_block 0 cdata_size ;
     iz.in_avail <- cdata_size ;
     let crc32 = input_int32 iz.ic in
     let isize = input_int32 iz.ic in

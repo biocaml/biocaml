@@ -6,11 +6,6 @@ let random_string n =
       if Random.float 1. > 0.5 then '.' else 'o'
     )
 
-let input_string iz n =
-  let r = String.make n ' ' in
-  Biocaml_bgzf.really_input iz r 0 n ;
-  r
-
 let test_parse_of_unparse n () =
   let open Biocaml_bgzf in
   let fn = Filename.temp_file "test" ".bgzf" in
