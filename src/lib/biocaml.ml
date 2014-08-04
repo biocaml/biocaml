@@ -1,6 +1,7 @@
 module About          = Biocaml_about
 module Accu           = Biocaml_accu
 module Bam            = Biocaml_bam
+module Bam_alt        = Biocaml_bam_alt
 module Bar            = Biocaml_bar
 module Bed            = Biocaml_bed
 module Bin_pred       = Biocaml_bin_pred
