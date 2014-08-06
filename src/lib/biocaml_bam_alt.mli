@@ -4,7 +4,7 @@ open Core.Std
 
 type header = Biocaml_sam.header
 
-type alignment
+type alignment = Biocaml_sam.alignment
 
 val read : in_channel -> (header * alignment Or_error.t Stream.t) Or_error.t
 
