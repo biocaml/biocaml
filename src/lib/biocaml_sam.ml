@@ -697,59 +697,83 @@ let opt_field_tag_re = Re_perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
 let opt_field_A_re = Re_perl.compile_pat "^[!-~]$"
 let opt_field_Z_re = Re_perl.compile_pat "^[ !-~]+$"
 let opt_field_H_re = Re_perl.compile_pat "^[0-9A-F]+$"
-let opt_field_B_re =
-  Re_perl.compile_pat "^[cCsSiIf](,[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?)+$"
+let opt_field_int_re = Re_perl.compile_pat "^-?[0-9]+$"
+let opt_field_float_re = Re_perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"
+
+let optional_field_value_err typ value =
+  error "invalid value" (typ,value) <:sexp_of< string * string >>
+
+let optional_field_value_A value =
+  if Re.execp opt_field_A_re value then Ok (`A value)
+  else optional_field_value_err "A" value
+
+let optional_field_value_i i = `i i
+
+let optional_field_value_f f = `f f
+
+let optional_field_value_Z value =
+  if Re.execp opt_field_Z_re value then Ok (`Z value)
+  else optional_field_value_err "Z" value
+
+let optional_field_value_H value =
+  if Re.execp opt_field_H_re value then Ok (`H value)
+  else optional_field_value_err "H" value
+
+let optional_field_value_B elt_type elts =
+  let valid_args =
+    match elt_type with
+    | 'c' | 'C' | 's' | 'S' | 'i' | 'I' ->
+      List.for_all elts ~f:(Re.execp opt_field_int_re)
+    | 'f' ->
+      List.for_all elts ~f:(Re.execp opt_field_float_re)
+    | _ -> false
+  in
+  if valid_args then Ok (`B (elt_type, elts))
+  else error "invalid value" ("B", elt_type, elts) <:sexp_of< string * char * string list >>
+
+let optional_field tag value =
+  if not (Re.execp opt_field_tag_re tag)
+  then error "invalid TAG" tag sexp_of_string
+  else Ok {tag; value}
+
+let parse_optional_field_value s =
+  match String.lsplit2 s ~on:':' with
+  | None ->
+    error "missing TYPE in optional field" s sexp_of_string
+  | Some (typ,value) ->
+    match typ with
+    | "A" -> optional_field_value_A value
+    | "i" ->
+      (try
+         if Re.execp opt_field_int_re value then failwith "" ;
+         Ok (optional_field_value_i (Int32.of_string value)) (* matching the regular expression is not enough: the number could not fit in 32 bits *)
+       with _ -> optional_field_value_err typ value)
+    | "f" ->
+      (try
+         if Re.execp opt_field_float_re value then failwith "" ;
+         Ok (optional_field_value_f (Float.of_string value)) (* matching the regular expression is not enough: the number could not fit in 32 bits *)
+       with _ -> optional_field_value_err typ value)
+    | "Z" -> optional_field_value_Z value
+    | "H" -> optional_field_value_H value
+    | "B" -> (
+        match String.split ~on:',' value with
+        | num_typ :: values ->
+          if String.length num_typ = 1 then
+            optional_field_value_B num_typ.[0] values
+          else
+            error "invalid array type" num_typ sexp_of_string
+        | _ -> assert false (* [String.split] cannot return an empty list *)
+      )
+    | _ -> error "invalid type" typ sexp_of_string
+
 
 let parse_optional_field s =
   match String.lsplit2 s ~on:':' with
   | None ->
     error "missing TAG in optional field" s sexp_of_string
   | Some (tag,s) ->
-    if not (Re.execp opt_field_tag_re tag) then
-      error "invalid TAG" tag sexp_of_string
-    else
-      match String.lsplit2 s ~on:':' with
-      | None ->
-        error "missing TYPE in optional field" s sexp_of_string
-      | Some (typ,value) ->
-        let err_val =
-          error "invalid value" (typ,value) <:sexp_of< string * string >>
-        in
-        (
-          match typ with
-          | "A" ->
-            if Re.execp opt_field_A_re value
-            then Ok (`A value)
-            else err_val
-          | "i" ->
-            (try Ok (`i (Int32.of_string value))
-             with _ -> err_val)
-          | "f" ->
-            (try Ok (`f (Float.of_string value))
-             with _ -> err_val)
-          | "Z" ->
-            if Re.execp opt_field_Z_re value
-            then Ok (`Z value)
-            else err_val
-          | "H" ->
-            if Re.execp opt_field_H_re value
-            then Ok (`H value)
-            else err_val
-          | "B" -> (
-            if not (Re.execp opt_field_B_re value) then
-              err_val
-            else
-              match String.split ~on:',' value with
-              | num_typ::values ->
-                if String.length num_typ = 1 then
-                  Ok (`B (num_typ.[0],values))
-                else
-                  error "invalid array type" num_typ sexp_of_string
-              | _ -> assert false (* since opt_field_B_re matched *)
-          )
-          | _ -> error "invalid type" typ sexp_of_string
-        )
-        >>| fun value -> {tag; value}
+    parse_optional_field_value s >>= fun value ->
+    optional_field tag value
 
 
 let parse_alignment ?ref_seqs line =
