@@ -142,7 +142,7 @@ type cigar_op = [
 ] with sexp
 
 type optional_field_value = [
-| `A of string
+| `A of char
 | `i of Int32.t
 | `f of float
 | `Z of string
@@ -704,8 +704,9 @@ let optional_field_value_err typ value =
   error "invalid value" (typ,value) <:sexp_of< string * string >>
 
 let optional_field_value_A value =
-  if Re.execp opt_field_A_re value then Ok (`A value)
-  else optional_field_value_err "A" value
+  if List.mem ['!';'-';'~'] value
+  then optional_field_value_err "A" (Char.to_string value)
+  else Ok (`A value)
 
 let optional_field_value_i i = `i i
 
@@ -742,7 +743,9 @@ let parse_optional_field_value s =
     error "missing TYPE in optional field" s sexp_of_string
   | Some (typ,value) ->
     match typ with
-    | "A" -> optional_field_value_A value
+    | "A" ->
+      if String.length value = 1 then optional_field_value_A value.[0]
+      else optional_field_value_err typ value
     | "i" ->
       (try
          if Re.execp opt_field_int_re value then failwith "" ;
@@ -945,7 +948,7 @@ let print_qual = function
 
 let print_optional_field (x:optional_field) =
   let typ,value = match x.value with
-    | `A x -> 'A', x
+    | `A x -> 'A', Char.to_string x
     | `i x -> 'i', Int32.to_string x
     | `f x -> 'f', Float.to_string x
     | `Z x -> 'Z', x

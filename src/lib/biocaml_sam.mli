@@ -154,7 +154,7 @@ type cigar_op = private [>
 (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
 type optional_field_value = private [>
-| `A of string
+| `A of char
 | `i of Int32.t
 | `f of float
 | `Z of string
@@ -288,7 +288,7 @@ val parse_header : string -> header Or_error.t
 (******************************************************************************)
 (** {3 Low-level Optional field Parsers and Constructors} *)
 (******************************************************************************)
-val optional_field_value_A : string -> optional_field_value Or_error.t
+val optional_field_value_A : char -> optional_field_value Or_error.t
 val optional_field_value_i : Int32.t -> optional_field_value
 val optional_field_value_f : float -> optional_field_value
 val optional_field_value_Z : string -> optional_field_value Or_error.t
