@@ -135,7 +135,6 @@ module Flags : sig
   val secondary_alignment              : t -> bool
   val not_passing_quality_controls     : t -> bool
   val pcr_or_optical_duplicate         : t -> bool
-  val pcr_or_optical_duplicate         : t -> bool
   val supplementary_alignment          : t -> bool
 end
 
@@ -287,6 +286,24 @@ val parse_header : string -> header Or_error.t
 
 
 (******************************************************************************)
+(** {3 Low-level Optional field Parsers and Constructors} *)
+(******************************************************************************)
+val optional_field_value_A : string -> optional_field_value Or_error.t
+val optional_field_value_i : Int32.t -> optional_field_value
+val optional_field_value_f : float -> optional_field_value
+val optional_field_value_Z : string -> optional_field_value Or_error.t
+val optional_field_value_H : string -> optional_field_value Or_error.t
+val optional_field_value_B : char -> string list -> optional_field_value Or_error.t
+
+val optional_field
+  :  string
+  -> optional_field_value
+  -> optional_field Or_error.t
+
+val parse_optional_field_value : string -> optional_field_value Or_error.t
+val parse_optional_field : string -> optional_field Or_error.t
+
+(******************************************************************************)
 (** {3 Low-level Alignment Parsers and Constructors} *)
 (******************************************************************************)
 val alignment
@@ -317,7 +334,6 @@ val parse_pnext : string -> int option Or_error.t
 val parse_tlen : string -> int option Or_error.t
 val parse_seq : string -> string option Or_error.t
 val parse_qual :  string -> Biocaml_phred_score.t list Or_error.t
-val parse_optional_field : string -> optional_field Or_error.t
 val parse_alignment : ?ref_seqs:String.Set.t -> Line.t -> alignment Or_error.t
 
 
