@@ -694,7 +694,6 @@ let parse_qual s =
     |> Result.List.map ~f:(Phred_score.of_char ~offset:`Offset33)
 
 let opt_field_tag_re = Re_perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
-let opt_field_A_re = Re_perl.compile_pat "^[!-~]$"
 let opt_field_Z_re = Re_perl.compile_pat "^[ !-~]+$"
 let opt_field_H_re = Re_perl.compile_pat "^[0-9A-F]+$"
 let opt_field_int_re = Re_perl.compile_pat "^-?[0-9]+$"
