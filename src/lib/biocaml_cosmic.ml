@@ -189,54 +189,7 @@ let parse_file (cosmic_file : string) : (something_in_cosmic_file Sequence.t) =
   let (lines : string Sequence.t) = lines_of_file cosmic_file in
   Sequence.mapi lines ~f:parse_line
 
-let header_agrees_with (y : string) (x : something_in_cosmic_file) : bool =
-  match x
-  with Header u -> u = y
-  | _ -> false
-
-let print_header (header : string) : unit =
-  Printf.printf
-    "%s"
-    header
-
-let get_header (input : something_in_cosmic_file)
-    : string =
-  match input with
-  | Header z -> z
-  | Something _ -> assert false
-  | Item _ -> assert false
-  | Empty -> assert false
-
-let finding_the_header (cosmic_file : string) (header_to_find : string) =
-  let (first_line : something_in_cosmic_file Sequence.t) =
-    parse_file cosmic_file in
-  let f (_ : int) (line : something_in_cosmic_file) : bool =
-    header_agrees_with header_to_find line in
-  let (first_line : something_in_cosmic_file Sequence.t) =
-    Sequence.filteri first_line ~f in
-  let (first_line : string Sequence.t) =
-    Sequence.map first_line ~f:get_header in
-  Sequence.iter first_line ~f:print_header
-
-let get_item (input : something_in_cosmic_file) : item =
-  match input with
-  | Item z -> z
-  | Something _ -> assert false
-  | Header _ -> assert false
-  | Empty -> assert false
-
-let agrees_with (y : string) (x : something_in_cosmic_file) : bool =
-  match x
-  with Item u -> u.gene_name = y
-  | _ -> false
-
-let agrees_with_site (y : string) (x : something_in_cosmic_file) :
-    bool =
-  match x
-  with Item u -> u.site_primary = y
-  | _ -> false
-
-let print_results (y : item) : unit =
+let print_item (y : item) : unit =
   Printf.printf
     "%d,%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n"
     y.cosmic_mart_pk_key
@@ -327,43 +280,6 @@ let print_results (y : item) : unit =
     | Some x -> (Int.to_string x)
     )
 
-let application_of_agrees_with (cosmic_file : string) (input : string) =
-  let lines : something_in_cosmic_file Sequence.t =
-    parse_file cosmic_file in
-  let f (_ : int) (line : something_in_cosmic_file) : bool =
-    agrees_with_site input line in
-  let (lines : something_in_cosmic_file Sequence.t) =
-    Sequence.filteri lines ~f in
-  let (lines : item Sequence.t) =
-    Sequence.map lines ~f:get_item in
-  Sequence.iter lines ~f:print_results
 
-(*let z = application_of_agrees_with file "lung"
-*)
-let get_something (input : something_in_cosmic_file) : string =
-  match input with
-  | Something z -> z
-  | Header _ -> assert false
-  | Item _ -> assert false
-  | Empty -> assert false
 
-let last_line_agrees (y : string) (x : something_in_cosmic_file) : bool =
-  match x
-  with Something u -> u = y
-  | _ -> false
 
-let print_last_line (last_line : string) : unit =
-  Printf.printf
-    "%s"
-    last_line
-
-let finding_the_last_line (cosmic_file : string) (input : string) =
-  let (last_line : something_in_cosmic_file Sequence.t) =
-    parse_file cosmic_file in
-  let f (_ : int) (line : something_in_cosmic_file) : bool =
-    last_line_agrees input line in
-  let (last_line : something_in_cosmic_file Sequence.t) =
-    Sequence.filteri last_line ~f in
-  let (last_line : string Sequence.t) =
-    Sequence.map last_line ~f:get_something in
-  Sequence.iter last_line ~f: print_last_line
