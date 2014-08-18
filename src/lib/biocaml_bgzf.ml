@@ -78,13 +78,6 @@ let input_u16 ic =
   let b2 = input_byte ic in
   b1 + b2 lsl 8
 
-let input_u32 ic =
-  let b1 = input_byte ic in
-  let b2 = input_byte ic in
-  let b3 = input_byte ic in
-  let b4 = input_byte ic in
-  b1 + b2 lsl 8 + b3 lsl 16 + b4 lsl 24
-
 let input_int32 ic =
   let b1 = input_byte ic in
   let b2 = input_byte ic in
@@ -188,14 +181,30 @@ let input_char =
     if input iz buf 0 1 = 0 then raise End_of_file
     else buf.[0]
 
-let input_byte iz =
+let input_u8 iz =
   Char.code (input_char iz)
 
-let input_int32 ic =
-  let b1 = input_byte ic in
-  let b2 = input_byte ic in
-  let b3 = input_byte ic in
-  let b4 = input_byte ic in
+(* input_s* functions adapted from Batteries BatIO module *)
+let input_s8 iz =
+  let b = input_u8 iz in
+  if b land 128 <> 0 then b - 256
+  else b
+
+let input_u16 iz =
+  let b1 = input_u8 iz in
+  let b2 = input_u8 iz in
+  b1 lor (b2 lsl 8)
+
+let input_s16 iz =
+  let i = input_u16 iz in
+  if i land 32768 <> 0 then i - 65536
+  else i
+
+let input_s32 iz =
+  let b1 = input_u8 iz in
+  let b2 = input_u8 iz in
+  let b3 = input_u8 iz in
+  let b4 = input_u8 iz in
   Int32.logor (Int32.of_int b1)
     (Int32.logor (Int32.shift_left (Int32.of_int b2) 8)
       (Int32.logor (Int32.shift_left (Int32.of_int b3) 16)
@@ -296,6 +305,42 @@ let rec output oz buf pos len =
   oz.out_pos <- oz.out_pos + available ;
   let remaining = len - ncopy in
   if remaining > 0 then output oz buf (pos + ncopy) remaining
+
+let output_char =
+  let buf = String.make 1 ' ' in
+  fun oz c -> output oz buf 0 1
+
+(* output_* functions adapted from Batteries BatIO module *)
+let output_u8 oz n =
+  if n < 0 || n > 0xFF then raise (Invalid_argument "Bgzf.write_u8") ;
+  output_char oz (Char.unsafe_chr (n land 0xFF))
+
+let output_s8 oz n =
+  if n < -0x80 || n > 0x7F then raise (Invalid_argument "Bgzf.write_s8") ;
+  if n < 0 then
+    output_u8 oz (n + 256)
+  else
+    output_u8 oz n
+
+let output_u16 oz n =
+  if n < 0 || n > 0xFFFF then raise (Invalid_argument "Bgzf.write_u16") ;
+  output_u8 oz (n lsr 8);
+  output_u8 oz n
+
+let output_s16 oz n =
+  if n < -0x8000 || n > 0x7FFF then raise (Invalid_argument "Bgzf.write_s16") ;
+  if n < 0 then
+    output_u16 oz (65536 + n)
+  else
+    output_u16 oz n
+
+let output_s32 oz n =
+  let base = Int32.to_int n in
+  let big = Int32.to_int (Int32.shift_right_logical n 24) in
+  output_u8 oz big;
+  output_u8 oz (base lsr 16);
+  output_u8 oz (base lsr 8);
+  output_u8 oz base
 
 let bgzf_eof = "\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 

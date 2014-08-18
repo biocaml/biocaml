@@ -24,8 +24,11 @@ exception Parse_error of string
     open file. All input functions may raise this exception. *)
 
 val input_char : in_channel -> char
-val input_byte : in_channel -> int
-val input_int32 : in_channel -> int32
+val input_u8 : in_channel -> int
+val input_s8 : in_channel -> int
+val input_u16 : in_channel -> int
+val input_s16 : in_channel -> int
+val input_s32 : in_channel -> int32
 
 val input: in_channel -> string -> int -> int -> int
 (** [input ic buf pos len] reads at most [len] characters in file
@@ -75,6 +78,13 @@ val dispose_out : out_channel -> unit
 val output : out_channel -> string -> int -> int -> unit
 (** [output oc buf pos len] writes [len] characters of string [buf]
     from position [pos] into the compressed file [oc]. *)
+
+val output_char : out_channel -> char -> unit
+val output_u8 : out_channel -> int -> unit
+val output_s8 : out_channel -> int -> unit
+val output_u16 : out_channel -> int -> unit
+val output_s16 : out_channel -> int -> unit
+val output_s32 : out_channel -> int32 -> unit
 
 val with_file_out : ?level:int -> string -> f:(out_channel -> 'a) -> 'a
 (** [with_file_out ~level fn ~f] opens a file for writing at
