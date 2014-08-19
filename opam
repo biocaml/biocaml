@@ -30,7 +30,7 @@ depends: [
   "omake" {build}
   "core" {>= "111.13.00"}
   "sexplib"
-  "camlzip"
+  "camlzip" {>= "1.05"}
   "xmlm"
   "cfstream"
   "future"
