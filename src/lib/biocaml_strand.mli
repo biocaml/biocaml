@@ -1,27 +1,20 @@
-(** Strand names. *)
+(** Strand names. There are various conventions for referring to the
+    two strands of DNA. This module provides an [of_string] function
+    that parses the various conventions into a canonical
+    representation, which we define to be '-' or '+'. *)
 open Core.Std
 
-type t
-    (** Type of strand. *)
+(** Only valid values are '-' or '+'. *)
+type t = private char
 
-val equal : t -> t -> bool
-val compare : t -> t -> int
+val minus : t
+val plus : t
 
-exception Bad of string
-  (** Raised when encountering an ill-formed strand. *)
+(** Convert string to strand name if possible. *)
+val of_string : string -> t Or_error.t
 
-val of_string : string -> t option
-  (** Convert string to chromosome name if possible. *)
+(** Return '-' or '+'. *)
+val minus_plus : t -> char
 
-val of_string_exn : string -> t
-  (** Like [of_string] but raise [Bad] if conversion not possible. *)
-
-val to_string : t -> string
-  (** String representation of a strand. Only guarantee is that returned string can be converted back using [of_string]. *)
-
-val minus_plus : t -> string
-  (** Return "-" or "+". *)
-  
+(** Return "rev" or "fwd". *)
 val rev_fwd : t -> string
-  (** Return "rev" or "fwd". *)
-  

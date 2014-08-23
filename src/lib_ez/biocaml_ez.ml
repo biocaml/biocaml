@@ -35,3 +35,10 @@ module Sam = struct
     hdr, Pipe.map pipe_r ~f:ok_exn
 
 end
+
+module Strand = struct
+  include Biocaml_strand
+
+  let of_string s = ok_exn (of_string s)
+
+end
