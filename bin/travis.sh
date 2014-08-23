@@ -1,27 +1,26 @@
-# install Ubuntu packages
-case "$OCAML_VERSION,$OPAM_VERSION" in
-3.12.1,1.0.0) ppa=avsm/ocaml312+opam10 ;;
-3.12.1,1.1.0) ppa=avsm/ocaml312+opam11 ;;
-4.00.1,1.0.0) ppa=avsm/ocaml40+opam10 ;;
-4.00.1,1.1.0) ppa=avsm/ocaml40+opam11 ;;
-4.01.0,1.0.0) ppa=avsm/ocaml41+opam10 ;;
-4.01.0,1.1.0) ppa=avsm/ocaml41+opam11 ;;
-*) echo Unknown $OCAML_VERSION,$OPAM_VERSION; exit 1 ;;
-esac
+#!/bin/bash
+set -ev
 
-sudo add-apt-repository -y ppa:$ppa
-sudo apt-get update -qq
-sudo apt-get install -qq ocaml ocaml-native-compilers camlp4-extra aspcud opam
+# install opam
+sudo sh -c "echo 'deb http://download.opensuse.org/repositories/home:/ocaml/xUbuntu_12.10/ /' >> /etc/apt/sources.list.d/opam.list"
+sudo apt-get -y update
+sudo apt-get -y --force-yes install opam
 
 # configure and view settings
+export OPAMJOBS=2
 export OPAMYES=1
-ocaml -version
 opam --version
 opam --git-version
 
 # install OCaml packages
-opam init 
+opam init --comp=$OCAML_VERSION --no-setup
 eval `opam config env`
+
+cd ~
+git clone https://github.com/agarwal/future.git
+opam pin add -n future ~/future
+git clone https://github.com/smondet/flow.git
+opam pin add -n flow ~/flow
 
 opam install \
   ocamlfind \
@@ -32,17 +31,9 @@ opam install \
   cfstream \
   lwt \
   async \
-  re
-
-cd ~
-git clone https://github.com/agarwal/future.git
-opam repo add future-dev ~/future/etc/opam
-opam pin future ~/future
-opam install future
-
-git clone https://github.com/smondet/flow.git
-opam pin flow ~/flow
-opam install flow
+  re \
+  flow \
+  future
 
 # run tests
 cd $TRAVIS_BUILD_DIR
