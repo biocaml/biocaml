@@ -37,10 +37,8 @@ val input: in_channel -> string -> int -> int -> int
 
 (* FIXME: should raise End_of_file if not enough characters are available! *)
 val really_input : in_channel -> string -> int -> int -> unit
-(** Same as [input] but reads exactly [len] characters. If there are
-    less than [len] characters (say [len']) available until the end of
-    the file, the returned string will be of size [len']. @raise
-    End_of_file if no character is available.  *)
+(** Same as [input] but reads exactly [len] characters. @raise
+    End_of_file if there are less than [len] characters available.  *)
 
 val input_string : in_channel -> int -> string
 (** Same as [really_input] but returns the result in a fresh

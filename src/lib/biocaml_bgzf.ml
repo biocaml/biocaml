@@ -151,6 +151,7 @@ let input iz buf pos len =
           iz.in_block_crc32 <- Zlib.update_crc iz.in_block_crc32 buf pos used_out;
           iz.in_block_isize <- Int32.add iz.in_block_isize (Int32.of_int used_out);
           if finished then (
+            Zlib.inflate_end iz.in_stream ;
             if iz.in_block_crc32 <> iz.in_crc32 then raise(Parse_error(sprintf "CRC mismatch, data corrupted: %ld %ld" iz.in_block_crc32 iz.in_crc32));
             if iz.in_block_isize <> iz.in_block_isize then raise(Parse_error("size mismatch, data corrupted"));
             iz.in_stream <- Zlib.inflate_init false
