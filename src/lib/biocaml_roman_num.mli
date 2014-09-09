@@ -1,26 +1,18 @@
-(** Roman numerals. Implementation employs Nathan Mishra Linger's [Roman] module, but an improved interface is provided here. Also, zero is deliberately not supported. *)
+(** Roman numerals. Values greater than or equal to 1 are valid roman
+    numerals. *)
 open Core.Std
 
-type t
-    (** Type of a roman numeral. *)
-    
-exception Bad of string
-  (** Raised when unable to produce a well-formed roman numeral. *)
-  
-val of_string : string -> t option
-  (** Parse string as a roman numeral if possible. *)
+type t = private int
 
-val of_string_exn : string -> t
-  (** Like [of_string] but raise [Bad] if unable to parse string. *)
+(** Parse string as a roman numeral if possible. Case-insensitive. *)
+val of_roman : string -> t Or_error.t
 
-val of_int : int -> t option
-  (** Convert integer to roman numeral if possible. *)
-  
-val of_int_exn : int -> t
-  (** Like [of_int] but raise [Bad] if unable to convert integer. *)
-  
-val to_string : t -> string
-  (** String representation of a roman numeral. Returned string can be successfully parsed back with [of_string]. *)
+(** Convert integer to roman numeral. Return Error if given int is
+    less than 1. *)
+val of_arabic : int -> t Or_error.t
 
-val to_int : t -> int
-  (** Convert roman numeral to integer. *)
+(** String representation of a roman numeral. *)
+val to_roman : t -> string
+
+(** Integer representation of a roman numeral. *)
+val to_arabic : t -> int

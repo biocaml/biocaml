@@ -27,6 +27,14 @@ module Range = struct
 
 end
 
+module Roman_num = struct
+  include Biocaml_roman_num
+
+  let of_roman x = ok_exn (of_roman x)
+  let of_arabic x = ok_exn (of_arabic x)
+
+end
+
 module Sam = struct
   include Biocaml_sam
 

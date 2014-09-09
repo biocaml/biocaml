@@ -3,6 +3,7 @@ open OUnit
 let all_tests = [
   Test_lines.tests;
   Test_bam.tests;
+  Test_roman_num.tests;
   (* Test_bgzf.tests; *)
   (* Test_table.tests; *)
   (* Test_fasta.tests; *)
