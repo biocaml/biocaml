@@ -129,17 +129,33 @@ module Flags = struct
   let supplementary_alignment          = flag_is_set 0x800
 end
 
-type cigar_op = [
-| `Alignment_match of int
-| `Insertion of int
-| `Deletion of int
-| `Skipped of int
-| `Soft_clipping of int
-| `Hard_clipping of int
-| `Padding of int
-| `Seq_match of int
-| `Seq_mismatch of int
-] with sexp
+module Cigar_op = struct
+  type t = [
+    | `Alignment_match of int
+    | `Insertion of int
+    | `Deletion of int
+    | `Skipped of int
+    | `Soft_clipping of int
+    | `Hard_clipping of int
+    | `Padding of int
+    | `Seq_match of int
+    | `Seq_mismatch of int
+  ] with sexp
+
+  open Or_error
+
+  let positive i = if i > 0 then return i else errorf "Cigar_op: invalid argument %d for constructor" i
+
+  let alignment_match i = positive i >>| fun i -> `Alignment_match i
+  let insertion i = positive i >>| fun i -> `Insertion i
+  let deletion i = positive i >>| fun i -> `Deletion i
+  let skipped i = positive i >>| fun i -> `Skipped i
+  let soft_clipping i = positive i >>| fun i -> `Soft_clipping i
+  let hard_clipping i = positive i >>| fun i -> `Hard_clipping i
+  let padding i = positive i >>| fun i -> `Padding i
+  let seq_match i = positive i >>| fun i -> `Seq_match i
+  let seq_mismatch i = positive i >>| fun i -> `Seq_mismatch i
+end
 
 type optional_field_value = [
 | `A of char
@@ -164,7 +180,7 @@ type alignment = {
   rname : string option;
   pos : int option;
   mapq : int option;
-  cigar : cigar_op list;
+  cigar : Cigar_op.t list;
   rnext : rnext option;
   pnext : int option;
   tlen : int option;
@@ -638,23 +654,22 @@ let parse_cigar text =
       else
         try
           let n = Scanf.bscanf ch "%d" ident in
-          if n < 0 then
-            error "invalid cigar string" text sexp_of_string
-          else
-            let c = Scanf.bscanf ch "%c" ident in
-            let x = match c with
-              | 'M' -> `Alignment_match n
-              | 'I' -> `Insertion n
-              | 'D' -> `Deletion n
-              | 'N' -> `Skipped n
-              | 'S' -> `Soft_clipping n
-              | 'H' -> `Hard_clipping n
-              | 'P' -> `Padding n
-              | '=' -> `Seq_match n
-              | 'X' -> `Seq_mismatch n
-              | other -> failwith ""
-            in
-            loop (x::accum)
+          let c = Scanf.bscanf ch "%c" ident in
+          let x =
+            match c with
+            | 'M' -> Cigar_op.alignment_match n
+            | 'I' -> Cigar_op.insertion n
+            | 'D' -> Cigar_op.deletion n
+            | 'N' -> Cigar_op.skipped n
+            | 'S' -> Cigar_op.soft_clipping n
+            | 'H' -> Cigar_op.hard_clipping n
+            | 'P' -> Cigar_op.padding n
+            | '=' -> Cigar_op.seq_match n
+            | 'X' -> Cigar_op.seq_mismatch n
+            | other -> Or_error.error_string "invalid cigar operation type"
+          in
+          Or_error.tag x "Sam.parse_cigar: invalid cigar string" >>= fun x ->
+          loop (x::accum)
         with
           _ ->
             error "invalid cigar string" text sexp_of_string

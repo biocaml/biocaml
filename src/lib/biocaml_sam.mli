@@ -14,7 +14,7 @@ open Biocaml_internal_utils
 (** Header item tags define the different types of header lines. The
     term "tag" in this context should not be confused with its use in
     "tag-value" pairs, which comprise the content of header items. *)
-type header_item_tag = private [>
+type header_item_tag = private [<
 | `HD | `SQ | `RG | `PG | `CO
 | `Other of string
 ] with sexp
@@ -78,7 +78,7 @@ type program = private {
   version : string option; (** VN *)
 } with sexp
 
-type header_item = private [>
+type header_item = private [<
 | `HD of header_line
 | `SQ of ref_seq
 | `RG of read_group
@@ -139,21 +139,33 @@ module Flags : sig
 end
 
 (** CIGAR operations. *)
-type cigar_op = private [>
-| `Alignment_match of int
-| `Insertion of int
-| `Deletion of int
-| `Skipped of int
-| `Soft_clipping of int
-| `Hard_clipping of int
-| `Padding of int
-| `Seq_match of int
-| `Seq_mismatch of int
-] with sexp
+module Cigar_op : sig
+  type t = private [<
+    | `Alignment_match of int
+    | `Insertion of int
+    | `Deletion of int
+    | `Skipped of int
+    | `Soft_clipping of int
+    | `Hard_clipping of int
+    | `Padding of int
+    | `Seq_match of int
+    | `Seq_mismatch of int
+  ] with sexp
+
+  val alignment_match : int -> t Or_error.t
+  val insertion : int -> t Or_error.t
+  val deletion : int -> t Or_error.t
+  val skipped : int -> t Or_error.t
+  val soft_clipping : int -> t Or_error.t
+  val hard_clipping : int -> t Or_error.t
+  val padding : int -> t Or_error.t
+  val seq_match : int -> t Or_error.t
+  val seq_mismatch : int -> t Or_error.t
+end
 
 (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
-type optional_field_value = private [>
+type optional_field_value = private [<
 | `A of char
 | `i of Int32.t
 | `f of float
@@ -167,7 +179,7 @@ type optional_field = private {
   value : optional_field_value
 } with sexp
 
-type rnext = private [> `Value of string | `Equal_to_RNAME]
+type rnext = private [< `Value of string | `Equal_to_RNAME]
 with sexp
 
 (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
@@ -178,7 +190,7 @@ type alignment = private {
   rname : string option; (** RNAME *)
   pos : int option; (** POS *)
   mapq : int option; (** MAPQ *)
-  cigar : cigar_op list; (** CIGAR *)
+  cigar : Cigar_op.t list; (** CIGAR *)
   rnext : rnext option; (** RNEXT *)
   pnext : int option; (** PNEXT *)
   tlen : int option; (** TLEN *)
@@ -313,7 +325,7 @@ val alignment
   -> ?rname : string
   -> ?pos : int
   -> ?mapq : int
-  -> ?cigar : cigar_op list
+  -> ?cigar : Cigar_op.t list
   -> ?rnext : rnext
   -> ?pnext : int
   -> ?tlen : int
@@ -328,7 +340,7 @@ val parse_flags : string -> Flags.t Or_error.t
 val parse_rname : string -> string option Or_error.t
 val parse_pos : string -> int option Or_error.t
 val parse_mapq : string -> int option Or_error.t
-val parse_cigar : string -> cigar_op list Or_error.t
+val parse_cigar : string -> Cigar_op.t list Or_error.t
 val parse_rnext : string -> rnext option Or_error.t
 val parse_pnext : string -> int option Or_error.t
 val parse_tlen : string -> int option Or_error.t
@@ -353,7 +365,7 @@ val print_ref_seq : ref_seq -> string
 val print_platform : platform -> string
 val print_read_group : read_group -> string
 val print_program : program -> string
-
+val print_other : string * tag_value list -> string
 
 (******************************************************************************)
 (** {3 Low-level Alignment Printers} *)
@@ -363,8 +375,8 @@ val print_flags : Flags.t -> string
 val print_rname : string option -> string
 val print_pos : int option -> string
 val print_mapq : int option -> string
-val print_cigar_op : cigar_op -> string
-val print_cigar : cigar_op list -> string
+val print_cigar_op : Cigar_op.t -> string
+val print_cigar : Cigar_op.t list -> string
 val print_rnext : rnext option -> string
 val print_pnext : int option -> string
 val print_tlen : int option -> string
