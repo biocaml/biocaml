@@ -81,18 +81,19 @@ let get_4_0 =
   let mask = Int32.of_int_exn 0xf in
   fun x -> Int32.bit_and mask x |> Int32.to_int_exn
 
-let cigar_op_of_s32 x =
+let cigar_op_of_s32 x : Sam.cigar_op Or_error.t =
+  let open Sam in
   let op_len = get_32_4 x in
   match get_4_0 x with
-  | 0 -> `Alignment_match op_len
-  | 1 -> `Insertion op_len
-  | 2 -> `Deletion op_len
-  | 3 -> `Skipped op_len
-  | 4 -> `Soft_clipping op_len
-  | 5 -> `Hard_clipping op_len
-  | 6 -> `Padding op_len
-  | 7 -> `Seq_match op_len
-  | 8 -> `Seq_mismatch op_len
+  | 0 -> cigar_op_alignment_match op_len
+  | 1 -> cigar_op_insertion op_len
+  | 2 -> cigar_op_deletion op_len
+  | 3 -> cigar_op_skipped op_len
+  | 4 -> cigar_op_soft_clipping op_len
+  | 5 -> cigar_op_hard_clipping op_len
+  | 6 -> cigar_op_padding op_len
+  | 7 -> cigar_op_seq_match op_len
+  | 8 -> cigar_op_seq_mismatch op_len
   | _ -> assert false
 
 let char_of_seq_code  = function
@@ -264,11 +265,11 @@ let read_alignment (refseqs : Sam.ref_seq array) iz =
   let next_refID = input_s32_as_int iz in
   if next_refID < -1 || next_refID > Array.length refseqs
   then raise (Parse_error (Error.create "Incorrect next_refID field while reading an alignment" next_refID <:sexp_of<int>>)) ;
-  let rnext =
-    match next_refID with
-    | -1 -> None
-    | i -> Some (`Value refseqs.(i).Sam.name)
-  in
+
+  begin match next_refID with
+    | -1 -> return None
+    | i -> Sam.parse_rnext refseqs.(i).Sam.name
+  end >>= fun rnext ->
 
   let pnext = match Bgzf.input_s32 iz |> Int32.to_int with
     | Some (- 1) -> None
@@ -285,10 +286,12 @@ let read_alignment (refseqs : Sam.ref_seq array) iz =
     r
   in
 
-  let cigar =
+  begin
     List.init n_cigar_op ~f:(fun _ ->
         cigar_op_of_s32 (Bgzf.input_s32 iz)
-      ) in
+      )
+    |> Result.all
+  end >>= fun cigar ->
 
   let seq =
     let r = String.make l_seq ' ' in

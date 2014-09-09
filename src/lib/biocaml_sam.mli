@@ -139,29 +139,17 @@ module Flags : sig
 end
 
 (** CIGAR operations. *)
-module Cigar_op : sig
-  type t = private [<
-    | `Alignment_match of int
-    | `Insertion of int
-    | `Deletion of int
-    | `Skipped of int
-    | `Soft_clipping of int
-    | `Hard_clipping of int
-    | `Padding of int
-    | `Seq_match of int
-    | `Seq_mismatch of int
-  ] with sexp
-
-  val alignment_match : int -> t Or_error.t
-  val insertion : int -> t Or_error.t
-  val deletion : int -> t Or_error.t
-  val skipped : int -> t Or_error.t
-  val soft_clipping : int -> t Or_error.t
-  val hard_clipping : int -> t Or_error.t
-  val padding : int -> t Or_error.t
-  val seq_match : int -> t Or_error.t
-  val seq_mismatch : int -> t Or_error.t
-end
+type cigar_op = private [<
+  | `Alignment_match of int
+  | `Insertion of int
+  | `Deletion of int
+  | `Skipped of int
+  | `Soft_clipping of int
+  | `Hard_clipping of int
+  | `Padding of int
+  | `Seq_match of int
+  | `Seq_mismatch of int
+] with sexp
 
 (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
@@ -190,7 +178,7 @@ type alignment = private {
   rname : string option; (** RNAME *)
   pos : int option; (** POS *)
   mapq : int option; (** MAPQ *)
-  cigar : Cigar_op.t list; (** CIGAR *)
+  cigar : cigar_op list; (** CIGAR *)
   rnext : rnext option; (** RNEXT *)
   pnext : int option; (** PNEXT *)
   tlen : int option; (** TLEN *)
@@ -300,6 +288,20 @@ val parse_header : string -> header Or_error.t
 (******************************************************************************)
 (** {3 Low-level Optional field Parsers and Constructors} *)
 (******************************************************************************)
+val cigar_op_alignment_match : int -> cigar_op Or_error.t
+val cigar_op_insertion : int -> cigar_op Or_error.t
+val cigar_op_deletion : int -> cigar_op Or_error.t
+val cigar_op_skipped : int -> cigar_op Or_error.t
+val cigar_op_soft_clipping : int -> cigar_op Or_error.t
+val cigar_op_hard_clipping : int -> cigar_op Or_error.t
+val cigar_op_padding : int -> cigar_op Or_error.t
+val cigar_op_seq_match : int -> cigar_op Or_error.t
+val cigar_op_seq_mismatch : int -> cigar_op Or_error.t
+
+
+(******************************************************************************)
+(** {3 Low-level Optional field Parsers and Constructors} *)
+(******************************************************************************)
 val optional_field_value_A : char -> optional_field_value Or_error.t
 val optional_field_value_i : Int32.t -> optional_field_value
 val optional_field_value_f : float -> optional_field_value
@@ -325,7 +327,7 @@ val alignment
   -> ?rname : string
   -> ?pos : int
   -> ?mapq : int
-  -> ?cigar : Cigar_op.t list
+  -> ?cigar : cigar_op list
   -> ?rnext : rnext
   -> ?pnext : int
   -> ?tlen : int
@@ -340,7 +342,7 @@ val parse_flags : string -> Flags.t Or_error.t
 val parse_rname : string -> string option Or_error.t
 val parse_pos : string -> int option Or_error.t
 val parse_mapq : string -> int option Or_error.t
-val parse_cigar : string -> Cigar_op.t list Or_error.t
+val parse_cigar : string -> cigar_op list Or_error.t
 val parse_rnext : string -> rnext option Or_error.t
 val parse_pnext : string -> int option Or_error.t
 val parse_tlen : string -> int option Or_error.t
@@ -375,8 +377,8 @@ val print_flags : Flags.t -> string
 val print_rname : string option -> string
 val print_pos : int option -> string
 val print_mapq : int option -> string
-val print_cigar_op : Cigar_op.t -> string
-val print_cigar : Cigar_op.t list -> string
+val print_cigar_op : cigar_op -> string
+val print_cigar : cigar_op list -> string
 val print_rnext : rnext option -> string
 val print_pnext : int option -> string
 val print_tlen : int option -> string
