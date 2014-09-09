@@ -1,6 +1,5 @@
 open Core.Std
-
-module RomanNum = Biocaml_romanNum
+module Roman_num = Biocaml_roman_num
 
 module Error = struct
   type t = [
@@ -30,8 +29,8 @@ module I = struct
     | "y" -> ChrY
     | "m" | "mt" | "mtdna" -> ChrM
     | _ ->
-      match RomanNum.of_string c with
-      | Some n -> ChrN (RomanNum.to_int n)
+      match Roman_num.of_string c with
+      | Some n -> ChrN (Roman_num.to_int n)
       | None ->
         try
           let n = int_of_string c in
@@ -51,7 +50,7 @@ module I = struct
   let to_string_roman t =
     let ans = match t with
       | ChrX | ChrY | ChrM | Unknown _ -> non_num_to_string t
-      | ChrN n -> RomanNum.to_string (RomanNum.of_int_exn n)
+      | ChrN n -> Roman_num.to_string (Roman_num.of_int_exn n)
     in
     if List.mem ["x"; "y"; "m"; "mt"; "mtdna"] (String.lowercase ans)
     then Result.Error (`chromosome_ambiguous_in_roman_form (to_string_arabic t))

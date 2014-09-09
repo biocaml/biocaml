@@ -67,7 +67,7 @@ Biocaml_about
 Biocaml_msg
 Biocaml_pos
 Biocaml_phred_score
-Biocaml_romanNum
+Biocaml_roman_num
 Biocaml_solexa_score
 Biocaml_transform
 }
