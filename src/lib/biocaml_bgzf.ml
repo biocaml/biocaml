@@ -342,6 +342,9 @@ let output_s32 oz n =
   output_u8 oz (base lsr 8);
   output_u8 oz base
 
+let output_string oz s =
+  output oz s 0 (String.length s)
+
 let bgzf_eof = "\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
 let dispose_out oz =

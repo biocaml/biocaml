@@ -85,6 +85,7 @@ val output_s8 : out_channel -> int -> unit
 val output_u16 : out_channel -> int -> unit
 val output_s16 : out_channel -> int -> unit
 val output_s32 : out_channel -> int32 -> unit
+val output_string : out_channel -> string -> unit
 
 val with_file_out : ?level:int -> string -> f:(out_channel -> 'a) -> 'a
 (** [with_file_out ~level fn ~f] opens a file for writing at
