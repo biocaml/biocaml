@@ -312,23 +312,22 @@ let output_char =
 
 (* output_* functions adapted from Batteries BatIO module *)
 let output_u8 oz n =
-  if n < 0 || n > 0xFF then raise (Invalid_argument "Bgzf.write_u8") ;
+  (* if n < 0 || n > 0xFF then raise (Invalid_argument "Bgzf.output_u8") ; *)
   output_char oz (Char.unsafe_chr (n land 0xFF))
 
 let output_s8 oz n =
-  if n < -0x80 || n > 0x7F then raise (Invalid_argument "Bgzf.write_s8") ;
+  if n < -0x80 || n > 0x7F then raise (Invalid_argument "Bgzf.output_s8") ;
   if n < 0 then
     output_u8 oz (n + 256)
   else
     output_u8 oz n
 
 let output_u16 oz n =
-  if n < 0 || n > 0xFFFF then raise (Invalid_argument "Bgzf.write_u16") ;
   output_u8 oz (n lsr 8);
   output_u8 oz n
 
 let output_s16 oz n =
-  if n < -0x8000 || n > 0x7FFF then raise (Invalid_argument "Bgzf.write_s16") ;
+  if n < -0x8000 || n > 0x7FFF then raise (Invalid_argument "Bgzf.output_s16") ;
   if n < 0 then
     output_u16 oz (65536 + n)
   else
