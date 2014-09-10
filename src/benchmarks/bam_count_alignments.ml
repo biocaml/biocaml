@@ -16,9 +16,14 @@ let transform_count fn =
 
 let bam_alt_count fn =
   Bam_alt.with_file fn ~f:(fun header alignments ->
-      Stream.fold alignments ~init:0 ~f:(fun accu -> function
-          | Ok _ -> accu + 1
-          | Error e -> failwith (Error.to_string_hum e))
+      try
+        Ok (
+          Stream.fold alignments ~init:0 ~f:(fun accu -> function
+              | Ok _ -> accu + 1
+              | Error e -> failwith (Error.to_string_hum e)
+            )
+        )
+      with Failure s -> Or_error.error_string s
     )
   |> ok_exn
   |> print_int

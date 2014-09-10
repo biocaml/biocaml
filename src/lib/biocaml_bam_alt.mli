@@ -20,11 +20,11 @@ val read : in_channel -> (header * alignment Or_error.t Stream.t) Or_error.t
     [ic] or a pair containing a header and a stream of possibly
     errored alignments. The stream stops after the first error. *)
 
-val with_file : string -> f:(header -> alignment Or_error.t Stream.t -> 'a) -> 'a Or_error.t
+val with_file : string -> f:(header -> alignment Or_error.t Stream.t -> 'a Or_error.t) -> 'a Or_error.t
 (** [with_file fn ~f] opens a BAM file for reading, applies [f] and
     closes the file after that, even if [f] raises an exception. {b
     Beware}: the result of [f] {b should not} lazily depend on the
     stream it receives as a second argument, since after the call to
     [with_file] the underlying channel is closed. *)
 
-(* val write : header -> alignment Stream.t -> out_channel -> unit *)
+val write : header -> alignment Stream.t -> out_channel -> unit

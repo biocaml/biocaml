@@ -155,7 +155,7 @@ if $(not $(OCAMLFIND_EXISTS))
 NATIVE_ENABLED = $(OCAMLOPT_EXISTS)
 BYTE_ENABLED = $(OCAMLC_EXISTS)
 
-OCAMLFLAGS = -bin-annot -annot -warn-error P -thread -short-paths
+OCAMLFLAGS = -bin-annot -annot -warn-error P -thread -short-paths -g
 OCAMLCFLAGS =
 OCAMLOPTFLAGS =
 OCAML_LINK_FLAGS +=
@@ -321,7 +321,7 @@ merlinize: .merlin
 
     %.ml: ../lib/$(PROJECT).cma
 
-    tests: $(OCamlProgram $(TESTS_NAME), main $(TESTS_MODULES))
+    tests: $(OCamlProgram $(TESTS_NAME), main utils $(TESTS_MODULES))
 
     if $(COMPILE_TESTS)
       echo "conf: Building $(PROJECT) tests"
