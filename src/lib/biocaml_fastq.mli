@@ -3,16 +3,16 @@
     repeated sequence of 4 lines:
 
     {v
-    @name
+    \@name
     sequence
     +comment
     qualities
     ...
     v}
 
-    The name line begins with an @ character, which is omitted in the
+    The name line begins with an \@ character, which is omitted in the
     parsed {!item} type provided by this module. Any spaces after the
-    @ are retained, but the specification implies that there shouldn't
+    \@ are retained, but the specification implies that there shouldn't
     be any such spaces. Trailing whitespace is also retained since you
     should not normally have such files.
 
@@ -57,7 +57,7 @@ type item = {
 
 (** Split a name string into a sequence identifier and an optional
     description. It is assumed that the given string is from an
-    [item]'s [name] field, i.e. that it doesn't contain a leading @
+    [item]'s [name] field, i.e. that it doesn't contain a leading \@
     char. *)
 val split_name : string -> string * string option
 
@@ -122,7 +122,7 @@ module Illumina : sig
 
   (** Parse a name string to a structured Illumina sequence_id. It is
       assumed that the given string is from an [item]'s [name] field,
-      i.e. that it doesn't contain a leading @ char. *)
+      i.e. that it doesn't contain a leading \@ char. *)
   val sequence_id_of_string : string -> sequence_id Or_error.t
 
 end
