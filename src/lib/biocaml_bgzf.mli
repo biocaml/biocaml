@@ -80,11 +80,29 @@ val output : out_channel -> string -> int -> int -> unit
     from position [pos] into the compressed file [oc]. *)
 
 val output_char : out_channel -> char -> unit
+
 val output_u8 : out_channel -> int -> unit
+(** [output_u8 oz n] writes the 8 least significant bits onto channel
+    [oz] *)
+
 val output_s8 : out_channel -> int -> unit
+(** [output_s8 oz n] writes a signed representation of [n], if [n] is
+    between -128 and 127. @raise Invalid_arg if [n] is outside this
+    range. *)
+
 val output_u16 : out_channel -> int -> unit
+(** [output_u16 oz n] writes the 16 least significant bits onto channel
+    [oz] *)
+
 val output_s16 : out_channel -> int -> unit
+(** [output_s8 oz n] writes a signed representation of [n], if [n] is
+    between -32768 and 32767. @raise Invalid_arg if [n] is outside this
+    range. *)
+
 val output_s32 : out_channel -> int32 -> unit
+(** [output_s32 oz n] writes a signed representation of [n]. *)
+
+val output_string : out_channel -> string -> unit
 
 val with_file_out : ?level:int -> string -> f:(out_channel -> 'a) -> 'a
 (** [with_file_out ~level fn ~f] opens a file for writing at

@@ -130,15 +130,15 @@ module Flags = struct
 end
 
 type cigar_op = [
-| `Alignment_match of int
-| `Insertion of int
-| `Deletion of int
-| `Skipped of int
-| `Soft_clipping of int
-| `Hard_clipping of int
-| `Padding of int
-| `Seq_match of int
-| `Seq_mismatch of int
+  | `Alignment_match of int
+  | `Insertion of int
+  | `Deletion of int
+  | `Skipped of int
+  | `Soft_clipping of int
+  | `Hard_clipping of int
+  | `Padding of int
+  | `Seq_match of int
+  | `Seq_mismatch of int
 ] with sexp
 
 type optional_field_value = [
@@ -626,6 +626,20 @@ let parse_mapq s =
   | 255 -> None
   | x -> Some x
 
+let positive i =
+  let open Or_error in
+  if i > 0 then return i else error_string "positive argument expected for cigar operation"
+
+let cigar_op_alignment_match i = Or_error.(positive i >>| fun i -> `Alignment_match i)
+let cigar_op_insertion i = Or_error.(positive i >>| fun i -> `Insertion i)
+let cigar_op_deletion i = Or_error.(positive i >>| fun i -> `Deletion i)
+let cigar_op_skipped i = Or_error.(positive i >>| fun i -> `Skipped i)
+let cigar_op_soft_clipping i = Or_error.(positive i >>| fun i -> `Soft_clipping i)
+let cigar_op_hard_clipping i = Or_error.(positive i >>| fun i -> `Hard_clipping i)
+let cigar_op_padding i = Or_error.(positive i >>| fun i -> `Padding i)
+let cigar_op_seq_match i = Or_error.(positive i >>| fun i -> `Seq_match i)
+let cigar_op_seq_mismatch i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
+
 let parse_cigar text =
   match text with
   | "*" -> Ok []
@@ -638,23 +652,22 @@ let parse_cigar text =
       else
         try
           let n = Scanf.bscanf ch "%d" ident in
-          if n < 0 then
-            error "invalid cigar string" text sexp_of_string
-          else
-            let c = Scanf.bscanf ch "%c" ident in
-            let x = match c with
-              | 'M' -> `Alignment_match n
-              | 'I' -> `Insertion n
-              | 'D' -> `Deletion n
-              | 'N' -> `Skipped n
-              | 'S' -> `Soft_clipping n
-              | 'H' -> `Hard_clipping n
-              | 'P' -> `Padding n
-              | '=' -> `Seq_match n
-              | 'X' -> `Seq_mismatch n
-              | other -> failwith ""
-            in
-            loop (x::accum)
+          let c = Scanf.bscanf ch "%c" ident in
+          let x =
+            match c with
+            | 'M' -> cigar_op_alignment_match n
+            | 'I' -> cigar_op_insertion n
+            | 'D' -> cigar_op_deletion n
+            | 'N' -> cigar_op_skipped n
+            | 'S' -> cigar_op_soft_clipping n
+            | 'H' -> cigar_op_hard_clipping n
+            | 'P' -> cigar_op_padding n
+            | '=' -> cigar_op_seq_match n
+            | 'X' -> cigar_op_seq_mismatch n
+            | other -> Or_error.error_string "invalid cigar operation type"
+          in
+          Or_error.tag x "Sam.parse_cigar: invalid cigar string" >>= fun x ->
+          loop (x::accum)
         with
           _ ->
             error "invalid cigar string" text sexp_of_string
@@ -692,6 +705,7 @@ let parse_qual s =
   | _ ->
     String.to_list s
     |> Result.List.map ~f:(Phred_score.of_char ~offset:`Offset33)
+
 
 let opt_field_tag_re = Re_perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
 let opt_field_Z_re = Re_perl.compile_pat "^[ !-~]+$"

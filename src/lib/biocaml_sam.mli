@@ -14,7 +14,7 @@ open Biocaml_internal_utils
 (** Header item tags define the different types of header lines. The
     term "tag" in this context should not be confused with its use in
     "tag-value" pairs, which comprise the content of header items. *)
-type header_item_tag = private [>
+type header_item_tag = private [<
 | `HD | `SQ | `RG | `PG | `CO
 | `Other of string
 ] with sexp
@@ -78,7 +78,7 @@ type program = private {
   version : string option; (** VN *)
 } with sexp
 
-type header_item = private [>
+type header_item = private [<
 | `HD of header_line
 | `SQ of ref_seq
 | `RG of read_group
@@ -139,21 +139,21 @@ module Flags : sig
 end
 
 (** CIGAR operations. *)
-type cigar_op = private [>
-| `Alignment_match of int
-| `Insertion of int
-| `Deletion of int
-| `Skipped of int
-| `Soft_clipping of int
-| `Hard_clipping of int
-| `Padding of int
-| `Seq_match of int
-| `Seq_mismatch of int
+type cigar_op = private [<
+  | `Alignment_match of int
+  | `Insertion of int
+  | `Deletion of int
+  | `Skipped of int
+  | `Soft_clipping of int
+  | `Hard_clipping of int
+  | `Padding of int
+  | `Seq_match of int
+  | `Seq_mismatch of int
 ] with sexp
 
 (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
-type optional_field_value = private [>
+type optional_field_value = private [<
 | `A of char
 | `i of Int32.t
 | `f of float
@@ -167,7 +167,7 @@ type optional_field = private {
   value : optional_field_value
 } with sexp
 
-type rnext = private [> `Value of string | `Equal_to_RNAME]
+type rnext = private [< `Value of string | `Equal_to_RNAME]
 with sexp
 
 (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
@@ -288,6 +288,20 @@ val parse_header : string -> header Or_error.t
 (******************************************************************************)
 (** {3 Low-level Optional field Parsers and Constructors} *)
 (******************************************************************************)
+val cigar_op_alignment_match : int -> cigar_op Or_error.t
+val cigar_op_insertion : int -> cigar_op Or_error.t
+val cigar_op_deletion : int -> cigar_op Or_error.t
+val cigar_op_skipped : int -> cigar_op Or_error.t
+val cigar_op_soft_clipping : int -> cigar_op Or_error.t
+val cigar_op_hard_clipping : int -> cigar_op Or_error.t
+val cigar_op_padding : int -> cigar_op Or_error.t
+val cigar_op_seq_match : int -> cigar_op Or_error.t
+val cigar_op_seq_mismatch : int -> cigar_op Or_error.t
+
+
+(******************************************************************************)
+(** {3 Low-level Optional field Parsers and Constructors} *)
+(******************************************************************************)
 val optional_field_value_A : char -> optional_field_value Or_error.t
 val optional_field_value_i : Int32.t -> optional_field_value
 val optional_field_value_f : float -> optional_field_value
@@ -353,7 +367,7 @@ val print_ref_seq : ref_seq -> string
 val print_platform : platform -> string
 val print_read_group : read_group -> string
 val print_program : program -> string
-
+val print_other : string * tag_value list -> string
 
 (******************************************************************************)
 (** {3 Low-level Alignment Printers} *)
