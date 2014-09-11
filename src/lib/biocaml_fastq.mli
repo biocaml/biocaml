@@ -20,6 +20,15 @@
     purpose of the comment line is unclear and it is rarely
     used. Also, "comment" may not be the correct term for this line.
 
+    The name line may be structured into two parts: a sequence
+    identifier and an optional description. We provide a function
+    {!split_name} to parse such a value. However, an [item]'s [name]
+    field contains the unparsed string because it is unclear whether
+    fastq files really follow this. Also the format of the description
+    is unspecified. When it is provided, usually it has some
+    additional structure, so the minimal amount of parsing done by
+    {!split_name} isn't too useful anyway.
+
     The qualities line is returned as a plain string, but it is
     required to be decodable as either Phred or Solexa scores. Modules
     [Phred_score] and [Solexa_score] can be used to parse as needed.
@@ -37,6 +46,12 @@ type item = {
   comment: string;
   qualities: string;
 } with sexp
+
+(** Split a name string into a sequence identifier and an optional
+    description. It is assumed that the given string is from an
+    [item]'s [name] field, i.e. that it doesn't contain a leading @
+    char. *)
+val split_name : string -> string * string option
 
 
 (******************************************************************************)

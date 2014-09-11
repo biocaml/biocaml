@@ -9,6 +9,11 @@ type item = {
   qualities: string;
 } with sexp
 
+let split_name s =
+  match String.lsplit2 s ~on:' ' with
+  | None -> s, None
+  | Some (x,y) -> x, Some y
+
 
 (******************************************************************************)
 (* Printing                                                                   *)
