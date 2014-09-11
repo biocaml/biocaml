@@ -36,7 +36,6 @@ module Solexa_score   = Biocaml_solexa_score
 module Strand         = Biocaml_strand
 module Table          = Biocaml_table
 module Track          = Biocaml_track
-module Tags           = Biocaml_tags
 module Transform      = Biocaml_transform
 module Vcf            = Biocaml_vcf
 module Wig            = Biocaml_wig
