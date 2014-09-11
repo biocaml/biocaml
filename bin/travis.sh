@@ -16,11 +16,9 @@ opam --git-version
 opam init --comp=$OCAML_VERSION --no-setup
 eval `opam config env`
 
-cd ~
-git clone https://github.com/agarwal/future.git
-opam pin add -n future ~/future
-git clone https://github.com/smondet/flow.git
-opam pin add -n flow ~/flow
+opam pin add -n future https://github.com/agarwal/future.git
+opam pin add -n flow https://github.com/smondet/flow.git
+opam pin add -n cfstream https://github.com/biocaml/cfstream.git
 
 opam install \
   ocamlfind \
