@@ -7,3 +7,12 @@ let with_temp_file pre suff ~f =
   match r with
   | `Ok y -> y
   | `Error e -> raise e
+
+module Printer = struct
+
+  let string = ident
+  let int = string_of_int
+  let option f x = match x with
+    | None -> "None"
+    | Some y -> sprintf "Some (%s)" (f y)
+end
