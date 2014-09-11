@@ -63,6 +63,27 @@ val split_name : string -> string * string option
 
 
 (******************************************************************************)
+(** {2 Input/Output } *)
+(******************************************************************************)
+module MakeIO (Future : Future.S) : sig
+  open Future
+
+  val read : Reader.t -> item Or_error.t Pipe.Reader.t
+
+  val write : Writer.t -> item Pipe.Reader.t -> unit Deferred.t
+
+  val write_file
+    : ?perm:int
+    -> ?append:bool
+    -> string
+    -> item Pipe.Reader.t
+    -> unit Deferred.t
+
+end
+include module type of MakeIO(Future_std)
+
+
+(******************************************************************************)
 (** {2 Illumina-specific operations} *)
 (******************************************************************************)
 module Illumina : sig
@@ -105,26 +126,6 @@ module Illumina : sig
   val sequence_id_of_string : string -> sequence_id Or_error.t
 
 end
-
-(******************************************************************************)
-(** {2 Input/Output } *)
-(******************************************************************************)
-module MakeIO (Future : Future.S) : sig
-  open Future
-
-  val read : Reader.t -> item Or_error.t Pipe.Reader.t
-
-  val write : Writer.t -> item Pipe.Reader.t -> unit Deferred.t
-
-  val write_file
-    : ?perm:int
-    -> ?append:bool
-    -> string
-    -> item Pipe.Reader.t
-    -> unit Deferred.t
-
-end
-include module type of MakeIO(Future_std)
 
 
 (******************************************************************************)
