@@ -171,7 +171,8 @@ let rec really_input iz buf pos len =
   )
 
 let input_string iz n =
-  let r = String.make n ' ' in
+  if n < 0 then raise (Invalid_argument "Bgzf.input_string iz n: n should be non negative") ;
+  let r = String.make n '@' in
   really_input iz r 0 n ;
   r
 
@@ -227,7 +228,7 @@ type out_channel = {
   out_chan : Pervasives.out_channel ;
   out_ubuffer : string ;
   out_cbuffer : string ;
-  mutable out_pos : int ;
+  mutable out_pos : int ; (* position in out_ubuffer *)
   out_level : int ;
 }
 
@@ -242,7 +243,7 @@ let output_int32 oc n =
     r := Int32.shift_right_logical !r 8
   done
 
-let write_block oc buf len crc32 =
+let write_block oc buf len ~isize ~crc32 =
   let xlen = 6 in
   let bsize = 20 + xlen + len in
   assert (bsize < 0x10000) ;
@@ -262,7 +263,7 @@ let write_block oc buf len crc32 =
   output_int16 oc (bsize - 1);          (* BSIZE - 1*)
   output oc buf 0 len ;                 (* DATA *)
   output_int32 oc crc32 ;               (* CRC32 *)
-  output_int32 oc (Int32.of_int len)    (* ISIZE *)
+  output_int32 oc isize                 (* ISIZE *)
 
 let of_out_channel ?(level = 6) oc =
   if level < 1 || level > 9 then raise (invalid_arg "Biocaml_bgzf: bad compression level") ;
@@ -290,9 +291,9 @@ let push_block oz =
     with Zlib.Error(_, _) -> raise (Unparser_error("error during compression"))
   in
   assert (used_in = oz.out_pos) ;
-  let crc = Zlib.update_crc Int32.zero oz.out_ubuffer 0 used_in in
+  let crc32 = Zlib.update_crc Int32.zero oz.out_ubuffer 0 used_in in
   Zlib.deflate_end stream ;
-  write_block oz.out_chan oz.out_cbuffer used_out crc ;
+  write_block oz.out_chan oz.out_cbuffer used_out ~isize:(Int32.of_int used_in) ~crc32 ;
   oz.out_pos <- 0
 
 let rec output oz buf pos len =
@@ -302,13 +303,15 @@ let rec output oz buf pos len =
   let available = String.length oz.out_ubuffer - oz.out_pos in
   let ncopy = min len available in
   String.blit buf pos oz.out_ubuffer oz.out_pos ncopy ;
-  oz.out_pos <- oz.out_pos + available ;
+  oz.out_pos <- oz.out_pos + ncopy ;
   let remaining = len - ncopy in
   if remaining > 0 then output oz buf (pos + ncopy) remaining
 
 let output_char =
   let buf = String.make 1 ' ' in
-  fun oz c -> output oz buf 0 1
+  fun oz c ->
+    buf.[0] <- c ;
+    output oz buf 0 1
 
 (* output_* functions adapted from Batteries BatIO module *)
 let output_u8 oz n =
@@ -323,8 +326,8 @@ let output_s8 oz n =
     output_u8 oz n
 
 let output_u16 oz n =
-  output_u8 oz (n lsr 8);
-  output_u8 oz n
+  output_u8 oz n ;
+  output_u8 oz (n lsr 8)
 
 let output_s16 oz n =
   if n < -0x8000 || n > 0x7FFF then raise (Invalid_argument "Bgzf.output_s16") ;
@@ -336,10 +339,10 @@ let output_s16 oz n =
 let output_s32 oz n =
   let base = Int32.to_int n in
   let big = Int32.to_int (Int32.shift_right_logical n 24) in
-  output_u8 oz big;
-  output_u8 oz (base lsr 16);
-  output_u8 oz (base lsr 8);
-  output_u8 oz base
+  output_u8 oz base ;
+  output_u8 oz (base lsr 8) ;
+  output_u8 oz (base lsr 16) ;
+  output_u8 oz big
 
 let output_string oz s =
   output oz s 0 (String.length s)

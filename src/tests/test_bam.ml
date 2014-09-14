@@ -47,6 +47,16 @@ let assert_alignment ~qname ~rname ~mapq ~n_cigar_ops ~seq header al =
   assert_equal ~msg:"wrong seq" ~printer:ident seq (Option.value_exn (Bam.Alignment0.seq al)) ;
   ()
 
+let assert_alignments header al1 al2 =
+  let open Utils.Printer in
+  assert_equal ~msg:"rname"       ~printer:(or_error (option string)) (Bam.Alignment0.rname al1 header) (Bam.Alignment0.rname al2 header) ;
+  assert_equal ~msg:"mapq"        ~printer:(option int)               (Bam.Alignment0.mapq al1) (Bam.Alignment0.mapq al2) ;
+  assert_equal ~msg:"tlen"        ~printer:(option int)               (Bam.Alignment0.tlen al1) (Bam.Alignment0.tlen al2) ;
+  assert_equal ~msg:"read_name"   ~printer:(option string)            (Bam.Alignment0.qname al1) (Bam.Alignment0.qname al2) ;
+  assert_equal ~msg:"n_cigar_ops" ~printer:int                        (List.length (ok_exn (Bam.Alignment0.cigar al1))) (List.length (ok_exn (Bam.Alignment0.cigar al2))) ;
+  assert_equal ~msg:"seq"         ~printer:ident                      (Option.value_exn (Bam.Alignment0.seq al1)) (Option.value_exn (Bam.Alignment0.seq al2)) ;
+  ()
+
 let test_read () =
   Bam.with_file "src/tests/data/bam_01.bam" ~f:(fun header alignments ->
       let sh = Bam.Header.to_sam header in
@@ -65,13 +75,16 @@ let test_read () =
 let test_read_write_and_read () =
   let bamfile = "src/tests/data/bam_01.bam" in
   Utils.with_temp_file "biocaml" ".bam" ~f:(fun fn ->
+      let fn = "delme" in
       Bam.with_file bamfile ~f:(fun header alignments ->
           Out_channel.with_file fn ~f:(Bam.write header (Stream.map alignments ~f:ok_exn)) ;
           Ok ()
         ) |> ok_exn ;
       Bam.with_file bamfile ~f:(fun ref_header ref_alignments ->
           Bam.with_file fn ~f:(fun header alignments ->
-              try Stream.map2_exn ref_alignments alignments ~f:(fun ref_al al -> ()) |> fun _ -> Ok ()
+              try
+                Stream.Result.map2_exn' ref_alignments alignments ~f:(assert_alignments ref_header)
+                |> Stream.Result.fold' ~init:() ~f:(fun () () -> ())
               with Stream.Expected_streams_of_equal_length -> assert_failure "Original and written files don't have the same number of alignments"
             )
         )

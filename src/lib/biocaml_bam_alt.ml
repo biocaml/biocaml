@@ -7,6 +7,8 @@ let check b msg =
   if b then Ok ()
   else error_string msg
 
+let checkf b format = Printf.ksprintf (check b) format
+
 let check_buf ~buf ~pos ~len =
   check (String.length buf >= pos + len) "Buffer too short"
 
@@ -97,7 +99,6 @@ module Alignment0 = struct
   (* ============================ *)
   (* ==== ACCESSOR FUNCTIONS ==== *)
   (* ============================ *)
-
   let option ~none x =
     if x = none then None
     else Some x
@@ -358,7 +359,7 @@ module Alignment0 = struct
   let sizeof al =
     let l_seq = l_seq al in
     8 * 4
-    + String.length al.read_name
+    + String.length al.read_name + 1 (* NULL terminated string *)
     + String.length al.cigar
     + (l_seq + 1) / 2
     + l_seq
@@ -462,7 +463,7 @@ module Alignment0 = struct
 
     let bin = reg2bin pos (pos + String.(length seq)) in
     let mapq = Option.value ~default:255 al.Sam.mapq in
-    let l_read_name = String.length read_name in
+    let l_read_name = String.length read_name + 1 in (* NULL terminated string *)
     encode_bin_mq_nl ~bin ~mapq ~l_read_name
     >>= fun bin_mq_nl ->
 
@@ -506,6 +507,7 @@ let read_sam_header iz =
     let magic = Bgzf.input_string iz 4 in
     check (magic = magic_string) "Incorrect magic string, not a BAM file" >>= fun () ->
     let l_text = input_s32_as_int iz in
+    check (l_text >= 0) "Incorrect size of plain text in BAM header" >>= fun () ->
     let text = Bgzf.input_string iz l_text in
     Biocaml_sam.parse_header text
   with End_of_file -> error_string "EOF while reading BAM header"
@@ -513,6 +515,7 @@ let read_sam_header iz =
 let read_one_reference_information iz =
   try
     let l_name = input_s32_as_int iz in
+    check (l_name > 0) "Incorrect encoding of reference sequence name in BAM header" >>= fun () ->
     let name = Bgzf.input_string iz (l_name - 1) in
     let _ = Bgzf.input_char iz in (* name is a NULL terminated string *)
     let length = input_s32_as_int iz in
@@ -536,7 +539,6 @@ let read_reference_information iz =
 let read_alignment_aux iz block_size =
   try
     let ref_id = input_s32_as_int iz in
-
     begin match Bgzf.input_s32 iz |> Int32.to_int with
       | Some 2147483647 (* POS in BAM is 0-based *)
       | None -> error_string "A read has a position greater than 2^31"
@@ -548,10 +550,11 @@ let read_alignment_aux iz block_size =
 
     let bin_mq_nl = Bgzf.input_s32 iz in
     let l_read_name = get_8_0 bin_mq_nl in
-    check (l_read_name > 0) "Alignment with l_read_name < 1" >>= fun () ->
+    checkf (l_read_name > 0) "Alignment with l_read_name = %d"  l_read_name >>= fun () ->
     let flag_nc = Bgzf.input_s32 iz in
     let n_cigar_ops = get_16_0 flag_nc in
     let l_seq = input_s32_as_int iz in
+    check (l_seq >= 0) "Incorrect sequence length in alignment" >>= fun () ->
     let next_ref_id = input_s32_as_int iz in
 
     begin match Bgzf.input_s32 iz |> Int32.to_int with
@@ -608,25 +611,29 @@ let with_file fn ~f =
 let write_plain_SAM_header h oz =
   let open Biocaml_sam in
   let buf = Buffer.create 1024 in
+  let add_line x =
+    Buffer.add_string buf x ;
+    Buffer.add_char buf '\n'
+  in
   Option.iter h.version (fun version ->
       let hl = header_line ~version ?sort_order:h.sort_order () |> ok_exn in (* the construction of the header line must be valid since we are building it from a validated header *)
-      Buffer.add_string buf (print_header_line hl)
+      add_line (print_header_line hl)
     ) ;
   List.iter h.ref_seqs ~f:(fun x ->
-      Buffer.add_string buf (print_ref_seq x)
+      add_line (print_ref_seq x)
     ) ;
   List.iter h.read_groups ~f:(fun x ->
-      Buffer.add_string buf (print_read_group x)
+      add_line (print_read_group x)
     ) ;
   List.iter h.programs ~f:(fun x ->
-      Buffer.add_string buf (print_program x)
+      add_line (print_program x)
     ) ;
   List.iter h.comments ~f:(fun x ->
       Buffer.add_string buf "@CO\t" ;
-      Buffer.add_string buf x
+      add_line x
     ) ;
   List.iter h.others ~f:(fun x ->
-      Buffer.add_string buf (print_other x)
+      add_line (print_other x)
     ) ;
   Bgzf.output_s32 oz (Int32.of_int_exn (Buffer.length buf)) ; (* safe conversion of int32 to int: SAM headers less than a few KB *)
   Bgzf.output_string oz (Buffer.contents buf)
@@ -639,18 +646,15 @@ let write_reference_sequences h oz =
   let open Biocaml_sam in
   Bgzf.output_s32 oz (Int32.of_int_exn (Array.length h.ref_seq)) ; (* safe conversion: more than a few million reference sequences cannot happen in practice *)
   Array.iter h.ref_seq ~f:(fun rs ->
-      Bgzf.output_s32 oz (Int32.of_int_exn (String.length rs.name)) ; (* safe conversion: the length of the name of a reference sequence is shorter than a few hundreds *)
+      Bgzf.output_s32 oz (Int32.of_int_exn (String.length rs.name + 1)) ; (* safe conversion: the length of the name of a reference sequence is shorter than a few hundreds *)
       output_null_terminated_string oz rs.name ;
       Bgzf.output_s32 oz (Int32.of_int_exn rs.length) ; (* FIXME: the conversion is possibly not safe, but maybe [Sam.ref_seq] type should keep the int32 representation? *)
     )
 
 let write_header header oz =
   Bgzf.output_string oz magic_string ;
-  write_plain_SAM_header header.sam_header oz ;
+  write_plain_SAM_header header.sam_header oz  ;
   write_reference_sequences header oz
-
-let write_raw_alignment oz al =
-()
 
 let write_alignment header oz al =
   let open Alignment0 in
