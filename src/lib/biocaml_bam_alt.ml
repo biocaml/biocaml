@@ -594,7 +594,7 @@ let read_alignment iz =
 let read_alignment_stream iz =
   Stream.from (fun _ -> read_alignment iz)
 
-let read ic =
+let read0 ic =
   let iz = Bgzf.of_in_channel ic in
   read_sam_header iz >>= fun sam_header ->
   read_reference_information iz >>= fun ref_seq ->
@@ -602,9 +602,9 @@ let read ic =
   return (header, read_alignment_stream iz)
 
 
-let with_file fn ~f =
+let with_file0 fn ~f =
   In_channel.with_file ~binary:true fn ~f:(fun ic ->
-      read ic >>= fun (header, alignments) ->
+      read0 ic >>= fun (header, alignments) ->
       f header alignments
     )
 
@@ -673,8 +673,29 @@ let write_alignment header oz al =
   Bgzf.output_string oz al.qual ;
   Bgzf.output_string oz al.optional
 
-let write header alignments oc =
+let write0 header alignments oc =
   let oz = Bgzf.of_out_channel oc in
   write_header header oz ;
   Stream.iter alignments ~f:(write_alignment header oz) ;
   Bgzf.dispose_out oz
+
+let bind f x = Or_error.bind x f
+
+let read ic =
+  read0 ic >>= fun (header, xs) ->
+  Ok (header, Stream.map xs ~f:(bind (fun r -> Alignment0.decode r header)))
+
+let with_file fn ~f = with_file0 fn ~f:(fun header xs ->
+    f header (Stream.map xs ~f:(bind (fun r -> Alignment0.decode r header)))
+  )
+
+let write h xs oc =
+  let module M = struct exception E of Error.t end in
+  let xs = Stream.map xs ~f:(fun al ->
+      match Alignment0.encode al h with
+      | Ok r -> r
+      | Error e -> raise (M.E e)
+    )
+  in
+  try write0 h xs oc ; Ok ()
+  with M.E e -> Error e
