@@ -6,19 +6,28 @@ let random_string n =
       if Random.float 1. > 0.5 then '.' else 'o'
     )
 
+let test_parse_past_eof () =
+  let open Biocaml_bgzf in
+  Utils.with_temp_file "test" ".bgzf" ~f:(fun fn ->
+      with_file_out fn ~f:(fun oz -> output_string oz "BAM") ;
+      assert_raises ~msg:"Reading past end of file should raise" End_of_file (fun () ->
+          with_file_in fn ~f:(fun iz -> input_string iz 4)
+        )
+    )
+
 let test_parse_of_unparse n () =
   let open Biocaml_bgzf in
-  let fn = Filename.temp_file "test" ".bgzf" in
   let s = random_string n in
-  with_file_out fn ~f:(fun oz -> output oz s 0 n) ;
-  let s' = with_file_in fn ~f:(fun iz ->
-      input_string iz n
+  let n = String.length s in
+  Utils.with_temp_file "test" ".bgzf" ~f:(fun fn ->
+      with_file_out fn ~f:(fun oz -> output_string oz s) ;
+      let s' = with_file_in fn ~f:(fun iz -> input_string iz n) in
+      assert_equal ~printer:ident s s'
     )
-  in
-  assert_equal ~printer:ident s s'
 
 let tests = "Bgzf" >::: [
-  "Unparse/Parse 1-block file" >:: test_parse_of_unparse 0x100 ;
-  "Unparse/Parse 2-block file" >:: test_parse_of_unparse 0x10000 ;
-  "Unparse/Parse big file"     >:: test_parse_of_unparse 0x1000000 ;
-]
+    "Try parsing past EOF" >:: test_parse_past_eof ;
+    "Unparse/Parse 1-block file" >:: test_parse_of_unparse 0x100 ;
+    "Unparse/Parse 2-block file" >:: test_parse_of_unparse 0x10000 ;
+    "Unparse/Parse big file"     >:: test_parse_of_unparse 0x1000000 ;
+  ]

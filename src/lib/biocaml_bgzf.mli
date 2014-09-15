@@ -35,6 +35,7 @@ val input: in_channel -> string -> int -> int -> int
     [ic], stores them in string [buf] at position [pos], and returns
     the number of characters actually read. *)
 
+(* FIXME: should raise End_of_file if not enough characters are available! *)
 val really_input : in_channel -> string -> int -> int -> unit
 (** Same as [input] but reads exactly [len] characters. If there are
     less than [len] characters (say [len']) available until the end of
