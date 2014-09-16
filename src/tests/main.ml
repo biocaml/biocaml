@@ -6,7 +6,7 @@ let all_tests = [
   Test_bam.tests;
   Test_roman_num.tests;
   Test_table.tests;
-  Test_fasta.tests;
+(*  Test_fasta.tests; *)
   Test_interval_tree.tests;
   Test_phred_score.tests;
   Test_pwm.tests;
