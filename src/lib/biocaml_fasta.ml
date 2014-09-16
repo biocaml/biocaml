@@ -34,6 +34,14 @@ type item0 = [
 ]
 
 
+let sequence_to_int_list s =
+  String.split s ~on:' '
+  |> Result.List.map ~f:(fun x ->
+    try Ok (Int.of_string x)
+    with Failure _ -> error "invalid int" x sexp_of_string
+  )
+
+
 (******************************************************************************)
 (* Low-level Parsing                                                          *)
 (******************************************************************************)

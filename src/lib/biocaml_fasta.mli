@@ -107,6 +107,9 @@ type fmt = {
 
 val default_fmt : fmt
 
+(** Parse a space separated list of integers. *)
+val sequence_to_int_list : string -> int list Or_error.t
+
 
 (******************************************************************************)
 (** {2 Low-level Parsing} *)

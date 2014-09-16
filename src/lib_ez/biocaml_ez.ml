@@ -4,6 +4,9 @@ open Future_std
 module Fasta = struct
   open Biocaml_fasta
 
+  let sequence_to_int_list s =
+    ok_exn (sequence_to_int_list s)
+
   let read0
       ?start
       ?allow_sharp_comments
