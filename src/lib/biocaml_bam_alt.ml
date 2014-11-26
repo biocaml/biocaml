@@ -193,6 +193,10 @@ module Alignment0 = struct
     let mask = Int32.(shift_left one 31) in
     fun i -> Int32.(compare (bit_and i mask) zero) = 0
 
+  (** Extracts string in buf starting from pos and finishing with a
+      NULL character, and returns the position just after it. Returns
+      an error if no NULL character is encountered before the end of
+      the string. *)
   let parse_cstring buf pos =
     let rec aux i =
       if i < String.length buf then
@@ -201,7 +205,7 @@ module Alignment0 = struct
       else error_string "Unfinished NULL terminated string"
     in
     aux pos >>= fun pos' ->
-    return (String.sub buf ~pos ~len:(pos' - pos + 1), pos')
+    return (String.sub buf ~pos ~len:(pos' - pos), pos' + 1)
 
   let cCsSiIf_size = function
     | 'c'
@@ -261,11 +265,11 @@ module Alignment0 = struct
     | 'Z' ->
       parse_cstring buf pos >>= fun (s, pos') ->
       Sam.optional_field_value_Z s >>= fun value ->
-      return (value, pos')
+      return (value, pos' - pos)
     | 'H' ->
       parse_cstring buf pos >>= fun (s, pos') ->
       Sam.optional_field_value_H s >>= fun value ->
-      return (value, pos')
+      return (value, pos' - pos)
     | 'B' ->
       check_buf ~buf ~pos ~len:5 >>= fun () ->
       let typ = buf.[0]  in
@@ -288,13 +292,13 @@ module Alignment0 = struct
     check_buf ~buf ~pos ~len:3 >>= fun () ->
     let tag = String.sub buf pos 2 in
     let field_type = buf.[pos + 2] in
-    parse_optional_field_value buf (pos + 2) field_type >>= fun (field_value, shift) ->
+    parse_optional_field_value buf (pos + 3) field_type >>= fun (field_value, shift) ->
     Sam.optional_field tag field_value >>= fun field ->
     return (field, shift + 3)
 
   let parse_optional_fields buf =
     let rec loop buf pos accu =
-      if pos > String.length buf then return (List.rev accu)
+      if pos = String.length buf then return (List.rev accu)
       else
         parse_optional_field buf pos >>= fun (field, used_chars) ->
         loop buf (pos + used_chars) (field :: accu)
