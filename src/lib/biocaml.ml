@@ -31,6 +31,7 @@ module RSet           = Biocaml_rSet
 module Sam            = Biocaml_sam
 module Sbml           = Biocaml_sbml
 module Seq            = Biocaml_seq
+module Seq_range      = Biocaml_seq_range
 module Sgr            = Biocaml_sgr
 module Solexa_score   = Biocaml_solexa_score
 module Strand         = Biocaml_strand
