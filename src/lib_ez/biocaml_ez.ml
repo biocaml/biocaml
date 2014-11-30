@@ -105,6 +105,11 @@ module Sam = struct
 
 end
 
+module Seq_range = struct
+  include Biocaml_seq_range
+  let make seq lo hi = ok_exn (make seq lo hi)
+end
+
 module Strand = struct
   include Biocaml_strand
 
