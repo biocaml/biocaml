@@ -71,6 +71,14 @@ module Fastq = struct
 
 end
 
+module Line = struct
+  include Biocaml_line
+end
+
+module Lines = struct
+  include Biocaml_lines
+end
+
 module Phred_score = struct
   include Biocaml_phred_score
 
