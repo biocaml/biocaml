@@ -71,6 +71,14 @@ module Fastq = struct
 
 end
 
+module Line = struct
+  include Biocaml_line
+end
+
+module Lines = struct
+  include Biocaml_lines
+end
+
 module Phred_score = struct
   include Biocaml_phred_score
 
@@ -103,6 +111,11 @@ module Sam = struct
     (read ?start ic >>| ok_exn) >>= fun (hdr, pipe_r) ->
     hdr, Pipe.map pipe_r ~f:ok_exn
 
+end
+
+module Seq_range = struct
+  include Biocaml_seq_range
+  let make seq lo hi = ok_exn (make seq lo hi)
 end
 
 module Strand = struct
