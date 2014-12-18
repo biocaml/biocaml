@@ -1,9 +1,18 @@
 open OUnit
 open Core.Std
 open Biocaml
-module Sam = Biocaml_sam_deprecated
+open Or_error.Monad_infix
 
 let test_parser () =
+  (
+    let f = Sam.parse_optional_field "YS:i:-1" in
+    let f_ref = Sam.optional_field "XS" (Sam.optional_field_value_i (-1l)) in
+    assert_bool "Optional field value (i type)" (f = f_ref)
+  )
+
+module Sam = Biocaml_sam_deprecated
+
+let test_parser_deprecated () =
   let transfo = Sam.Transform.string_to_raw () in
   let test_line l f =
     Transform.feed transfo (l ^ "\n");
@@ -47,18 +56,18 @@ let test_parser () =
     | _ -> false);
   ()
 
-let test_item_parser () =
+let test_item_parser_deprecated () =
   let c = ref 0 in
   let check t v f =
     let p = Sam.Transform.raw_to_string () in
     incr c;
     Transform.feed t v;
     let res = f (Transform.next t) in
-    if not res then 
+    if not res then
       eprintf "Error on %s\n"
         Transform.(
           match feed p v; next p with `output o -> o | _ -> failwith "printer!"
-        ); 
+        );
     assert_bool (sprintf "test_item_parser.check %d" !c) res
   in
   let check_output t v o = check t v ((=) (`output (Ok o))) in
@@ -134,8 +143,8 @@ let test_item_parser () =
                       sequence = `string "CAGCGCCAT"; quality = [| |];
                       optional_content = [ "NM", 'i', `int 0]})));
   assert_bool "EOS" (Transform.next t = `end_of_stream);
-    
-(* 
+
+(*
 check (`header ("HD", ["VN", "42.1"; "SO", "coordinate"]));
 check (`header ("HD", ["VN", "42.1"; "SO", "wut?"]));
 check (`header ("HD", ["VN", "42.1"; "SO", "coordinate"; "HP", "some other"]));
@@ -158,7 +167,7 @@ check (`alignment
  *)
   ()
 
-let test_printer () =
+let test_printer_deprecated () =
   let transfo = Sam.Transform.raw_to_string () in
   let test_line i l =
     Transform.feed transfo i;
@@ -171,14 +180,15 @@ let test_printer () =
          cigar = "9M"; rnext = "="; pnext = 7; tlen = -39; seq = "CAGCGCCAT";
          qual = "*"; optional = [("NM", 'i', "0")]})
     "r001\t83\tref\t37\t30\t9M\t=\t7\t-39\tCAGCGCCAT\t*\tNM:i:0";
-  
+
   test_line (`comment "some comment") "@CO\tsome comment" ;
   test_line (`header ("HD", [ "VN", "1.3"; "SO", "coordinate"]))
     "@HD\tVN:1.3\tSO:coordinate";
   ()
 
 let tests = "SAM" >::: [
-  "Parse SAM raw" >:: test_parser;
-  "Print SAM" >:: test_printer;
-  "Parse SAM item" >:: test_item_parser;
-]
+    "Parse SAM" >:: test_parser ;
+    "Parse SAM raw" >:: test_parser_deprecated;
+    "Print SAM" >:: test_printer_deprecated;
+    "Parse SAM item" >:: test_item_parser_deprecated;
+  ]
