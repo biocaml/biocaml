@@ -3,12 +3,19 @@ open Core.Std
 open Biocaml
 open Or_error.Monad_infix
 
+let ( %> ) f g x = g (f x)
+
+let test_parse_optional_field s v =
+  let f = Sam.parse_optional_field s in
+  assert_equal
+    ~msg:"Optional field value (i type)"
+    ~printer:((Or_error.sexp_of_t Sam.sexp_of_optional_field) %> Sexplib.Sexp.to_string_hum)
+    f v
+
 let test_parser () =
-  (
-    let f = Sam.parse_optional_field "YS:i:-1" in
-    let f_ref = Sam.optional_field "XS" (Sam.optional_field_value_i (-1l)) in
-    assert_bool "Optional field value (i type)" (f = f_ref)
-  )
+  test_parse_optional_field
+    "YS:i:-1"
+    (Sam.optional_field "YS" (Sam.optional_field_value_i (-1l)))
 
 module Sam = Biocaml_sam_deprecated
 

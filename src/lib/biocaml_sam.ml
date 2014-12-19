@@ -761,12 +761,12 @@ let parse_optional_field_value s =
       else optional_field_value_err typ value
     | "i" ->
       (try
-         if Re.execp opt_field_int_re value then failwith "" ;
+         if not (Re.execp opt_field_int_re value) then failwith "" ;
          Ok (optional_field_value_i (Int32.of_string value)) (* matching the regular expression is not enough: the number could not fit in 32 bits *)
        with _ -> optional_field_value_err typ value)
     | "f" ->
       (try
-         if Re.execp opt_field_float_re value then failwith "" ;
+         if not (Re.execp opt_field_float_re value) then failwith "" ;
          Ok (optional_field_value_f (Float.of_string value)) (* matching the regular expression is not enough: the number could not fit in 32 bits *)
        with _ -> optional_field_value_err typ value)
     | "Z" -> optional_field_value_Z value
