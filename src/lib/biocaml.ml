@@ -8,6 +8,7 @@ module Bin_pred       = Biocaml_bin_pred
 module Bpmap          = Biocaml_bpmap
 module Cel            = Biocaml_cel
 module Chr            = Biocaml_chr
+module Cosmic         = Biocaml_cosmic
 module Entrez         = Biocaml_entrez
 module Fasta          = Biocaml_fasta
 module Fastq          = Biocaml_fastq
