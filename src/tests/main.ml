@@ -1,6 +1,7 @@
 open OUnit
 
 let all_tests = [
+  Test_algo.tests;
   Test_lines.tests;
   Test_bgzf.tests;
   Test_bam.tests;
