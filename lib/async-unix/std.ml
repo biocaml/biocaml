@@ -1,16 +1,17 @@
 open Future_async_unix.Std
+open Biocaml_unix.Std
 
 module Lines = struct
-  include Biocaml_lines
+  include Lines
   include MakeIO(Future)
 end
 
 module Fastq = struct
-  include Biocaml_fastq
+  include Fastq
   include MakeIO(Future)
 end
 
 module Sam = struct
-  include Biocaml_sam
+  include Sam
   include MakeIO(Future)
 end

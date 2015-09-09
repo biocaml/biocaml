@@ -1,12 +1,7 @@
-/.ocamlinit
-/_build/
+/_build
 /.omakedb
 /.omakedb.lock
-/OMakeroot.omc
-/configure.om
-/configure.omc
+*.omc
 /biocaml.install
-*~
+/.merlin
 /tmp
-/.bzrignore
-/TAGS

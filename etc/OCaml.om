@@ -1,0 +1,346 @@
+# Compute current git commit if possible.
+if $(test -e .git)
+  GIT_COMMIT = 'Some "$(shell git rev-parse HEAD)"'
+  export
+else
+  GIT_COMMIT = 'None'
+  export
+
+OCAMLFLAGS = -bin-annot -annot -w A-4-33-41-42-44-45-48 \
+             -thread -short-paths -safe-string -g
+
+BYTE_ENABLED = true
+NATIVE_ENABLED = true
+
+ATDGEN_FLAGS = -j-std
+
+# Set of all library names. Each is the short name, used within the
+# build system to refer to the library. For example `pure` refers to
+# the pure library, although the name of the .cma file might be
+# something like `projectfoo-pure`.
+LIBS[] = $(basename $(subdirs -P, lib))
+
+# Set of all app names. Each is the name used within the build system
+# to refer to the app. The corresponding executable name is given by
+# the APP_NAME function.
+APPS[] = $(removesuffix $(basename $(glob -i, app/*.ml)))
+
+# Return OCaml library name from given short library name.
+LIB_NAME(lib) =
+  if $(not $(mem $(lib), $(LIBS)))
+    eprintln(LIB_NAME undefined for $(lib).)
+    exit(1)
+  else
+    return $(PROJECT)-$(lib)
+
+# Return executable name for given app.
+APP_NAME(app) =
+  if $(not $(mem $(app), $(APPS)))
+    eprintln(NAME undefined for $(app).)
+    exit(1)
+  else
+    return $(shell echo $(app) | tr '_' '-')
+
+# Return a suitable package name from given library name.
+# Dynamically scoped arguments: PROJECT.
+PACK_NAME(lib) =
+  if $(not $(mem $(lib), $(LIBS)))
+    eprintln(PACK_NAME undefined for $(lib).)
+    exit(1)
+  return $(shell echo $(PROJECT)-$(lib) | tr '-' '_')
+
+NEED_CAMLP4O[] =
+  bin_prot.syntax
+  comparelib.syntax
+  core.syntax
+  enumerate.syntax
+  fieldslib.syntax
+  herelib.syntax
+  lwt.syntax
+  pa_bench.syntax
+  pa_ounit.syntax
+  pa_structural_sexp.syntax
+  pa_test.syntax
+  sexplib.syntax
+  typerep_lib.syntax
+  tyxml.syntax
+  variantslib.syntax
+
+# Compile an OCaml library as a pack. Lots of assumptions made about exact
+# directory structure.
+# Dynamically scoped arguments: PROJECT, LIB_NAME, PACK_NAME,
+# PACKAGES, NEED_CAMLP4O, LIB_DEPS, OCAMLFLAGS, BYTE_ENABLED,
+# NATIVE_ENABLED
+OCamlLibrary(lib) =
+  mkdir -p _build/lib/$(lib)
+  vmount(-c, lib/$(lib)/, _build/lib/$(lib)/)
+
+  SRC_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*))
+
+  PACKAGES = $(PACKAGES $(lib))
+  LIB_DEPS = $(LIB_DEPS $(lib))
+
+  OCAMLC = ocamlfind ocamlc $(OCAMLFLAGS) -package $(concat \,, $(PACKAGES))
+  OCAMLOPT = ocamlfind ocamlopt $(OCAMLFLAGS) -package $(concat \,, $(PACKAGES))
+  OCAMLDEP = ocamlfind ocamldep -one-line -package $(concat \,, $(PACKAGES))
+
+  USE_CAMLP4O = $(intersects $(NEED_CAMLP4O), $(PACKAGES))
+  if $(USE_CAMLP4O)
+    OCAMLC += -syntax camlp4o
+    export OCAMLC
+    OCAMLOPT += -syntax camlp4o
+    export OCAMLOPT
+    OCAMLDEP += -syntax camlp4o
+    export OCAMLDEP
+
+  MLY_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.mly))
+  MLY_BASES = $(removesuffix $(MLY_FILES))
+
+  MLL_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.mll))
+  MLL_BASES = $(removesuffix $(MLL_FILES))
+
+  ATD_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.atd))
+  ATD_BASES = $(removesuffix $(ATD_FILES))
+
+  M4_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.ml.m4))
+  M4_BASES = $(removesuffix $(removesuffix $(M4_FILES)))
+
+  IN_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.ml.in))
+
+  ML_FILES[] =
+    $(removesuffix $(M4_FILES))
+    $(removesuffix $(IN_FILES))
+    $(addsuffix .ml, $(MLY_BASES))
+    $(addsuffix .ml, $(MLL_BASES))
+    $(addsuffix .ml, \
+      $(foreach $(fun suffix => $(addsuffix $(suffix), $(ATD_BASES))), _t _j))
+    $(basename $(shell $(OCAMLDEP) -sort $(glob -i, $(ROOT)/lib/$(lib)/*.ml)))
+
+  MLI_FILES[] =
+    $(addsuffix .mli, $(MLY_BASES))
+    $(addsuffix .mli, \
+      $(foreach $(fun suffix => $(addsuffix $(suffix), $(ATD_BASES))), _t _j))
+    $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.mli))
+
+  ML_BASES = $(removesuffix $(ML_FILES))
+  MLI_BASES = $(removesuffix $(MLI_FILES))
+  ML_MLI_BASES = $(intersection $(ML_BASES), $(MLI_BASES))
+  ML_NO_MLI_BASES = $(set-diff $(ML_BASES), $(MLI_BASES))
+
+  CMA_DEPS = $(foreach $(fun x => ../$(LIB_NAME $(x)).cma), $(LIB_DEPS))
+  CMXA_DEPS = $(foreach $(fun x => ../$(LIB_NAME $(x)).cmxa), $(LIB_DEPS))
+
+  LIB_NAME = $(LIB_NAME $(lib))
+  PACK_NAME = $(PACK_NAME $(lib))
+
+  SORT_ML_FILES(files) =
+    return $(shell $(OCAMLDEP) -sort $(files))
+
+  if $(mem $(PACK_NAME), $(ML_BASES))
+    eprintln(PACK_NAME $(PACK_NAME) clashes with a module name.)
+    exit(1)
+
+  .SUBDIRS: _build/lib/$(lib)
+
+    foreach(x => ..., $(SRC_FILES))
+      .DEFAULT: $(x)
+      $(x): $(ROOT)/lib/$(lib)/$(x)
+        cp -f $< $@
+
+    .INCLUDE: .depend: $(ML_FILES) $(MLI_FILES)
+      rm -f $@
+      $(OCAMLDEP) $+ > $@
+
+    if $(not $(equal $(MLY_FILES), $(EMPTY)))
+      .INCLUDE: .mly.depend: $(MLY_FILES)
+        rm -f $@
+        menhir --infer --explain --ocamldep 'ocamldep' --depend $+ > $@
+
+    foreach(x => ..., $(MLY_BASES))
+      $(x).ml $(x).mli: $(x).mly
+        menhir --infer --explain --ocamlc '$(OCAMLC) -I .' $<
+
+    foreach(x => ..., $(MLL_BASES))
+      $(x).ml: $(x).mll
+        ocamllex -q $<
+
+    foreach(x => ..., $(ATD_BASES))
+      $(x)_t.ml $(x)_t.mli: $(x).atd
+        atdgen -t $(ATDGEN_FLAGS) $<
+      $(x)_j.ml $(x)_j.mli: $(x).atd
+        atdgen -j $(ATDGEN_FLAGS) $<
+
+    foreach(x => ..., $(M4_BASES))
+      $(x).ml: $(x).ml.m4 :value: $(VERSION) :value: $(GIT_COMMIT)
+        m4 -D VERSION=$(VERSION) -D GIT_COMMIT=$(GIT_COMMIT) $< > $@
+
+    if $(BYTE_ENABLED)
+      foreach(x => ..., $(ML_MLI_BASES))
+        $(x).cmi: $(x).mli $(CMA_DEPS)
+          $(OCAMLC) -I .. -c $<
+        $(x).cmo: $(x).ml $(x).cmi
+          $(OCAMLC) -I .. -for-pack $(capitalize $(PACK_NAME)) -c $<
+
+      foreach(x => ..., $(ML_NO_MLI_BASES))
+        $(x).cmo: $(x).ml $(CMA_DEPS)
+          $(OCAMLC) -I .. -for-pack $(capitalize $(PACK_NAME)) -c $<
+
+      ../$(PACK_NAME).cmo: $(ML_FILES) $(replacesuffixes .ml, .cmo, $(ML_FILES))
+        $(OCAMLC) -pack -o $@ $(replacesuffixes .ml, .cmo, $(SORT_ML_FILES $(ML_FILES)))
+
+      ../$(LIB_NAME).cma: ../$(PACK_NAME).cmo
+        $(OCAMLC) -a -o $@ $<
+
+      .DEFAULT: ../$(LIB_NAME).cma
+
+
+    if $(NATIVE_ENABLED)
+      foreach(x => ..., $(ML_MLI_BASES))
+        $(x).cmi: $(x).mli $(CMXA_DEPS)
+          $(OCAMLOPT) -I .. -c $<
+        $(x).cmx: $(x).ml $(x).cmi
+          $(OCAMLOPT) -I .. -for-pack $(capitalize $(PACK_NAME)) -c $<
+
+      foreach(x => ..., $(ML_NO_MLI_BASES))
+        $(x).cmx: $(x).ml $(CMXA_DEPS)
+          $(OCAMLOPT) -I .. -for-pack $(capitalize $(PACK_NAME)) -c $<
+
+      ../$(PACK_NAME).cmx: $(ML_FILES) $(replacesuffixes .ml, .cmx, $(ML_FILES))
+        $(OCAMLOPT) -pack -o $@ $(replacesuffixes .ml, .cmx, $(SORT_ML_FILES $(ML_FILES)))
+
+      ../$(LIB_NAME).cmxa: ../$(PACK_NAME).cmx
+        $(OCAMLOPT) -a -o $@ $<
+
+      .DEFAULT: ../$(LIB_NAME).cmxa
+
+  .PHONY: echo-$(lib)-ML_FILES
+  echo-$(lib)-ML_FILES:
+    @echo ML_FILES\: $(ML_FILES)
+
+# Compile an OCaml app.
+# Dynamically scoped arguments: APP_NAME, PACKAGES, NEED_CAMLP4O,
+# LIB_DEPS, OCAMLFLAGS, BYTE_ENABLED, NATIVE_ENABLED.
+OCamlApp(app) =
+  mkdir -p _build/app
+  vmount(-l, app/, _build/app)
+
+  PACKAGES = $(PACKAGES $(app))
+  LIB_DEPS = $(LIB_DEPS $(app))
+
+  OCAMLC = ocamlfind ocamlc $(OCAMLFLAGS) -package $(concat \,, $(PACKAGES)) -linkpkg
+  OCAMLOPT = ocamlfind ocamlopt $(OCAMLFLAGS) -package $(concat \,, $(PACKAGES)) -linkpkg
+
+  USE_CAMLP4O = $(intersects $(NEED_CAMLP4O), $(PACKAGES))
+  if $(USE_CAMLP4O)
+    OCAMLC += -syntax camlp4o
+    export OCAMLC
+    OCAMLOPT += -syntax camlp4o
+    export OCAMLOPT
+
+  CMA_DEPS = $(foreach $(fun x => $(LIB_NAME $(x)).cma), $(LIB_DEPS))
+  CMXA_DEPS = $(foreach $(fun x => $(LIB_NAME $(x)).cmxa), $(LIB_DEPS))
+
+  APP_NAME = $(APP_NAME $(app))
+
+  .SUBDIRS: _build/app
+    if $(BYTE_ENABLED)
+      .DEFAULT: $(APP_NAME).byte
+      $(APP_NAME).byte: $(app).ml $(addprefix ../lib/, $(CMA_DEPS))
+        $(OCAMLC) -I ../lib $(CMA_DEPS) -o $@ $<
+
+    if $(NATIVE_ENABLED)
+      .DEFAULT: $(APP_NAME).native
+      $(APP_NAME).native: $(app).ml $(addprefix ../lib/, $(CMXA_DEPS))
+        $(OCAMLOPT) -I ../lib $(CMXA_DEPS) -o $@ $<
+
+# Rule to generate .merlin file.
+# Dynamically scoped arguments: LIBS, PACKAGES.
+MerlinFile() =
+  ALL_PACKAGES[] = $(set $(foreach $(fun x => $(array $(PACKAGES $(x)))), $(LIBS)))
+  .DEFAULT: .merlin
+  .merlin: :value: $(ALL_PACKAGES)
+    echo S "./lib/**" > $@
+    echo S "./app/**" >> $@
+    echo B "./_build/lib" >> $@
+    echo B "./_build/lib/**" >> $@
+    echo B "./_build/app/**" >> $@
+    foreach(pkg => ..., $(ALL_PACKAGES))
+      echo PKG $(pkg) >> $@
+
+# Rule to generate META file for findlib.
+# Dynamically scoped arguments: PROJECT, VERSION, LIBS, LIB_NAME,
+# PACKAGES, LIB_DEPS.
+METAFile() =
+  _build/META: :value: $(VERSION)
+    rm -f $@
+    foreach(x => ..., $(LIBS))
+      echo "package \"$(x)\" (" >> $@
+      echo "  version = \"$(VERSION)\"" >> $@
+      echo "  archive(byte) = \"$(LIB_NAME $(x)).cma\"" >> $@
+      echo "  archive(native) = \"$(LIB_NAME $(x)).cmxa\"" >> $@
+      echo "  requires = \"$(PACKAGES $(x)) $(foreach $(fun y => $(PROJECT).$(y)), $(LIB_DEPS $(x)))\"" >> $@
+      echo "  exists_if = \"$(LIB_NAME $(x)).cma\"" >> $@
+      echo ")" >> $@
+
+# Rule to generate .install file for OPAM.
+# Dynamically scoped arguments: OPAM_PACKAGE_NAME, LIBS, LIB_NAME,
+# APPS, APP_NAME.
+OpamInstallFile(ADDITIONAL_LIB_FILES) =
+  $(OPAM_PACKAGE_NAME).install: _build/META $(foreach $(fun x => _build/lib/$(LIB_NAME $(x)).cma), $(LIBS))
+    section
+      FILES[] = $(array \
+        $(foreach $(fun suffix => $(glob -i, _build/lib/*.$(suffix))), a annot cma cmi cmo cmt cmti cmx cmxa cmxs o) \
+        _build/META \
+        $(ADDITIONAL_LIB_FILES) \
+      )
+      echo $"lib: [" > $@
+      foreach(file => ..., $(FILES))
+        echo "  "\"$(file)\" >> $@
+      echo $"]" >> $@
+    if $(not $(equal $(APPS), $(EMPTY)))
+      echo "" >> $@
+      echo $"bin: [" >> $@
+      foreach(app => ..., $(APPS))
+        echo "  "\"?_build/app/$(APP_NAME $(app)).byte\" {\"$(APP_NAME $(app))\"} >> $@
+        echo "  "\"?_build/app/$(APP_NAME $(app)).native\" {\"$(APP_NAME $(app))\"} >> $@
+      echo $"]" >> $@
+
+# Generate clean and distclean commands.
+# Dynamically scoped arguments: OPAM_PACKAGE_NAME.
+CleanCommands() =
+  .PHONY: clean
+  clean:
+    rm -rf _build
+
+  .PHONY: distclean
+  distclean: clean
+    rm -rf *.omc */*.omc .omakedb .omakedb.lock \
+           .merlin $(OPAM_PACKAGE_NAME).install
+
+# Rule to generate API documentation.
+# Dynamically scoped arguments: PROJECT, VERSION, LIBS, LIB_NAME,
+# PACKAGES.
+APIDoc() =
+  ALL_PACKAGES[] = $(set $(foreach $(fun x => $(array $(PACKAGES $(x)))), $(LIBS)))
+  mkdir -p _build/doc
+  .SUBDIRS: _build/doc
+    api/index.html: $(foreach $(fun x => ../lib/$(LIB_NAME $(x)).cma), $(LIBS))
+      rm -rf api
+      mkdir api
+      ocamlfind ocamldoc \
+        -thread \
+        -package $(concat \,, $(ALL_PACKAGES)) \
+        -charset UTF-8 \
+        -d api \
+        -t "$(PROJECT) $(VERSION)" \
+        -keep-code \
+        -colorize-code \
+        -sort \
+        -html \
+        -I ../lib \
+        $(foreach $(fun x => $(array -I ../lib/$(x))), $(LIBS)) \
+        $(foreach $(fun x => ../lib/$(x)/*.ml), $(LIBS)) \
+        $(foreach $(fun x => ../lib/$(x)/*.mli), $(LIBS))
+
+    .PHONY: doc
+    doc: api/index.html

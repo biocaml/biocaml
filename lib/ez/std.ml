@@ -1,9 +1,10 @@
 open Core.Std
 open Future_unix.Std
 open Future
+open Biocaml_unix.Std
 
 module Fasta = struct
-  open Biocaml_fasta
+  open Fasta
 
   let sequence_to_int_list s =
     ok_exn (sequence_to_int_list s)
@@ -40,7 +41,7 @@ module Fasta = struct
 end
 
 module Fastq = struct
-  open Biocaml_fastq
+  open Fastq
 
   type nonrec item = item
   let split_name = split_name
@@ -73,15 +74,15 @@ module Fastq = struct
 end
 
 module Line = struct
-  include Biocaml_line
+  include Line
 end
 
 module Lines = struct
-  include Biocaml_lines
+  include Lines
 end
 
 module Phred_score = struct
-  include Biocaml_phred_score
+  include Phred_score
 
   let of_char ?offset x = ok_exn (of_char ?offset x)
   let to_char ?offset t = ok_exn (to_char ?offset t)
@@ -91,14 +92,14 @@ module Phred_score = struct
 end
 
 module Range = struct
-  include Biocaml_range
+  include Range
 
   let make lo hi = ok_exn (make lo hi)
 
 end
 
 module Roman_num = struct
-  include Biocaml_roman_num
+  include Roman_num
 
   let of_roman x = ok_exn (of_roman x)
   let of_arabic x = ok_exn (of_arabic x)
@@ -106,7 +107,7 @@ module Roman_num = struct
 end
 
 module Sam = struct
-  include Biocaml_sam
+  include Sam
 
   let read ?start ic =
     (read ?start ic >>| ok_exn) >>= fun (hdr, pipe_r) ->
@@ -115,12 +116,12 @@ module Sam = struct
 end
 
 module Seq_range = struct
-  include Biocaml_seq_range
+  include Seq_range
   let make seq lo hi = ok_exn (make seq lo hi)
 end
 
 module Strand = struct
-  include Biocaml_strand
+  include Strand
 
   let of_string s = ok_exn (of_string s)
 
