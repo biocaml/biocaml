@@ -46,6 +46,7 @@
     this module.
 *)
 open Core.Std
+open Future_unix.Std
 open Biocaml_internal_utils
 
 type item = {
@@ -65,7 +66,7 @@ val split_name : string -> string * string option
 (******************************************************************************)
 (** {2 Input/Output } *)
 (******************************************************************************)
-module MakeIO (Future : Future.S) : sig
+module MakeIO (Future : FUTURE) : sig
   open Future
 
   val read : Reader.t -> item Or_error.t Pipe.Reader.t
@@ -80,7 +81,7 @@ module MakeIO (Future : Future.S) : sig
     -> unit Deferred.t
 
 end
-include module type of MakeIO(Future_std)
+include module type of MakeIO(Future)
 
 
 (******************************************************************************)

@@ -2,6 +2,7 @@
     http://samtools.github.io/hts-specs/SAMv1.pdf } SAM
     specification}. *)
 open Core.Std
+open Future_unix.Std
 open Biocaml_internal_utils
 
 (******************************************************************************)
@@ -192,7 +193,7 @@ type alignment = private {
 (******************************************************************************)
 (** {2 Input/Output } *)
 (******************************************************************************)
-module MakeIO (Future : Future.S) : sig
+module MakeIO (Future : FUTURE) : sig
   open Future
 
   val read
@@ -215,7 +216,7 @@ module MakeIO (Future : Future.S) : sig
     -> unit Deferred.t
 
 end
-include module type of MakeIO(Future_std)
+include module type of MakeIO(Future)
 
 
 

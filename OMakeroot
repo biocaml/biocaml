@@ -30,7 +30,7 @@ LIB_MODULES[] =
   $(removesuffix $(basename $(ls src/lib/*.ml)))
   $(PROJECT)_about
 LIB_STUBS = $(PROJECT)_pwm_stub $(PROJECT)_mzData_stubs
-LIB_PACKAGES = core threads zip unix xmlm cfstream sexplib.syntax future.std \
+LIB_PACKAGES = core threads zip unix xmlm cfstream sexplib.syntax future.unix \
                comparelib.syntax re.perl
 
 LIB_EZ_NAME = $(PROJECT)_ez
@@ -41,12 +41,12 @@ LIB_EZ_PACKAGES = $(LIB_PACKAGES)
 LIB_LWT_NAME = $(PROJECT)_lwt
 LIB_LWT_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_lwt/*.ml)))
-LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax future.lwt
+LIB_LWT_PACKAGES = $(LIB_PACKAGES) lwt lwt.syntax future.lwt-unix
 
 LIB_ASYNC_NAME = $(PROJECT)_async
 LIB_ASYNC_MODULES[] =
   $(removesuffix $(basename $(ls src/lib_async/*.ml)))
-LIB_ASYNC_PACKAGES = $(LIB_PACKAGES) async future.async
+LIB_ASYNC_PACKAGES = $(LIB_PACKAGES) async future.async-unix
 
 APP_NAME = $(PROJECT)
 APP_MODULES[] =
@@ -298,18 +298,18 @@ merlinize: .merlin
 
   ##############################################################################
   # Command Line App
-  .SUBDIRS: _build/app
-    OCAML_LIBS = ../lib/$(PROJECT)
-    OCAMLINCLUDES += $(dir ../lib/)
-    OCAMLPACKS[] = $(APP_PACKAGES)
+  # .SUBDIRS: _build/app
+  #   OCAML_LIBS = ../lib/$(PROJECT)
+  #   OCAMLINCLUDES += $(dir ../lib/)
+  #   OCAMLPACKS[] = $(APP_PACKAGES)
 
-    %.ml: ../lib/$(PROJECT).cma
+  #   %.ml: ../lib/$(PROJECT).cma
 
-    app: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
+  #   app: $(OCamlProgram $(APP_NAME), $(APP_MODULES))
 
-    if $(COMPILE_APP)
-      echo "conf: Building $(PROJECT) application"
-      .DEFAULT: app
+  #   if $(COMPILE_APP)
+  #     echo "conf: Building $(PROJECT) application"
+  #     .DEFAULT: app
 
 
   ##############################################################################

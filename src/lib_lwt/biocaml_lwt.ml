@@ -1,14 +1,16 @@
+open Future_lwt_unix.Std
+
 module Lines = struct
   include Biocaml_lines
-  include MakeIO(Future_lwt)
+  include MakeIO(Future)
 end
 
 module Fastq = struct
   include Biocaml_fastq
-  include MakeIO(Future_lwt)
+  include MakeIO(Future)
 end
 
 module Sam = struct
   include Biocaml_sam
-  include MakeIO(Future_lwt)
+  include MakeIO(Future)
 end

@@ -1,10 +1,11 @@
 open Core.Std
+open Future_unix.Std
 open Biocaml_internal_utils
 
 type item = Line.t
 with sexp
 
-module MakeIO (Future : Future.S) = struct
+module MakeIO (Future : FUTURE) = struct
   open Future
 
   let read r =
@@ -19,7 +20,7 @@ module MakeIO (Future : Future.S) = struct
     Writer.with_file ?perm ?append file ~f:(fun w -> write w pipe_r)
 
 end
-include MakeIO(Future_std)
+include MakeIO(Future)
 
 let of_char_stream cstr =
   let f _ = match Stream.peek cstr with

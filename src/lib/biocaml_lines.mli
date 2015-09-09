@@ -1,11 +1,12 @@
 (** Manipulate the lines of a file. *)
 open Core.Std
+open Future_unix.Std
 open Biocaml_internal_utils
 
 type item = Line.t
 with sexp
 
-module MakeIO (Future : Future.S) : sig
+module MakeIO (Future : FUTURE) : sig
   open Future
 
   val read : Reader.t -> item Pipe.Reader.t
@@ -20,7 +21,7 @@ module MakeIO (Future : Future.S) : sig
     -> unit Deferred.t
 
 end
-include module type of MakeIO(Future_std)
+include module type of MakeIO(Future)
 
 val of_char_stream : char Stream.t -> item Stream.t
 (** Parse a stream of characters into a stream of lines. *)

@@ -1,4 +1,5 @@
 open Core.Std
+open Future_unix.Std
 open Biocaml_internal_utils
 module Lines = Biocaml_lines
 
@@ -167,7 +168,7 @@ let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
 (******************************************************************************)
 (* Input/Output                                                               *)
 (******************************************************************************)
-module MakeIO (Future : Future.S) = struct
+module MakeIO (Future : FUTURE) = struct
   open Future
 
   let read_item ic : item Or_error.t Reader.Read_result.t Deferred.t =
@@ -219,4 +220,4 @@ module MakeIO (Future : Future.S) = struct
     Writer.with_file ?perm ?append file ~f:(fun w -> write w pipe_r)
 
 end
-include MakeIO(Future_std)
+include MakeIO(Future)

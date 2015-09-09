@@ -1,5 +1,6 @@
 open Core.Std
-open Future_std
+open Future_unix.Std
+open Future
 
 module Fasta = struct
   open Biocaml_fasta

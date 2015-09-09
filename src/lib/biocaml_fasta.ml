@@ -1,4 +1,5 @@
 open Core.Std
+open Future_unix.Std
 open Biocaml_internal_utils
 
 type header = string list
@@ -101,7 +102,7 @@ let parse_item0
 (******************************************************************************)
 (* Input/Output                                                               *)
 (******************************************************************************)
-module Lines = Biocaml_lines.MakeIO(Future_std)
+module Lines = Biocaml_lines.MakeIO(Future)
 
 let read0
     ?(start=Pos.(incr_line unknown))
