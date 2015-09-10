@@ -10,20 +10,6 @@ module Stream : module type of CFStream_stream
 
 val ( |? ) : 'a option -> 'a -> 'a
 
-module Result : sig
-
-  include module type of Core.Std.Result
-
-  module List : sig
-
-    (** Map the function [f] over the list, stopping on the first
-        error encountered. *)
-    val mapi: 'a list -> f:(int -> 'a -> ('b, 'e) t) -> ('b list, 'e) t
-    val map: 'a list -> f:('a -> ('b, 'err) t) -> ('b list, 'err) t
-  end
-
-end
-
 val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
   (** [try_finally_exn fend f a] will run [x = f a], then run [fend
       a], and finally return [x]. If [f a] raised an exception that

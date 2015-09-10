@@ -1,4 +1,5 @@
 open Core.Std
+module Result = Biocaml_result
 open Internal_utils
 
 let dbg fmt = Debug.make "SAM" fmt
