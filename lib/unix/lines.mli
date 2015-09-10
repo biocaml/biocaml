@@ -1,7 +1,6 @@
 (** Manipulate the lines of a file. *)
 open Core.Std
 open Future_unix.Std
-open Internal_utils
 
 type item = Line.t
 with sexp

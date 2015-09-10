@@ -1,7 +1,7 @@
 open Core.Std
 module Result = Biocaml_result
 open Future_unix.Std
-open Internal_utils
+open CFStream
 
 type header = string list
 

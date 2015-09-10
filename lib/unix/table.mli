@@ -1,6 +1,5 @@
 (** Generic “tables” (like CSV, TSV, Bed …). *)
 open Core.Std
-open Internal_utils
 
 (** {2 Table Rows/Lines } *)
 

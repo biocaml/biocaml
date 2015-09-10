@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 open Stream.Infix
 
 type ('a,'b,'c,'d) t = {

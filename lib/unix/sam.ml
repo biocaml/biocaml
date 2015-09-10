@@ -1,7 +1,6 @@
 open Core.Std
 module Result = Biocaml_result
 open Future_unix.Std
-open Internal_utils
 open Result.Monad_infix
 
 let ( >>?~ )

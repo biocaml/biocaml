@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 
 type count_matrix = int array array
 type background = float array

@@ -1,6 +1,6 @@
 open Core.Std
 module Result = Biocaml_result
-open Internal_utils
+open CFStream
 module Sam = Sam_deprecated
 module Zip = Biocaml_zip
 

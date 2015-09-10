@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 
 type item = string * int * int * Table.Row.t
 with sexp

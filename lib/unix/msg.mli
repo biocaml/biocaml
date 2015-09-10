@@ -1,6 +1,5 @@
 (** Consistent printing of errors, warnings, and bugs. An error is a user mistake that prevents continuing program execution, a warning is a milder problem that the program continues to execute through, and a bug is a mistake in the software. *)
 open Core.Std
-open Internal_utils
 
 val err : ?pos:Pos.t -> string -> string
 val warn : ?pos:Pos.t -> string -> string

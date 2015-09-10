@@ -48,7 +48,6 @@
       leaving this attribute unset handles other track types
 *)
 open Core.Std
-open Internal_utils
 
 (** {2 Item Types} *)
 

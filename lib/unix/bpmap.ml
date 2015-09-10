@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 
 type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}
 type row = {pmcoord:int*int; mmcoord:int*int; probe:probe}

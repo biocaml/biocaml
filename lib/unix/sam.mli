@@ -3,7 +3,6 @@
     specification}. *)
 open Core.Std
 open Future_unix.Std
-open Internal_utils
 
 (******************************************************************************)
 (** {2 Types} *)

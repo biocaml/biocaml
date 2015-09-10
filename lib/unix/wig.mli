@@ -28,7 +28,6 @@
     around the '='.
 *)
 open Core.Std
-open Internal_utils
 
 (** {2 Basic Types} *)
 

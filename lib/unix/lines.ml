@@ -1,6 +1,6 @@
 open Core.Std
 open Future_unix.Std
-open Internal_utils
+open CFStream
 
 type item = Line.t
 with sexp

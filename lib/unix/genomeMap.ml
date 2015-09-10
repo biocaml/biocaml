@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 open Stream.Infix
 
 module type Chromosome = sig

@@ -1,5 +1,4 @@
 open Core.Std
-open Internal_utils
 
 let msg ?(pre="MSG") ?pos msg =
   match pos with

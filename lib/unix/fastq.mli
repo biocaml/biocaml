@@ -47,7 +47,6 @@
 *)
 open Core.Std
 open Future_unix.Std
-open Internal_utils
 
 type item = {
   name: string;

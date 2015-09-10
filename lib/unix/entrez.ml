@@ -1,5 +1,4 @@
 open Core.Std
-open Internal_utils
 
 (* ********************************* *)
 (* Preliminary stuff for xml parsing *)

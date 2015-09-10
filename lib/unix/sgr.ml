@@ -1,5 +1,4 @@
 open Core.Std
-open Internal_utils
 
 type t = (string * int * float) list
     (* Stored in ascending order by (string,int) pairs. *)

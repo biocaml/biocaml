@@ -1,6 +1,4 @@
 open Core.Std
-open Internal_utils
-
 
 module Row = struct
 

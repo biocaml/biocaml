@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 
 type ('input, 'output) t = {
   name: string option;

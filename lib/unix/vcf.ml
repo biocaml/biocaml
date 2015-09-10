@@ -1,5 +1,4 @@
 open Core.Std
-open Internal_utils
 
 module Safe = struct
   type error = [ `invalid_int of string

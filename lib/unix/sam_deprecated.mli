@@ -1,6 +1,5 @@
 (** SAM files and SAM-alignements high-level representation. *)
 open Core.Std
-open Internal_utils
 
 (** {2 Basic Types} *)
 

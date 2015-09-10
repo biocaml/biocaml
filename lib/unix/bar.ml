@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 
 type header = (string * string) list
 (* list of tag-value pairs *)

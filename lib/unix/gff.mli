@@ -22,7 +22,6 @@
     }
 *)
 open Core.Std
-open Internal_utils
 
 (** {2 GFF Item Types} *)
 

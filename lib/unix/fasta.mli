@@ -86,7 +86,6 @@
     given string. None means any character is allowed. Default: None.
 *)
 open Core.Std
-open Internal_utils
 
 (** A header is a list of comment lines. *)
 type header = private string list

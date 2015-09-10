@@ -4,7 +4,7 @@
  * functions
  *)
 open Core.Std
-open Internal_utils
+open CFStream
 
 type 'a t = Empty | Node of 'a node 
 and 'a node = {

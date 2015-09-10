@@ -1,6 +1,6 @@
 open Core.Std
 module Result = Biocaml_result
-open Internal_utils
+open CFStream
 
 type item = {
   matches : int;

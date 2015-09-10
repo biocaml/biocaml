@@ -4,7 +4,6 @@
     http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41 *)
 
 open Core.Std
-open Internal_utils
 
 type vcf_id = string
 type vcf_description = string

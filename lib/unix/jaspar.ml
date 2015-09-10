@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 let (/) = Filename.concat
 
 type collection = Core | Phylofacts | CNE | PBM | PBM_HOMEO | PBM_HLH | FAM | SPLICE | POLII

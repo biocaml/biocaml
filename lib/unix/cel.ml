@@ -1,5 +1,5 @@
 open Core.Std
-open Internal_utils
+open CFStream
 
 type idata = {mean:float; stdv:float; npixels:int}
 type irow = {xcoord:int; ycoord:int; idata:idata}
