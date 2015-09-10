@@ -52,7 +52,7 @@ let make mat bg = Array.(
 	)
       in
       let n_case = 
-	range p 
+	Stream.Infix.(0 --^ (Array.length p))
         |> Stream.fold ~f:(fun accu i -> accu +. bg.(i) *. r.(i)) ~init:0. in
       append r [| n_case |])
     mat

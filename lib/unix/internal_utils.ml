@@ -4,11 +4,6 @@ module Stream = CFStream_stream
 
 let ( |? ) x default = Core.Option.value ~default x
 
-module Array = struct
-  include Core.Std.Array
-  let range xs = Stream.Infix.(0 --^ (length xs))
-end
-
 module Result = struct
 
   include Core.Std.Result

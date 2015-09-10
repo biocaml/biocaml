@@ -10,13 +10,6 @@ module Stream : module type of CFStream_stream
 
 val ( |? ) : 'a option -> 'a -> 'a
 
-module Array : sig
-  include module type of Core.Std.Array
-
-  (** [range xs] is the stream of all valid indices in [xs] *)
-  val range : 'a t -> int Stream.t
-end
-
 module Result : sig
 
   include module type of Core.Std.Result
