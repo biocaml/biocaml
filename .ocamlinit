@@ -1,19 +1,13 @@
 #use "topfind";;
 #thread;;
-#require "core zip xmlm pcre cfstream lwt.extra async future.std future.lwt future.async re.perl";;
+#require "core cfstream xmlm zip re.perl lwt async future.unix future.lwt-unix future.async-unix";;
 
 #directory "_build/lib";;
-#load "biocaml.cma";;
-
-#directory "_build/lib_ez";;
-#load "biocaml_ez.cma";;
-
-#directory "_build/lib_lwt";;
-#load "biocaml_lwt.cma";;
-
-#directory "_build/lib_async";;
-#load "biocaml_async.cma";;
+#load "biocaml-unix.cma";;
+#load "biocaml-ez.cma";;
+#load "biocaml-async-unix.cma";;
+#load "biocaml-lwt-unix.cma";;
 
 open Core.Std;;
-open Biocaml_internal_utils;;
-open Biocaml;;
+open Biocaml_unix.Internal_utils;;
+open Biocaml_ez.Std;;
