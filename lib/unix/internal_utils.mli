@@ -7,12 +7,3 @@
 open Core.Std
 
 module Stream : module type of CFStream_stream
-
-module Debug: sig
-
-  val enable: string -> unit
-  val disable: string -> unit
-
-  val make : string -> ('a, unit, string, unit) format4 -> 'a
-
-end

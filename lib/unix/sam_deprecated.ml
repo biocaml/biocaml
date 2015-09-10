@@ -2,8 +2,6 @@ open Core.Std
 module Result = Biocaml_result
 open Internal_utils
 
-let dbg fmt = Debug.make "SAM" fmt
-
 type raw_alignment = {
   qname : string;
   flag : int;
@@ -629,10 +627,6 @@ module Transform = struct
     let reference_sequence_dictionary = ref [| |] in
     let reference_sequence_dictionary_to_output = ref 0 in
     let rec next stopped =
-      dbg "raw_items_count: %d refdict-to-out: %d   raw_queue: %d  "
-        !raw_items_count
-        !reference_sequence_dictionary_to_output
-        (Dequeue.length raw_queue);
       begin match !reference_sequence_dictionary_to_output with
       | 0 ->
         begin match Dequeue.is_empty raw_queue with
@@ -642,9 +636,8 @@ module Transform = struct
           incr raw_items_count;
           begin match Dequeue.dequeue_exn raw_queue `front with
           | `comment c ->
-            dbg "comment"; `output (Ok (`comment c))
+            `output (Ok (`comment c))
           | `header_line (version, sorting, rest) ->
-            dbg "header";
             `output (Ok (`header ("HD",
                                 ("VN", version)
                                 :: ("SO",
@@ -655,19 +648,15 @@ module Transform = struct
                                     | `coordinate -> "coordinate")
                                 :: rest)))
           | `reference_sequence_dictionary rsd ->
-            dbg "reference_sequence_dictionary %d" (Array.length rsd);
             reference_sequence_dictionary := rsd;
             reference_sequence_dictionary_to_output := Array.length rsd;
             next stopped
           | `header ("SQ", _) ->
-            dbg "skipping SQ line";
-          (* we simply skip this one *)
+            (* we simply skip this one *)
             next stopped
           | `header h ->
-            dbg "header %s" (fst h);
             `output (Ok (`header h))
           | `alignment al ->
-            dbg "alignment";
             downgrade_alignment al |> (fun x -> `output x)
           end
         end

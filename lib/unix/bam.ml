@@ -85,8 +85,6 @@ end
 module Transform = struct
   open Result.Monad_infix
 
-  let dbg fmt = Debug.make "BAM" fmt
-
   let check b e = if b then Ok () else Error e
 
   let signed_int ~buf ~pos =
@@ -108,24 +106,19 @@ module Transform = struct
       (`wrong_magic_number (String.sub buf 0 4))
     >>= fun () ->
     signed_int ~buf ~pos:4 >>= fun length ->
-    dbg "header length: %d" length;
     check (String.length buf >= 4 + 4 + length + 4) `no
     >>= fun () ->
     let sam_header = String.sub buf 8 length in
-    dbg "sam header: %S" sam_header;
     signed_int ~buf ~pos:(8 + length)
     >>= fun nb_refs ->
-    dbg "nb refs: %d" nb_refs;
     Ok (`header sam_header, nb_refs, 4 + 4 + length + 4)
 
   let parse_reference_information_item buf pos =
     check (String.length buf - pos >= 4) `no >>= fun () ->
     signed_int ~buf ~pos
     >>= fun l_name ->
-    dbg "l_name: %d" l_name;
     check (String.length buf - pos >= 4 + l_name + 4) `no >>= fun () ->
     let name = String.sub buf (pos + 4) (l_name - 1) in
-    dbg "name: %S, (String.sub buf 4 l_name): %S" name (String.sub buf 4 l_name);
     check (buf.[pos + 4 + l_name - 1] = '\000')
       (`reference_information_name_not_null_terminated (String.sub buf 4 l_name))
     >>= fun () ->
@@ -142,7 +135,6 @@ module Transform = struct
           match parse_reference_information_item buf !bytes_read with
           | Ok (read, name, lref) ->
             bytes_read := !bytes_read + read;
-            dbg "parse_reference_information_item: %d %s %d" read name lref;
             (name, lref)
           | Error `no -> failwith "NO"
           | Error other -> error := Some other; failwith "ERROR")) in
@@ -181,12 +173,6 @@ module Transform = struct
     >>= fun  next_pos ->
     signed_int ~buf ~pos:32
     >>= fun  tlen ->
-    dbg " block_size: %d ref_id: %d pos: %d l_read_name: %d mapq: %d
-        bin: %d n_cigar_op: %d flag: %d l_seq: %d next_ref_id: %d
-        next_pos: %d tlen: %d"
-      block_size ref_id pos l_read_name mapq bin n_cigar_op flag l_seq next_ref_id
-      next_pos tlen;
-
     check (String.length buf >= block_size + 4) `no
     (* (4 * 9) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq) *)
     >>= fun () ->
@@ -194,7 +180,6 @@ module Transform = struct
     check (buf.[36 + l_read_name - 1] = '\000')
       (`read_name_not_null_terminated (String.sub buf 36 l_read_name))
     >>= fun () ->
-  (* dbg "qname: %S" qname; *)
     let cigar_buf = String.sub buf (36 + l_read_name) (n_cigar_op * 4) in
     let seq = String.make l_seq '*' in
     let letter  = function
@@ -216,14 +201,11 @@ module Transform = struct
       | 15 -> 'N'
       | l -> failwithf "letter not in [0, 15]: %d" l () in
     for i = 0 to ((l_seq + 1) / 2) - 1 do
-    (* dbg "i: %d" i; *)
       let byte = uint8 ((4 * 9) + l_read_name + (n_cigar_op * 4) + i) in
-    (* dbg "byte: %d" byte; *)
       seq.[2 * i] <- letter ((byte land 0xf0) lsr 4);
       if 2 * i + 1 < l_seq then
         seq.[2 * i + 1] <- letter (byte land 0x0f);
     done;
-  (* dbg "seq: %S" seq; *)
     let qual =
       Array.init l_seq (fun i ->
         Char.to_int
@@ -258,7 +240,6 @@ module Transform = struct
       let buffered = Buffer.contents in_buffer in
       let len = String.length buffered in
       Buffer.clear in_buffer;
-      dbg "uncompressed_bam_parser: len: %d" len;
       begin match len with
       | 0 -> if stopped then `end_of_stream else `not_ready
       | _ ->
@@ -270,14 +251,12 @@ module Transform = struct
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
             `output (Ok o)
           | Error `no ->
-            dbg "rebuffering %d bytes" String.(length buffered);
             Buffer.add_string in_buffer buffered; `not_ready
           | Error e -> `output (Error e)
           end
         | `reference_information nb ->
           begin match parse_reference_information buffered nb with
           | `no ->
-            dbg "(ri) rebuffering %d bytes" String.(length buffered);
             if len > 50000
             then `output (Error (`reference_information_overflow (len, buffered)))
             else begin
@@ -293,11 +272,9 @@ module Transform = struct
         | `alignments refinfo ->
           begin match parse_alignment buffered with
           | Ok (o, nbread) ->
-            dbg "len: %d nbread: %d" len nbread;
             Buffer.add_substring in_buffer buffered nbread (len - nbread);
             `output (Ok (o : raw_item))
           | Error `no ->
-            dbg "(al) rebuffering %d bytes" String.(length buffered);
             Buffer.add_string in_buffer buffered; `not_ready
           | Error  e -> `output (Error e)
           end
@@ -325,7 +302,6 @@ module Transform = struct
       Binary_packing.unpack_unsigned_8 ~buf ~pos +
         Binary_packing.unpack_unsigned_8 ~buf ~pos:(pos + 1) lsl 7 in
     let from () = String.sub buf pos len in
-    dbg "from: %S" (from ());
     let rec build ofs acc =
       let error e = Error (`wrong_auxiliary_data (e, from ())) in
       if ofs >= len then Ok acc
@@ -439,14 +415,10 @@ module Transform = struct
         Error (`wrong_cigar
                  String.(sub buf pos (pos + n_cigar_op * 4)))
     end
-(* dbg "cigar: %s" (Array.to_list cigarray *)
-(* |> List.map ~f:(fun (op, len) -> sprintf "%c:%d" op len) *)
-(* |> String.concat ~sep:"; "); *)
 
   let parse_sam_header h =
     let lines = String.split ~on:'\n' h |> List.filter ~f:((<>) "") in
     Result.List.mapi lines (fun idx line ->
-      dbg "parse_sam_header %d %s" idx line;
       Sam.parse_header_line idx line
       >>= fun raw_sam ->
       begin match raw_sam with
@@ -511,8 +483,6 @@ module Transform = struct
     let reference_information = ref [| |] in
     let first_alignment = ref true in
     let rec next stopped =
-      dbg "header_items: %d   raw_queue: %d  raw_items_count: %d"
-        (List.length !header_items) (Dequeue.length raw_queue) !raw_items_count;
       begin match !header_items with
       | h :: t -> header_items := t; `output (Ok h)
       | [] ->
@@ -587,7 +557,6 @@ module Transform = struct
       | b,e when b lsr 26 = e lsr 26 ->
         ((1 lsl 3) - 1) / 7  +  (beg lsr 26)
       | _ -> 0 in
-    dbg "bin: %d" bin;
     let cigar =
       let buf = String.create (Array.length al.S.cigar_operations * 4) in
       let write ith i32 =
@@ -606,7 +575,6 @@ module Transform = struct
       | `X  i -> bit_or 8l (of_int_exn (i lsl 4)) |> write idx);
       buf
     in
-    dbg "cigar: %S" cigar;
     begin match al.S.next_reference_sequence with
     | `qname -> find_ref qname
     | `none -> Ok (-1)
@@ -673,8 +641,6 @@ module Transform = struct
     let ref_dict_done = ref false in
     let header = Buffer.create 256 in
     let rec next stopped =
-      dbg "  queue: %d  items_count: %d"
-        (Dequeue.length queue) !items_count;
       begin match Dequeue.is_empty queue, stopped with
       | true, true ->`end_of_stream
       | true, false -> `not_ready
@@ -714,7 +680,6 @@ module Transform = struct
         | `alignment al ->
           if not !ref_dict_done
           then begin
-            dbg "reference_information: %d" Array.(length !ref_dict);
             ref_dict_done := true;
             Dequeue.enqueue queue `front (`alignment al);
             `output (Ok (`reference_information (Array.map !ref_dict ~f:(fun rs ->
@@ -754,9 +719,6 @@ module Transform = struct
           (4 * 8) + l_read_name + (n_cigar_op * 4) + ((l_seq + 1) / 2) + l_seq
           + (String.length ra.optional) in
 
-        dbg "raw_printing alignment: l_read_name: %d (qname: %S)"
-          l_read_name ra.qname;
-        dbg "starting buffer: %d size: %d" (Buffer.length buffer) size;
         write_32_int buffer size;
         write_32_int buffer ra.ref_id;
         write_32_int buffer ra.pos;
@@ -800,15 +762,12 @@ module Transform = struct
             (try ra.qual.(i) with _ -> 0xff)
         done;
         write buffer ra.optional;
-        dbg "ending buffer: %d size: %d" (Buffer.length buffer) size;
 
       | `header h ->
-        dbg "raw_printing the header";
         write buffer "BAM\x01";
         write_32_int buffer (String.length h);
         write buffer h
       | `reference_information sia ->
-        dbg "raw_printing the reference_information %d" (Array.length sia);
         write_32_int buffer (Array.length sia);
         Array.iter sia ~f:(fun (name, lgth) ->
           write_32_int buffer (String.length name + 1);
@@ -820,7 +779,6 @@ module Transform = struct
       match Buffer.contents buffer with
       | "" -> if stopped then `end_of_stream else `not_ready
       | s ->
-        dbg "s: %d" (String.length s);
         Buffer.clear buffer;
         `output s in
     Tfxm.make ~name ~feed ~next ()

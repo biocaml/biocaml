@@ -1,8 +1,6 @@
 open Core.Std
 open Internal_utils
 
-let dbg fmt = Debug.make "ZIP" fmt
-
 module Default = struct
 
   let zlib_buffer_size = 4096
@@ -78,8 +76,6 @@ module Transform = struct
       Zlib.inflate zstream buffer 0 len
         zlib_write_buffer 0 zlib_buffer_size
         Zlib.Z_SYNC_FLUSH in
-    dbg "unzip len: %d, finished: %b, used_in: %d, used_out: %d" len
-      finished used_in used_out;
     if used_in < len then (
       if finished then (
         match format with
@@ -109,14 +105,12 @@ module Transform = struct
     let zstream =  ref (Zlib.inflate_init false) in
     let in_buffer = Buffer.create 42 in
     let zlib_write_buffer = String.create zlib_buffer_size  in
-    dbg "unzip init: zlib_buffer_size: %d" zlib_buffer_size;
     let current_state =
       ref (match format with `gzip -> `gzip_header | `raw -> `inflate) in
     let rec next stopped =
       let buffered = Buffer.contents in_buffer in
       let len = String.length buffered in
       Buffer.clear in_buffer;
-      dbg "unzip: len: %d" len;
       begin match len with
       | 0 -> if stopped then `end_of_stream else `not_ready
       | _ ->
@@ -138,7 +132,6 @@ module Transform = struct
               end
             with
             | e ->
-              dbg "E: %s; len: %d" (Exn.to_string e) len;
               `output (Error (`zlib (Exn.to_string e)))
           end
         | `gzip_header ->
@@ -147,7 +140,6 @@ module Transform = struct
               match try_skip_gzip_header_exn buffered with
               | Ok bytes_read ->
                 current_state := `inflate;
-                dbg "header bytes_read: %d" bytes_read;
                 Buffer.add_string in_buffer
                   String.(sub buffered bytes_read (len - bytes_read));
                 next stopped
@@ -174,7 +166,6 @@ module Transform = struct
     let zstream =  ref (Zlib.deflate_init level false) in
     let in_buffer = Buffer.create 42 in
     let zlib_write_buffer = String.create zlib_buffer_size  in
-    dbg "zip init: level: %d, zlib_buffer_size: %d" level zlib_buffer_size;
     let state =
       ref (match format with `raw -> `deflating | `gzip -> `gzip_header) in
     let this_is_the_end = ref false in
@@ -190,7 +181,6 @@ module Transform = struct
           ()),
          (fun () ->
            let buf = String.create 8 in
-           dbg "crc: %ld, size: %ld" !gzip_crc !gzip_size;
            Binary_packing.pack_signed_32
              ~byte_order:`Little_endian ~pos:0 ~buf !gzip_crc;
            Binary_packing.pack_signed_32
@@ -219,22 +209,18 @@ module Transform = struct
                 ) else (
                   String.(sub zlib_write_buffer 0 used_out)
                 ) in
-              dbg "at the pseudo-end... used_out: %d, outputting %d bytes"
-                used_out String.(length to_output);
               `output to_output
             end
           end
           else `not_ready
         | len ->
           Buffer.clear in_buffer;
-          dbg "zip: len: %d" len;
           let (_, used_in, used_out) =
             Zlib.deflate !zstream buffered 0 len
               zlib_write_buffer 0 zlib_buffer_size
             (* Zlib.Z_NO_FLUSH *)
               Zlib.Z_SYNC_FLUSH
           in
-          dbg "used_in: %d -- used_out: %d" used_in used_out;
           update_crc buffered used_in;
           if used_in < len
           then (Buffer.add_substring in_buffer
