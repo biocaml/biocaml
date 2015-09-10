@@ -9,7 +9,7 @@ PACKAGES(x) =
   switch $(x)
   case unix
     return core sexplib.syntax comparelib.syntax \
-           cfstream future.unix xmlm zip re.perl
+           cfstream future.unix xmlm zip re.perl uri
   case ez
     return $(PACKAGES unix)
   case async-unix

@@ -8,20 +8,6 @@ open Core.Std
 
 module Stream : module type of CFStream_stream
 
-(** Operations on URL-style encodings. *)
-module Url : sig
-
-  val escape: string -> string
-  (** Convert non-alphanumeric characters to their ["%HX"]
-      URL-escaping format. *)
-
-  val unescape: string -> error:(string -> 'error) -> (string, 'error) Result.t
-  (** Convert a string containing ["%HX"] escaped characters to a normal
-      string. In case of error, the string is passed to the [~error] parameter
-      and the function returns its result. *)
-
-end
-
 module Debug: sig
 
   val enable: string -> unit

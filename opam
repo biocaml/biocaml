@@ -35,6 +35,7 @@ depends: [
   "cfstream"
   "future"
   "re"
+  "uri"
 ]
 
 depopts: ["flow" "lwt" "async"]

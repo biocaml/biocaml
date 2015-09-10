@@ -143,7 +143,7 @@ let string_of_datetype = function
 let esearch_url ?retstart ?retmax ?rettype ?field ?datetype ?reldate ?mindate ?maxdate database query = 
   search_base_url ^ "?" ^ parameters Option.([
     Some ("db", id_of_database database) ;
-    Some ("term", Url.escape query) ;
+    Some ("term", Uri.pct_encode query) ;
     map ~f:(fun i -> "retstart", string_of_int i) retstart ;
     map ~f:(fun i -> "retmax", string_of_int i) retmax ;
     map ~f:(function `uilist -> ("rettype", "uilist") | `count -> ("rettype", "count")) rettype ;

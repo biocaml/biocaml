@@ -75,7 +75,7 @@ module Transform = struct
     | e ->
       begin match (Scanf.sscanf i "%s " ident) with
       | "" -> Error (`cannot_parse_string (pos, msg))
-      | s -> Url.unescape ~error:(fun s -> `wrong_url_escaping (pos, s)) s
+      | s -> Ok (Uri.pct_decode s)
       end
     end
 
@@ -228,7 +228,7 @@ module Transform = struct
   | `comment c -> sprintf "#%s\n" c
   | `record t ->
     let escape =
-      match version with | `three -> Url.escape | `two -> sprintf "%S" in
+      match version with | `three -> (fun s -> Uri.pct_encode s) | `two -> sprintf "%S" in
     let optescape  o =  Option.value_map ~default:"." o ~f:escape in
     String.concat ~sep:"\t" [
       escape t.seqname;
@@ -244,8 +244,8 @@ module Transform = struct
         (List.map t.attributes (fun (k,v) ->
            match version with
            | `three ->
-             sprintf "%s=%s" (Url.escape k)
-               (List.map v Url.escape |> String.concat ~sep:",")
+             sprintf "%s=%s" (Uri.pct_encode k)
+               (List.map v Uri.pct_encode |> String.concat ~sep:",")
            | `two ->
              sprintf "%S %s" k
                (List.map v escape |> String.concat ~sep:",")
