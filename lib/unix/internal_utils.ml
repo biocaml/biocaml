@@ -2,11 +2,6 @@ open Core.Std
 
 module Stream = CFStream_stream
 
-let try_finally_exn ~fend f x =
-  match try `V (f x) with e -> `E e with
-    | `V f_x -> fend x; f_x
-    | `E e -> (try fend x with _ -> ()); raise e
-
 module Url = struct
 
   let escape s =

@@ -152,7 +152,8 @@ module Parser = struct
       with
         Failure msg | Bad msg -> raise_bad (err msg)
     in
-    try_finally_exn of_channel ~fend:In_channel.close (open_in file)
+    In_channel.with_file file ~f:of_channel
+
 end
   
 let of_file = Parser.cel

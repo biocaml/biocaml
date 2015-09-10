@@ -56,7 +56,7 @@ module Parser = struct
         with 
             Failure msg | Bad msg -> raise_bad (err msg)
     in
-    try_finally_exn (parse file) ~fend:In_channel.close (open_in file)
+    In_channel.with_file file ~f:(parse file)
 
 end
   
