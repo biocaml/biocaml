@@ -118,7 +118,7 @@ end
 (** {2 [In_channel] Functions} *)
 
 exception Error of [ `bam of Error.t
-                   | `unzip of Zip.Error.unzip ]
+                   | `unzip of Biocaml_zip.Error.unzip ]
 (** The exception thrown by [*_exn] functions in this module. *)
 
 val in_channel_to_raw_item_stream :
@@ -127,7 +127,7 @@ val in_channel_to_raw_item_stream :
   in_channel ->
   (raw_item,
    [> `bam of [> Error.raw_bam ]
-   | `unzip of [> Zip.Error.unzip ] ])
+   | `unzip of [> Biocaml_zip.Error.unzip ] ])
     Result.t Stream.t
 (** Create a stream of raw_item results from an input-channel. *)
 
@@ -144,7 +144,7 @@ val in_channel_to_item_stream :
   in_channel ->
   (item,
    [> `bam of [> Error.t ]
-   | `unzip of [> Zip.Error.unzip ] ])
+   | `unzip of [> Biocaml_zip.Error.unzip ] ])
     Result.t Stream.t
 (** Create a stream of full [Sam.item] results from an input-channel. *)
 
@@ -170,12 +170,12 @@ module Transform: sig
     ?zlib_buffer_size:int ->
     unit ->
     (string,
-     (raw_item, [> `unzip of Zip.Error.unzip
+     (raw_item, [> `unzip of Biocaml_zip.Error.unzip
                 | `bam of Error.raw_bam ] )
        Result.t)
       Tfxm.t
   (** Create a transform that parses a BAM file.
-      The [zlib_buffer_size] is passed to the [Zip] module. *)
+      The [zlib_buffer_size] is passed to the [Biocaml_zip] module. *)
 
 
   val item_to_raw: unit ->
@@ -187,7 +187,7 @@ module Transform: sig
     (raw_item, string) Tfxm.t
   (** Create a transform that “prints” [raw_item]s in the BAM format.
       The [gzip_level] and [zlib_buffer_size] options are passed to
-      the [Zip] module. *)
+      the [Biocaml_zip] module. *)
 
 end
 

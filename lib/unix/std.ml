@@ -40,4 +40,4 @@ module Track          = Track
 module Tfxm           = Tfxm
 module Vcf            = Vcf
 module Wig            = Wig
-module Zip            = Zip
+module Zip            = Biocaml_zip

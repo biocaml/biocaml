@@ -1,6 +1,7 @@
 open Core.Std
 open Internal_utils
 module Sam = Sam_deprecated
+module Zip = Biocaml_zip
 
 type raw_alignment = {
   qname : string;
