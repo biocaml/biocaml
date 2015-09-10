@@ -8,8 +8,9 @@ VERSION = dev
 PACKAGES(x) =
   switch $(x)
   case unix
-    return core sexplib.syntax comparelib.syntax \
-           cfstream future.unix xmlm zip re.perl uri
+    return $(array \
+      core sexplib.syntax comparelib.syntax \
+      cfstream future.unix xmlm zip re.perl uri)
   case ez
     return $(PACKAGES unix)
   case async-unix
@@ -39,7 +40,7 @@ OCAMLFLAGS = -bin-annot -annot -w A-4-33-41-42-44-45-48 \
 
 MerlinFile()
 METAFile()
-OpamInstallFile(omake/Solvuu.om)
+OpamInstallFile($(EMPTY))
 CleanCommands()
 
 .SUBDIRS: .
