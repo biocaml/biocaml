@@ -8,17 +8,12 @@ open Core.Std
 
 module Stream : module type of CFStream_stream
 
-val ( |? ) : 'a option -> 'a -> 'a
-
 val try_finally_exn : fend:('a -> unit) -> ('a -> 'b) -> 'a -> 'b
   (** [try_finally_exn fend f a] will run [x = f a], then run [fend
       a], and finally return [x]. If [f a] raised an exception that
       exception will be returned even if [f x] raises an exception too. If
       [f a] successfully produces [x], then it is possible to get instead
       an exception raised by [fend a]. *)
-
-val open_out_safe : string -> out_channel
-  (** Like [open_out] but will not overwrite existing file. *)
 
 (** Operations on URL-style encodings. *)
 module Url : sig
@@ -42,11 +37,3 @@ module Debug: sig
   val make : string -> ('a, unit, string, unit) format4 -> 'a
 
 end
-
-(** [compare_of_list l] returns a comparison function that defines [a
-    < b] if [a] comes before [b] in [l]. The returned function will
-    raise an exception if it is applied to any element not in [l]. *)
-val compare_of_list
-  :  ?equal:('a -> 'a -> bool)
-  -> 'a list
-  -> ('a -> 'a -> int)

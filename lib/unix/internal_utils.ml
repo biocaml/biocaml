@@ -2,14 +2,10 @@ open Core.Std
 
 module Stream = CFStream_stream
 
-let ( |? ) x default = Core.Option.value ~default x
-
 let try_finally_exn ~fend f x =
   match try `V (f x) with e -> `E e with
     | `V f_x -> fend x; f_x
     | `E e -> (try fend x with _ -> ()); raise e
-
-let open_out_safe = open_out_gen [Open_wronly; Open_creat; Open_excl; Open_text] 0o666
 
 module Url = struct
 
@@ -67,9 +63,3 @@ module Debug = struct
 
 
 end
-
-let compare_of_list ?(equal = (=)) l =
-  fun a b ->
-    let i,_ = Option.value_exn (List.findi l ~f:(fun _ a' -> equal a a')) in
-    let j,_ = Option.value_exn (List.findi l ~f:(fun _ b' -> equal b b')) in
-    Int.compare i j

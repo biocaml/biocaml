@@ -16,7 +16,7 @@ let create ?(n = 251) zero proj add = {
 
 let add (t : ('a,'b,'c,'d) t) x y =
   let bin = t.proj x in
-  let accu = Hashtbl.find t.table bin |? t.zero in
+  let accu = Option.value (Hashtbl.find t.table bin) ~default:t.zero in
   Hashtbl.replace t.table bin (t.add y accu)
 
 let stream t = Stream.of_hashtbl t.table

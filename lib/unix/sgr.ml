@@ -66,5 +66,5 @@ let to_channel ?(chr_map=ident) ?(increment_bp=0) t cout =
     
 let to_file ?(chr_map=ident) ?(increment_bp=0) t file =
   try_finally_exn (to_channel ~chr_map ~increment_bp t)
-    ~fend:Out_channel.close (open_out_safe file)
+    ~fend:Out_channel.close (open_out file)
  
