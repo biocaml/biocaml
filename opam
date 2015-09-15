@@ -6,23 +6,11 @@ bug-reports: "https://github.com/biocaml/biocaml/issues"
 license: "LGPL + linking exception"
 
 build: [
-  "omake" "-j%{jobs}%"
-    "PREFIX=%{prefix}%"
-    "COMPILE_LIB_EZ=true"
-    "COMPILE_LIB_LWT=%{lwt:installed}%"
-    "COMPILE_LIB_ASYNC=%{async:installed}%"
-    "COMPILE_APP=%{flow:installed}%"
-    "COMPILE_TESTS=false"
-    "COMPILE_BENCHMARKS=false"
+  "omake" "-j%{jobs}%" "PREFIX=%{prefix}%"
 ]
 
 install: [
-  ["omake" "biocaml.install"]
-  ["omake" "install_lib"]
-]
-
-remove: [
-  ["ocamlfind" "remove" "biocaml"]
+  ["omake" "%{name}%.install"]
 ]
 
 depends: [
