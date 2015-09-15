@@ -93,6 +93,9 @@ OCamlLibrary(lib) =
     OCAMLDEP += -syntax camlp4o
     export OCAMLDEP
 
+  C_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.c))
+  C_BASES = $(removesuffix $(C_FILES))
+
   MLY_FILES = $(basename $(glob -i, $(ROOT)/lib/$(lib)/*.mly))
   MLY_BASES = $(removesuffix $(MLY_FILES))
 
@@ -156,6 +159,10 @@ OCamlLibrary(lib) =
         rm -f $@
         menhir --infer --explain --ocamldep 'ocamldep' --depend $+ > $@
 
+    foreach(x => ..., $(C_BASES))
+      $(x).o: $(x).c
+        ocamlc -c $<
+
     foreach(x => ..., $(MLY_BASES))
       $(x).ml $(x).mli: $(x).mly
         menhir --infer --explain --ocamlc '$(OCAMLC) -I .' $<
@@ -188,8 +195,12 @@ OCamlLibrary(lib) =
       ../$(PACK_NAME).cmo: $(ML_FILES) $(replacesuffixes .ml, .cmo, $(ML_FILES))
         $(OCAMLC) -pack -o $@ $(replacesuffixes .ml, .cmo, $(SORT_ML_FILES $(ML_FILES)))
 
-      ../$(LIB_NAME).cma: ../$(PACK_NAME).cmo
-        $(OCAMLC) -a -o $@ $<
+      if $(equal $(EMPTY), $(C_BASES))
+        ../$(LIB_NAME).cma: ../$(PACK_NAME).cmo
+          $(OCAMLC) -a -o $@ $<
+      else
+        ../$(LIB_NAME).cma: $(addsuffix .o, $(C_BASES)) ../$(PACK_NAME).cmo
+          ocamlmklib -o ../$(LIB_NAME) $+
 
       .DEFAULT: ../$(LIB_NAME).cma
 
@@ -208,8 +219,12 @@ OCamlLibrary(lib) =
       ../$(PACK_NAME).cmx: $(ML_FILES) $(replacesuffixes .ml, .cmx, $(ML_FILES))
         $(OCAMLOPT) -pack -o $@ $(replacesuffixes .ml, .cmx, $(SORT_ML_FILES $(ML_FILES)))
 
-      ../$(LIB_NAME).cmxa: ../$(PACK_NAME).cmx
-        $(OCAMLOPT) -a -o $@ $<
+      if $(equal $(EMPTY), $(C_BASES))
+        ../$(LIB_NAME).cmxa: ../$(PACK_NAME).cmx
+          $(OCAMLOPT) -a -o $@ $<
+      else
+        ../$(LIB_NAME).cmxa: $(addsuffix .o, $(C_BASES)) ../$(PACK_NAME).cmx
+          ocamlmklib -custom -o ../$(LIB_NAME) $+
 
       .DEFAULT: ../$(LIB_NAME).cmxa
 
@@ -289,7 +304,7 @@ OpamInstallFile(ADDITIONAL_LIB_FILES) =
   $(OPAM_PACKAGE_NAME).install: _build/META $(foreach $(fun x => _build/lib/$(LIB_NAME $(x)).cma), $(LIBS))
     section
       FILES[] = $(array \
-        $(foreach $(fun suffix => $(glob -i, _build/lib/*.$(suffix))), a annot cma cmi cmo cmt cmti cmx cmxa cmxs o) \
+        $(foreach $(fun suffix => $(glob -i, _build/lib/*.$(suffix))), a annot cma cmi cmo cmt cmti cmx cmxa cmxs dll o so) \
         _build/META \
         $(ADDITIONAL_LIB_FILES) \
       )
