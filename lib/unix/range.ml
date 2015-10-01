@@ -1,7 +1,7 @@
 open Core.Std
 
 type t = {lo:int; hi:int}
-with compare, sexp
+[@@deriving compare, sexp]
 
 let make lo hi =
   if lo <= hi then
@@ -10,7 +10,7 @@ let make lo hi =
     error
       "lower bound larger than upper bound"
       (lo, hi)
-      <:sexp_of< int * int >>
+      [%sexp_of: int * int ]
   )
 
 let make_unsafe lo hi = {lo; hi}

@@ -17,16 +17,16 @@ open Future_unix.Std
 type header_item_tag = private [<
 | `HD | `SQ | `RG | `PG | `CO
 | `Other of string
-] with sexp
+] [@@deriving sexp]
 
 (** A tag-value pair comprising the content of header items. Tag-value
     pairs occur in other places too, but this type is specifically for
     those in the header. *)
 type tag_value = private string * string
-with sexp
+[@@deriving sexp]
 
 type sort_order = [ `Unknown | `Unsorted | `Query_name | `Coordinate ]
-with sexp
+[@@deriving sexp]
 
 (** @HD. A header consists of different types of lines. Confusingly, one of
     these types is called {i the} "header line", which is what this
@@ -35,7 +35,7 @@ with sexp
 type header_line = private {
   version : string; (** VN *)
   sort_order : sort_order option; (** SO *)
-} with sexp
+} [@@deriving sexp]
 
 (** @SQ. Reference sequence. *)
 type ref_seq = private {
@@ -45,12 +45,12 @@ type ref_seq = private {
   md5 : string option; (** M5 *)
   species : string option; (** SP *)
   uri : string option; (** UR *)
-} with sexp
+} [@@deriving sexp]
 
 type platform = [
 | `Capillary | `LS454 | `Illumina | `Solid
 | `Helicos | `Ion_Torrent | `Pac_Bio
-] with sexp
+] [@@deriving sexp]
 
 (** @RG. *)
 type read_group = private {
@@ -66,7 +66,7 @@ type read_group = private {
   platform : platform option; (** PL *)
   platform_unit : string option; (** PU *)
   sample : string option; (** SM *)
-} with sexp
+} [@@deriving sexp]
 
 (** @PG. *)
 type program = private {
@@ -76,7 +76,7 @@ type program = private {
   previous_id : string option; (** PP *)
   description : string option; (** DS *)
   version : string option; (** VN *)
-} with sexp
+} [@@deriving sexp]
 
 type header_item = private [<
 | `HD of header_line
@@ -85,7 +85,7 @@ type header_item = private [<
 | `PG of program
 | `CO of string
 | `Other of string * tag_value list
-] with sexp
+] [@@deriving sexp]
 
 (**
    - [sort_order]: Guaranteed to be [None] if [version = None].
@@ -120,7 +120,7 @@ module Flags : sig
 
   (** Flags are represented as a "bit map". *)
   type t = private int
-  with sexp
+  [@@deriving sexp]
 
   val of_int: int -> t Or_error.t
 
@@ -149,7 +149,7 @@ type cigar_op = private [<
   | `Padding of int
   | `Seq_match of int
   | `Seq_mismatch of int
-] with sexp
+] [@@deriving sexp]
 
 (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
@@ -160,15 +160,15 @@ type optional_field_value = private [<
 | `Z of string
 | `H of string
 | `B of char * string list
-] with sexp
+] [@@deriving sexp]
 
 type optional_field = private {
   tag : string;
   value : optional_field_value
-} with sexp
+} [@@deriving sexp]
 
 type rnext = private [< `Value of string | `Equal_to_RNAME]
-with sexp
+[@@deriving sexp]
 
 (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
     was given. *)
@@ -185,7 +185,7 @@ type alignment = private {
   seq: string option; (** SEQ *)
   qual: Phred_score.t list; (** QUAL *)
   optional_fields : optional_field list;
-} with sexp
+} [@@deriving sexp]
 
 
 

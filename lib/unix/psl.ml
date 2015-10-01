@@ -25,7 +25,7 @@ type item = {
   block_sizes : int list;
   q_starts : int list;
   t_starts : int list;
-} with sexp
+} [@@deriving sexp]
 
 module Error = struct
   type t = [

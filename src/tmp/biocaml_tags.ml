@@ -16,12 +16,12 @@ type file_format = [
 | `bed
 | `fastq
 | `fasta of Biocaml_fasta.Tags.t
-] with sexp
+] [@@deriving sexp]
 
 type t = [
 | file_format
 | `list of t list
-] with sexp
+] [@@deriving sexp]
 
 let rec default_extension: file_format -> string = function
   | `gzip t -> sprintf "%s.gz" (default_extension t)
@@ -94,7 +94,7 @@ module Output_transform = struct
     | `bam of Biocaml_bam.Error.item_to_raw
     | `sam of Biocaml_sam_deprecated.Error.item_to_raw
     | `fastq of [ `cannot_convert_ascii_phred_score of string ]
-  ] with sexp_of
+  ] [@@deriving sexp_of]
 
   type tags = t
 
@@ -255,7 +255,7 @@ module Input_transform = struct
     | `table_row of Biocaml_table.Row.Error.t
     | `fasta_lengths_mismatch
   ]
-  with sexp_of
+  [@@deriving sexp_of]
 
   type tags = t
 

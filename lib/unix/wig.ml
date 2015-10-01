@@ -4,23 +4,23 @@ open CFStream
 type comment = [
 | `comment of string
 ]
-with sexp
+[@@deriving sexp]
 type variable_step = [
 | `variable_step_state_change of string * int option (* name x span *)
 | `variable_step_value of int * float
 ]
-with sexp
+[@@deriving sexp]
 type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
 (* name, start, step, span *)
 | `fixed_step_value of float
 ]
-with sexp
+[@@deriving sexp]
 type bed_graph_value = string * int * int * float
-with sexp
+[@@deriving sexp]
 
 type item = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
-with sexp
+[@@deriving sexp]
 
 (* `module_error` should progressively allow to “tag” error values. *)
 let module_error e = Error (`wig e)
@@ -30,7 +30,7 @@ module Tags = struct
     allow_empty_lines: bool;
     sharp_comments: bool;
   }
-  with sexp
+  [@@deriving sexp]
 
   let default = {allow_empty_lines = false; sharp_comments = true}
 
@@ -57,7 +57,7 @@ module Error = struct
     | `wrong_span_value of Pos.t * string
     | `wrong_variable_step_value of Pos.t * string
   ]
-  with sexp
+  [@@deriving sexp]
 
   let parsing_error_to_string =
     let pos () a = Pos.to_string a in
@@ -90,9 +90,9 @@ module Error = struct
       sprintf "wrong_variable_step_value (%a, %s)" pos p v
 
   type to_bed_graph = [`not_in_variable_step_state | `not_in_fixed_step_state]
-  with sexp
+  [@@deriving sexp]
 
-  type t = [ parsing | to_bed_graph ] with sexp
+  type t = [ parsing | to_bed_graph ] [@@deriving sexp]
 end
 
 module Transform = struct

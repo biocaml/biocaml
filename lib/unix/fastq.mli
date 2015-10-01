@@ -53,7 +53,7 @@ type item = {
   sequence: string;
   comment: string;
   qualities: string;
-} with sexp
+} [@@deriving sexp]
 
 (** Split a name string into a sequence identifier and an optional
     description. It is assumed that the given string is from an

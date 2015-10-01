@@ -316,14 +316,14 @@ let run_transform ~output_tags files =
               [ `io_exn of exn
               | `stopped_before_end_of_stream
               | `transform_error of [ `string of string ] ] ]
-        with sexp_of
+        [@@deriving sexp_of]
         type t =
           [ `errors of s list
           | `extension_absent
           | `extension_unknown of string
           | `not_implemented of string
           | `parse_tags of exn ]
-        with sexp_of
+        [@@deriving sexp_of]
       end in
       M.sexp_of_t e |> Sexp.to_string_hum)
   end

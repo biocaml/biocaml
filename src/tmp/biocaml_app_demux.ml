@@ -144,8 +144,8 @@ let check_barcode
 
 (** Convert FASTQ input errors to strings. *)
 let string_of_error e =
-  Sexp.to_string_hum (<:sexp_of<
-  [ Biocaml_fastq.Err.t | `unzip of Biocaml_zip.Error.unzip ] >> e)
+  Sexp.to_string_hum ([%sexp_of:
+  [ Biocaml_fastq.Err.t | `unzip of Biocaml_zip.Error.unzip ] ] e)
 
 (** Structure used to record demux-statistics. *)
 type library_statistics = {
@@ -640,14 +640,14 @@ let command =
         | Error e ->
           let s =
             Sexp.to_string_hum
-              (<:sexp_of<
+              ([%sexp_of:
                   [ `failure of string
                   | `lwt_exn of exn
                   | `io_multi_error of
                       [ `failure of string
                       | `lwt_exn of exn
                       | `openning_files of [ `lwt_exn of exn ] list ] list
-                  | `openning_files of [ `lwt_exn of exn ] list ] >>
+                  | `openning_files of [ `lwt_exn of exn ] list ] ]
                  e)
           in
           Say.problemi "%s" s;

@@ -6,7 +6,7 @@ type item = {
   sequence: string;
   comment: string;
   qualities: string;
-} with sexp
+} [@@deriving sexp]
 
 let split_name s =
   match String.lsplit2 s ~on:' ' with
@@ -129,7 +129,7 @@ let name_of_line ?(pos=Pos.unknown) line =
     error
       "invalid name"
       (pos, line)
-      <:sexp_of< Pos.t * string >>
+      [%sexp_of: Pos.t * string ]
   else
     Ok (String.sub line ~pos:1 ~len:(n-1))
 
@@ -143,7 +143,7 @@ let comment_of_line ?(pos=Pos.unknown) line =
     error
       "invalid comment"
       (pos, line)
-      <:sexp_of< Pos.t * string >>
+      [%sexp_of: Pos.t * string ]
   else
     Ok (String.sub line ~pos:1 ~len:(n-1))
 
@@ -158,7 +158,7 @@ let qualities_of_line ?(pos=Pos.unknown) ?sequence line =
       error
         "length of sequence and qualities differ"
         (pos, sequence, line)
-        <:sexp_of< Pos.t * string * string >>
+        [%sexp_of: Pos.t * string * string ]
     else
       Ok line
 

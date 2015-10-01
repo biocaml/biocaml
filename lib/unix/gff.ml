@@ -22,10 +22,10 @@ type record = {
   phase: int option;
   attributes: (string * string list) list;
 }
-with sexp
+[@@deriving sexp]
 
 type item = [ `comment of string | `record of record ]
-with sexp
+[@@deriving sexp]
 
 (* `module_error` should progressively allow to “tag” error values. *)
 let module_error e = Error (`gff e)
@@ -37,7 +37,7 @@ module Tags = struct
     allow_empty_lines: bool;
     sharp_comments: bool;
   }
-  with sexp
+  [@@deriving sexp]
 
   let default =
     {version = `three; allow_empty_lines = false; sharp_comments = true}
@@ -62,9 +62,9 @@ module Error = struct
     | `wrong_attributes of Pos.t * string
     | `wrong_row of Pos.t * string
     | `wrong_url_escaping of Pos.t * string ]
-  with sexp
+  [@@deriving sexp]
 
-  type t = parsing with sexp
+  type t = parsing [@@deriving sexp]
 end
 
 module Transform = struct

@@ -65,7 +65,7 @@ let parse_item0
     if x <= n then Ok ()
     else error
       "max_line_length exceeded"
-      (x,n) <:sexp_of< int * int >>
+      (x,n) [%sexp_of: int * int ]
   ) >>= fun () ->
 
   if allow_empty_lines && (String.for_all s ~f:Char.is_whitespace) then
@@ -96,7 +96,7 @@ let parse_item0
         else
           (* TODO: report which character is outside alphabet *)
           error "sequence contains string outside allowed alphabet"
-            (s,alphabet) <:sexp_of< string * string >>
+            (s,alphabet) [%sexp_of: string * string ]
       )
 
 

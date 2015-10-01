@@ -74,7 +74,7 @@ module Error: sig
   (** The parsing errors that can happen while parsing Track-specific
       content. *)
 
-  type t = [ parsing ]
+  type t = parsing
   (** The union of all the errors. *)
 
   val parsing_of_sexp: Sexplib.Sexp.t -> parsing

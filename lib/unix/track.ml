@@ -16,9 +16,9 @@ module Error = struct
     [ `incomplete_input of Pos.t * string list * string option
     | `wrong_browser_position of Pos.t * string
     | `wrong_key_value_format of (string * string) list * string * string ]
-  with sexp
+  [@@deriving sexp]
 
-  type t = [ parsing ] with sexp
+  type t = parsing [@@deriving sexp]
 
 end
 

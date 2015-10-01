@@ -5,11 +5,11 @@ module Row = struct
   let module_error e = Error (`table_row e)
 
 
-  type item_type = [`type_int | `type_float | `type_string ] with sexp
-  type t_type = item_type array with sexp
+  type item_type = [`type_int | `type_float | `type_string ] [@@deriving sexp]
+  type t_type = item_type array [@@deriving sexp]
 
-  type item = [`int of int | `float of float | `string of string ] with sexp
-  type t = item array with sexp
+  type item = [`int of int | `float of float | `string of string ] [@@deriving sexp]
+  type t = item array [@@deriving sexp]
 
   module Tags = struct
 
@@ -18,7 +18,7 @@ module Row = struct
       | `strict_about of [ `row_length | `cell_type ]
       | `format of item_type array
     ] list
-    with sexp
+    [@@deriving sexp]
 
     let separators tags =
       List.filter_map tags (function
@@ -56,9 +56,9 @@ module Row = struct
           [ `column_number
           | `float_of_string of string
           | `int_of_string of string ] * t_type * string ]
-    with sexp
+    [@@deriving sexp]
 
-    type t = [ line_parsing ] with sexp
+    type t = line_parsing [@@deriving sexp]
 
   end
 

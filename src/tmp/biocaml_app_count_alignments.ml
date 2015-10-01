@@ -9,7 +9,7 @@ open Biocaml
 
 module With_set = struct
   module E = struct
-    type t = O of int | C of int with sexp
+    type t = O of int | C of int [@@deriving sexp]
     let compare t1 t2 =
       match t1, t2 with
       | O n, O m -> compare n m
@@ -35,7 +35,7 @@ module With_set = struct
       t := Map.add !t n set
 
   module Bed_set = Set.Make (struct
-    type t = string * int * int * float with sexp
+    type t = string * int * int * float [@@deriving sexp]
     let compare = Pervasives.compare
   end)
 

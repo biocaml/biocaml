@@ -436,7 +436,7 @@ let stringify m =
   m >>< begin function
   | Ok o -> return o
   | Error e ->
-    error (<:sexp_of< [
+    error ([%sexp_of: [
     | `io_exn of exn
     | `not_implemented of string
     | `inconsistent_tags of [ `int_sequence ]
@@ -450,7 +450,7 @@ let stringify m =
         | `tags_of_string of exn
         | `not_a_meta_int of Genlex.token list
         | `uknown_specification of Genlex.token list ]
-    ] >> e |> Sexp.to_string_hum)
+    ] ] e |> Sexp.to_string_hum)
   end
 
 let do_random ~output_file ~nb_items spec =

@@ -21,7 +21,7 @@ end
 
 module Make(S : Identifier) : sig
   type t = S.t * Range.t
-  with compare, sexp
+  [@@deriving compare, sexp]
 
   val make : S.t -> int -> int -> t Or_error.t
   val seq : t -> S.t

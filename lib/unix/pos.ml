@@ -5,7 +5,7 @@ type t = {
   line : int option;
   offset : int option
 }
-with sexp
+[@@deriving sexp]
 
 let make ?source ?line ?offset () = {source; line; offset}
 let unknown = {source=None; line=None; offset=None}

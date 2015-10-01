@@ -16,14 +16,14 @@ type raw_alignment = {
   qual : string;
   optional : (string * char * string) list
 }
-with sexp
+[@@deriving sexp]
 
 type raw_item = [
 | `comment of string
 | `header of string * (string * string) list
 | `alignment of raw_alignment
 ]
-with sexp
+[@@deriving sexp]
 
 type reference_sequence = {
   ref_name: string;
@@ -34,7 +34,7 @@ type reference_sequence = {
   ref_uri: string option;
   ref_unknown: (string * string) list;
 }
-with sexp
+[@@deriving sexp]
 
 let reference_sequence
     ?assembly_identifier ?checksum ?species ?uri ?(unknown_data=[]) name length =
@@ -51,7 +51,7 @@ let reference_sequence
 
 module Flags = struct
   type t = int
-  with sexp
+  [@@deriving sexp]
 
   let of_int = ident
 
@@ -80,7 +80,7 @@ type cigar_op = [
 | `P of int
 | `S of int
 | `X of int ]
-with sexp
+[@@deriving sexp]
 
 
 type optional_content_value = [
@@ -89,10 +89,10 @@ type optional_content_value = [
 | `float of float
 | `int of int
 | `string of string ]
-with sexp
+[@@deriving sexp]
 
 type optional_content = (string * char * optional_content_value) list
-with sexp
+[@@deriving sexp]
 
 type alignment = {
   query_template_name: string;
@@ -115,7 +115,7 @@ type alignment = {
 
   optional_content: optional_content;
 }
-with sexp
+[@@deriving sexp]
 
 type item = [
 | `comment of string
@@ -126,7 +126,7 @@ type item = [
 | `header of string * (string * string) list
 | `alignment of alignment
 ]
-with sexp
+[@@deriving sexp]
 
 module Error = struct
 
@@ -146,7 +146,7 @@ module Error = struct
       | `wrong_type of string
       ]
   ]
-  with sexp
+  [@@deriving sexp]
 
   type string_to_raw = [
   | `incomplete_input of Pos.t * string list * string option
@@ -156,7 +156,7 @@ module Error = struct
   | `wrong_alignment of Pos.t * string
   | `wrong_optional_field of Pos.t * string
   ]
-  with sexp
+  [@@deriving sexp]
 
   type raw_to_item = [
   | `comment_after_end_of_header of int * string
@@ -178,21 +178,21 @@ module Error = struct
   | `wrong_tlen of raw_alignment
   | optional_content_parsing
   ]
-  with sexp
+  [@@deriving sexp]
 
   type item_to_raw = [
     `wrong_phred_scores of alignment
   ]
-  with sexp
+  [@@deriving sexp]
 
   (** Errors possible during parsing. *)
   type parse = [
   | string_to_raw
   | raw_to_item
   ]
-  with sexp
+  [@@deriving sexp]
 
-  type t = parse with sexp
+  type t = parse [@@deriving sexp]
 
 end
 

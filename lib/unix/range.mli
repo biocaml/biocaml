@@ -6,7 +6,7 @@ open Core.Std
 
 (** Type of a range. *)
 type t = private {lo:int; hi:int}
-with compare, sexp
+[@@deriving compare, sexp]
 
 val make : int -> int -> t Or_error.t
 (** [make lo hi] returns the range [{lo; hi}]. Return [Error] if [lo >

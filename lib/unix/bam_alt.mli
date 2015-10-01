@@ -28,7 +28,7 @@ type alignment = Sam.alignment
     downside, some encoding errors in the BAM file can go
     unnoticed. *)
 module Alignment0 : sig
-  type t with sexp
+  type t [@@deriving sexp]
   val qname : t -> string option
   val flags : t -> Sam.Flags.t Or_error.t
   val rname : t -> Header.t -> string option Or_error.t

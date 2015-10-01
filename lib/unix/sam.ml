@@ -19,18 +19,18 @@ let ( >>?~ )
 type header_item_tag = [
 | `HD | `SQ | `RG | `PG | `CO
 | `Other of string
-] with sexp
+] [@@deriving sexp]
 
 type tag_value = string * string
-with sexp
+[@@deriving sexp]
 
 type sort_order = [ `Unknown | `Unsorted | `Query_name | `Coordinate ]
-with sexp
+[@@deriving sexp]
 
 type header_line = {
   version : string;
   sort_order : sort_order option;
-} with sexp
+} [@@deriving sexp]
 
 type ref_seq = {
   name : string;
@@ -39,12 +39,12 @@ type ref_seq = {
   md5 : string option;
   species : string option;
   uri : string option;
-} with sexp
+} [@@deriving sexp]
 
 type platform = [
 | `Capillary | `LS454 | `Illumina | `Solid
 | `Helicos | `Ion_Torrent | `Pac_Bio
-] with sexp
+] [@@deriving sexp]
 
 type read_group = {
   id : string;
@@ -59,7 +59,7 @@ type read_group = {
   platform : platform option;
   platform_unit : string option;
   sample : string option;
-} with sexp
+} [@@deriving sexp]
 
 type program = {
   id : string;
@@ -68,7 +68,7 @@ type program = {
   previous_id : string option;
   description : string option;
   version : string option;
-} with sexp
+} [@@deriving sexp]
 
 type header_item = [
 | `HD of header_line
@@ -77,7 +77,7 @@ type header_item = [
 | `PG of program
 | `CO of string
 | `Other of string * tag_value list
-] with sexp
+] [@@deriving sexp]
 
 type header = {
   version : string option;
@@ -105,7 +105,7 @@ let empty_header = {
 (******************************************************************************)
 module Flags = struct
   type t = int
-  with sexp
+  [@@deriving sexp]
 
   let of_int x =
     if (0 <= x) && (x <= 65535) then
@@ -139,7 +139,7 @@ type cigar_op = [
   | `Padding of int
   | `Seq_match of int
   | `Seq_mismatch of int
-] with sexp
+] [@@deriving sexp]
 
 type optional_field_value = [
 | `A of char
@@ -148,15 +148,15 @@ type optional_field_value = [
 | `Z of string
 | `H of string
 | `B of char * string list
-] with sexp
+] [@@deriving sexp]
 
 type optional_field = {
   tag : string;
   value : optional_field_value
-} with sexp
+} [@@deriving sexp]
 
 type rnext = [`Value of string | `Equal_to_RNAME]
-with sexp
+[@@deriving sexp]
 
 type alignment = {
   qname : string option;
@@ -171,7 +171,7 @@ type alignment = {
   seq: string option;
   qual: Phred_score.t list;
   optional_fields : optional_field list;
-} with sexp
+} [@@deriving sexp]
 
 
 
@@ -181,7 +181,7 @@ type alignment = {
 let parse_header_version s =
   let err =
     error "invalid version" (`HD, s)
-    <:sexp_of< header_item_tag * string >>
+    [%sexp_of: header_item_tag * string ]
   in
   match String.lsplit2 ~on:'.' s with
   | None -> err
@@ -287,7 +287,7 @@ let header
         Some (Error.create
                 "sort order cannot be defined without version"
                 (sort_order, version)
-                <:sexp_of< sort_order option * string option >>
+                [%sexp_of: sort_order option * string option ]
         )
       else
         None
@@ -346,7 +346,7 @@ let parse_tag_value s =
       Ok s
     else
       error "tag has invalid value" (tag,s)
-      <:sexp_of< string * string >>
+      [%sexp_of: string * string ]
   in
   match String.lsplit2 s ~on:':' with
   | None ->
@@ -372,11 +372,11 @@ let find1 header_item_tag l x =
   match find_all l x with
   | [] ->
     error "required tag not found" (header_item_tag, x)
-    <:sexp_of< header_item_tag * string >>
+    [%sexp_of: header_item_tag * string ]
   | y::[] -> Ok y
   | ys ->
     error "tag found multiple times" (header_item_tag, x, ys)
-    <:sexp_of< header_item_tag * string * string list >>
+    [%sexp_of: header_item_tag * string * string list ]
 
 (** Find 0 or 1 occurrence [x] in association list [l]. Return
     error if [x] is defined more than once. *)
@@ -386,7 +386,7 @@ let find01 header_item_tag l x =
   | y::[] -> Ok (Some y)
   | ys ->
     error "tag found multiple times" (header_item_tag, x, ys)
-    <:sexp_of< header_item_tag * string * string list >>
+    [%sexp_of: header_item_tag * string * string list ]
 
 (** Assert that [tvl] contains at most the given [tags]. *)
 let assert_tags header_item_tag tvl tags =
@@ -399,7 +399,7 @@ let assert_tags header_item_tag tvl tags =
     error
       "unexpected tag for given header item type"
       (header_item_tag, unexpected_tags)
-      <:sexp_of< header_item_tag * String.Set.t >>
+      [%sexp_of: header_item_tag * String.Set.t ]
 
 let parse_sort_order = function
   | "unknown" -> Ok `Unknown
@@ -553,7 +553,7 @@ let alignment
       else
         Some (Error.create
                 "SEQ and QUAL lengths differ"
-                (s, q) <:sexp_of< int * int >>
+                (s, q) [%sexp_of: int * int ]
         )
     );
 
@@ -581,7 +581,7 @@ let parse_int_range field lo hi s =
     if (lo <= n) && (n <= hi) then
       Ok n
     else
-      error out_of_range (n,lo,hi) <:sexp_of< int * int * int >>
+      error out_of_range (n,lo,hi) [%sexp_of: int * int * int ]
   with _ ->
     error not_an_int s sexp_of_string
 
@@ -714,7 +714,7 @@ let opt_field_int_re = Re_perl.compile_pat "^-?[0-9]+$"
 let opt_field_float_re = Re_perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"
 
 let optional_field_value_err typ value =
-  error "invalid value" (typ,value) <:sexp_of< string * string >>
+  error "invalid value" (typ,value) [%sexp_of: string * string ]
 
 let optional_field_value_A value =
   if List.mem ['!';'-';'~'] value
@@ -743,7 +743,7 @@ let optional_field_value_B elt_type elts =
     | _ -> false
   in
   if valid_args then Ok (`B (elt_type, elts))
-  else error "invalid value" ("B", elt_type, elts) <:sexp_of< string * char * string list >>
+  else error "invalid value" ("B", elt_type, elts) [%sexp_of: string * char * string list ]
 
 let optional_field tag value =
   if not (Re.execp opt_field_tag_re tag)

@@ -41,7 +41,7 @@ module Error: sig
       [ `compression_method | `flags | `magic_number ] * int ]
   (** The possible unzipping errors. *)
 
-  type t = [unzip]
+  type t = unzip
   (** The union of the errors. *)
 
 

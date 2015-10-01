@@ -9,14 +9,14 @@ PACKAGES(x) =
   switch $(x)
   case unix
     return $(array \
-      core sexplib.syntax comparelib.syntax \
+      core ppx_sexp_conv sexplib ppx_compare \
       cfstream future.unix xmlm zip re.perl uri)
   case ez
     return $(PACKAGES unix)
   case async-unix
     return $(PACKAGES unix) async future.async-unix
   case lwt-unix
-    return $(PACKAGES unix) lwt lwt.syntax future.lwt-unix
+    return $(PACKAGES unix) lwt future.lwt-unix
   default
     eprintln(PACKAGES undefined for $(x).)
     exit(1)

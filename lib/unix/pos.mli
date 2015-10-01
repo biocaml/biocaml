@@ -27,7 +27,7 @@ type t = {
   source : string option;
   line : int option;
   offset : int option;
-} with sexp
+} [@@deriving sexp]
 
 val make: ?source:string -> ?line:int -> ?offset:int -> unit -> t
 

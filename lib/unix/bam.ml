@@ -19,13 +19,13 @@ type raw_alignment = {
   seq : string;
   qual : int array;
   optional : string;
-} with sexp
+} [@@deriving sexp]
 
 type raw_item =
 [ `alignment of raw_alignment
 | `header of string
 | `reference_information of (string * int) array ]
-with sexp
+[@@deriving sexp]
 
 module Error = struct
 
@@ -38,7 +38,7 @@ module Error = struct
       | `out_of_bounds
       | `unknown_type of char ] * string
   ]
-  with sexp
+  [@@deriving sexp]
 
   type raw_bam = [
   | `read_name_not_null_terminated of string
@@ -47,12 +47,12 @@ module Error = struct
   | `wrong_magic_number of string
   | `wrong_int32 of string
   ]
-  with sexp
+  [@@deriving sexp]
 
   type parse_cigar = [
   | `wrong_cigar of string
   | `wrong_cigar_length of int ]
-  with sexp
+  [@@deriving sexp]
 
   type raw_to_item = [
   | `header_line_not_first of int
@@ -69,16 +69,16 @@ module Error = struct
   | `wrong_pos of raw_alignment
   | `wrong_qname of raw_alignment
   | `wrong_tlen of raw_alignment ]
-  with sexp
+  [@@deriving sexp]
 
 
   type item_to_raw =
   [ `cannot_get_sequence of Sam.alignment
   | `header_item_not_first of string
   | `reference_name_not_found of Sam.alignment * string ]
-  with sexp
+  [@@deriving sexp]
 
-  type t = [ raw_bam | raw_to_item | item_to_raw ] with sexp
+  type t = [ raw_bam | raw_to_item | item_to_raw ] [@@deriving sexp]
 
 end
 

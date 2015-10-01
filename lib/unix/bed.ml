@@ -2,13 +2,13 @@ open Core.Std
 open CFStream
 
 type item = string * int * int * Table.Row.t
-with sexp
+[@@deriving sexp]
 
 type parsing_spec = [
 | `enforce of Table.Row.t_type
 | `strings
 ]
-with sexp
+[@@deriving sexp]
 
 module Error = struct
 
@@ -19,12 +19,12 @@ module Error = struct
         | `int_of_string of string ] *
           Table.Row.t_type * string
     | `wrong_number_of_columns of Table.Row.t ]
-  with sexp
+  [@@deriving sexp]
 
   type parsing = [ `bed of parsing_base ]
-  with sexp
+  [@@deriving sexp]
 
-  type t = parsing with sexp
+  type t = parsing [@@deriving sexp]
 end
 
 let item_of_line ~how line =

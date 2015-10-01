@@ -3,7 +3,7 @@ open Core.Std
 open Future_unix.Std
 
 type item = Line.t
-with sexp
+[@@deriving sexp]
 
 module MakeIO (Future : FUTURE) : sig
   open Future

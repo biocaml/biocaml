@@ -2,20 +2,20 @@ open Core.Std
 open Biocaml_internal_utils
 module Lines = Biocaml_lines
 
-type char_seq = string with sexp
-type int_seq = int list with sexp
+type char_seq = string [@@deriving sexp]
+type int_seq = int list [@@deriving sexp]
 
 type 'a item = {
   header : string;
   sequence : 'a;
-} with sexp
+} [@@deriving sexp]
 
 type 'a raw_item = [
   | `comment of string
   | `header of string
   | `partial_sequence of 'a
 ]
-with sexp
+[@@deriving sexp]
 
 module Tags = struct
 
@@ -27,7 +27,7 @@ module Tags = struct
     max_items_per_line: int option;
     sequence: [ `int_sequence | `char_sequence of char list option ]
   }
-  with sexp
+  [@@deriving sexp]
 
   let char_sequence_default =
     { forbid_empty_lines = false;
@@ -81,14 +81,14 @@ module Error = struct
     | `malformed_partial_sequence of Pos.t * string
     | `sequence_is_too_long of Pos.t * string
   ]
-  with sexp
+  [@@deriving sexp]
 
   type t = [
     | string_to_raw_item
     | `unnamed_char_seq of char_seq
     | `unnamed_int_seq of int_seq
   ]
-  with sexp
+  [@@deriving sexp]
 end
 
 module Transform = struct
@@ -297,9 +297,9 @@ module Random = struct
     | `non_sequence_probability of float
     | `tags of Tags.t
   ]
-  with sexp
+  [@@deriving sexp]
 
-  type specification_list = specification list with sexp
+  type specification_list = specification list [@@deriving sexp]
 
   let specification_of_string s =
     try Ok (specification_list_of_sexp (Sexp.of_string s))

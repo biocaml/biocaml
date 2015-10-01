@@ -1,6 +1,6 @@
 open Core.Std
 
-type t = string with sexp
+type t = string [@@deriving sexp]
 
 let to_string = Fn.id
 

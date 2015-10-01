@@ -15,10 +15,10 @@ module Error = struct
   | `zlib of string
   | `wrong_gzip_header of
       [ `compression_method | `flags | `magic_number ] * int ]
-  with sexp
+  [@@deriving sexp]
   (** The possible unzipping errors. *)
 
-  type t = [unzip] with sexp
+  type t = unzip [@@deriving sexp]
 end
 
 module Transform = struct

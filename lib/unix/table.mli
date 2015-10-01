@@ -81,7 +81,7 @@ module Row : sig
           | `float_of_string of string
           | `int_of_string of string ] * t_type * string ]
 
-    type t = [ line_parsing ]
+    type t = line_parsing
 
     val line_parsing_of_sexp: Sexplib.Sexp.t -> line_parsing
     val sexp_of_line_parsing: line_parsing -> Sexplib.Sexp.t

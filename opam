@@ -22,6 +22,8 @@ depends: [
   "xmlm"
   "cfstream"
   "future"
+  "ppx_compare"
+  "ppx_sexp_conv"
   "re"
   "uri"
 ]

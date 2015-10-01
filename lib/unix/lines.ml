@@ -3,7 +3,7 @@ open Future_unix.Std
 open CFStream
 
 type item = Line.t
-with sexp
+[@@deriving sexp]
 
 module MakeIO (Future : FUTURE) = struct
   open Future

@@ -6,7 +6,7 @@ open Sexplib.Std
 module Bam = Biocaml_bam_alt
 module Sam = Biocaml_sam
 
-let string_option_p x = Sexp.to_string (<:sexp_of<string option>> x)
+let string_option_p x = Sexp.to_string ([%sexp_of:string option] x)
 
 let bam_01_qnames = [
   "ILLUMINA-D118D2_0040_FC:7:20:2683:16044#0/1" ;

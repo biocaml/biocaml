@@ -1,10 +1,10 @@
 open Core.Std
 
 type t = int
-with sexp
+[@@deriving sexp]
 
 type offset = [`Offset33 | `Offset64]
-with sexp
+[@@deriving sexp]
 
 let int_of_offset = function `Offset33 -> 33 | `Offset64 -> 64
 
@@ -31,7 +31,7 @@ let to_char ?(offset=`Offset33) t =
       "cannot convert PHRED score with requested offset to a \
        visible ASCII character"
       (t, offset)
-      <:sexp_of< t * offset >>
+      [%sexp_of: t * offset ]
 
 let of_int x =
   if x >= 0 then Ok x
@@ -46,7 +46,7 @@ let of_char ?(offset=`Offset33) x =
     error
       "character with given offset is not a valid PHRED score"
       (x, offset)
-      <:sexp_of< char * offset >>
+      [%sexp_of: char * offset ]
 
 let of_probability ?(f = round_float_to_int) x =
   if 0.0 < x && x <= 1.0 then

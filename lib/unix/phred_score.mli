@@ -23,10 +23,10 @@
 open Core.Std
 
 type t = private int
-with sexp
+[@@deriving sexp]
 
 type offset = [`Offset33 | `Offset64]
-with sexp
+[@@deriving sexp]
 
 val of_char : ?offset:offset -> char -> t Or_error.t
 (** [of_char ~offset x] returns the PHRED score encoded by ASCII

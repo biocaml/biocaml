@@ -91,7 +91,7 @@ module Alignment0 = struct
     seq : string ; (* compressed representation *)
     qual : string ;
     optional : string ;
-  } with sexp
+  } [@@deriving sexp]
 
   (* ============================ *)
   (* ==== ACCESSOR FUNCTIONS ==== *)
@@ -283,7 +283,7 @@ module Alignment0 = struct
         | None ->
           error_string "Too many elements in B-type optional field"
       )
-    | c -> error "Incorrect optional field type identifier" c <:sexp_of< char>>
+    | c -> error "Incorrect optional field type identifier" c [%sexp_of: char]
 
   let parse_optional_field buf pos =
     check_buf ~buf ~pos ~len:3 >>= fun () ->

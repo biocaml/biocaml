@@ -8,7 +8,7 @@ end
 
 module Make(S : Identifier) = struct
   type t = S.t * Range.t
-  with compare, sexp
+  [@@deriving compare, sexp]
 
   let make s lo hi =
     let open Or_error in
