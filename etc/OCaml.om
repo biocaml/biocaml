@@ -271,7 +271,7 @@ OCamlApp(app) =
 # Rule to generate .merlin file.
 # Dynamically scoped arguments: LIBS, PACKAGES.
 MerlinFile() =
-  ALL_PACKAGES[] = $(set $(foreach $(fun x => $(array $(PACKAGES $(x)))), $(LIBS)))
+  ALL_PACKAGES[] = $(set $(foreach $(fun x => $(array $(PACKAGES $(x)))), $(LIBS) $(APPS)))
   .DEFAULT: .merlin
   .merlin: :value: $(ALL_PACKAGES)
     echo S "./lib/**" > $@
@@ -359,3 +359,10 @@ APIDoc() =
 
     .PHONY: doc
     doc: api/index.html
+
+CheckErrors() =
+  LIB_NAMES = $(foreach $(fun x => $(LIB_NAME $(x))), $(LIBS))
+  APP_NAMES = $(foreach $(fun x => $(APP_NAME $(x))), $(APPS))
+  if $(intersects $(LIB_NAMES), $(APP_NAMES))
+    eprintln(LIB_NAMES and APP_NAMES are not unique.)
+    exit(1)
