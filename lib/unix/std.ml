@@ -4,6 +4,7 @@ module Bam            = Bam
 module Bam_alt        = Bam_alt
 module Bar            = Bar
 module Bed            = Bed
+module Bgzf           = Bgzf
 module Bin_pred       = Bin_pred
 module Bpmap          = Bpmap
 module Cel            = Cel
