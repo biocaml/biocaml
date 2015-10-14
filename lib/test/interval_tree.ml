@@ -1,8 +1,9 @@
 open Core.Std
-open Biocaml_internal_utils
-open OUnit
-open Biocaml
+open CFStream
 open Stream.Infix
+module Interval_tree = Biocaml_unix.Std.Interval_tree
+module Range = Biocaml_unix.Std.Range
+open OUnit
 
 module ListImpl = struct
   type 'a t = (int * int * 'a) list
@@ -80,7 +81,7 @@ let random_interval ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) _ =
 let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n = 
   (1 -- n) /@ (random_interval ~lb ~ub ~minw ~maxw)
 
-module TestAdditions(I : module type of Biocaml_interval_tree) = struct
+module TestAdditions(I : module type of Biocaml_unix.Interval_tree) = struct
   include I
   let of_list l = 
     List.fold_left l ~init:I.empty ~f:(fun accu (low,high,data) -> I.add accu ~low ~high ~data)
@@ -94,7 +95,7 @@ let test_add () =
     let intervals = random_intervals 100 |> Stream.to_list in
     List.fold_left intervals ~init:T.empty ~f:(fun accu (lo,hi,_) -> 
       let r = T.add accu ~low:lo ~high:hi ~data:() in
-      Biocaml_interval_tree.check_integrity r ; r
+      Interval_tree.check_integrity r ; r
     )
     |> ignore
   done

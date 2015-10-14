@@ -1,7 +1,9 @@
 open Core.Std
-open Biocaml_internal_utils
+open CFStream
+module Bed = Biocaml_unix.Std.Bed
+module Tfxm = Biocaml_unix.Std.Tfxm
+module Zip = Biocaml_unix.Std.Zip
 open OUnit
-open Biocaml
 
 type error =
 [ `left of Zip.Error.unzip
@@ -11,17 +13,17 @@ type error =
 let some_ok x = Some (Ok x)
 
 let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
-  let file = "src/tests/data/bed_03_more_cols.bed" in
+  let file = "etc/test_data/bed_03_more_cols.bed" in
   let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
   Unix.system (sprintf "gzip -c %s > %s" file tmp) |> ignore;
 
   let unzip_and_parse =
-    Transform.compose_results_merge_error
+    Tfxm.compose_results_merge_error
       (Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
       (Bed.Transform.string_to_item
          ~more_columns:(`enforce [|`type_string; `type_int; `type_float|]) ()) in
   let ic = open_in tmp in
-  let stream = Transform.in_channel_strings_to_stream ic unzip_and_parse in
+  let stream = Tfxm.in_channel_strings_to_stream ic unzip_and_parse in
   (stream, fun () -> Sys.remove tmp)
 
 let test_unzip () =
@@ -52,7 +54,7 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   cmd "cat %s.gz %s.gz > %s.gz" tmp1 tmp2 tmp3;
   let t = Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size () in
   let ic = open_in (sprintf "%s.gz" tmp3) in
-  let s = Transform.in_channel_strings_to_stream ~buffer_size ic t in
+  let s = Tfxm.in_channel_strings_to_stream ~buffer_size ic t in
   let l = Stream.npeek s 300 in
   let expected = sprintf "%s\n%s\n" first second in
   let obtained =

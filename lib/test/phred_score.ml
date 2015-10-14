@@ -1,6 +1,6 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Phred_score = Biocaml_unix.Std.Phred_score
+open OUnit
 
 let visible_chars = 
   List.range ~stride:1 ~start:`inclusive ~stop:`inclusive 33 126

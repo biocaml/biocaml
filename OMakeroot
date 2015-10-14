@@ -17,6 +17,10 @@ PACKAGES(x) =
     return $(PACKAGES unix) async future.async-unix
   case lwt-unix
     return $(PACKAGES unix) lwt future.lwt-unix
+  case test
+    return $(PACKAGES unix) ounit
+  case biocaml_run_tests
+    return $(PACKAGES test)
   default
     eprintln(PACKAGES undefined for $(x).)
     exit(1)
@@ -31,6 +35,10 @@ LIB_DEPS(x) =
     return unix
   case lwt-unix
     return unix
+  case test
+    return unix
+  case biocaml_run_tests
+    return unix test
   default
     eprintln(LIB_DEPS undefined for $(x).)
     exit(1)
@@ -46,3 +54,11 @@ CleanCommands()
 .SUBDIRS: .
   foreach(x => ..., $(LIBS))
     OCamlLibrary($(x))
+
+  foreach(x => ..., $(APPS))
+    OCamlApp($(x))
+
+.PHONY: run-tests
+run-tests: _build/app/biocaml-run-tests.native
+  $<
+  rm -f $(ROOT)/delme

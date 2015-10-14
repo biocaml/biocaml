@@ -1,6 +1,7 @@
 open Core.Std
+module Table = Biocaml_unix.Std.Table
+module Line = Biocaml_unix.Std.Line
 open OUnit
-open Biocaml
 
 let (>><) = (|>)
 

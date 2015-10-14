@@ -1,13 +1,14 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Gff = Biocaml_unix.Std.Gff
+module Tfxm = Biocaml_unix.Std.Tfxm
+open OUnit
 
 let test_parser () =
   let transfo = Gff.Transform.string_to_item ~tags:Gff.Tags.default () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
-    Transform.feed transfo (joined ^ "\n");
-    assert_bool joined (f (Transform.next transfo))
+    Tfxm.feed transfo (joined ^ "\n");
+    assert_bool joined (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> oo = `output (Ok o)) in
   test_output ["# some comment"]  (`comment " some comment");
@@ -62,8 +63,8 @@ let test_parser () =
     Gff.Transform.string_to_item ~tags () in
   let test_line l f =
     let joined = (String.concat ~sep:"\t" l) in
-    Transform.feed transfo (joined ^ "\n");
-    assert_bool joined (f (Transform.next transfo))
+    Tfxm.feed transfo (joined ^ "\n");
+    assert_bool joined (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> oo = `output (Ok o)) in
   test_output ["# some comment"] (`comment " some comment");
@@ -80,8 +81,8 @@ let test_parser () =
 let test_printer () =
   let transfo = Gff.Transform.item_to_string ~tags:Gff.Tags.default () in
   let test s item =
-    Transform.feed transfo item;
-    let res =  Transform.next transfo in
+    Tfxm.feed transfo item;
+    let res =  Tfxm.next transfo in
     match res with
     | `output o ->
       if s <> o then eprintf "NOT EQUALS:\n%S\n%S\n%!" s o;
@@ -108,8 +109,8 @@ let test_printer () =
       { Gff.Tags.default with Gff.Tags.version = `two; allow_empty_lines = true} in
     Gff.Transform.item_to_string ~tags () in
   let test s item =
-    Transform.feed transfo item;
-    let res =  Transform.next transfo in
+    Tfxm.feed transfo item;
+    let res =  Tfxm.next transfo in
     match res with
     | `output o ->
       if s <> o then eprintf "NOT EQUALS (version 2):\n%S\n%S\n%!" s o;

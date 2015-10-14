@@ -1,6 +1,6 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Bin_pred = Biocaml_unix.Std.Bin_pred
+open OUnit
 
 (*
  * This is a test against the R library ROCR. The reference result

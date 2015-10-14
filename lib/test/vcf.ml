@@ -1,14 +1,15 @@
 open Core.Std
-open Biocaml_internal_utils
+open CFStream
+module Tfxm = Biocaml_unix.Std.Tfxm
+module Vcf = Biocaml_unix.Std.Vcf
 open OUnit
-open Biocaml
 
 let make_stream name =
   let (/) = Filename.concat in
-  let filename = "src"/"tests"/"data"/name in
+  let filename = "etc"/"test_data"/name in
   let t  = Vcf.Transform.string_to_item ~filename () in
   let ic = open_in filename in
-  Transform.in_channel_strings_to_stream ~buffer_size:10 ic t
+  Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic t
 
 let compare_rows r1 r2 =
   let open Vcf in

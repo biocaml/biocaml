@@ -1,12 +1,14 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Gff = Biocaml_unix.Std.Gff
+module Track = Biocaml_unix.Std.Track
+module Tfxm = Biocaml_unix.Tfxm
+open OUnit
 
 let test_parser () =
   let transfo = Track.Transform.string_to_string_content () in
   let test_line l f =
-    Transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Transform.next transfo))
+    Tfxm.feed transfo (l ^ "\n");
+    assert_bool l (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -46,8 +48,8 @@ let test_parser () =
 let test_wig_parser () =
   let transfo = Track.Transform.string_to_wig () in
   let test_line l f =
-    Transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Transform.next transfo))
+    Tfxm.feed transfo (l ^ "\n");
+    assert_bool l (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -65,8 +67,8 @@ let test_wig_parser () =
 let test_gff_parser () =
   let transfo = Track.Transform.string_to_gff ~tags:Gff.Tags.default () in
   let test_line l f =
-    Transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Transform.next transfo))
+    Tfxm.feed transfo (l ^ "\n");
+    assert_bool l (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -89,8 +91,8 @@ let test_bed_parser () =
     Track.Transform.string_to_bed
       ~more_columns:(`enforce [|`type_string; `type_int; `type_float|]) () in
   let test_line l f =
-    Transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Transform.next transfo))
+    Tfxm.feed transfo (l ^ "\n");
+    assert_bool l (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -106,8 +108,8 @@ let test_bed_parser () =
 let test_printer () =
   let transfo = Track.Transform.string_content_to_string () in
   let test_line i l =
-    Transform.feed transfo i;
-    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
+    Tfxm.feed transfo i;
+    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -119,8 +121,8 @@ let test_printer () =
 let test_wig_printer () =
   let transfo = Track.Transform.wig_to_string () in
   let test_line i l =
-    Transform.feed transfo i;
-    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
+    Tfxm.feed transfo i;
+    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -132,8 +134,8 @@ let test_wig_printer () =
 let test_gff_printer () =
   let transfo = Track.Transform.gff_to_string ~tags:Gff.Tags.default () in
   let test_line i l =
-    Transform.feed transfo i;
-    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
+    Tfxm.feed transfo i;
+    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -150,8 +152,8 @@ let test_gff_printer () =
 let test_bed_printer () =
   let transfo = Track.Transform.bed_to_string () in
   let test_line i l =
-    Transform.feed transfo i;
-    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
+    Tfxm.feed transfo i;
+    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`track ["a", "bb"; "some long", "one even longer"])

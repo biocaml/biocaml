@@ -1,13 +1,14 @@
 open Core.Std
-open Biocaml_internal_utils
+open CFStream
+module Bed = Biocaml_unix.Std.Bed
+module Tfxm = Biocaml_unix.Std.Tfxm
 open OUnit
-open Biocaml
 
 let make_stream ?more_columns file : ((Bed.item, Bed.Error.parsing) Result.t) Stream.t =
-  let filename = "src/tests/data/" ^ file in
+  let filename = "etc/test_data/" ^ file in
   let bed_parser = Bed.Transform.string_to_item ?more_columns () in
   let inp = open_in filename in
-  Transform.in_channel_strings_to_stream ~buffer_size:10 inp bed_parser
+  Tfxm.in_channel_strings_to_stream ~buffer_size:10 inp bed_parser
 
 let some_ok x = Some (Ok x)
 
@@ -52,12 +53,12 @@ let test_parser () =
   ()
 
 let make_printer_stream ?more_columns file =
-  let filename = "src/tests/data/" ^ file in
+  let filename = "etc/test_data/" ^ file in
   let bed_parser = Bed.Transform.string_to_item ?more_columns () in
   let printer = Bed.Transform.item_to_string () in
-  let trans = Transform.compose_result_left bed_parser printer in
+  let trans = Tfxm.compose_result_left bed_parser printer in
   let ic = open_in filename in
-  Transform.in_channel_strings_to_stream ~buffer_size:10 ic trans
+  Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic trans
 
 let test_printer () =
   let s =

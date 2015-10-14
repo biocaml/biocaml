@@ -1,6 +1,7 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Range = Biocaml_unix.Std.Range
+module RSet = Biocaml_unix.Std.RSet
+open OUnit
 
 module Test = struct
 

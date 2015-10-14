@@ -1,6 +1,7 @@
-open OUnit
 open Core.Std
-open Biocaml.Pwm
+module Pwm = Biocaml_unix.Std.Pwm
+open OUnit
+open Pwm
 
 let random_dna_char () = match Random.int 8 with
     0 -> 'a'

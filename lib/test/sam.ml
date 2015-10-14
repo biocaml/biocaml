@@ -1,11 +1,13 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Sam = Biocaml_unix.Sam_deprecated
+module Tfxm = Biocaml_unix.Std.Tfxm
+open OUnit
 open Or_error.Monad_infix
 
 let ( %> ) f g x = g (f x)
 
 let test_parse_optional_field s v =
+  let module Sam = Biocaml_unix.Std.Sam in
   let f = Sam.parse_optional_field s in
   assert_equal
     ~msg:"Optional field value (i type)"
@@ -13,17 +15,16 @@ let test_parse_optional_field s v =
     f v
 
 let test_parser () =
+  let module Sam = Biocaml_unix.Std.Sam in
   test_parse_optional_field
     "YS:i:-1"
     (Sam.optional_field "YS" (Sam.optional_field_value_i (-1l)))
 
-module Sam = Biocaml_sam_deprecated
-
 let test_parser_deprecated () =
   let transfo = Sam.Transform.string_to_raw () in
   let test_line l f =
-    Transform.feed transfo (l ^ "\n");
-    assert_bool l (f (Transform.next transfo))
+    Tfxm.feed transfo (l ^ "\n");
+    assert_bool l (f (Tfxm.next transfo))
   in
   let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
 
@@ -68,11 +69,11 @@ let test_item_parser_deprecated () =
   let check t v f =
     let p = Sam.Transform.raw_to_string () in
     incr c;
-    Transform.feed t v;
-    let res = f (Transform.next t) in
+    Tfxm.feed t v;
+    let res = f (Tfxm.next t) in
     if not res then
       eprintf "Error on %s\n"
-        Transform.(
+        Tfxm.(
           match feed p v; next p with `output o -> o | _ -> failwith "printer!"
         );
     assert_bool (sprintf "test_item_parser.check %d" !c) res
@@ -132,9 +133,9 @@ let test_item_parser_deprecated () =
          next_reference_sequence = `qname; next_position = Some 7;
          template_length = Some (-39); sequence = `string "CAGCGCCAT";
          quality = [| |]; optional_content = [ "NM", 'i', `int 0] });
-  Transform.stop t;
+  Tfxm.stop t;
   (* We still have one to get: *)
-  assert_bool "last alignment" (Transform.next t =
+  assert_bool "last alignment" (Tfxm.next t =
       `output (Ok
                  (`alignment
                      {Sam.query_template_name = "chr0"; flags = Sam.Flags.of_int 83;
@@ -149,7 +150,7 @@ let test_item_parser_deprecated () =
                       next_position = Some 7; template_length = Some (-39);
                       sequence = `string "CAGCGCCAT"; quality = [| |];
                       optional_content = [ "NM", 'i', `int 0]})));
-  assert_bool "EOS" (Transform.next t = `end_of_stream);
+  assert_bool "EOS" (Tfxm.next t = `end_of_stream);
 
 (*
 check (`header ("HD", ["VN", "42.1"; "SO", "coordinate"]));
@@ -177,8 +178,8 @@ check (`alignment
 let test_printer_deprecated () =
   let transfo = Sam.Transform.raw_to_string () in
   let test_line i l =
-    Transform.feed transfo i;
-    assert_bool l (Transform.next transfo = `output (l ^ "\n"))
+    Tfxm.feed transfo i;
+    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
   in
 
   test_line

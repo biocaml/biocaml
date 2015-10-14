@@ -1,10 +1,8 @@
-open OUnit
 open Core.Std
 open CFStream
-open Sexplib.Std
-
-module Bam = Biocaml_bam_alt
-module Sam = Biocaml_sam
+module Bam = Biocaml_unix.Std.Bam_alt
+module Sam = Biocaml_unix.Std.Sam
+open OUnit
 
 let string_option_p x = Sexp.to_string ([%sexp_of:string option] x)
 
@@ -58,7 +56,7 @@ let assert_alignments header al1 al2 =
   ()
 
 let test_read () =
-  Bam.with_file0 "src/tests/data/bam_01.bam" ~f:(fun header alignments ->
+  Bam.with_file0 "etc/test_data/bam_01.bam" ~f:(fun header alignments ->
       let sh = Bam.Header.to_sam header in
       assert_equal ~msg:"Sam version" ~printer:string_option_p (Some "1.0") sh.Sam.version ;
       assert_equal ~msg:"Sort order" (Some `Unsorted) sh.Sam.sort_order ;
@@ -73,7 +71,7 @@ let test_read () =
   |> ok_exn
 
 let test_read_write_and_read () =
-  let bamfile = "src/tests/data/bam_01.bam" in
+  let bamfile = "etc/test_data/bam_01.bam" in
   Utils.with_temp_file "biocaml" ".bam" ~f:(fun fn ->
       let fn = "delme" in
       Bam.with_file0 bamfile ~f:(fun header alignments ->

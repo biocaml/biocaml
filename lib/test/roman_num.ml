@@ -1,6 +1,6 @@
-open OUnit
 open Core.Std
-open Biocaml
+module Roman_num = Biocaml_unix.Std.Roman_num
+open OUnit
 
 let test_conv () =
   assert_bool

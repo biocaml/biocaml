@@ -1,5 +1,6 @@
-open OUnit
 open Core.Std
+module Bgzf = Biocaml_unix.Std.Bgzf
+open OUnit
 
 let random_string n =
   String.init n ~f:(fun _ ->
@@ -7,7 +8,7 @@ let random_string n =
     )
 
 let test_parse_past_eof () =
-  let open Biocaml_bgzf in
+  let open Bgzf in
   Utils.with_temp_file "test" ".bgzf" ~f:(fun fn ->
       with_file_out fn ~f:(fun oz -> output_string oz "BAM") ;
       assert_raises ~msg:"Reading past end of file should raise" End_of_file (fun () ->
@@ -16,7 +17,7 @@ let test_parse_past_eof () =
     )
 
 let test_parse_of_unparse n () =
-  let open Biocaml_bgzf in
+  let open Bgzf in
   let s = random_string n in
   let n = String.length s in
   Utils.with_temp_file "test" ".bgzf" ~f:(fun fn ->
