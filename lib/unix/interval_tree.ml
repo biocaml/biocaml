@@ -1,12 +1,12 @@
 (*
  * This implementation is largely inspired from the Set implementation of the
- * standard library and the BatSet module (from Batteries) for enum-related 
+ * standard library and the BatSet module (from Batteries) for enum-related
  * functions
  *)
 open Core.Std
 open CFStream
 
-type 'a t = Empty | Node of 'a node 
+type 'a t = Empty | Node of 'a node
 and 'a node = {
   left : 'a t ; (* left child *)
   lo : int ; (* left-end of the interval at this node *)
@@ -21,14 +21,14 @@ and 'a node = {
 exception Empty_tree
 
 let interval_compare lo hi lo' hi' =
-  let c = compare lo lo' in 
+  let c = compare lo lo' in
   if c = 0 then compare hi hi'
   else c
 
 let is_empty = function Empty -> true | _ -> false
 
 let height = function
-  | Empty -> 0 
+  | Empty -> 0
   | Node n -> n.height
 
 let left_end = function
@@ -49,20 +49,20 @@ let interval_overlap lo hi lo' hi' =
   ( || )
     (lo  <= lo' && lo' <= hi)
     (lo' <= lo  && lo  <= hi')
-  
+
 let rec intersects t ~low ~high =
   match t with
   | Empty -> false
-  | Node n -> 
+  | Node n ->
       if interval_overlap low high n.lo n.hi then true
       else if interval_overlap low high n.left_end n.right_end then
-        intersects n.left ~low ~high || intersects n.right ~low ~high 
+        intersects n.left ~low ~high || intersects n.right ~low ~high
       else false
 
 let interval_distance lo hi lo' hi' =
   if interval_overlap lo hi lo' hi' then 0
   else min (abs (lo' - hi)) (abs (lo - hi'))
-  
+
 let tree_distance lo hi = function
   | Empty -> Int.max_value
   | Node n -> interval_distance lo hi n.left_end n.right_end
@@ -80,39 +80,39 @@ let create l lo hi elt r =
     height = (if hl >= hr then hl + 1 else hr + 1) ;
     left_end = (let le = left_end l in if lo < le then lo else le) ;
     right_end = (
-      let lre = right_end l 
-      and rre = right_end r in 
-      if hi > lre then 
+      let lre = right_end l
+      and rre = right_end r in
+      if hi > lre then
 	if hi > rre then hi else rre
-      else 
+      else
 	if lre > rre then lre else rre)
   }
 
-let bal l lo hi elt r = 
+let bal l lo hi elt r =
   let hl = match l with Empty -> 0 | Node n -> n.height
   and hr = match r with Empty -> 0 | Node n -> n.height in
   if hl > hr + 2 then (
-    match l with 
+    match l with
 	Empty -> assert false
-      | Node ln -> 
-	if height ln.left >= height ln.right then 
-	  create ln.left ln.lo ln.hi ln.elt (create ln.right lo hi elt r) 
-	else 
-	  match ln.right with 
+      | Node ln ->
+	if height ln.left >= height ln.right then
+	  create ln.left ln.lo ln.hi ln.elt (create ln.right lo hi elt r)
+	else
+	  match ln.right with
 	      Empty -> assert false
-	    | Node lrn -> 
-	      create 
+	    | Node lrn ->
+	      create
 		(create ln.left ln.lo ln.hi ln.elt lrn.left)
 		lrn.lo lrn.hi lrn.elt
 		(create lrn.right lo hi elt r)
   )
   else if hr > hl + 2 then (
-    match r with 
+    match r with
 	Empty -> assert false
-      | Node rn -> 
-	if height rn.right >= height rn.left then 
+      | Node rn ->
+	if height rn.right >= height rn.left then
 	  create (create l lo hi elt rn.left) rn.lo rn.hi rn.elt rn.right
-	else 
+	else
 	  match rn.left with
 	      Empty -> assert false
 	    | Node rln ->
@@ -122,11 +122,11 @@ let bal l lo hi elt r =
 		(create rln.right rn.lo rn.hi rn.elt rn.right)
   )
   else Node { left = l ; lo ; hi ; elt ; right = r ;
-	      left_end = (let le = left_end l in if lo < le then lo else le) ; 
+	      left_end = (let le = left_end l in if lo < le then lo else le) ;
 	      right_end = (
-		let lre = right_end l 
-		and rre = right_end r in 
-		if hi > lre then 
+		let lre = right_end l
+		and rre = right_end r in
+		if hi > lre then
 		  if hi > rre then hi else rre
 		else if lre > rre then lre else rre) ;
 	      height = (if hl >= hr then hl + 1 else hr + 1) }
@@ -135,7 +135,7 @@ let add t ~low ~high ~data =
   let rec aux lo hi elt = function
     | Empty -> create Empty lo hi elt Empty
     | Node n ->
-      let c = interval_compare lo hi n.lo n.hi in 
+      let c = interval_compare lo hi n.lo n.hi in
       if c <= 0 then bal (aux lo hi elt n.left) n.lo n.hi n.elt n.right
       else bal n.left n.lo n.hi n.elt (aux lo hi elt n.right)
   in
@@ -149,7 +149,7 @@ let rec elements_aux accu = function
 
 let elements s =
   elements_aux [] s
-    
+
 
 type 'a iter = E | C of 'a node * 'a t * 'a iter
 
@@ -186,18 +186,18 @@ let rec find_closest_aux lo hi = function
   | Empty -> None
   | Node n ->
     let dc = interval_distance lo hi n.lo n.hi in
-    if dc = 0 then Some (n,0) 
+    if dc = 0 then Some (n,0)
     else
       let dl_lb = tree_distance lo hi n.left
       and dr_lb = tree_distance lo hi n.right in
-      let optval, optnode = 
-	if dl_lb < dc then 
+      let optval, optnode =
+	if dl_lb < dc then
 	  match find_closest_aux lo hi n.left with
 	      Some (nl,dl) when dl < dc -> dl, nl
 	    | _ -> dc, n
 	else dc, n in
-      let optval, optnode = 
-	if dr_lb < optval then 
+      let optval, optnode =
+	if dr_lb < optval then
 	  match find_closest_aux lo hi n.right with
 	      Some (nr,dr) when dr < optval -> dr, nr
 	    | _ -> optval, optnode
@@ -206,7 +206,7 @@ let rec find_closest_aux lo hi = function
       Some (optnode, optval)
 
 let find_closest lo hi t = match find_closest_aux lo hi t with
-    Some (n,d) -> 
+    Some (n,d) ->
       let lo', hi', v = node_contents n in lo', hi', v, d
   | None -> raise Empty_tree
 
@@ -230,11 +230,11 @@ let rec check_height_integrity = function
   | Empty -> 0
   | Node n ->
     let h = max (check_height_integrity n.left) (check_height_integrity n.right) + 1 in
-    assert (h = n.height) ; 
+    assert (h = n.height) ;
     assert (abs (height n.left - height n.right) <= 2) ;
     h
-    
-let check_integrity t = 
+
+let check_integrity t =
   ignore (check_height_integrity t)
 
 let rec print_aux margin = function
@@ -251,9 +251,9 @@ let print t = print_aux 0 t
 
 
 
-let test_add () = 
-  let r = ref empty in 
-  for i = 1 to 1000000 do 
+let test_add () =
+  let r = ref empty in
+  for i = 1 to 1000000 do
     let j = Random.int 100 in
     r := add !r ~low:j ~high:(j + Random.int 100) ~data:()
   done
@@ -261,49 +261,40 @@ let test_add () =
 
 
 
-let find_intersecting_elem lo hi t = 
-  let rec loop = function 
+let find_intersecting_elem lo hi t =
+  let rec loop = function
   | [] -> None
-  | h :: t -> match h with 
+  | h :: t -> match h with
     | Empty -> loop t
-    | Node n -> 
+    | Node n ->
         if interval_overlap lo hi n.left_end n.right_end then (
-          let t = n.left :: n.right :: t in 
-          if interval_overlap lo hi n.lo n.hi 
+          let t = n.left :: n.right :: t in
+          if interval_overlap lo hi n.lo n.hi
           then Some (node_contents n, t)
           else loop t
         )
         else loop t
-  in 
-  Stream.unfold [t] loop 
+  in
+  Stream.unfold [t] loop
 
 
 
 let filter_overlapping t ~low ~high =
   let res = ref empty in
-  let rec loop = function 
+  let rec loop = function
     | [] -> ()
     | h :: t ->
-      begin match h with 
+      begin match h with
       | Empty -> loop t
-      | Node n -> 
+      | Node n ->
         if interval_overlap low high n.left_end n.right_end then (
-          let t = n.left :: n.right :: t in 
-          if interval_overlap low high n.lo n.hi 
+          let t = n.left :: n.right :: t in
+          if interval_overlap low high n.lo n.hi
           then res := add !res ~low:n.lo ~high:n.hi ~data:n.elt;
           loop t
         )
         else loop t
       end
-  in 
+  in
   loop [t];
   !res
-
-
-
-
-
-
-
-
-
