@@ -18,7 +18,7 @@ PACKAGES(x) =
   case lwt-unix
     return $(PACKAGES unix) lwt future.lwt-unix
   case test
-    return $(PACKAGES unix) ounit
+    return $(PACKAGES unix) oUnit
   case biocaml_run_tests
     return $(PACKAGES test)
   default
