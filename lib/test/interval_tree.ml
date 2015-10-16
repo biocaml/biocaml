@@ -20,45 +20,41 @@ module ListImpl = struct
 
   let elements x = x
 
-  let to_stream x = 
-    List.sort compare x |> Stream.of_list
+  let to_stream x =
+    List.sort ~cmp:compare x |> Stream.of_list
 
-  let to_backwards_stream x = 
-    List.sort (Fn.flip compare) x |> Stream.of_list
+  let to_backwards_stream x =
+    List.sort ~cmp:(Fn.flip compare) x |> Stream.of_list
 
-  let pos x = 
+  let pos x =
     if x < 0 then 0 else x
-
-  let interval_dist lo hi lo' hi' = Range.(
-    pos (gap (ok_exn (make lo hi)) (ok_exn (make lo' hi')))
-  )
 
   let interval_overlap lo hi lo' hi' =
     ( || )
       (lo  <= lo' && lo' <= hi)
       (lo' <= lo  && lo  <= hi')
-      
-  let intersects l ~low ~high = 
+
+  let intersects l ~low ~high =
     List.exists ~f:(fun (lo',hi',_) -> interval_overlap low high lo' hi') l
-      
+
   let interval_distance lo hi lo' hi' =
     if interval_overlap lo hi lo' hi' then 0
     else min (abs (lo' - hi)) (abs (lo - hi'))
-      
+
   let interval_dist = interval_distance
-    
+
   let find_closest lo hi = function
   | [] -> raise Empty_tree
-  | h :: t -> 
-      let lo', hi', x = 
+  | h :: t ->
+      let lo', hi', x =
         List.fold_left t ~init:h ~f:(fun ((lo',hi',_) as interval') ((lo'', hi'', _) as interval'') ->
 	  if interval_dist lo hi lo' hi' <= interval_dist lo hi lo'' hi''
 	  then interval'
 	  else interval''
 	)
       in lo', hi', x, interval_dist lo hi lo' hi'
-   
-  let find_intersecting_elem lo hi t = 
+
+  let find_intersecting_elem lo hi t =
     Stream.filter
       ~f:(fun (x,y,_) -> interval_overlap lo hi x y)
       (to_stream t)
@@ -72,18 +68,18 @@ module ListImpl = struct
   let check_integrity _ = assert false
 end
 
-let random_interval ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) _ = 
+let random_interval ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) _ =
   assert (maxw < ub - lb) ;
   let w = Random.int (maxw - minw) + minw in
   let lo = Random.int (ub - lb - w) + lb in
   (lo, lo + w, ())
-    
-let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n = 
+
+let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n =
   (1 -- n) /@ (random_interval ~lb ~ub ~minw ~maxw)
 
 module TestAdditions(I : module type of Biocaml_unix.Interval_tree) = struct
   include I
-  let of_list l = 
+  let of_list l =
     List.fold_left l ~init:I.empty ~f:(fun accu (low,high,data) -> I.add accu ~low ~high ~data)
 end
 
@@ -91,9 +87,9 @@ module T = TestAdditions(Interval_tree)
 module L = TestAdditions(ListImpl)
 
 let test_add () =
-  for i = 1 to 100 do
+  for _ = 1 to 100 do
     let intervals = random_intervals 100 |> Stream.to_list in
-    List.fold_left intervals ~init:T.empty ~f:(fun accu (lo,hi,_) -> 
+    List.fold_left intervals ~init:T.empty ~f:(fun accu (lo,hi,_) ->
       let r = T.add accu ~low:lo ~high:hi ~data:() in
       Interval_tree.check_integrity r ; r
     )
@@ -101,7 +97,7 @@ let test_add () =
   done
 
 let test_creation () =
-  for i = 1 to 100 do
+  for _ = 1 to 100 do
     let intervals = random_intervals 100 |> Stream.to_list in
     let lres = L.(intervals |> of_list |> to_stream |> Stream.to_list)
     and tres = T.(intervals |> of_list |> to_stream |> Stream.to_list) in
@@ -110,8 +106,8 @@ let test_creation () =
     assert_equal ~msg:"Compare list and tree results" lres tres
   done
 
-let test_intersection () = 
-  for i = 1 to 1000 do
+let test_intersection () =
+  for _ = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> Stream.to_list
     and low, high, _ = random_interval  ~ub:1000 () in
     let l = L.(intersects (of_list intervals) ~low ~high)
@@ -119,12 +115,12 @@ let test_intersection () =
     assert_equal l t
   done
 
-let test_find_closest () = 
-  for i = 1 to 1000 do
+let test_find_closest () =
+  for _ = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> Stream.to_list
     and lo, hi, _ = random_interval  ~ub:1000 () in
     let llo,lhi,_, dl = L.(find_closest lo hi (of_list intervals))
-    and tlo,thi,_, dt = T.(find_closest lo hi (of_list intervals)) 
+    and tlo,thi,_, dt = T.(find_closest lo hi (of_list intervals))
     and dist (x,y) = ListImpl.interval_dist lo hi x y in
     assert_equal
       ~cmp:(fun x y -> dist x = dist y)
@@ -136,12 +132,12 @@ let test_find_closest () =
 
 
 
-let test_find_intersecting_elem1 () = 
+let test_find_intersecting_elem1 () =
   let u =
     T.(add ~low:69130 ~high:69630 ~data:()
          (add ~low:69911 ~high:70411 ~data:()
             (add ~low:70501 ~high:71001 ~data:()
-               empty))) in 
+               empty))) in
   assert_equal
     T.(find_intersecting_elem 70163 70163 u |> Stream.to_list |> List.length)
     1 ;
@@ -149,8 +145,8 @@ let test_find_intersecting_elem1 () =
     T.(find_intersecting_elem 65163 75163 u |> Stream.to_list |> List.length)
     3
 
-let test_find_intersecting_elem2 () = 
-  for i = 1 to 1000 do
+let test_find_intersecting_elem2 () =
+  for _ = 1 to 1000 do
     let intervals = random_intervals ~ub:1000 1000 |> Stream.to_list
     and lo, hi, _ = random_interval  ~ub:1000 () in
     let l = L.(find_intersecting_elem lo hi (of_list intervals)) |> Stream.to_set
@@ -171,14 +167,3 @@ let tests = "IntervalTree" >::: [
   "Find intersecting elements (1)" >:: test_find_intersecting_elem1;
   "Find intersecting elements (2)" >:: test_find_intersecting_elem2;
 ]
-
-
-
-
-
-
-
-
-
-
-
