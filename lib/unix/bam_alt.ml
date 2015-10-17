@@ -12,6 +12,7 @@ let checkf b format = Printf.ksprintf (check b) format
 let check_buf ~buf ~pos ~len =
   check (String.length buf >= pos + len) "Buffer too short"
 
+(* Helper functions to get parts of an Int32.t as an int *)
 let get_8_0 =
   let mask = Int32.of_int_exn 0xff in
   fun x -> Int32.bit_and mask x |> Int32.to_int_exn
@@ -30,6 +31,11 @@ let get_4_0 =
   let mask = Int32.of_int_exn 0xf in
   fun x -> Int32.bit_and mask x |> Int32.to_int_exn
 
+(*
+   A List.init with possibly failing initializer
+
+   val result_list_init : int -> f:(int -> ('a, 'b) result) -> ('a list, 'b) result
+*)
 let result_list_init n ~f =
   let rec aux i accu =
     if i < 0 then Ok accu
@@ -42,6 +48,9 @@ let result_list_init n ~f =
   aux (n - 1) []
 
 module Header = struct
+  (* This type definition is essentially identical to the Sam version
+     but makes parsing faster because in Bam, the seq name of a read
+     is stored as an int index in the ref_seq array. *)
   type t = {
     ref_seq : Sam.ref_seq array ;
     sam_header : Sam.header ;
@@ -96,6 +105,9 @@ module Alignment0 = struct
   (* ============================ *)
   (* ==== ACCESSOR FUNCTIONS ==== *)
   (* ============================ *)
+
+  (* option constructor for encodings where a special value of the
+     input type (here it is [none]) plays the role of [None] *)
   let option ~none x =
     if x = none then None
     else Some x
@@ -311,6 +323,7 @@ module Alignment0 = struct
   (* ==== ALIGNMENT DECODING ==== *)
   (* ============================ *)
 
+  (* Alignement0.t -> Alignment.t conversion *)
   let decode al header =
     flags al >>= fun flags ->
     rname al header >>= fun rname ->
@@ -328,6 +341,7 @@ module Alignment0 = struct
   (* ==== ALIGNMENT ENCODING ==== *)
   (* ============================ *)
 
+  (* Alignement.t -> Alignment0.t conversion *)
   let find_ref_id header ref_name =
     let open Or_error in
     match Array.findi header.ref_seq ~f:(fun _ rs -> rs.Sam.name = ref_name) with
