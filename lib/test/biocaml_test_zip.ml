@@ -58,9 +58,9 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   let l = Stream.npeek s 300 in
   let expected = sprintf "%s\n%s\n" first second in
   let obtained =
-    String.concat ~sep:"" (List.map l (function
+    String.concat ~sep:"" (List.map l ~f:(function
     | Ok s -> s
-    | Error e -> failwithf "There was an unzipping error !" ())) in
+    | Error _ -> failwithf "There was an unzipping error !" ())) in
   assert_equal ~printer:(ident) ~msg:"isomorphismish" expected obtained;
   cmd "rm -f %s.gz %s.gz %s.gz %s" tmp1 tmp2 tmp3 tmp3;
   ()
@@ -68,7 +68,7 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
 let gunzip_multiple_tests =
   List.map
     [ 10, 1;  10, 2; 10, 10; 1, 10; 200, 1; 200, 10; 200, 200; 10, 200; 1, 200]
-    (fun (zlib_buffer_size, buffer_size) ->
+    ~f:(fun (zlib_buffer_size, buffer_size) ->
       sprintf "Gunzip|cat(%d,%d)" zlib_buffer_size buffer_size
       >:: test_gunzip_multiple ~zlib_buffer_size ~buffer_size)
 

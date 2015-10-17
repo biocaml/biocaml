@@ -12,8 +12,7 @@ let test_row () =
         ~format:[| `type_int; `type_float; `type_string|]
         (Line.of_string_unsafe s) in
     assert_bool (sprintf "%s: of_line" s) ((=) r row_result);
-    Result.iter row_result
-      begin fun row ->
+    Result.iter row_result ~f:(fun row ->
           match to_line with
           | Some str ->
             assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:ident
@@ -22,7 +21,7 @@ let test_row () =
             assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:ident
               (Table.Row.to_line ~sep:"-" row : Line.t :> string) s
               (* row = Line.of_string_unsafe s) *)
-      end;
+      )
 
   in
   tdash "42-42-42" (Ok [| `int 42; `float 42.; `string "42" |]);
@@ -42,32 +41,32 @@ let test_row () =
   test_tol (line "42 42")
   >>< begin function
   | Ok [| `int 42; `float 42. |] -> ()
-  | e -> fail_test "wrong parsing of 42 42"
+  | _ -> fail_test "wrong parsing of 42 42"
   end;
 
   test_tol (line "42")
   >>< begin function
   | Ok [| `int 42; |] -> ()
-  | e -> fail_test "wrong parsing of 42"
+  | _ -> fail_test "wrong parsing of 42"
   end;
 
   test_tol (line "42 42 some more")
   >>< begin function
   | Ok [| `int 42; `float 42.; `string "some" ; `string "more"|] -> ()
-  | e -> fail_test "wrong parsing of '42 42 some more'"
+  | _ -> fail_test "wrong parsing of '42 42 some more'"
   end;
 
   test_tol ~strict_row_length:true (line "42")
   >>< begin function
   | Error (`wrong_format (`column_number, _, _)) -> ()
-  | e -> fail_test "wrong strict parsing of 42"
+  | _ -> fail_test "wrong strict parsing of 42"
   end;
 
   test_tol ~strict_row_length:true ~strict_cell_type:true
     (line "42 42 some more")
   >>< begin function
   | Error (`wrong_format (`column_number, _, _)) -> ()
-  | e -> fail_test "wrong strict parsing of '42 42 some more'"
+  | _ -> fail_test "wrong strict parsing of '42 42 some more'"
   end;
 
   ()

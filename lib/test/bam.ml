@@ -73,7 +73,6 @@ let test_read () =
 let test_read_write_and_read () =
   let bamfile = "etc/test_data/bam_01.bam" in
   Utils.with_temp_file "biocaml" ".bam" ~f:(fun fn ->
-      let fn = "delme" in
       Bam.with_file0 bamfile ~f:(fun header alignments ->
           Out_channel.with_file fn ~f:(Bam.write0 header (Stream.map alignments ~f:ok_exn)) ;
           Ok ()

@@ -66,11 +66,11 @@ let test_empty_data () =
   assert_bool "Test with empty data" (Float.is_nan auc)
 
 let test_2_points_good () =
-  let curve, auc = Bin_pred.roc_curve ~scores:[| 0. ; 2. |] ~labels:[| false ; true |] in
+  let _, auc = Bin_pred.roc_curve ~scores:[| 0. ; 2. |] ~labels:[| false ; true |] in
   assert_float_equal ~msg:"Test with two points and a good classifier" 1. auc
 
 let test_2_points_bad () =
-  let curve, auc = Bin_pred.roc_curve ~scores:[| 0. ; 2. |] ~labels:[| true ; false |] in
+  let _, auc = Bin_pred.roc_curve ~scores:[| 0. ; 2. |] ~labels:[| true ; false |] in
   assert_float_equal ~msg:"Test with two points and bad classifier" 0. auc
 
 let test_against_rocr () =

@@ -67,7 +67,7 @@ let test_printer () =
       "bed_03_more_cols.bed" in
   let camlstream =
     Stream.result_to_exn
-      ~error_to_exn:(fun e -> failwith "Unexpected error in camlstream") s in
+      ~error_to_exn:(fun _ -> failwith "Unexpected error in camlstream") s in
 
   let l = Stream.npeek camlstream Int.max_value in
   assert_equal

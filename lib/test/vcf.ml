@@ -54,7 +54,7 @@ let test_parse_vcf_generic filename rows =
 let test_parse_vcf_header () =
   let s = make_stream "vcf_01_header_only.vcf" in
   match Stream.next s with
-  | None -> ()  (** No rows to return. *)
+  | None -> ()  (* No rows to return. *)
   | Some (Ok _) -> assert false  (* Impossible. *)
   | Some (Error err) ->
     let msg = Vcf.parse_error_to_string err in
