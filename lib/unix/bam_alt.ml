@@ -287,7 +287,7 @@ module Alignment0 = struct
 
   let parse_optional_field buf pos =
     check_buf ~buf ~pos ~len:3 >>= fun () ->
-    let tag = String.sub buf pos 2 in
+    let tag = String.sub buf ~pos ~len:2 in
     let field_type = buf.[pos + 2] in
     parse_optional_field_value buf (pos + 3) field_type >>= fun (field_value, shift) ->
     Sam.optional_field tag field_value >>= fun field ->
@@ -392,7 +392,7 @@ module Alignment0 = struct
     | `B _ -> 'B'
 
   let string_of_optional_fields opt_fields =
-    let rec content = function
+    let content = function
       | `B (typ, xs) ->
         sprintf "%c%s" typ (String.concat ~sep:"" xs)
       | `A c -> Char.to_string c
@@ -410,7 +410,7 @@ module Alignment0 = struct
         )
       | `H s -> (
           let r = ref [] in
-          String.iter s (fun c ->
+          String.iter s ~f:(fun c ->
               r := sprintf "%02x" (Char.to_int c) :: !r
             ) ;
           String.concat ~sep:"" (List.rev !r) ^ "\000"
@@ -508,7 +508,7 @@ let read_sam_header iz =
     let magic = Bgzf.input_string iz 4 in
     check (magic = magic_string) "Incorrect magic string, not a BAM file" >>= fun () ->
     let l_text = input_s32_as_int iz in
-    check (l_text >= 0) "Incorrect size of plain text in BAM header" >>= fun () ->
+     check (l_text >= 0) "Incorrect size of plain text in BAM header" >>= fun () ->
     let text = Bgzf.input_string iz l_text in
     Sam.parse_header text
   with End_of_file -> error_string "EOF while reading BAM header"
@@ -616,7 +616,7 @@ let write_plain_SAM_header h oz =
     Buffer.add_string buf x ;
     Buffer.add_char buf '\n'
   in
-  Option.iter h.version (fun version ->
+  Option.iter h.version ~f:(fun version ->
       let hl = header_line ~version ?sort_order:h.sort_order () |> ok_exn in (* the construction of the header line must be valid since we are building it from a validated header *)
       add_line (print_header_line hl)
     ) ;
@@ -657,7 +657,7 @@ let write_header header oz =
   write_plain_SAM_header header.sam_header oz  ;
   write_reference_sequences header oz
 
-let write_alignment header oz al =
+let write_alignment oz al =
   let open Alignment0 in
   Bgzf.output_s32 oz (Int32.of_int_exn (sizeof al)) ;
   Bgzf.output_s32 oz (Int32.of_int_exn al.ref_id) ;
@@ -677,7 +677,7 @@ let write_alignment header oz al =
 let write0 header alignments oc =
   let oz = Bgzf.of_out_channel oc in
   write_header header oz ;
-  Stream.iter alignments ~f:(write_alignment header oz) ;
+  Stream.iter alignments ~f:(write_alignment oz) ;
   Bgzf.dispose_out oz
 
 let bind f x = Or_error.bind x f
