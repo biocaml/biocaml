@@ -1,6 +1,6 @@
 open Core.Std
 open CFStream
-module Bam = Biocaml_unix.Std.Bam_alt
+module Bam = Biocaml_unix.Std.Bam
 module Sam = Biocaml_unix.Std.Sam
 open OUnit
 open Utils.Printer

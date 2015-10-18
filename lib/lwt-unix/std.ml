@@ -1,7 +1,6 @@
 module About          = Biocaml_unix.Std.About
 module Accu           = Biocaml_unix.Std.Accu
 module Bam            = Biocaml_unix.Std.Bam
-module Bam_alt        = Biocaml_unix.Std.Bam_alt
 module Bar            = Biocaml_unix.Std.Bar
 module Bed            = Biocaml_unix.Std.Bed
 module Bin_pred       = Biocaml_unix.Std.Bin_pred

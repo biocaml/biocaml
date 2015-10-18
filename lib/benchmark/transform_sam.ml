@@ -1,5 +1,6 @@
 open Core.Std
-module Result = Biocaml_result
+open Biocaml_unix.Std
+module Result = Biocaml_unix.Biocaml_result
 open CFStream
 
 type raw_alignment = {
