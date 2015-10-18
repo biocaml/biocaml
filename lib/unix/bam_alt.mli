@@ -32,7 +32,7 @@ module Alignment0 : sig
   val qname : t -> string option
   val flags : t -> Sam.Flags.t Or_error.t
   val rname : t -> Header.t -> string option Or_error.t
-  val pos : t -> int option
+  val pos : t -> int option (** Positions are 0-based, -1 if undefined*)
   val mapq : t -> int option
   val cigar : t -> Sam.cigar_op list Or_error.t
   val rnext : t -> Header.t -> Sam.rnext option Or_error.t
