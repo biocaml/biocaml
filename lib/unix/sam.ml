@@ -5,7 +5,7 @@ open Result.Monad_infix
 
 let ( >>?~ )
     (x : 'a option Or_error.t)
-    ~(f : 'a -> 'b Or_error.t)
+    (f : 'a -> 'b Or_error.t)
     : 'b option Or_error.t
     =
   let open Result.Monad_infix in
@@ -664,7 +664,7 @@ let parse_cigar text =
             | 'P' -> cigar_op_padding n
             | '=' -> cigar_op_seq_match n
             | 'X' -> cigar_op_seq_mismatch n
-            | other -> Or_error.error_string "invalid cigar operation type"
+            | other -> Or_error.error "invalid cigar operation type" other Char.sexp_of_t
           in
           Or_error.tag x "Sam.parse_cigar: invalid cigar string" >>= fun x ->
           loop (x::accum)
