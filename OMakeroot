@@ -19,8 +19,12 @@ PACKAGES(x) =
     return $(PACKAGES unix) lwt future.lwt-unix
   case test
     return $(PACKAGES unix) oUnit
+  case benchmark
+    return $(PACKAGES unix)
   case biocaml_run_tests
     return $(PACKAGES test)
+  case biocaml_run_benchmarks
+    return $(PACKAGES benchmark)
   default
     eprintln(PACKAGES undefined for $(x).)
     exit(1)
@@ -37,8 +41,12 @@ LIB_DEPS(x) =
     return unix
   case test
     return unix
+  case benchmark
+    return unix
   case biocaml_run_tests
     return unix test
+  case biocaml_run_benchmarks
+    return unix benchmark
   default
     eprintln(LIB_DEPS undefined for $(x).)
     exit(1)
