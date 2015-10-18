@@ -9,13 +9,13 @@ let transform_count fn =
     | _ -> accu
   in
   In_channel.with_file fn ~f:(fun ic ->
-      Bam.in_channel_to_item_stream_exn ic
+      Transform_bam.in_channel_to_item_stream_exn ic
       |> Stream.fold ~init:0 ~f:update
     )
   |> print_int
 
-let bam_alt_count fn =
-  Bam_alt.with_file fn ~f:(fun _ alignments ->
+let bam_count fn =
+  Bam.with_file fn ~f:(fun _ alignments ->
       try
         Ok (
           Stream.fold alignments ~init:0 ~f:(fun accu -> function
@@ -28,8 +28,8 @@ let bam_alt_count fn =
   |> ok_exn
   |> print_int
 
-let bam0_alt_count fn =
-  Bam_alt.with_file0 fn ~f:(fun _ alignments ->
+let bam0_count fn =
+  Bam.with_file0 fn ~f:(fun _ alignments ->
       try
         Ok (
           Stream.fold alignments ~init:0 ~f:(fun accu -> function
@@ -44,8 +44,8 @@ let bam0_alt_count fn =
 
 let main mode fn () = match mode with
   | "transform" -> transform_count fn
-  | "bam_alt" -> bam_alt_count fn
-  | "bam0_alt" -> bam0_alt_count fn
+  | "bam_alt" -> bam_count fn
+  | "bam0_alt" -> bam0_count fn
   | _ -> failwithf "Unknown mode %s" mode ()
 
 let command =

@@ -1,5 +1,6 @@
 (** SAM files and SAM-alignements high-level representation. *)
 open Core.Std
+open Biocaml_unix
 
 (** {2 Basic Types} *)
 

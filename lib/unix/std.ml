@@ -1,7 +1,6 @@
 module About          = About
 module Accu           = Accu
 module Bam            = Bam
-module Bam_alt        = Bam_alt
 module Bar            = Bar
 module Bed            = Bed
 module Bgzf           = Bgzf
