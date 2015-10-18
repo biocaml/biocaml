@@ -1,6 +1,6 @@
 open Core.Std
 open CFStream
-open Biocaml
+open Biocaml_unix.Std
 
 let transform_count fn =
   let open Sam.Flags in
@@ -15,7 +15,7 @@ let transform_count fn =
   |> print_int
 
 let bam_alt_count fn =
-  Bam_alt.with_file fn ~f:(fun header alignments ->
+  Bam_alt.with_file fn ~f:(fun _ alignments ->
       try
         Ok (
           Stream.fold alignments ~init:0 ~f:(fun accu -> function
@@ -29,7 +29,7 @@ let bam_alt_count fn =
   |> print_int
 
 let bam0_alt_count fn =
-  Bam_alt.with_file0 fn ~f:(fun header alignments ->
+  Bam_alt.with_file0 fn ~f:(fun _ alignments ->
       try
         Ok (
           Stream.fold alignments ~init:0 ~f:(fun accu -> function
