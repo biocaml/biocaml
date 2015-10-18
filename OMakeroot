@@ -61,4 +61,3 @@ CleanCommands()
 .PHONY: run-tests
 run-tests: _build/app/biocaml-run-tests.native
   $<
-  rm -f $(ROOT)/delme
