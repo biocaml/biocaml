@@ -143,7 +143,7 @@ type cigar_op = [
 
 type optional_field_value = [
 | `A of char
-| `i of Int32.t
+| `i of Int64.t
 | `f of float
 | `Z of string
 | `H of string
@@ -762,12 +762,12 @@ let parse_optional_field_value s =
     | "i" ->
       (try
          if not (Re.execp opt_field_int_re value) then failwith "" ;
-         Ok (optional_field_value_i (Int32.of_string value)) (* matching the regular expression is not enough: the number could not fit in 32 bits *)
+         Ok (optional_field_value_i (Int64.of_string value)) (* matching the regular expression is not enough: the number could not fit in 64 bits *)
        with _ -> optional_field_value_err typ value)
     | "f" ->
       (try
          if not (Re.execp opt_field_float_re value) then failwith "" ;
-         Ok (optional_field_value_f (Float.of_string value)) (* matching the regular expression is not enough: the number could not fit in 32 bits *)
+         Ok (optional_field_value_f (Float.of_string value)) (* matching the regular expression is not enough: the number could not fit in native floats *)
        with _ -> optional_field_value_err typ value)
     | "Z" -> optional_field_value_Z value
     | "H" -> optional_field_value_H value
@@ -962,7 +962,7 @@ let print_qual = function
 let print_optional_field (x:optional_field) =
   let typ,value = match x.value with
     | `A x -> 'A', Char.to_string x
-    | `i x -> 'i', Int32.to_string x
+    | `i x -> 'i', Int64.to_string x
     | `f x -> 'f', Float.to_string x
     | `Z x -> 'Z', x
     | `H x -> 'H', x

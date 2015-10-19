@@ -156,7 +156,7 @@ type cigar_op = private [<
     corresponding VALUE. *)
 type optional_field_value = private [<
 | `A of char
-| `i of Int32.t
+| `i of Int64.t
 | `f of float
 | `Z of string
 | `H of string
@@ -304,7 +304,7 @@ val cigar_op_seq_mismatch : int -> cigar_op Or_error.t
 (** {3 Low-level Optional field Parsers and Constructors} *)
 (******************************************************************************)
 val optional_field_value_A : char -> optional_field_value Or_error.t
-val optional_field_value_i : Int32.t -> optional_field_value
+val optional_field_value_i : Int64.t -> optional_field_value
 val optional_field_value_f : float -> optional_field_value
 val optional_field_value_Z : string -> optional_field_value Or_error.t
 val optional_field_value_H : string -> optional_field_value Or_error.t

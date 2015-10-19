@@ -31,6 +31,42 @@ let get_4_0 =
   let mask = Int32.of_int_exn 0xf in
   fun x -> Int32.bit_and mask x |> Int32.to_int_exn
 
+(* NB: uint32 is unpacked as an int64 *)
+let unpack_unsigned_32_little_endian ~buf ~pos =
+  let b1 = Char.to_int buf.[pos + 0] |> Int64.of_int_exn in
+  let b2 = Char.to_int buf.[pos + 1] in
+  let b3 = Char.to_int buf.[pos + 2] in
+  let b4 = Char.to_int buf.[pos + 3] in
+  Int64.bit_or
+    (Int64.shift_left b1 24)
+    (Int64.of_int_exn (b2 lor b3 lor b4))
+
+(* This function is adapted from Core.Binary_packing.pack_signed_64_little_endian *)
+let pack_u32_in_int64_little_endian ~buf ~pos v =
+  (* Safely set the first and last bytes, so that we verify the string bounds. *)
+  buf.[pos] <- Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL v));
+  buf.[pos + 3] <- Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 24))) ;
+  (* Now we can use [unsafe_set] for the intermediate bytes. *)
+  Caml.Bytes.unsafe_set buf (pos + 1)
+    (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 8)))) ;
+  Caml.Bytes.unsafe_set buf (pos + 2)
+    (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 16))))
+
+let int64_is_neg n =
+  Int64.(bit_and 0x8000000000000000L n <> zero)
+
+let int64_fits_u32 n =
+  Int64.(bit_and 0xFFFFFFFF00000000L n = zero)
+
+let int64_fits_u31 n =
+  Int64.(bit_and 0xFFFFFFFF80000000L n = zero)
+
+let int64_fits_s32 n =
+  if int64_is_neg n then
+    int64_fits_u31 (Int64.bit_not n)
+  else
+    int64_fits_u31 n
+
 (*
    A List.init with possibly failing initializer
 
@@ -229,36 +265,23 @@ module Alignment0 = struct
     check_buf ~buf ~pos ~len >>= fun () ->
     match typ with
     | 'c' ->
-      let i = Int32.of_int_exn (Binary_packing.unpack_signed_8 ~buf ~pos) in
+      let i = Int64.of_int_exn (Binary_packing.unpack_signed_8 ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'C' ->
-      let i = Int32.of_int_exn (Binary_packing.unpack_unsigned_8 ~buf ~pos) in
+      let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_8 ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 's' ->
-      let i = Int32.of_int_exn (Binary_packing.unpack_signed_16 ~byte_order:`Little_endian ~buf ~pos) in
+      let i = Int64.of_int_exn (Binary_packing.unpack_signed_16 ~byte_order:`Little_endian ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'S' ->
-      let i = Int32.of_int_exn (Binary_packing.unpack_unsigned_16  ~byte_order:`Little_endian ~buf ~pos) in
+      let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_16  ~byte_order:`Little_endian ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'i' ->
       let i = Binary_packing.unpack_signed_32 ~byte_order:`Little_endian ~buf ~pos in
-      return (Sam.optional_field_value_i i, len)
+      return (Sam.optional_field_value_i (Int64.of_int32 i), len)
     | 'I' ->
-      let i = Binary_packing.unpack_signed_32 ~byte_order:`Little_endian ~buf ~pos in
-      if int32_is_positive i then return (Sam.optional_field_value_i i, len)
-      else error_string "Use of big unsigned ints in optional fields is not well-defined in the specification of SAM/BAM files"
-    (* There's something fishy in the SAM/BAM format
-       specification. It says:
-
-       << An integer may be stored as one of `cCsSiI' in BAM, representing
-       int8_t, uint8_t, int16_t, uint16_t, int32_t and uint32_t,
-       respectively. In SAM, all single integer types are mapped
-       to int32_t >>
-
-       But how are we supposed to map uint32_t to int32_t? Seems
-       like people from picard tools also noticed this problem:
-
-       http://sourceforge.net/p/samtools/mailman/message/24239571/ *)
+      let i = unpack_unsigned_32_little_endian ~buf ~pos in
+      return (Sam.optional_field_value_i i, len)
     | 'f' ->
       let f = Binary_packing.unpack_float ~byte_order:`Little_endian ~buf ~pos in
       return (Sam.optional_field_value_f f, len)
@@ -397,47 +420,54 @@ module Alignment0 = struct
     | _ -> 0
 
 
-  let char_of_optional_field_value = function
-    | `A _ -> 'A'
-    | `i _ -> 'i'
-    | `f _ -> 'f'
-    | `Z _ -> 'Z'
-    | `H _ -> 'H'
-    | `B _ -> 'B'
-
   let string_of_optional_fields opt_fields =
-    let content = function
+
+    let field_value_encoding = function
       | `B (typ, xs) ->
-        sprintf "%c%s" typ (String.concat ~sep:"" xs)
-      | `A c -> Char.to_string c
+        Ok ('B',
+            sprintf "%c%s" typ (String.concat ~sep:"" xs))
+
+      | `A c ->
+        Ok ('A', Char.to_string c)
+
       | `f f ->
         let bits = Int32.bits_of_float f in
         let buf = String.create 4 in
-        Binary_packing.pack_signed_32
-          ~byte_order:`Little_endian bits ~buf ~pos:0;
-        buf
-      | `i i -> (
-          let buf = String.create 4 in
-          Binary_packing.pack_signed_32 i
-            ~byte_order:`Little_endian ~buf ~pos:0;
-          buf
+        Binary_packing.pack_signed_32  ~byte_order:`Little_endian bits ~buf ~pos:0 ;
+        Ok ('f', buf)
+
+      | `i i ->
+        (* FIXME: encode i to the smallest usable integer type *)
+        let buf = String.create 4 in
+        if int64_fits_u32 i then (
+          pack_u32_in_int64_little_endian ~buf ~pos:0 i ;
+          Ok ('I', buf)
         )
+        else if int64_fits_s32 i then (
+          Binary_packing.pack_signed_32 ~buf ~byte_order:`Little_endian ~pos:0 (Int32.of_int64_exn i) ;
+          Ok ('i', buf)
+        )
+        else error "Sam integer cannot be encoded in BAM format" i Int64.sexp_of_t
+
       | `H s -> (
           let r = ref [] in
           String.iter s ~f:(fun c ->
               r := sprintf "%02x" (Char.to_int c) :: !r
             ) ;
-          String.concat ~sep:"" (List.rev !r) ^ "\000"
+          Ok ('H',
+              String.concat ~sep:"" (List.rev !r) ^ "\000")
         )
-      | `Z s -> s ^ "\000"
+
+      | `Z s ->
+        Ok ('Z', s ^ "\000")
     in
+    let open Or_error.Monad_infix in
     List.map opt_fields ~f:(fun opt_field ->
-        sprintf "%s%c%s"
-          opt_field.Sam.tag
-          (char_of_optional_field_value opt_field.Sam.value)
-          (content opt_field.Sam.value)
+        field_value_encoding opt_field.Sam.value >>= fun (c, s) ->
+        Ok (sprintf "%s%c%s" opt_field.Sam.tag c s)
       )
-    |> String.concat ~sep:""
+    |> Or_error.all
+    >>| String.concat ~sep:""
 
   let int32 i ~ub var =
     if i < ub then
@@ -503,7 +533,8 @@ module Alignment0 = struct
     >>| String.of_char_list
     >>= fun qual ->
 
-    let optional = string_of_optional_fields al.Sam.optional_fields in
+    string_of_optional_fields al.Sam.optional_fields >>= fun optional ->
+
     Ok {
       ref_id; pos; bin_mq_nl; flag_nc; cigar;
       next_ref_id; pnext; tlen; seq; qual; optional;
