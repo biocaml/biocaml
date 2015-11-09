@@ -29,30 +29,24 @@ let max_isize = 0xff00
 (* - : int = 65311 *)
 (* The size of the header is 16, footer is 8, so data + header + footer < 0x10000 *)
 
-exception Parse_error of string
+exception Error of string
 
 type in_channel = {
   ic : Pervasives.in_channel ; (* Underlying channel *)
-  in_block : string ; (* Block being read *)
+  in_bufz : string ; (* Compressed block *)
+  in_buf : string ;   (* Uncompressed block *)
   mutable in_pos : int ; (* Position in the current block *)
   mutable in_avail : int ; (* Number of available characters in the current block, can be less than [max_block_size] *)
-  mutable in_crc32 : int32 ; (* Partial calculation of the block's CRC, up to [in_pos] *)
-  mutable in_isize : int32 ; (* Partial calculation of the block's size, up to [in_pos] *)
-  mutable in_block_crc32 : int32 ; (* CRC of the current block *)
-  mutable in_block_isize : int32 ; (* Length of the data in the current block in uncompressed form *)
   mutable in_eof : bool ; (* Flag indicating we reached the end of the file *)
   mutable in_stream : Zlib.stream;
 }
 
 let of_in_channel ic = {
   ic ;
-  in_block = String.create max_block_size ;
+  in_bufz = Bytes.create max_block_size ;
+  in_buf = Bytes.create max_block_size ;
   in_pos = 0 ;
   in_avail = 0 ;
-  in_block_crc32 = Int32.zero ;
-  in_crc32 = Int32.zero ;
-  in_block_isize = Int32.zero ;
-  in_isize = Int32.zero ;
   in_stream = Zlib.inflate_init false ;
   in_eof = false
 }
@@ -78,15 +72,16 @@ let input_u16 ic =
   let b2 = input_byte ic in
   b1 + b2 lsl 8
 
-let input_int32 ic =
+let input_s32 ic =
   let b1 = input_byte ic in
   let b2 = input_byte ic in
   let b3 = input_byte ic in
   let b4 = input_byte ic in
-  Int32.logor (Int32.of_int b1)
-    (Int32.logor (Int32.shift_left (Int32.of_int b2) 8)
-      (Int32.logor (Int32.shift_left (Int32.of_int b3) 16)
-                   (Int32.shift_left (Int32.of_int b4) 24)))
+  let open Int32 in
+  logor (of_int b1)
+    (logor (shift_left (of_int b2) 8)
+      (logor (shift_left (of_int b3) 16)
+                   (shift_left (of_int b4) 24)))
 
 (* Raises End_of_file iff there is no more block to read *)
 let read_header iz =
@@ -95,35 +90,52 @@ let read_header iz =
   | Some id1 ->
     try
       let id2 = input_byte iz.ic in
-      if id1 <> 0x1F || id2 <> 0x8B then raise (Parse_error "bad magic number, not a bgzf file") ;
+      if id1 <> 0x1F || id2 <> 0x8B then raise (Error "bad magic number, not a bgzf file") ;
       let cm = input_byte iz.ic in
-      if cm <> 8 then raise(Parse_error "unknown compression method") ;
+      if cm <> 8 then raise(Error "unknown compression method") ;
       let flags = input_byte iz.ic in
-      if flags <> 0x04 then raise(Parse_error("bad flags, not a bgzf file"));
-      for i = 1 to 6 do ignore (input_byte iz.ic) done;
+      if flags <> 0x04 then raise(Error("bad flags, not a bgzf file"));
+      for _ = 1 to 6 do ignore (input_byte iz.ic) done;
       let xlen = input_u16 iz.ic in
       let si1 = input_byte iz.ic in
       let si2 = input_byte iz.ic in
       let slen = input_u16 iz.ic in
-      if si1 <> 66 || si2 <> 67 || slen <> 2 then raise (Parse_error "bad extra subfield") ;
+      if si1 <> 66 || si2 <> 67 || slen <> 2 then raise (Error "bad extra subfield") ;
       let bsize = input_u16 iz.ic in
-      for i = 1 to xlen - 6 do ignore (input_byte iz.ic) done ;
+      for _ = 1 to xlen - 6 do ignore (input_byte iz.ic) done ;
       bsize - xlen - 19
-    with End_of_file -> raise (Parse_error "premature end of file, not a bgzf file")
+    with End_of_file -> raise (Error "premature end of file, not a bgzf file")
 
 let read_block iz =
-  let cdata_size = read_header iz in (* read_header raises End_of_file iff there is no more block to read *)
+  let rec loop posz lenz pos len crc size =
+    let (finished, used_in, used_out) =
+      try
+        Zlib.inflate iz.in_stream iz.in_bufz posz lenz iz.in_buf pos len Zlib.Z_SYNC_FLUSH
+      with Zlib.Error (_, _) ->
+        raise (Error "error during decompression") in
+    let posz = posz + used_in in
+    let lenz = lenz - used_in in
+    let crc = Zlib.update_crc crc iz.in_buf pos used_out in
+    let size = size + used_out in
+    if finished then crc, size
+    else loop posz lenz (pos + used_out) (len - used_out) crc size
+  in
   try
-    Pervasives.really_input iz.ic iz.in_block 0 cdata_size ;
-    iz.in_avail <- cdata_size ;
-    let crc32 = input_int32 iz.ic in
-    let isize = input_int32 iz.ic in
-    iz.in_pos <- 0 ;
-    iz.in_crc32 <- crc32 ;
-    iz.in_isize <- isize ;
-    iz.in_block_crc32 <- Int32.zero ;
-    iz.in_block_isize <- Int32.zero ;
-  with End_of_file -> raise(Parse_error("premature end of file, not a bgzf file"))
+    let cdata_size = read_header iz in (* read_header raises End_of_file iff there is no more block to read *)
+    try
+      Pervasives.really_input iz.ic iz.in_bufz 0 cdata_size ;
+      let ref_crc = input_s32 iz.ic in
+      let ref_size = input_s32 iz.ic |> Int32.to_int in
+      Zlib.inflate_end iz.in_stream ;
+      iz.in_stream <- Zlib.inflate_init false ;
+      let crc, size = loop 0 cdata_size 0 max_block_size Int32.zero 0 in
+      if crc <> ref_crc then raise (Error "CRC mismatch, data corrupted") ;
+      if size <> ref_size then raise (Error "size mismatch, data corrupted") ;
+      iz.in_pos <- 0 ;
+      iz.in_avail <- size
+    with End_of_file -> raise (Error "premature end of file, not a bgzf file")
+  with End_of_file -> iz.in_eof <- true
+
 
 let input iz buf pos len =
   let n = String.length buf in
@@ -133,30 +145,14 @@ let input iz buf pos len =
     let rec loop pos len read =
       if len = 0 then read
       else (
-        let reached_eof =
-          if iz.in_avail = 0 then (
-            try read_block iz ; false
-            with End_of_file -> true
-          )
-          else false
-        in
-        if reached_eof then read
+        if iz.in_avail = 0 then read_block iz ;
+        if iz.in_eof then read
         else (
-          let (finished, used_in, used_out) =
-            try Zlib.inflate iz.in_stream iz.in_block iz.in_pos iz.in_avail buf pos len Zlib.Z_SYNC_FLUSH
-            with Zlib.Error(_, _) -> raise(Parse_error("error during decompression"))
-          in
-          iz.in_pos <- iz.in_pos + used_in;
-          iz.in_avail <- iz.in_avail - used_in;
-          iz.in_block_crc32 <- Zlib.update_crc iz.in_block_crc32 buf pos used_out;
-          iz.in_block_isize <- Int32.add iz.in_block_isize (Int32.of_int used_out);
-          if finished then (
-            Zlib.inflate_end iz.in_stream ;
-            if iz.in_block_crc32 <> iz.in_crc32 then raise(Parse_error(sprintf "CRC mismatch, data corrupted: %ld %ld" iz.in_block_crc32 iz.in_crc32));
-            if iz.in_block_isize <> iz.in_block_isize then raise(Parse_error("size mismatch, data corrupted"));
-            iz.in_stream <- Zlib.inflate_init false
-          ) ;
-          loop (pos + used_out) (len - used_out) (read + used_out)
+          let n = min iz.in_avail len in
+          String.blit iz.in_buf iz.in_pos buf pos n ;
+          iz.in_pos <- iz.in_pos + n ;
+          iz.in_avail <- iz.in_avail - n ;
+          loop (pos + n) (len - n) (read + n)
         )
       )
     in
@@ -178,7 +174,7 @@ let input_string iz n =
   r
 
 let input_char =
-  let buf = String.create 1 in
+  let buf = Bytes.create 1 in
   fun iz ->
     if input iz buf 0 1 = 0 then raise End_of_file
     else buf.[0]
@@ -239,7 +235,7 @@ let output_int16 oc n =
 
 let output_int32 oc n =
   let r = ref n in
-  for i = 1 to 4 do
+  for _ = 1 to 4 do
     Pervasives.output_byte oc (Int32.to_int !r);
     r := Int32.shift_right_logical !r 8
   done
@@ -252,7 +248,7 @@ let write_block oc buf len ~isize ~crc32 =
   output_byte oc 0x8B;                  (* ID2 *)
   output_byte oc 8;                     (* compression method *)
   output_byte oc 4;                     (* flags *)
-  for i = 1 to 4 do
+  for _ = 1 to 4 do
     output_byte oc 0                    (* mtime *)
   done ;
   output_byte oc 0;                     (* xflags *)
@@ -270,8 +266,8 @@ let of_out_channel ?(level = 6) oc =
   if level < 1 || level > 9 then raise (invalid_arg "Bgzf: bad compression level") ;
   {
     out_chan = oc;
-    out_ubuffer = String.create max_isize ;
-    out_cbuffer = String.create max_block_size ;
+    out_ubuffer = Bytes.create max_isize ;
+    out_cbuffer = Bytes.create max_block_size ;
     out_pos = 0 ;
     out_level = level ;
   }
@@ -309,7 +305,7 @@ let rec output oz buf pos len =
   if remaining > 0 then output oz buf (pos + ncopy) remaining
 
 let output_char =
-  let buf = String.make 1 ' ' in
+  let buf = Bytes.make 1 ' ' in
   fun oz c ->
     buf.[0] <- c ;
     output oz buf 0 1

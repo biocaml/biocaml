@@ -26,9 +26,21 @@ let test_parse_of_unparse n () =
       assert_equal ~printer:ident s s'
     )
 
+let test_parse_file_per_char fn () =
+  let open Bgzf in
+  with_file_in fn ~f:(fun iz ->
+      try
+        while true do
+          ignore (input_char iz)
+        done
+      with End_of_file -> ()
+    )
+
 let tests = "Bgzf" >::: [
     "Try parsing past EOF" >:: test_parse_past_eof ;
     "Unparse/Parse 1-block file" >:: test_parse_of_unparse 0x100 ;
     "Unparse/Parse 2-block file" >:: test_parse_of_unparse 0x10000 ;
     "Unparse/Parse big file"     >:: test_parse_of_unparse 0x1000000 ;
+    "Parse bgzf_01" >:: test_parse_file_per_char "etc/test_data/bgzf_01.bgzf" ;
+    "Parse bgzf_02" >:: test_parse_file_per_char "etc/test_data/bgzf_02.bgzf" ;
   ]

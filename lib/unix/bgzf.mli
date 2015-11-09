@@ -19,7 +19,7 @@ val dispose_in : in_channel -> unit
     thus not be used after that call), apart from the underlying
     regular channel (which can be used further). *)
 
-exception Parse_error of string
+exception Error of string
 (** Exception signaling an incorrect format while reading data from an
     open file. All input functions may raise this exception. *)
 
