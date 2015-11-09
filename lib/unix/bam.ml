@@ -271,10 +271,10 @@ module Alignment0 = struct
       let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_8 ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 's' ->
-      let i = Int64.of_int_exn (Binary_packing.unpack_signed_16 ~byte_order:`Little_endian ~buf ~pos) in
+      let i = Int64.of_int_exn (Binary_packing.unpack_signed_16_little_endian ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'S' ->
-      let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_16  ~byte_order:`Little_endian ~buf ~pos) in
+      let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_16_little_endian ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'i' ->
       let i = Binary_packing.unpack_signed_32 ~byte_order:`Little_endian ~buf ~pos in
