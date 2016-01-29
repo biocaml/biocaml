@@ -1,4 +1,4 @@
-open Future_lwt_unix.Std
+open Future_lwt.Std
 
 include Biocaml_unix.Std.Fastq
 include MakeIO(Future)

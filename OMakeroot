@@ -14,9 +14,9 @@ PACKAGES(x) =
   case ez
     return $(PACKAGES unix)
   case async-unix
-    return $(PACKAGES unix) async future.async_unix
+    return $(PACKAGES unix) async future.async
   case lwt-unix
-    return $(PACKAGES unix) lwt future.lwt_unix
+    return $(PACKAGES unix) lwt future.lwt
   case test
     return $(PACKAGES unix) oUnit
   case benchmark
