@@ -13,9 +13,9 @@ PACKAGES(x) =
       cfstream future.unix xmlm zip re.perl uri)
   case ez
     return $(PACKAGES unix)
-  case async-unix
+  case async
     return $(PACKAGES unix) async future.async
-  case lwt-unix
+  case lwt
     return $(PACKAGES unix) lwt future.lwt
   case test
     return $(PACKAGES unix) oUnit
@@ -35,9 +35,9 @@ LIB_DEPS(x) =
     return $(EMPTY)
   case ez
     return unix
-  case async-unix
+  case async
     return unix
-  case lwt-unix
+  case lwt
     return unix
   case test
     return unix
