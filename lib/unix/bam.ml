@@ -232,7 +232,14 @@ module Alignment0 = struct
       Some r
 
   let qual al =
-    Sam.parse_qual al.qual
+    let shift = String.map ~f:Char.(fun c -> of_int_exn (to_int c + 33)) in
+    match shift al.qual with
+    | qual33 -> Sam.parse_qual qual33
+    | exception Failure _ ->
+      Or_error.error
+        "Bam.Alignement0.qual: incorrect quality score"
+        al.qual
+        sexp_of_string
 
   let int32_is_positive =
     let mask = Int32.(shift_left one 31) in
