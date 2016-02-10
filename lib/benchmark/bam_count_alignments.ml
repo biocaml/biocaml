@@ -12,7 +12,7 @@ let transform_count fn =
       Transform_bam.in_channel_to_item_stream_exn ic
       |> Stream.fold ~init:0 ~f:update
     )
-  |> print_int
+  |> printf "%d\n"
 
 let bam_count fn =
   Bam.with_file fn ~f:(fun _ alignments ->
@@ -26,7 +26,7 @@ let bam_count fn =
       with Failure s -> Or_error.error_string s
     )
   |> ok_exn
-  |> print_int
+  |> printf "%d\n"
 
 let bam0_count fn =
   Bam.with_file0 fn ~f:(fun _ alignments ->
@@ -40,12 +40,12 @@ let bam0_count fn =
       with Failure s -> Or_error.error_string s
     )
   |> ok_exn
-  |> print_int
+  |> printf "%d\n"
 
 let main mode fn () = match mode with
   | "transform" -> transform_count fn
-  | "bam_alt" -> bam_count fn
-  | "bam0_alt" -> bam0_count fn
+  | "bam" -> bam_count fn
+  | "bam0" -> bam0_count fn
   | _ -> failwithf "Unknown mode %s" mode ()
 
 let command =
@@ -53,7 +53,7 @@ let command =
   basic ~summary:"Count reads in a BAM file"
     Spec.(
       step (fun k mode fn -> k mode fn)
-      +> flag "mode" (required string) ~doc:"{transform|bam_alt|bam0_alt} Choose implementation"
+      +> flag "mode" (required string) ~doc:"{bam|bam0|transform} Choose implementation"
       +> anon ("INPUT-FILE" %: string)
     )
     main
