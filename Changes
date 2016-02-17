@@ -1,5 +1,22 @@
 Biocaml Release Notes
 
+biocaml-dev
+-----------
+
+* library refactoring in unix, lwt, async and ez variants
+
+* New parser for BAM format (blocking implementation)
+
+* Added a parser for BGZF format
+
+* Improved API of Phred_score
+
+* Replaced some transform-based parsers with modules functorized over
+  Future (including Fastq, Lines, Sam)
+
+
+
+
 biocaml-0.3.1 2013-09-27
 ------------------------
 * Fix documentation build.
