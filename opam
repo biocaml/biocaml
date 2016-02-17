@@ -4,6 +4,7 @@ maintainer: "biocaml@googlegroups.com"
 homepage: "http://biocaml.org"
 bug-reports: "https://github.com/biocaml/biocaml/issues"
 license: "LGPL + linking exception"
+dev-repo: "https://github.com/biocaml/biocaml.git"
 
 build: [
   "omake" "-j%{jobs}%" "PREFIX=%{prefix}%"
