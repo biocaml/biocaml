@@ -29,7 +29,7 @@ build-doc: [
 depends: [
   "ocamlfind" {build}
   "omake" {build}
-  "core" {>= "111.13.00"}
+  "core" {>= "111.13.00" & <= "113.00.00"}
   "sexplib"
   "camlzip" {>= "1.05"}
   "xmlm"
@@ -39,9 +39,10 @@ depends: [
   "ppx_sexp_conv"
   "re"
   "uri"
+  "lwt"
+  "async"
+  "ounit"
 ]
-
-depopts: ["flow" "lwt" "async"]
 
 available: [
   ocaml-version >= "4.01.0"
