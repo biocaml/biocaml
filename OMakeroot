@@ -3,7 +3,7 @@ open ./etc/OCaml
 
 PROJECT = biocaml
 OPAM_PACKAGE_NAME = $(PROJECT)
-VERSION = dev
+VERSION = 0.4.0
 
 PACKAGES(x) =
   switch $(x)
