@@ -1,7 +1,7 @@
 /_build
-/.omakedb
-/.omakedb.lock
-*.omc
 /biocaml.install
 /.merlin
+/.ocamlinit
+/*.byte
+/*.native
 /tmp
