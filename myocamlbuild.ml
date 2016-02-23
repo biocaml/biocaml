@@ -18,14 +18,14 @@ module Project = struct
       {
         Info.name = `Lib "async";
         libs = ["unix"];
-        pkgs = ["async"];
+        pkgs = ["async"; "future.async"];
         build_if = [`Pkgs_installed];
       };
 
       {
         Info.name = `Lib "lwt";
         libs = ["unix"];
-        pkgs = ["lwt"];
+        pkgs = ["lwt"; "future.lwt"];
         build_if = [`Pkgs_installed];
       };
 
