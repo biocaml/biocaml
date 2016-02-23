@@ -43,8 +43,8 @@ type in_channel = {
 
 let of_in_channel ic = {
   ic ;
-  in_bufz = Bytes.create max_block_size ;
-  in_buf = Bytes.create max_block_size ;
+  in_bufz = String.make max_block_size '\000' ;
+  in_buf = String.make max_block_size '\000' ;
   in_pos = 0 ;
   in_avail = 0 ;
   in_stream = Zlib.inflate_init false ;
