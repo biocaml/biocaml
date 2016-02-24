@@ -16,10 +16,15 @@ authors: [
   "Francois Berenger"
 ]
 
-build: ["omake" "-j%{jobs}%" "PREFIX=%{prefix}%"]
+build: [
+  [make "byte"]
+  [make "native"]
+]
 
-install: ["omake" "%{name}%.install"]
-remove: []
+install: [
+  [make "META"]
+  [make "%{name}%.install"]
+]
 
 build-doc: [
   ["omake" "-j%{jobs}%" "doc"]
@@ -28,7 +33,7 @@ build-doc: [
 
 depends: [
   "ocamlfind" {build}
-  "omake" {build}
+  "solvuu_build" {build}
   "core" {>= "111.13.00" & <= "113.00.00"}
   "sexplib"
   "camlzip" {>= "1.05"}

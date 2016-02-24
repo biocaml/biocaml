@@ -47,9 +47,9 @@ let pack_u32_in_int64_little_endian ~buf ~pos v =
   buf.[pos] <- Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL v));
   buf.[pos + 3] <- Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 24))) ;
   (* Now we can use [unsafe_set] for the intermediate bytes. *)
-  Caml.Bytes.unsafe_set buf (pos + 1)
+  String.unsafe_set buf (pos + 1)
     (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 8)))) ;
-  Caml.Bytes.unsafe_set buf (pos + 2)
+  String.unsafe_set buf (pos + 2)
     (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 16))))
 
 let int64_is_neg n =
