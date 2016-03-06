@@ -10,7 +10,7 @@ let () =
         (* ("bamsam", Bam_sam_and_the_gc.command); *)
         ("bamcount", Bam_count_alignments.command);
         ("samcount", Sam_count_alignments.command);
+        ("linesplit", Line_split.command);
       ] in
     run ~version:About.version whole_thing
   )
-

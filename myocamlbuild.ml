@@ -32,7 +32,7 @@ module Project = struct
       {
         Info.name = `Lib "benchmark";
         libs = ["unix"];
-        pkgs = [];
+        pkgs = ["core_bench" ; "containers" ; "sosa"];
         build_if = [`Pkgs_installed];
       };
 
