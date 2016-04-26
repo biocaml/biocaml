@@ -1,4 +1,4 @@
-(** Buffered transforms. A buffered transform represents a method for insertingcomment
+(** Buffered transforms. A buffered transform represents a method for
     converting a stream of [input]s to a stream of [output]s. However,
     [input]s can also be buffered, i.e. you can feed [input]s to the
     transform and pull out [output]s later. There is no requirement
