@@ -7,11 +7,11 @@ module Safe = struct
 
   let int_of_string s =
     try Ok (Int.of_string s)
-    with Failure _ -> Error (`invalid_int s)
+    with _ -> Error (`invalid_int s)
 
   let float_of_string s =
     try Ok (Float.of_string s)
-    with Failure _ -> Error (`invalid_float s)
+    with _ -> Error (`invalid_float s)
 end
 
 let is_valid_dna = String.for_all ~f:(String.contains "ACGTN")
@@ -420,7 +420,7 @@ module Transform = struct
     let { vcfm_info; vcfm_format; _ } = meta in
     let l = Option.value_exn (next_line p :> string option) in
     let chunks =
-      List.filter ~f:(fun s -> s <> "") (String.split ~on:' ' l)
+      List.filter ~f:(fun s -> s <> "") (String.split ~on:'\t' l)
     in begin match chunks with
       | "#CHROM" :: "POS" :: "ID" :: "REF" :: "ALT" :: "QUAL" ::
           "FILTER" :: "INFO" :: rest ->
@@ -513,7 +513,7 @@ module Transform = struct
     match (next_line p :> string option) with
       | Some l when not (String.is_empty l) ->
         let chunks =
-          List.filter ~f:(fun s -> s <> "") (String.split ~on:' ' l)
+          List.filter ~f:(fun s -> s <> "") (String.split ~on:'\t' l)
         in begin match list_to_vcf_row meta chunks with
           | Ok row    -> `output (Ok row)
           | Error err ->
