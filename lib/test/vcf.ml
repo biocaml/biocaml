@@ -77,7 +77,7 @@ let test_parse_vcf_1000g () =
   test_parse_vcf_generic "vcf_03_1000g.vcf"  [
     make_row ~chrom:"20" ~pos:17330 ~ids:[]
       ~ref:"T" ~alts:["A"]
-      ~qual:(Some 3.0) ~filter:["q10"]
+      ~qual:None ~filter:["q10"]
       ~info:[("NS", [`integer 3]);
              ("DP", [`integer 11]);
              ("AF", [`float 0.017])]
