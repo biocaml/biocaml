@@ -253,7 +253,7 @@ let unpack_string s =
 
 let unpack_symbol_type attrs =
  let (_,sbmlUrl) = List.find (fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
-  let splitUrl = Core.Core_string.split ~on:'/' sbmlUrl in
+  let splitUrl = Core_kernel.Core_string.split ~on:'/' sbmlUrl in
    List.nth splitUrl (List.length splitUrl - 1)
 
 let parse_bvarlist i =

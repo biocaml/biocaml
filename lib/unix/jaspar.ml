@@ -89,8 +89,8 @@ let load_matrix_data fn =
 
 
 module SS = struct
-  include Core.Tuple.Make(String)(String)
-  include Core.Tuple.Comparable(String)(String)
+  include Core_kernel.Tuple.Make(String)(String)
+  include Core_kernel.Tuple.Comparable(String)(String)
 end
 
 module SSM = Map.Make(SS)
