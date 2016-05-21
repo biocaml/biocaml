@@ -34,7 +34,7 @@ build-doc: [
 depends: [
   "ocamlfind" {build}
   "solvuu-build" {build}
-  "core" {>= "111.13.00" & <= "113.00.00"}
+  "core" {>= "111.13.00" }
   "sexplib"
   "camlzip" {>= "1.05"}
   "xmlm"
