@@ -5,7 +5,7 @@
 (* Copyright 2003 Yamagata Yoriyuki. distributed with LGPL *)
 (* Modified by Edgar Friendly <thelema314@gmail.com> *)
 
-module Int = Core.Core_int
+module Int = Core_kernel.Core_int
 open CFStream
 
 module BatAvlTree = struct
