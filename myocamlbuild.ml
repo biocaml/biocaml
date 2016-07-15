@@ -1,80 +1,114 @@
-open Ocamlbuild_plugin
-open Solvuu_build
+open Printf
+open Solvuu_build.Std
+open Solvuu_build.Util
 
-module Project = struct
-  let name = "biocaml"
-  let version = "dev"
-  let info = Info.of_list [
-      {
-        Info.name = `Lib "unix";
-        libs = [];
-        pkgs = ["camlzip" ; "cfstream" ; "core" ;
-                "future.unix" ;
-                "ppx_compare" ; "ppx_sexp_conv" ; "re.perl" ;
-                "uri" ; "xmlm" ];
-        build_if = [];
-      };
+let project_name = "biocaml"
+let version = "dev"
 
-      {
-        Info.name = `Lib "async";
-        libs = ["unix"];
-        pkgs = ["async"; "future.async"];
-        build_if = [`Pkgs_installed];
-      };
+let annot = ()
+let bin_annot = ()
+let g = ()
+let short_paths = ()
+let thread = ()
+let w = "A-4-33-41-42-44-45-48"
 
-      {
-        Info.name = `Lib "lwt";
-        libs = ["unix"];
-        pkgs = ["lwt"; "future.lwt"];
-        build_if = [`Pkgs_installed];
-      };
+let lib ?findlib_deps ?internal_deps ?build_if ?ml_files lib_name
+  : Project.item
+  =
+  Project.lib (sprintf "%s_%s" project_name lib_name)
+    ~annot ~bin_annot ~g ~short_paths ~thread ~w
+    ~pkg:(sprintf "%s.%s" project_name lib_name)
+    ~dir:(sprintf "lib/%s" lib_name)
+    ~pack_name:(sprintf "%s_%s" project_name lib_name)
+    ?findlib_deps
+    ?internal_deps
+    ?ml_files
 
-      {
-        Info.name = `Lib "benchmark";
-        libs = ["unix"];
-        pkgs = ["core_bench" ; "containers" ; "sosa"];
-        build_if = [`Pkgs_installed];
-      };
+let app ?internal_deps name : Project.item =
+  Project.app name
+    ~annot ~bin_annot ~g ~short_paths ~thread ~w
+    ~file:(sprintf "app/%s.ml" name)
+    ?internal_deps
 
-      {
-        Info.name = `Lib "ez";
-        libs = ["unix"];
-        pkgs = [];
-        build_if = [`Pkgs_installed];
-      };
+let unix = lib "unix"
+    ~findlib_deps:["camlzip"; "cfstream"; "core";
+                   "future.unix"; "ppx_compare"; "ppx_sexp_conv"; "re.perl";
+                   "uri"; "xmlm"
+                  ]
+    ~ml_files:(`Add ["about.ml"])
 
-      {
-        Info.name = `Lib "test";
-        libs = ["unix"];
-        pkgs = ["oUnit"];
-        build_if = [`Pkgs_installed];
-      };
+let async = lib "async"
+    ~internal_deps:[unix]
+    ~findlib_deps:["async"; "future.async"]
 
-      {
-        Info.name = `App "biocaml_run_benchmarks";
-        libs = ["benchmark"];
-        pkgs = [];
-        build_if = [`Pkgs_installed];
-      };
+let lwt = lib "lwt"
+    ~internal_deps:[unix]
+    ~findlib_deps:["lwt"; "future.lwt"]
 
-      {
-        Info.name = `App "biocaml_run_tests";
-        libs = ["test"];
-        pkgs = [];
-        build_if = [`Pkgs_installed];
-      };
-    ]
+let ez = lib "ez"
+    ~internal_deps:[unix]
+    ~findlib_deps:[]
 
-  let ocamlinit_postfix = []
+let benchmark = lib "benchmark"
+    ~internal_deps:[unix]
+    ~findlib_deps:["core_bench" ; "containers" ; "sosa"]
 
-end
+let test = lib "test"
+    ~internal_deps:[unix]
+    ~findlib_deps:["oUnit"]
 
-module Base =  Make(Project)
+let run_benchmarks = app "biocaml_run_benchmarks"
+    ~internal_deps:[benchmark]
 
-let plugin = function
-  | Before_options ->
-    Base.plugin Before_options ;
-    Ocamlbuild_pack.Configuration.parse_string "true: -safe_string"
-  | x -> Base.plugin x
+let run_tests = app "biocaml_run_tests"
+    ~internal_deps:[test]
 
-let () = dispatch plugin
+let optional_pkgs = [
+  "async"; "lwt";
+  "core_bench"; "containers"; "sosa";
+  "oUnit";
+]
+
+let items =
+  [
+    unix; async; lwt; ez; benchmark; test;
+    run_benchmarks; run_tests;
+  ]
+  |> List.filter ~f:(fun x -> Project.dep_opts_sat x optional_pkgs)
+
+;;
+let () =
+  let open Solvuu_build.Std.Project in
+
+  (* Compute graph to check for cycles and other errors. *)
+  ignore (Graph.of_list items);
+
+  let libs = filter_libs items in
+  let apps = filter_apps items in
+
+  Ocamlbuild_plugin.dispatch @@ function
+  | Ocamlbuild_plugin.After_rules -> (
+      Ocamlbuild_plugin.clear_rules();
+
+      Tools.m4_rule ()
+        ~_D:[
+          "GIT_COMMIT", Some (match Tools.git_last_commit() with
+            | None -> "None"
+            | Some x -> sprintf "Some \"%s\"" x
+          );
+          "VERSION", Some version;
+        ];
+
+      List.iter libs ~f:build_lib;
+      List.iter apps ~f:build_app;
+
+      build_static_file ".merlin" (merlin_file items);
+      build_static_file ".ocamlinit"
+        (ocamlinit_file items ~postfix:["open Biocaml_unix.Std"]);
+      build_static_file "project.mk"
+        (makefile items ~project_name);
+      Findlib.build_meta_file (meta_file ~version libs);
+      build_static_file (sprintf "%s.install" project_name)
+        (install_file items);
+    )
+  | _ -> ()
