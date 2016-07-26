@@ -35,6 +35,8 @@ module Make(Chromosome : Chromosome) : sig
   module Selection : sig
     type t
 
+    val add : t -> location -> t
+
     val inter : t -> t -> t
     val union : t -> t -> t
     val diff : t -> t -> t

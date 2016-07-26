@@ -26,6 +26,15 @@ module Make(Chromosome : Chromosome) = struct
   module Selection = struct
     type t = Iset.t Map.t
 
+    let add sel (chr, { Range.lo ; hi }) =
+      let set_chr =
+        match Map.find sel chr with
+        | None -> Iset.empty
+        | Some s -> s
+      in
+      let set_chr = Iset.add_range set_chr lo hi in
+      Map.add sel ~key:chr ~data:set_chr
+
     let inter u v =
       Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
           match Map.find v k with
