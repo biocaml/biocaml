@@ -15,7 +15,7 @@ let make cmp bins =
   let rec is_ordered l =
     match l with
     | [] -> true
-    | x::[] -> true
+    | _::[] -> true
     | x1::x2::l ->
       match cmp x1 x2 with
       | x when x < 0 -> is_ordered (x2::l)
@@ -24,7 +24,7 @@ let make cmp bins =
   if is_ordered bins then
     Some {cmp=cmp;
           bin_limits = Array.of_list bins;
-          counts = Array.create (List.length bins - 1) 0.0}
+          counts = Array.create ~len:(List.length bins - 1) 0.0}
   else
     None
 
@@ -81,7 +81,7 @@ let increment ?(delt=1.0) hist x =
     hist.counts.(i) <- hist.counts.(i) +. delt;
     hist
 
-let reset hist = {hist with counts = Array.create (Array.length hist.counts) 0.}
+let reset hist = {hist with counts = Array.create ~len:(Array.length hist.counts) 0.}
 
 let in_range hist x =
   let cmp_lo = hist.cmp x (minimum hist) in
@@ -95,7 +95,7 @@ let make_uniform min max n =
     Error (sprintf "cannot create histogram with %d bins" n)
   else begin
     let delt = (max -. min) /. (Float.of_int n) in
-    let bins = Array.init (n+1) (fun i -> min +. (delt *. Float.of_int i)) in
+    let bins = Array.init (n+1) ~f:(fun i -> min +. (delt *. Float.of_int i)) in
     bins.(Array.length bins - 1) <- max;
     Result.of_option  (make Pervasives.compare (Array.to_list bins))
       ~error:"not ordered"
