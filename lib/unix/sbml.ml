@@ -345,7 +345,7 @@ module MathML = struct
     in
     List.rev (piecelist_iter i [])
 
-  let parse_math attrs i =
+  let parse_math _ i =
     let sbm = parse_mathexpr i in
     ignore (Xmlm.input i); (*math tag end*)
     sbm
@@ -369,7 +369,7 @@ module SBMLParser = struct
       match Xmlm.input i with
       | `El_start ((_, tagname), attrs) -> iter_list i ((try ((List.assoc tagname assoclist) attrs i) with Not_found -> raise_bad tagname) :: templist)
       | `El_end -> templist
-      | `Data dat -> iter_list i templist
+      | `Data _ -> iter_list i templist
       | `Dtd _ -> assert false
     in
     iter_list i []
@@ -384,14 +384,14 @@ module SBMLParser = struct
                                             else (try (Hashtbl.add record_hash tagname ((List.assoc tagname record_dict) attrs i)) with Not_found -> raise_bad tagname));
         iter_record i
       | `El_end -> ()
-      | `Data dat -> iter_record i
+      | `Data _ -> iter_record i
       | `Dtd _ -> assert false
     in iter_record i; (list_hash, record_hash)
 
   (*leaf record parsing, 'ignore (Xmlm.input i)' is for skipping tag's end *)
 
   let parse_unit attrs i =
-    ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
+    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LUnit ({
         unit_kind = (Hashtbl.find parse_hash "kind");
         unit_exponent = (try (int_of_string (Hashtbl.find parse_hash "exponent")) with Not_found -> 1);
@@ -400,7 +400,7 @@ module SBMLParser = struct
       })
 
   let parse_compartment attrs i =
-    ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
+    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LCompartment ({
         compart_id = (Hashtbl.find parse_hash "id");
         compart_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -412,7 +412,7 @@ module SBMLParser = struct
       })
 
   let parse_species attrs i =
-    ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
+    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LSpecies ({
         species_id = (Hashtbl.find parse_hash "id");
         species_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -427,7 +427,7 @@ module SBMLParser = struct
       })
 
   let parse_spreference attrs i =
-    ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
+    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LSpecieRef ({
         specref_species = (Hashtbl.find parse_hash "species");
         specref_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
@@ -436,7 +436,7 @@ module SBMLParser = struct
       })
 
   let parse_parameter attrs i =
-    ignore (Xmlm.input i); let parse_hash = (store_attrs attrs) in
+    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LParameter ({
         param_id = (try (Hashtbl.find parse_hash "id") with Not_found -> raise_bad "no id for parameter") ;
         param_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -448,9 +448,8 @@ module SBMLParser = struct
   (*container record parsing*)
 
   let parse_fundef attrs i =
-    let parse_hash = (store_attrs attrs) in
-    let (list_hash,record_hash) = (parse_record i []
-                                     [("math",parse_math)]) in
+    let parse_hash = store_attrs attrs in
+    let (_, record_hash) = parse_record i [] [("math",parse_math)] in
     LFunctionDefinition ({
         fundef_id = (Hashtbl.find parse_hash "id");
         fundef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -458,9 +457,8 @@ module SBMLParser = struct
       })
 
   let parse_unitdef attrs i =
-    let parse_hash = (store_attrs attrs) in
-    let (list_hash,record_hash) = (parse_record i [("listOfUnits",[("unit",parse_unit)])]
-                                     []) in
+    let parse_hash = store_attrs attrs in
+    let (_, record_hash) = parse_record i [("listOfUnits",[("unit",parse_unit)])] [] in
     LUnitDefinition ({
         unitdef_id = (Hashtbl.find parse_hash "id");
         unitdef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
@@ -469,32 +467,29 @@ module SBMLParser = struct
       })
 
   let parse_iassignment attrs i =
-    let parse_hash = (store_attrs attrs) in
-    let (list_hash,record_hash) = (parse_record i []
-                                     [("math",parse_math)]) in
+    let parse_hash = store_attrs attrs in
+    let _, record_hash = parse_record i [] [ "math", parse_math ] in
     LInitialAssignment ({
         ia_symbol = (Hashtbl.find parse_hash "symbol");
         ia_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
       })
 
   let parse_generic_rule attrs i =
-    let parse_hash = (store_attrs attrs) in
-    let (list_hash,record_hash) = (parse_record i []
-                                     [("math",parse_math)]) in
+    let parse_hash = store_attrs attrs in
+    let _, record_hash = parse_record i [] [ "math", parse_math ] in
     {
       gr_variable = (Hashtbl.find parse_hash "variable");
       gr_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
     }
-  let parse_algebraic_rule attrs i =
-    let (list_hash,record_hash) = (parse_record i []
-                                     [("math",parse_math)]) in
+  let parse_algebraic_rule _ i =
+    let _, record_hash = parse_record i [] [ "math", parse_math ] in
     LRule (AlgebraicRule ({
         ar_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
       }))
   let parse_assignment_rule attrs i = LRule (AssignmentRule (parse_generic_rule attrs i))
   let parse_rate_rule attrs i = LRule (RateRule (parse_generic_rule attrs i))
 
-  let parse_kineticlaw attrs i =
+  let parse_kineticlaw _ i =
     let (list_hash,record_hash) = (parse_record i [("listOfParameters",[("parameter",parse_parameter)])]
                                      [("math",parse_math)]) in
     {
@@ -504,7 +499,7 @@ module SBMLParser = struct
     }
 
   let parse_reaction attrs i =
-    let parse_hash = (store_attrs attrs) in
+    let parse_hash = store_attrs attrs in
     let (list_hash,record_hash) = (parse_record i [("listOfReactants",[("speciesReference",parse_spreference)]);
                                                    ("listOfProducts",[("speciesReference",parse_spreference)])]
                                      [("kineticLaw",parse_kineticlaw)]) in
@@ -522,23 +517,21 @@ module SBMLParser = struct
       })
 
   let parse_eassignment attrs i =
-    let parse_hash = (store_attrs attrs) in
-    let (list_hash,record_hash) = (parse_record i []
-                                     [("math",parse_math)]) in
+    let parse_hash = store_attrs attrs in
+    let _, record_hash = parse_record i [] [ "math", parse_math ] in
     LEventAssignment ({
         ea_variable = (Hashtbl.find parse_hash "variable");
         ea_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
       })
 
-  let parse_math_container attrs i =
-    let (list_hash,record_hash) = (parse_record i []
-                                     [("math",parse_math)]) in
+  let parse_math_container _ i =
+    let _, record_hash = parse_record i [] [ "math", parse_math ] in
     {
       math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
     }
 
   let parse_event attrs i =
-    let parse_hash = (store_attrs attrs) in
+    let parse_hash = store_attrs attrs in
     let (list_hash,record_hash) = (parse_record i [("listOfEventAssignments",[("eventAssignment",parse_eassignment)])]
                                      [("trigger",parse_math_container);
                                       ("delay",parse_math_container)]) in
@@ -553,19 +546,19 @@ module SBMLParser = struct
       })
 
   let parse_model attrs i =
-    let parse_hash = (store_attrs attrs) in
-    let (list_hash,record_hash) = (parse_record i [("listOfFunctionDefinitions",[("functionDefinition",parse_fundef)]);
-                                                   ("listOfUnitDefinitions",[("unitDefinition",parse_unitdef)]);
-                                                   ("listOfCompartments",[("compartment",parse_compartment)]);
-                                                   ("listOfSpecies",[("species",parse_species)]);
-                                                   ("listOfReactions",[("reaction",parse_reaction)]);
-                                                   ("listOfParameters",[("parameter",parse_parameter)]);
-                                                   ("listOfInitialAssignments",[("initialAssignment",parse_iassignment)]);
-                                                   ("listOfRules",[("assignmentRule",parse_assignment_rule);
-                                                                   ("rateRule",parse_rate_rule);
-                                                                   ("algebraicRule",parse_algebraic_rule)]);
-                                                   ("listOfEvents",[("event",parse_event)])]
-                                     []) in
+    let parse_hash = store_attrs attrs in
+    let list_hash, _ = parse_record i [("listOfFunctionDefinitions",[("functionDefinition",parse_fundef)]);
+                                       ("listOfUnitDefinitions",[("unitDefinition",parse_unitdef)]);
+                                       ("listOfCompartments",[("compartment",parse_compartment)]);
+                                       ("listOfSpecies",[("species",parse_species)]);
+                                       ("listOfReactions",[("reaction",parse_reaction)]);
+                                       ("listOfParameters",[("parameter",parse_parameter)]);
+                                       ("listOfInitialAssignments",[("initialAssignment",parse_iassignment)]);
+                                       ("listOfRules",[("assignmentRule",parse_assignment_rule);
+                                                       ("rateRule",parse_rate_rule);
+                                                       ("algebraicRule",parse_algebraic_rule)]);
+                                       ("listOfEvents",[("event",parse_event)])]
+        [] in
     {
       sbm_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
       sbm_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
