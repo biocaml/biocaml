@@ -202,6 +202,7 @@ let efetch_url ?rettype ?retmode ?retstart ?retmax ?strand ?seq_start ?seq_stop 
   fetch_base_url ^ "?" ^ parameters Option.([
       Some ("db", id_of_database db) ;
       Some ("id", String.concat ~sep:"," ids) ;
+      map ~f:(fun r -> "rettype", r) rettype ;
       map ~f:(fun r -> "retmode", string_of_retmode r) retmode ;
       map ~f:(fun i -> "retstart", string_of_int i) retstart ;
       map ~f:(fun i -> "retmax", string_of_int i) retmax ;
