@@ -20,6 +20,11 @@ let lib ?findlib_deps ?internal_deps ?build_if ?ml_files lib_name
     ~pkg:(sprintf "%s.%s" project_name lib_name)
     ~dir:(sprintf "lib/%s" lib_name)
     ~style:(`Pack (sprintf "%s_%s" project_name lib_name))
+    ~build_plugin:false (* solvuu-build doesn't implement plugin
+                           compilation in case there are C files,
+                           which is the case of biocaml_unix. Since
+                           most other libs depend on it, we simply
+                           refrain from compiling plugins for now.  *)
     ?findlib_deps
     ?internal_deps
     ?ml_files
