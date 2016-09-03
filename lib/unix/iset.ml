@@ -147,7 +147,6 @@ end
 include BatAvlTree
 
 type t = (int * int) tree
-type elt = int
 
 let rec mem s (n:int) =
   if is_empty s then false else
@@ -249,7 +248,7 @@ let rec remove s n =
 
 let remove_range s n1 n2 =
   if n1 > n2 then invalid_arg "ISet.remove_range" else
-  concat (before s n1) (after s n2)
+  concat (before s ~n:n1) (after s ~n:n2)
 
 let rec union s1 s2 =
   if is_empty s1 then s2 else
@@ -259,7 +258,7 @@ let rec union s1 s2 =
   let l1 = left_branch s1 in
   let r1 = right_branch s1 in
   let l2 = before s2 ~n:n1 in
-  let r2 = after s2 n2 in
+  let r2 = after s2 ~n:n2 in
   let n1, l =
     if n1 = min_int then n1, empty else
     let l = union l1 l2 in
@@ -289,9 +288,9 @@ let rec inter s1 s2 =
   let n1, n2 = root s1 in
   let l1 = left_branch s1 in
   let r1 = right_branch s1 in
-  let l2 = before s2 n1 in
-  let r2 = after s2 n2 in
-  let m = until (from s2 n1) n2 in
+  let l2 = before s2 ~n:n1 in
+  let r2 = after s2 ~n:n2 in
+  let m = until (from s2 ~n:n1) ~n:n2 in
   concat (concat (inter l1 l2) m) (inter r1 r2)
 
 (*$= inter & ~cmp:equal ~printer:(IO.to_string print)
@@ -346,8 +345,8 @@ let rec subset s1 s2 =
   let v1, v2 = root s2 in
   let l2 = left_branch s2 in
   let r2 = right_branch s2 in
-  let l1 = before s1 v1 in
-  let r1 = after s1 v2 in
+  let l1 = before s1 ~n:v1 in
+  let r1 = after s1 ~n:v2 in
   (subset l1 l2) && (subset r1 r2)
 
 let fold_range s ~init ~f = BatAvlTree.fold (fun (n1, n2) x -> f n1 n2 x) s init
