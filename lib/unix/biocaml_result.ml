@@ -9,7 +9,7 @@ module List = struct
       exception E of error
       let the_fun () =
         let run () =
-          List.mapi l (fun i x ->
+          List.mapi l ~f:(fun i x ->
               match f i x with
               | Ok o -> o
               | Error e -> raise (E e))
