@@ -78,7 +78,7 @@ module Roman = struct
     in
     let rec count k = function
       | 0,_ -> ()
-      | n,[_] -> ()
+      | _,[_] -> ()
       | n,(one :: five :: ((ten :: _) as next)) ->
         count (digit (n mod 10) one five ten k) (n/10, next)
       | _ -> assert false
