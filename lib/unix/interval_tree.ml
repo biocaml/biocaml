@@ -161,11 +161,11 @@ let rec rev_cons_iter s t = match s with
     Empty -> t
   | Node n -> rev_cons_iter n.right (C (n, n.left, t))
 
-let rec stream_next l _ = match !l with
+let stream_next l _ = match !l with
     E -> None
   | C (n, s, t) -> l := cons_iter s t; Some (node_contents n)
 
-let rec stream_backwards_next l _ = match !l with
+let stream_backwards_next l _ = match !l with
     E -> None
   | C (n, s, t) -> l := rev_cons_iter s t; Some (node_contents n)
 
@@ -251,15 +251,6 @@ let print t = print_aux 0 t
 
 
 
-let test_add () =
-  let r = ref empty in
-  for i = 1 to 1000000 do
-    let j = Random.int 100 in
-    r := add !r ~low:j ~high:(j + Random.int 100) ~data:()
-  done
-
-
-
 
 let find_intersecting_elem lo hi t =
   let rec loop = function
@@ -275,7 +266,7 @@ let find_intersecting_elem lo hi t =
         )
         else loop t
   in
-  Stream.unfold [t] loop
+  Stream.unfold [t] ~f:loop
 
 
 
