@@ -142,6 +142,7 @@ let esearch_url ?retstart ?retmax ?rettype ?field ?datetype ?reldate ?mindate ?m
       Some ("db", id_of_database database) ;
       Some ("term", Uri.pct_encode query) ;
       map ~f:(fun i -> "retstart", string_of_int i) retstart ;
+      map ~f:(fun i -> "reldate", string_of_int i) reldate ;
       map ~f:(fun i -> "retmax", string_of_int i) retmax ;
       map ~f:(function `uilist -> ("rettype", "uilist") | `count -> ("rettype", "count")) rettype ;
       map ~f:(fun s -> "field",s) field ;
