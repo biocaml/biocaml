@@ -307,7 +307,7 @@ let rec output oz buf pos len =
 let output_char =
   let buf = Bytes.make 1 ' ' in
   fun oz c ->
-    buf.[0] <- c ;
+    Bytes.set buf 0 c ;
     output oz buf 0 1
 
 (* output_* functions adapted from Batteries BatIO module *)
