@@ -37,15 +37,16 @@ type comment = [
 ]
 
 type variable_step = [
-| `variable_step_state_change of string * int option (** name x span *)
+| `variable_step_state_change of string * int option
 | `variable_step_value of int * float
 ]
+(** variable_step_state_change of name x span *)
 
 type fixed_step = [
 | `fixed_step_state_change of string * int * int * int option
-(** name, start, step, span *)
 | `fixed_step_value of float
 ]
+(** fixed_step_state_change of name, start, step, span *)
 
 type bed_graph_value = string * int * int * float
 
