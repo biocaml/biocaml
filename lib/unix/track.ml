@@ -43,7 +43,7 @@ module Transform = struct
     | None -> failwith "B"
     end
     with
-      e -> Error (`wrong_browser_position (position, s))
+      _ -> Error (`wrong_browser_position (position, s))
 
   let parse_browser position line =
     let tokens =
@@ -54,7 +54,7 @@ module Transform = struct
     begin match tokens with
     | "position" :: pos :: [] -> parse_chormpos position pos
     | "hide" :: "all" :: [] -> Ok (`browser (`hide `all))
-    | any -> Ok (`browser (`unknown line))
+    | _ -> Ok (`browser (`unknown line))
     end
 
   (** Parse a string potentially escaped with OCaml string
@@ -82,12 +82,12 @@ module Transform = struct
       : (string * char option * string)
       =
     let try_escaped s =
-      try Some (Scanf.sscanf s "%S%n" (fun s n -> (s,n))) with e -> None in
+      try Some (Scanf.sscanf s "%S%n" (fun s n -> (s,n))) with _ -> None in
     let lgth_s = String.length s in
     begin match try_escaped s with
     | Some (found, chars_read) ->
       if chars_read < lgth_s then (
-        if List.exists stop_before ((=) s.[chars_read]) then
+        if List.exists stop_before ~f:((=) s.[chars_read]) then
           (found, Some s.[chars_read],
            String.slice s (chars_read + 1) (String.length s))
         else
@@ -95,15 +95,15 @@ module Transform = struct
       ) else
         (found, None, "")
     | None ->
-      begin match String.lfindi s ~f:(fun _ c -> List.exists stop_before ((=) c)) with
+      begin match String.lfindi s ~f:(fun _ c -> List.exists stop_before ~f:((=) c)) with
       | Some idx ->
-        (String.sub s 0 idx, Some s.[idx],
+        (String.sub s ~pos:0 ~len:idx, Some s.[idx],
          String.slice s (idx + 1) (String.length s))
       | None -> (s, None, "")
       end
     end
 
-  let parse_track position stripped =
+  let parse_track stripped =
     let open Result.Monad_infix in
     let rec loop s acc =
       match escapable_string s ~stop_before:['='] with
@@ -130,8 +130,7 @@ module Transform = struct
     | Some l when String.strip l = "track"-> `output (Ok (`track []))
     | Some l when String.strip l = "browser" -> `output (Ok (`browser (`unknown l)))
     | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
-      parse_track (current_position p)
-        (String.chop_prefix_exn ~prefix:"track " l |> String.strip)
+      parse_track (String.chop_prefix_exn ~prefix:"track " l |> String.strip)
       |> (fun x -> `output x)
     | Some l when String.(is_prefix (strip l) ~prefix:"browser ") ->
       parse_browser (current_position p) l |> (fun x -> `output x)
@@ -152,7 +151,7 @@ module Transform = struct
       | `comment c -> sprintf "#%s\n" c
       | `track l ->
         sprintf "track %s\n"
-          (List.map l (fun (k,v) ->
+          (List.map l ~f:(fun (k,v) ->
             sprintf "%s=%s" (potentially_escape k) (potentially_escape v))
             |> String.concat ~sep:" ")
       | `browser (`hide `all) ->
