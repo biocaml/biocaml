@@ -92,9 +92,6 @@ let rec attribute_exn name = function
   | [] -> failwith "MzData.spectrums: attribute not found"
   | ((_, n), v) :: tl -> if n = name then v else attribute_exn name tl
 
-let rec attribute name = function
-  | [] -> None
-  | ((_, n), v) :: tl -> if n = name then Some v else attribute name tl
 
 (* mzData parsing
  ***********************************************************************)
