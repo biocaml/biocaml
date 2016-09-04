@@ -29,19 +29,34 @@ type alignment = Sam.alignment
     unnoticed. *)
 module Alignment0 : sig
   type t [@@deriving sexp]
+
   val qname : t -> string option
+
   val flags : t -> Sam.Flags.t Or_error.t
+
   val rname : t -> Header.t -> string option Or_error.t
-  val pos : t -> int option (** Positions are 0-based, -1 if undefined*)
+
+  (** Positions are 0-based, -1 if undefined*)
+  val pos : t -> int option
+
   val mapq : t -> int option
+
   val cigar : t -> Sam.cigar_op list Or_error.t
+
   val rnext : t -> Header.t -> Sam.rnext option Or_error.t
+
   val pnext : t -> int option
+
   val tlen : t -> int option
+
   val seq : t -> string option
+
   val qual : t -> Phred_score.t list Or_error.t
+
   val optional_fields : t -> Sam.optional_field list Or_error.t
+
   val decode : t -> Header.t -> alignment Or_error.t
+
   val encode : alignment -> Header.t -> t Or_error.t
 end
 
