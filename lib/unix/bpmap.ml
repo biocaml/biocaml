@@ -9,7 +9,7 @@ exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
 let col_names = ["PMX";"PMY";"MMX";"MMY";"Seq";"Pos";"Probe"]
-let num_probes = List.length  
+let num_probes = List.length
 let iter f l = List.iter ~f l
 let fold f init l = List.fold_left ~f ~init l
 let to_list t = t
@@ -53,13 +53,13 @@ module Parser = struct
         try
           ignore (header ((Stream.next_exn lines) : Lines.item :> string));
           Stream.to_list (Stream.map ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string)) lines)
-        with 
+        with
             Failure msg | Bad msg -> raise_bad (err msg)
     in
     In_channel.with_file file ~f:(parse file)
 
 end
-  
+
 let of_file ?(chr_map=ident) file = Parser.bpmap ~chr_map file
 
 let row_to_string r =
@@ -74,7 +74,7 @@ let row_to_string r =
        string_of_int (r.probe.start_pos);
        Seq.to_string (r.probe.sequence)
       ]
-      
+
 let to_file file t =
   let print cout =
     fprintf cout "%s\n" (String.concat ~sep:"\t" col_names);
