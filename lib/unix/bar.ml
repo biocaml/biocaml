@@ -13,7 +13,7 @@ type section = {
 type t = header * section list (* section list in ascending order by sec_name *)
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
-    
+
 
 let (<--) a b = fun x -> a (b x)
 let get_assoc_exn a l = List.Assoc.find_exn l a
@@ -30,7 +30,7 @@ let section (_,secs) nm =
   match List.find ~f:(fun s -> s.sec_name = nm) secs with
   | None -> failwith (sprintf "section %s not found" nm)
   | Some s -> s
-    
+
 let sectioni (_,secs) i =
   match List.find ~f:(fun s -> s.sec_num = i) secs with
   | None -> failwith (sprintf "section %d not found" i)
@@ -41,8 +41,8 @@ let to_list (_,sections) =
     let chr = s.sec_name in
     List.map ~f:(fun (i,v) -> chr,i,v) s.sec_data
   in
-  List.concat (List.map ~f sections)      
-      
+  List.concat (List.map ~f sections)
+
 module Parser = struct
   let junk_blank_lines lines =
     Stream.drop_while ~f:(String.for_all ~f:Char.is_whitespace) lines
@@ -52,7 +52,7 @@ module Parser = struct
     match String.split s '\t' with
     | [t; v] -> (t, v)
     | _ -> raise_bad (sprintf "invalid tag-value pair %s" s')
-      
+
   (* lines should point to beginning of file, upon return will point
      to start of first section *)
   let header lines =
@@ -61,7 +61,7 @@ module Parser = struct
     let f accum l = (tag_value l)::accum in
     let ans = List.rev (Stream.fold ~f ~init:[] lines') in
     junk_blank_lines lines; ans
-      
+
   (* lines should point to start of a section, upon return will point
      to start of next section or end of file *)
   let section lines =
@@ -85,7 +85,7 @@ module Parser = struct
         (junk_blank_lines lines; sec)
       else
         raise_bad (sprintf "expected %d hits but found %d" num_hits (List.length data))
-         
+
   let of_file file =
     let of_channel cin =
       let lines = Stream.map ~f:(fun (x : Lines.item) -> String.rstrip (x :> string)) (Lines.of_channel cin) in
@@ -107,6 +107,5 @@ module Parser = struct
     In_channel.with_file file ~f:of_channel
 
 end
-  
+
 let of_file = Parser.of_file
-  
