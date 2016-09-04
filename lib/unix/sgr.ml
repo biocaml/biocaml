@@ -41,7 +41,7 @@ let to_chr_lists t =
 
 let of_channel ?(chr_map=ident) ?(increment_bp=0) cin =
   let parse_line' delim line =
-    match String.split line delim with
+    match String.split line ~on:delim with
     | [c; i; f] ->
        chr_map c, int_of_string i + increment_bp, Float.of_string f
     | _ -> raise_bad "ill-formed line"
