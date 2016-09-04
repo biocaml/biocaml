@@ -58,7 +58,7 @@ let of_string s =
       in
       Some (Line.of_string_unsafe sub, new_pos)
   in
-  Stream.unfold 0 f
+  Stream.unfold 0 ~f
 
 let to_channel xs oc =
   Stream.iter xs ~f:(fun l ->
