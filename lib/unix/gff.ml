@@ -72,7 +72,7 @@ module Transform = struct
 
   let parse_string msg pos i =
     begin try Ok (Scanf.sscanf i "%S " ident) with
-    | e ->
+    | _ ->
       begin match (Scanf.sscanf i "%s " ident) with
       | "" -> Error (`cannot_parse_string (pos, msg))
       | s -> Ok (Uri.pct_decode s)
@@ -89,20 +89,20 @@ module Transform = struct
   let parse_int msg pos i =
     parse_string msg pos i >>= fun s ->
     (try Ok (Int.of_string s)
-     with e -> Error (`cannot_parse_int (pos, msg)))
+     with _ -> Error (`cannot_parse_int (pos, msg)))
 
   let parse_float_opt msg pos i =
     parse_string_opt msg pos i >>= function
     | Some s ->
       (try Ok (Some (Float.of_string s))
-       with e -> Error (`cannot_parse_float (pos, msg)))
+       with _ -> Error (`cannot_parse_float (pos, msg)))
     | None -> Ok None
 
   let parse_int_opt msg pos i =
     parse_string_opt msg pos i >>= function
     | Some s ->
       (try Ok (Some (Int.of_string s))
-       with e -> Error (`cannot_parse_int (pos, msg)))
+       with _ -> Error (`cannot_parse_int (pos, msg)))
     | None -> Ok None
 
   let parse_attributes_version_3 position i =
@@ -115,7 +115,7 @@ module Transform = struct
   (* in *)
     let get_csv s =
       List.map (String.split ~on:',' s)
-        (fun s -> parse_string "value" position String.(strip s))
+        ~f:(fun s -> parse_string "value" position String.(strip s))
       |> List.partition_map ~f:Result.ok_fst
       |> (function
         | (ok, []) -> Ok ok
@@ -133,7 +133,7 @@ module Transform = struct
           >>= fun values ->
           loop (semicolon + 1) ((tag, values) :: acc)
         | None ->
-          let delimited = String.(sub whole_thing pos (length whole_thing - pos)) in
+          let delimited = String.(sub whole_thing ~pos ~len:(length whole_thing - pos)) in
           get_csv delimited
           >>= fun values ->
           Ok ((tag, values) :: acc)
@@ -145,14 +145,14 @@ module Transform = struct
           Error (`wrong_attributes (position, whole_thing))
       end
     in
-    (try loop 0 [] with e -> Error (`wrong_attributes (position, whole_thing)))
+    (try loop 0 [] with _ -> Error (`wrong_attributes (position, whole_thing)))
     >>| List.rev
 
   let parse_attributes_version_2 position l =
     let whole_thing = String.(concat ~sep:"\t" l |> strip) in
     let parse_string i =
       begin try Some (Scanf.bscanf i "%S " ident) with
-      | e ->
+      | _ ->
         begin match (Scanf.bscanf i "%s " ident) with
         | "" -> None
         | s -> Some s
@@ -166,7 +166,7 @@ module Transform = struct
     | k  :: v :: [] -> Ok (List.rev ((k, [v]) :: acc))
     | k  :: v :: ";" :: rest -> go_3_by_3 ((k, [v]) :: acc) rest
     | [] | [";"] -> Ok (List.rev acc)
-    | problem -> Error (`wrong_attributes (position, whole_thing))
+    | _ -> Error (`wrong_attributes (position, whole_thing))
     in
     go_3_by_3 [] tokens
 
@@ -202,7 +202,7 @@ module Transform = struct
       in
       `output result
 
-    | other ->
+    | _ ->
       `output (Error (`wrong_row (pos, s)))
     end
 
@@ -241,14 +241,14 @@ module Transform = struct
                         | `not_applicable -> "." | `unknown -> "?");
       Option.value_map ~default:"." ~f:(sprintf "%d") t.phase;
       String.concat ~sep:";"
-        (List.map t.attributes (fun (k,v) ->
+        (List.map t.attributes ~f:(fun (k,v) ->
            match version with
            | `three ->
              sprintf "%s=%s" (Uri.pct_encode k)
-               (List.map v Uri.pct_encode |> String.concat ~sep:",")
+               (List.map v ~f:Uri.pct_encode |> String.concat ~sep:",")
            | `two ->
              sprintf "%S %s" k
-               (List.map v escape |> String.concat ~sep:",")
+               (List.map v ~f:escape |> String.concat ~sep:",")
          ));
     ] ^ "\n"
   )
