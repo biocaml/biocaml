@@ -24,7 +24,7 @@ let to_string t =
     "["; string_of_int t.lo; ", "; string_of_int t.hi; "]"
   ]
 
-let to_list v = List.init (size v) ((+) v.lo)
+let to_list v = List.init (size v) ~f:((+) v.lo)
 let overlap u v = (min u.hi v.hi) - (max u.lo v.lo) + 1
 let gap u v = -(overlap u v)
 
