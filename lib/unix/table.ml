@@ -21,18 +21,18 @@ module Row = struct
     [@@deriving sexp]
 
     let separators tags =
-      List.filter_map tags (function
+      List.filter_map tags ~f:(function
         | `separator c -> Some c
         | _ -> None)
 
     let strict_row_length tags =
-      List.exists tags (function `strict_about `row_length -> true | _ -> false)
+      List.exists tags ~f:(function `strict_about `row_length -> true | _ -> false)
 
     let strict_cell_type tags =
-      List.exists tags (function `strict_about `cell_type -> true | _ -> false)
+      List.exists tags ~f:(function `strict_about `cell_type -> true | _ -> false)
 
     let format tags =
-      List.find_map tags (function `format f -> Some f | _ -> None)
+      List.find_map tags ~f:(function `format f -> Some f | _ -> None)
 
     let default = [ `separator '\t' ]
 
@@ -69,9 +69,9 @@ module Row = struct
       exception Int_of_string of string
       exception Float_of_string of string
       let int s =
-        try Int.of_string s with e -> raise (Int_of_string s)
+        try Int.of_string s with _ -> raise (Int_of_string s)
       let float s =
-        try Float.of_string s with e -> raise (Float_of_string s)
+        try Float.of_string s with _ -> raise (Float_of_string s)
       let of_line ~format l =
         let tokens =
           String.split_on_chars ~on:separators l |> List.filter ~f:((<>) "")
