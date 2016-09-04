@@ -11,7 +11,7 @@ let is_empty t = size t = 0
 let rec is_canonical (vl : Range.t list) : bool =
   match vl with
     | [] | _::[] -> true
-    | u::(v::vl as tail) -> u.Range.hi < v.Range.lo && is_canonical tail
+    | u::(v::_ as tail) -> u.Range.hi < v.Range.lo && is_canonical tail
 
 let to_canonical (vl : Range.t list) : Range.t list =
   (* Order relation such that subset and after are larger. *)
