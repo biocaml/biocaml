@@ -5,7 +5,7 @@ type t = (string * int * float) list
 
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
-    
+
 let cmpsi (s1,i1,_) (s2,i2,_) = Pervasives.compare (s1,i1) (s2,i2)
 
 let of_list l = List.sort ~cmp:cmpsi l
@@ -24,12 +24,12 @@ let npartition_exn ~eq l =
         | [] -> rev ([a]::prefix)
         | l::ll ->
           if eq a (hd_exn l)
-          then (rev ((a::l)::prefix)) @ ll 
+          then (rev ((a::l)::prefix)) @ ll
           else loop (l::prefix) ll
     in loop [] ll
-  in 
+  in
   map ~f:rev (fold_left ~f:insertl ~init:[] l)
-    
+
 let to_chr_lists t =
   let eq (s1,_,_) (s2,_,_) = s1 = s2 in
   let ll = npartition_exn ~eq t in
@@ -54,13 +54,13 @@ let of_channel ?(chr_map=ident) ?(increment_bp=0) cin =
   in
   In_channel.input_lines cin
   |> List.map ~f:parse_line
-    
-let of_file ?(chr_map=ident) ?(increment_bp=0) file = 
+
+let of_file ?(chr_map=ident) ?(increment_bp=0) file =
   In_channel.with_file file ~f:(of_channel ~chr_map ~increment_bp)
 
-let to_channel ?(chr_map=ident) ?(increment_bp=0) t cout = 
+let to_channel ?(chr_map=ident) ?(increment_bp=0) t cout =
   let f (s,i,v) = fprintf cout "%s\t%d\t%f\n" (chr_map s) (i+increment_bp) v in
   List.iter ~f t
-    
+
 let to_file ?(chr_map=ident) ?(increment_bp=0) t file =
   Out_channel.with_file file ~f:(to_channel ~chr_map ~increment_bp t)
