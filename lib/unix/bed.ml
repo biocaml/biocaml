@@ -58,7 +58,7 @@ module Transform = struct
   let string_to_item ?(more_columns=`strings) () =
     Tfxm.on_output
       (Lines.Transform.string_to_item ())
-      ~f:(fun line -> item_of_line more_columns line)
+      ~f:(fun line -> item_of_line ~how:more_columns line)
 
   let item_to_string () =
     Tfxm.on_input

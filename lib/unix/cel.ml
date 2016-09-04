@@ -13,24 +13,24 @@ let iiter f l = List.iter ~f l
 type t = isection (* retaining only intensity section for now *)
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
-    
+
 (* Hashtbl representation of intensity data. *)
 module Tbl = struct
 
   module HT = Caml.Hashtbl
-    
+
   (* hash table of (mean,stdv,npixels) data *)
   let of_cel1 (cel:t) : (int * int, idata) HT.t =
     let tbl = HT.create (inum_values cel) in
     let f r = HT.add tbl (r.xcoord,r.ycoord) r.idata in
       iiter f cel; tbl
-        
+
   (* hash table of mean data *)
   let of_cel2 (cel:t) : (int * int, float) HT.t =
     let tbl = HT.create (inum_values cel) in
     let f r = HT.add tbl (r.xcoord,r.ycoord) r.idata.mean in
       iiter f cel; tbl
-        
+
   (* like HT.find but throws more informative exception *)
   let find tbl (x,y) =
     try HT.find tbl (x,y)
@@ -38,35 +38,35 @@ module Tbl = struct
       failwith (Msg.err (sprintf "CEL file does not have values for probe \
                                   at position x = %d, y = %d" x y))
 end
-  
+
 let data bpmap cels =
   let cels = List.map ~f:Tbl.of_cel1 cels in
   let f ans r =
     let datl =
-      List.map  cels (fun cel ->
+      List.map  cels ~f:(fun cel ->
         Tbl.find cel r.Bpmap.pmcoord, Tbl.find cel r.Bpmap.mmcoord) in
     (r.Bpmap.probe, datl) :: ans
   in
   Bpmap.fold f [] bpmap
-    
+
 let pm_mm bpmap cels =
   let cels = List.map ~f:Tbl.of_cel2 cels in
   let f ans r =
     let datl =
-      List.map cels (fun cel ->
+      List.map cels ~f:(fun cel ->
         (Tbl.find cel r.Bpmap.pmcoord) -. (Tbl.find cel r.Bpmap.mmcoord)) in
     (r.Bpmap.probe, datl) :: ans
   in
   Bpmap.fold f [] bpmap
-    
+
 let pm bpmap cels =
   let cels = List.map ~f:Tbl.of_cel2 cels in
   let f ans r =
-    let datl = List.map cels (fun cel -> Tbl.find cel r.Bpmap.pmcoord) in
+    let datl = List.map cels ~f:(fun cel -> Tbl.find cel r.Bpmap.pmcoord) in
     (r.Bpmap.probe, datl) :: ans
   in
   Bpmap.fold f [] bpmap
-    
+
 let mm bpmap cels =
   let cels = List.map ~f:Tbl.of_cel2 cels in
   let f ans r =
@@ -74,7 +74,7 @@ let mm bpmap cels =
     (r.Bpmap.probe, datl) :: ans
   in
   Bpmap.fold f [] bpmap
-    
+
 module Parser = struct
   (** parse string of form "\[sss\]" *)
   let section_name s =
@@ -83,12 +83,7 @@ module Parser = struct
       if l < 2 || not (s.[0] = '[' && s.[l-1] = ']')
       then None
       else Some (String.slice s 1 (l-1))
-        
-  let section_name_exn s =
-    match section_name s with 
-      | Some s -> s
-      | None -> raise_bad ("invalid section name " ^ s)
-          
+
   let line_is_section sec_name l =
     match section_name l with
       | None -> false
@@ -97,7 +92,7 @@ module Parser = struct
   let intensity_row s =
     let to_int s = Int.of_string (String.strip s) in
     let to_float s = Float.of_string (String.strip s) in
-      match String.split s '\t' with
+      match String.split s ~on:'\t' with
       | [xcoord; ycoord; mean; stdv; npixels] ->
             {
               xcoord = to_int xcoord;
@@ -110,7 +105,7 @@ module Parser = struct
                 }
             }
       | _ -> raise_bad "expecting 5 columns"
-            
+
   (** lines should point to beginning of intensity section,
       upon return lines will point to first blank line after data rows  *)
   let intensity_section lines =
@@ -120,12 +115,12 @@ module Parser = struct
         | Some l -> line_is_section isection_name l
     );
     Stream.junk lines;
-    
-    let sl = String.split (Stream.next_exn lines) '=' in
+
+    let sl = String.split (Stream.next_exn lines) ~on:'=' in
     let num_cells = int_of_string (String.strip (List.nth_exn sl 1)) in
 
-    let sl = String.split (Stream.next_exn lines) '=' in
-    let sl = String.split (List.nth_exn sl 1) '\t' in
+    let sl = String.split (Stream.next_exn lines) ~on:'=' in
+    let sl = String.split (List.nth_exn sl 1) ~on:'\t' in
     let sl = List.map ~f:String.strip sl in
     let _ =
       if sl <> icolumns then
@@ -155,6 +150,6 @@ module Parser = struct
     In_channel.with_file file ~f:of_channel
 
 end
-  
+
 let of_file = Parser.cel
 let of_file_opt file = try Some (of_file file) with Bad _ -> None

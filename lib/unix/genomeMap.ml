@@ -20,7 +20,7 @@ module Make(Chromosome : Chromosome) = struct
 
     let to_stream t = Stream.of_list (to_alist t)
     let of_stream xs =
-      Stream.fold xs ~init:empty ~f:(fun accu (key,data) -> add accu key data)
+      Stream.fold xs ~init:empty ~f:(fun accu (key,data) -> add accu ~key ~data)
   end
 
   module Selection = struct
@@ -64,7 +64,7 @@ module Make(Chromosome : Chromosome) = struct
         )
 
     let size x =
-      Map.fold x ~init:0 ~f:(fun ~key ~data:set accu -> Iset.cardinal set + accu)
+      Map.fold x ~init:0 ~f:(fun ~key:_ ~data:set accu -> Iset.cardinal set + accu)
 
     let overlap sel (k,r) = Iset.(
         match Map.find sel k with
@@ -114,7 +114,7 @@ module Make(Chromosome : Chromosome) = struct
     type 'a t = 'a T.t Map.t
 
   let intersects lmap (k,r) =
-    Option.value_map (Map.find lmap k) ~default:false ~f:(fun x -> Range.(T.intersects x r.lo r.hi))
+    Option.value_map (Map.find lmap k) ~default:false ~f:(fun x -> Range.(T.intersects x ~low:r.lo ~high:r.hi))
 
   let closest lmap (k,r) =
     Option.bind

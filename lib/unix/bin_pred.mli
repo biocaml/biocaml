@@ -25,6 +25,12 @@ val confusion_matrix : scores:float array -> labels:bool array -> threshold:floa
     length and that a higher score means increased probability of a
     [true] label. *)
 
+val positive : confusion_matrix -> int
+
+val negative : confusion_matrix -> int
+
+val cardinal : confusion_matrix -> int
+
 val sensitivity : confusion_matrix -> float
 
 val recall : confusion_matrix -> float

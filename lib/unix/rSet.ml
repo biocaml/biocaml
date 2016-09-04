@@ -11,8 +11,8 @@ let is_empty t = size t = 0
 let rec is_canonical (vl : Range.t list) : bool =
   match vl with
     | [] | _::[] -> true
-    | u::(v::vl as tail) -> u.Range.hi < v.Range.lo && is_canonical tail
-        
+    | u::(v::_ as tail) -> u.Range.hi < v.Range.lo && is_canonical tail
+
 let to_canonical (vl : Range.t list) : Range.t list =
   (* Order relation such that subset and after are larger. *)
   let compare_intervals u v =
@@ -22,9 +22,9 @@ let to_canonical (vl : Range.t list) : Range.t list =
       | Some x -> x
       | None -> assert false
   in
-  
+
   let vl = List.sort ~cmp:compare_intervals vl in
-  
+
   let rec canonize ans vl =
     match vl with
       | [] -> ans
@@ -44,8 +44,8 @@ let to_canonical (vl : Range.t list) : Range.t list =
   let ans = List.rev (canonize [] vl) in
   assert(is_canonical ans);
   ans
-    
-let of_range_list l = 
+
+let of_range_list l =
   let f acc (x,y) =
     if x <= y then
       (Range.make_unsafe x y)::acc
@@ -56,7 +56,7 @@ let of_range_list l =
 
 let to_range_list t = List.map ~f:(fun {Range.lo; hi} -> lo,hi) t
 
-let to_list t = List.concat (List.map ~f:Range.to_list t)  
+let to_list t = List.concat (List.map ~f:Range.to_list t)
 let union s t = to_canonical (s @ t) (* better implementation possible *)
 
 let inter s t =
@@ -80,7 +80,7 @@ let inter s t =
                     |  _ -> invalid_arg "impossible to get here"
   in
   to_canonical (loop [] s t) (* canoninicity could maybe be obtained simply by List.rev *)
-    
+
 let diff s t =
   let rec loop ans s t =
     match (s,t) with
@@ -108,5 +108,3 @@ let diff s t =
   to_canonical (loop [] s t)
 
 let subset s t = is_empty (diff s t)
-
-  

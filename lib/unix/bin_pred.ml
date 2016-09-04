@@ -72,7 +72,7 @@ let performance_curve ~scores ~labels =
   let np = Array.count labels ~f:ident in
   let nn = Array.count labels ~f:(fun x -> not x) in
   let initial = Float.infinity, { tp = 0 ; tn = nn ; fp = 0 ; fn = np } in
-  let r = Array.create (n + 2) initial in
+  let r = Array.create ~len:(n + 2) initial in
   for i = 0 to n - 1 do
     let score, label = examples.(i) in
     let m = snd r.(i) in

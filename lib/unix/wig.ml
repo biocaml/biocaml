@@ -103,10 +103,10 @@ module Transform = struct
       let by_space =
         String.split_on_chars s ~on:[' '; '\n'; '\t'; '\r']
         |> List.filter ~f:((<>) "") in
-      Ok (List.map by_space (fun s ->
+      Ok (List.map by_space ~f:(fun s ->
         begin match String.split ~on:'=' s with
         | [ key; value ] -> (key, value)
-        | anyother -> raise Not_found
+        | _ -> raise Not_found
         end))
     with
       Not_found -> Error (`cannot_parse_key_values (loc, s))
@@ -117,7 +117,7 @@ module Transform = struct
       match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
     let assoc_find_map ~missing ~wrong ~f l v =
       match List.Assoc.find l v with
-      | Some v -> (try Ok (f v) with e -> Error wrong)
+      | Some v -> (try Ok (f v) with _ -> Error wrong)
       | None -> Error missing in
     match (next_line p :> string option) with
     | Some "" ->
@@ -179,17 +179,17 @@ module Transform = struct
       begin match by_space with
       | [ one_value ] ->
         (try `output (Ok (`fixed_step_value Float.(of_string one_value)))
-         with e -> `output (Error (`wrong_fixed_step_value (current_position p, l))))
+         with _ -> `output (Error (`wrong_fixed_step_value (current_position p, l))))
       | [ fst_val; snd_val] ->
         (try `output (Ok (`variable_step_value (Int.of_string fst_val,
                                             Float.of_string snd_val)))
-         with e -> `output (Error (`wrong_variable_step_value (current_position p, l))))
+         with _ -> `output (Error (`wrong_variable_step_value (current_position p, l))))
       | [ chr; b; e; v; ] ->
         (try `output (Ok (`bed_graph_value (chr,
                                         Int.of_string b,
                                         Int.of_string e,
                                         Float.of_string v)))
-         with e -> `output (Error (`wrong_bed_graph_value (current_position p, l))))
+         with _ -> `output (Error (`wrong_bed_graph_value (current_position p, l))))
       | l ->
         `output (Error (`unrecognizable_line (current_position p, l)))
       end
@@ -233,7 +233,7 @@ module Transform = struct
         | Some (`variable (chrom, span)) ->
           let stop = pos + Option.(value ~default:1 span) - 1 in
           Queue.enqueue queue (`output (Ok  (chrom, pos, stop, v)))
-        | other ->
+        | _ ->
           Queue.enqueue queue (`output (Error (`not_in_variable_step_state)))
         end
       | `fixed_step_state_change (chrom, start, step, span) ->
@@ -245,7 +245,7 @@ module Transform = struct
           let stop = pos + Option.(value ~default:1 span) - 1 in
           Queue.enqueue queue (`output (Ok (chrom, pos, stop, v)));
           current_state := Some  (`fixed (chrom, start, step , span, current + 1))
-        | other ->
+        | _ ->
           Queue.enqueue queue (`output (Error (`not_in_fixed_step_state)))
         end)
       ~next:(fun stopped ->

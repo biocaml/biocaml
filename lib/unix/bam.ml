@@ -104,24 +104,6 @@ open Header
 
 type alignment = Sam.alignment
 
-let int_of_nucleotide = function
-  | '=' -> 0
-  | 'A' -> 1
-  | 'C' -> 2
-  | 'M' -> 3
-  | 'G' -> 4
-  | 'R' -> 5
-  | 'S' -> 6
-  | 'V' -> 7
-  | 'T' -> 8
-  | 'W' -> 9
-  | 'Y' -> 10
-  | 'H' -> 11
-  | 'K' -> 12
-  | 'D' -> 13
-  | 'B' -> 14
-  | 'N' | _ -> 15
-
 module Alignment0 = struct
   type t = {
     ref_id : int ;
@@ -240,10 +222,6 @@ module Alignment0 = struct
         "Bam.Alignement0.qual: incorrect quality score"
         al.qual
         sexp_of_string
-
-  let int32_is_positive =
-    let mask = Int32.(shift_left one 31) in
-    fun i -> Int32.(compare (bit_and i mask) zero) = 0
 
   (** Extracts string in buf starting from pos and finishing with a
       NULL character, and returns the position just after it. Returns
@@ -386,7 +364,7 @@ module Alignment0 = struct
       Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32 in
     let open Int32 in
     List.iteri cigar_ops ~f:(fun idx op ->
-        let op_flag, i = match op with
+        let _, i = match op with
           | `Alignment_match  i -> 0l, i
           | `Insertion i -> 1l, i
           | `Deletion i -> 2l, i

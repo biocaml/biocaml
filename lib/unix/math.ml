@@ -8,12 +8,12 @@ let row m i =
 
 let column m i =
   if Array.for_all ~f:(fun row -> i < Array.length row) m
-  then Array.init (Array.length m) (fun j -> m.(j).(i))
+  then Array.init (Array.length m) ~f:(fun j -> m.(j).(i))
   else failwith (sprintf "invalid column index %d" i)
 
 let is_rectangular a =
   let dimension = Array.length a in
-  Array.for_all a (fun suba -> Array.length suba = dimension)
+  Array.for_all a ~f:(fun suba -> Array.length suba = dimension)
 
 let transpose a =
   if not (is_rectangular a) then invalid_arg "Math.transpose: not-rectangular";
@@ -21,7 +21,7 @@ let transpose a =
   if Array.length a = 0 || Array.length a.(0) = 0 then [| |]
   else
     let n_cols = Array.length a.(0) in
-    let ans = Array.make_matrix n_cols n_rows a.(0).(0) in
+    let ans = Array.make_matrix ~dimx:n_cols ~dimy:n_rows a.(0).(0) in
     for i = 0 to n_rows - 1 do
       for j = 0 to Array.length a.(i) - 1 do
         ans.(j).(i) <- a.(i).(j)
@@ -62,12 +62,12 @@ let range step first last =
   assert (step > 0.0);
   let n =
     (((last -. first) /. step) |> Float.abs |> Float.round_up |> Int.of_float) + 1 in
-  let a = Array.create n 0.0 in
+  let a = Array.create ~len:n 0.0 in
   let (op,comp) = if first <= last then ((+.),(<=)) else ((-.),(>=)) in
-  Array.iteri (fun i _ -> a.(i) <- op first (Float.of_int i *. step)) a;
+  Array.iteri ~f:(fun i _ -> a.(i) <- op first (Float.of_int i *. step)) a;
   if comp a.(n-1) last
   then a
-  else Array.sub a 0 (n-1)
+  else Array.sub a ~pos:0 ~len:(n-1)
 
 let mean a =
   let n = Array.length a in
@@ -79,7 +79,7 @@ let variance a =
   assert (n > 1);
   let avrg = mean a in
   let f v = let diff = v -. avrg in diff *. diff in
-  let a = Array.map f a in
+  let a = Array.map ~f a in
   (Array.fold ~f:(+.) ~init:0. a) /. (Float.of_int (n - 1))
 
 let rms a =
@@ -103,7 +103,7 @@ let pseudomedian a =
     a.(0)
   else
     let nn = n*(n-1)/2 in
-    let averages = Array.create nn 0.0 in
+    let averages = Array.create ~len:nn 0.0 in
     let idx = ref 0 in
     for i = 0 to n-2 do
       for j = i+1 to n-1 do
@@ -116,7 +116,7 @@ let pseudomedian a =
 let mad a =
   assert (Array.length a > 0);
   let med = median a in
-  let a = Array.map (fun v -> Float.abs (v -. med)) a in
+  let a = Array.map ~f:(fun v -> Float.abs (v -. med)) a in
   median a
 
 let quantile_normalization aa =
@@ -132,13 +132,13 @@ let quantile_normalization aa =
     let comp2 (_,a) (_,b) = Pervasives.compare a b in
 
     let aa = transpose aa in
-    let aa = Array.map (Array.mapi ~f:(fun a b -> (a, b))) aa in
+    let aa = Array.map ~f:(Array.mapi ~f:(fun a b -> (a, b))) aa in
     (Array.iter ~f:(Array.sort ~cmp:comp2)) aa;
     let avg i =
       (Array.fold ~f:(fun sum expt -> snd expt.(i) +. sum) ~init:0.0 aa)
       /. num_expts in
-    let norms = Array.init num_pts avg in
-    let aa = Array.map (Array.mapi ~f:(fun i (idx,_) -> idx, norms.(i))) aa in
+    let norms = Array.init num_pts ~f:avg in
+    let aa = Array.map ~f:(Array.mapi ~f:(fun i (idx,_) -> idx, norms.(i))) aa in
     Array.iter ~f:(Array.sort ~cmp:comp1) aa;
     transpose (Array.map ~f:(Array.map ~f:snd) aa)
 
@@ -155,8 +155,8 @@ let histogram (type t) ?(cmp=Pervasives.compare) arr =
   in
   let f (mp : int M.t) (a:t) =
     match M.find mp a with
-    | Some e -> M.add mp a (e + 1)
-    | None -> M.add mp a 1
+    | Some e -> M.add mp ~key:a ~data:(e + 1)
+    | None -> M.add mp ~key:a ~data:1
   in
   let mp = Array.fold ~f ~init:M.empty arr in
   let ans = M.fold ~f:(fun ~key ~data ans -> (key,data)::ans) mp ~init:[] in
@@ -184,9 +184,9 @@ let pearson (a1:float array) (a2:float array) =
 
 let rank arr =
   let arr = Array.copy arr in
-  let arr = Array.mapi (fun i a -> a,i) arr in
+  let arr = Array.mapi ~f:(fun i a -> a,i) arr in
   Array.sort ~cmp:(fun (a,_) (b,_) -> Pervasives.compare a b) arr;
-  let g prev il ans =
+  let g _ il ans =
     let count = List.length il in
     let n = count + (List.length ans) in
     let hi = Float.of_int n in
@@ -284,7 +284,7 @@ let ltqnorm p =
 let wilcoxon_rank_sum_to_z arr1 arr2 =
   let l1,l2 = (Array.length arr1),(Array.length arr2) in
   let ranked = rank (Array.append arr1 arr2) in
-  let arr1 = Array.sub ranked 0 l1 in
+  let arr1 = Array.sub ranked ~pos:0 ~len:l1 in
   let l1,l2 = (Float.of_int l1), (Float.of_int l2) in
   let sum1 =
     let f acc elem = elem +. acc in
@@ -354,7 +354,7 @@ let find_min_window ?(init_direction="fwd") a pred i =
     let ans = Range.find_min_range ~init_direction v pred i in
     match ans with
       | None -> [||]
-      | Some ans -> Array.sub a ans.Range.lo (ans.Range.hi - ans.Range.lo + 1)
+      | Some ans -> Array.sub a ~pos:ans.Range.lo ~len:(ans.Range.hi - ans.Range.lo + 1)
 
 let factorial n =
   if n < 2 then 1 else

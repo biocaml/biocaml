@@ -133,7 +133,7 @@ let name_of_line ?(pos=Pos.unknown) line =
   else
     Ok (String.sub line ~pos:1 ~len:(n-1))
 
-let sequence_of_line ?(pos=Pos.unknown) line =
+let sequence_of_line ?pos:_ line =
   (line : Line.t :> string)
 
 let comment_of_line ?(pos=Pos.unknown) line =

@@ -125,7 +125,7 @@ let vcf_format_type_to_string = function
 let coerce_to_vcf_format_type t s =
   if s = "."
   then
-    (** Note(superbobry): any value might be missing, according to VCF4.1
+    (* Note(superbobry): any value might be missing, according to VCF4.1
         specification. *)
     Ok `missing
   else match t with
@@ -147,10 +147,10 @@ let coerce_n ~f key n s =
       then Ok values
       else Error (`invalid_arguments_length (key, List.length values, n))
     | Unknown
-    (** TODO(superbobry): how do we know the nr. of alleles? *)
+    (* TODO(superbobry): how do we know the nr. of alleles? *)
     | OnePerAllele
-    (** TODO(superbobry): how to make sure that we have exactly _one_
-        value per genotype? *)
+    (* TODO(superbobry): how to make sure that we have exactly _one_
+       value per genotype? *)
     | OnePerGenotype -> Lazy.force res
 
 let string_to_vcf_info_type s =
@@ -307,7 +307,7 @@ let string_to_vcfr_ref s =
   then Ok s
   else Error (`invalid_dna s)
 
-let string_to_vcfr_info { vcfm_info } s =
+let string_to_vcfr_info { vcfm_info ; _ } s =
   let go values =
     List.map (String.split ~on:';' s) ~f:(fun chunk ->
       let (key, raw_value) =
@@ -324,7 +324,7 @@ let string_to_vcfr_info { vcfm_info } s =
   and values = Hashtbl.Poly.create ()
   in Result.(map (all_ignore (go values)) ~f:(Fn.const values))
 
-let string_to_vcfr_filter { vcfm_filters } s =
+let string_to_vcfr_filter { vcfm_filters ; _ } s =
   match String.split ~on:';' s with
     | ["PASS"] -> Ok []
     | chunks ->
@@ -333,7 +333,7 @@ let string_to_vcfr_filter { vcfm_filters } s =
         | Some unknown_filter -> Error (`unknown_filter unknown_filter)
         | None -> Ok chunks
 
-let string_to_vcfr_ids { vcfm_id_cache } s =
+let string_to_vcfr_ids { vcfm_id_cache ; _ } s =
   match String.split ~on:';' s with
     | ["."] -> Ok []
     | chunks ->
@@ -342,7 +342,7 @@ let string_to_vcfr_ids { vcfm_id_cache } s =
       then Ok chunks
       else Error (`duplicate_ids duplicate_ids)
 
-let string_to_vcfr_alts { vcfm_alt } s =
+let string_to_vcfr_alts { vcfm_alt ; _ } s =
   match String.split ~on:',' s with
     | ["."]  -> Ok []
     | chunks ->
@@ -357,7 +357,7 @@ let string_to_vcfr_alts { vcfm_alt } s =
             | (false, false) -> Error (`invalid_dna chunk))  (* Impossible. *)
       in Result.all res
 
-let list_to_vcfr_samples { vcfm_format; vcfm_samples } chunks =
+let list_to_vcfr_samples { vcfm_format; vcfm_samples ; _ } chunks =
   let open Result.Monad_infix in
   let samples = Hashtbl.Poly.create () in
   let go sample_keys id raw_sample =
@@ -396,15 +396,15 @@ let list_to_vcf_row meta chunks =
       string_to_vcfr_alts meta raw_alt >>= fun vcfr_alts ->
       string_to_vcfr_info meta raw_info >>= fun vcfr_info ->
       string_to_vcfr_filter meta raw_filter >>= fun vcfr_filter ->
-      (** FIXME(superbobry): actually, we need monadic 'when here',
-          because if there's no samples, there's nothing to parse. *)
+      (* FIXME(superbobry): actually, we need monadic 'when here',
+         because if there's no samples, there's nothing to parse. *)
       list_to_vcfr_samples meta raw_samples >>= fun vcfr_samples ->
       let row = {
         vcfr_chrom; vcfr_pos; vcfr_ids; vcfr_ref; vcfr_alts;
         vcfr_qual = Result.ok (Safe.float_of_string raw_qual);
         vcfr_filter; vcfr_info; vcfr_samples
       } in Ok row
-    | c -> Error (`invalid_row_length (n_chunks, n_columns))
+    | _ -> Error (`invalid_row_length (n_chunks, n_columns))
 
 
 (** +-------------------+
@@ -425,22 +425,22 @@ module Transform = struct
       | "#CHROM" :: "POS" :: "ID" :: "REF" :: "ALT" :: "QUAL" ::
           "FILTER" :: "INFO" :: rest ->
         begin match rest with
-          (** Note(superbobry): FORMAT only makes sense if we have at least
-              a single sample. *)
+          (* Note(superbobry): FORMAT only makes sense if we have at least
+             a single sample. *)
           | "FORMAT" :: ((_ :: _) as samples)
           | ([] as samples) ->
             let merge_with_reserved ~c = Hashtbl.merge
-                ~f:(fun ~key v ->
+                ~f:(fun ~key:_ v ->
                     match v with
                       | `Left t -> Some (c Unknown t "<reserved>")
                       | `Right parsed -> Some parsed
                       | `Both (_t, parsed) -> Some parsed)
             in
 
-            (** Note(superbobry): merge parsed INFO and FORMAT entries with
-                predefined ones; a VCF file _may_ override any of the
-                reserved fields, in that case, default definition won't be
-                used. *)
+            (* Note(superbobry): merge parsed INFO and FORMAT entries with
+               predefined ones; a VCF file _may_ override any of the
+               reserved fields, in that case, default definition won't be
+               used. *)
             let vcfm_info = merge_with_reserved reserved_info vcfm_info
                 ~c:(fun n t description -> Info (n, t, description));
             and vcfm_format = merge_with_reserved reserved_format vcfm_format
@@ -472,7 +472,7 @@ module Transform = struct
                  let info_meta = Info (string_to_vcf_number n,
                                        string_to_vcf_info_type t,
                                        description)
-                 in Hashtbl.set vcfm_info id info_meta);
+                 in Hashtbl.set vcfm_info ~key:id ~data:info_meta);
             Ok (`partial meta)
           | Some ("FILTER", v) ->
             Scanf.sscanf v "<ID=%s@,Description=%S>"
@@ -487,13 +487,13 @@ module Transform = struct
                  let format_meta = Format (string_to_vcf_number n,
                                            string_to_vcf_format_type t,
                                            description)
-                 in Hashtbl.set vcfm_format id format_meta);
+                 in Hashtbl.set vcfm_format ~key:id ~data:format_meta);
             Ok (`partial meta)
           | Some ("ALT", v) ->
             Scanf.sscanf v "<ID=%s@,Description=%S>"
               (fun id description ->
                  let alt_meta = Alt description in
-                 Hashtbl.set vcfm_alt id alt_meta);
+                 Hashtbl.set vcfm_alt ~key:id ~data:alt_meta);
             Ok (`partial meta)
           | Some (k, v) -> begin
               Hashtbl.set meta.vcfm_arbitrary ~key:k ~data:v;
@@ -502,8 +502,8 @@ module Transform = struct
           | None -> Error (`malformed_meta (current_position p, s))
         end
       | Some _l ->
-        (** Note(superbobry): if the line *does not* start with '##' it
-            must be a header. *)
+        (* Note(superbobry): if the line *does not* start with '##' it
+           must be a header. *)
         next_vcf_header meta p
       | None -> Error `not_ready
 
@@ -521,7 +521,7 @@ module Transform = struct
         end
       | Some _ | None -> `not_ready  (* All done, boss! *)
 
-  let rec next meta_ref p =
+  let next meta_ref p =
     match !meta_ref with
       | `complete meta -> next_vcf_row meta p
       | `partial meta  ->

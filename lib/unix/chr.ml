@@ -19,7 +19,7 @@ module I = struct
     let s' = String.lowercase s in
     let c =
       if String.(is_prefix s' ~prefix:"chr") then
-        String.(sub s' 3 (length s' - 3))
+        String.(sub s' ~pos:3 ~len:(length s' - 3))
       else
         s'
     in
@@ -39,7 +39,7 @@ module I = struct
   let non_num_to_string = function
     | ChrX -> "X" | ChrY -> "Y" | ChrM -> "M"
     | Unknown s -> s
-    | ChrN n -> assert false
+    | ChrN _ -> assert false
 
   let to_string_arabic t =
     match t with

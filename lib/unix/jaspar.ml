@@ -44,7 +44,7 @@ let load_matrix fn =
   fold_data_file (fn / "MATRIX.txt") ~init:String.Map.empty ~f:(
     fun accu -> function
     | [ db_id ; collection ; jaspar_id ; _ ; factor_name ] ->
-      String.Map.add accu db_id (object
+      String.Map.add accu ~key:db_id ~data:(object
 	method collection = collection_of_string collection
 	method jaspar_id = jaspar_id
 	method factor_name = factor_name
@@ -89,8 +89,8 @@ let load_matrix_data fn =
 
 
 module SS = struct
-  include Core.Tuple.Make(String)(String)
-  include Core.Tuple.Comparable(String)(String)
+  include Core.Std.Tuple.Make(String)(String)
+  include Core.Std.Tuple.Comparable(String)(String)
 end
 
 module SSM = Map.Make(SS)
@@ -99,7 +99,7 @@ let load_annotation fn =
   fold_data_file (fn / "MATRIX_ANNOTATION.txt") ~init:SSM.empty ~f:(fun accu ->
     function
     | id :: field :: data :: _ -> SSM.add accu ~key:(id, field) ~data
-    | x -> assert false
+    | _ -> assert false
   )
 
 let load fn =

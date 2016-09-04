@@ -70,7 +70,7 @@ module Transform = struct
     let len = String.length buffer in
     let try_to_output  used_out =
       if used_out > 0
-      then (`output (Ok (String.sub zlib_write_buffer 0 used_out)))
+      then (`output (Ok (String.sub zlib_write_buffer ~pos:0 ~len:used_out)))
       else (`not_ready) in
     let (finished, used_in, used_out) =
       Zlib.inflate zstream buffer 0 len
@@ -85,18 +85,18 @@ module Transform = struct
           let continue_after_gzip = len - used_in > 8 in
           if continue_after_gzip then
             Buffer.add_string in_buffer
-              String.(sub buffer (used_in + 8) (len - used_in - 8));
+              String.(sub buffer ~pos:(used_in + 8) ~len:(len - used_in - 8));
           `finished_gzip (try_to_output used_out)
         | `gzip ->
           Buffer.add_string in_buffer
-            String.(sub buffer used_in (len - used_in));
+            String.(sub buffer ~pos:used_in ~len:(len - used_in));
           try_to_output used_out
         | _ ->
           `error (`garbage_at_end_of_compressed_data
-                     String.(sub buffer used_in (len - used_in)))
+                     String.(sub buffer ~pos:used_in ~len:(len - used_in)))
       ) else (
         Buffer.add_string in_buffer
-          String.(sub buffer used_in (len - used_in));
+          String.(sub buffer ~pos:used_in ~len:(len - used_in));
         try_to_output used_out
       )
     ) else try_to_output used_out
@@ -141,11 +141,11 @@ module Transform = struct
               | Ok bytes_read ->
                 current_state := `inflate;
                 Buffer.add_string in_buffer
-                  String.(sub buffered bytes_read (len - bytes_read));
+                  String.(sub buffered ~pos:bytes_read ~len:(len - bytes_read));
                 next stopped
               | Error e -> `output (Error e)
             with
-              e -> Buffer.add_string in_buffer buffered; `not_ready
+              _ -> Buffer.add_string in_buffer buffered; `not_ready
           end
         end
       end
@@ -205,9 +205,9 @@ module Transform = struct
                 if used_out < zlib_buffer_size then (
                   this_is_the_end := true;
                   Zlib.deflate_end !zstream;
-                  String.(sub zlib_write_buffer 0 used_out ^ output_crc ())
+                  String.(sub zlib_write_buffer ~pos:0 ~len:used_out ^ output_crc ())
                 ) else (
-                  String.(sub zlib_write_buffer 0 used_out)
+                  String.(sub zlib_write_buffer ~pos:0 ~len:used_out)
                 ) in
               `output to_output
             end
@@ -226,7 +226,7 @@ module Transform = struct
           then (Buffer.add_substring in_buffer
                   buffered used_in (String.length buffered - used_in));
           if used_out > 0 then
-            `output String.(sub zlib_write_buffer 0 used_out)
+            `output String.(sub zlib_write_buffer ~pos:0 ~len:used_out)
           else
             `not_ready
         end

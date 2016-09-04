@@ -17,7 +17,7 @@ let create ?(n = 251) zero proj add = {
 let add (t : ('a,'b,'c,'d) t) x y =
   let bin = t.proj x in
   let accu = Option.value (Hashtbl.find t.table bin) ~default:t.zero in
-  Hashtbl.replace t.table bin (t.add y accu)
+  Hashtbl.set t.table ~key:bin ~data:(t.add y accu)
 
 let stream t = Stream.of_hashtbl t.table
 
@@ -31,13 +31,13 @@ module Counter = struct
   let add = add
   let tick accu x = add accu x 1
   let stream = stream
-  let of_stream e = 
+  let of_stream e =
     let c = create () in
     Stream.iter ~f:(tick c) e ;
     c
 end
 
-let counts f e = 
+let counts f e =
   stream (Counter.of_stream (e /@ f))
 
 let product ?filter f l1 l2 = Counter.(
@@ -54,11 +54,11 @@ type ('a, 'b) relation = ('a,'a,'b,'b list) t
 
 module Relation = struct
   type ('a, 'b) t = ('a,'b) relation
-  let create ?n () = 
-    create [] ident (fun x xs -> x :: xs)
+  let create ?n () =
+    create ?n [] ident (fun x xs -> x :: xs)
   let add = add
   let stream = stream
-  let of_stream xs = 
+  let of_stream xs =
     let r = create () in
     Stream.iter
       ~f:(fun (x,y) -> add r x y)
@@ -67,23 +67,3 @@ module Relation = struct
 end
 
 let relation xs = stream (Relation.of_stream xs)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
