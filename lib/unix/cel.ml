@@ -43,7 +43,7 @@ let data bpmap cels =
   let cels = List.map ~f:Tbl.of_cel1 cels in
   let f ans r =
     let datl =
-      List.map  cels (fun cel ->
+      List.map  cels ~f:(fun cel ->
         Tbl.find cel r.Bpmap.pmcoord, Tbl.find cel r.Bpmap.mmcoord) in
     (r.Bpmap.probe, datl) :: ans
   in
@@ -53,7 +53,7 @@ let pm_mm bpmap cels =
   let cels = List.map ~f:Tbl.of_cel2 cels in
   let f ans r =
     let datl =
-      List.map cels (fun cel ->
+      List.map cels ~f:(fun cel ->
         (Tbl.find cel r.Bpmap.pmcoord) -. (Tbl.find cel r.Bpmap.mmcoord)) in
     (r.Bpmap.probe, datl) :: ans
   in
@@ -62,7 +62,7 @@ let pm_mm bpmap cels =
 let pm bpmap cels =
   let cels = List.map ~f:Tbl.of_cel2 cels in
   let f ans r =
-    let datl = List.map cels (fun cel -> Tbl.find cel r.Bpmap.pmcoord) in
+    let datl = List.map cels ~f:(fun cel -> Tbl.find cel r.Bpmap.pmcoord) in
     (r.Bpmap.probe, datl) :: ans
   in
   Bpmap.fold f [] bpmap
@@ -84,11 +84,6 @@ module Parser = struct
       then None
       else Some (String.slice s 1 (l-1))
 
-  let section_name_exn s =
-    match section_name s with
-      | Some s -> s
-      | None -> raise_bad ("invalid section name " ^ s)
-
   let line_is_section sec_name l =
     match section_name l with
       | None -> false
@@ -97,7 +92,7 @@ module Parser = struct
   let intensity_row s =
     let to_int s = Int.of_string (String.strip s) in
     let to_float s = Float.of_string (String.strip s) in
-      match String.split s '\t' with
+      match String.split s ~on:'\t' with
       | [xcoord; ycoord; mean; stdv; npixels] ->
             {
               xcoord = to_int xcoord;
@@ -121,11 +116,11 @@ module Parser = struct
     );
     Stream.junk lines;
 
-    let sl = String.split (Stream.next_exn lines) '=' in
+    let sl = String.split (Stream.next_exn lines) ~on:'=' in
     let num_cells = int_of_string (String.strip (List.nth_exn sl 1)) in
 
-    let sl = String.split (Stream.next_exn lines) '=' in
-    let sl = String.split (List.nth_exn sl 1) '\t' in
+    let sl = String.split (Stream.next_exn lines) ~on:'=' in
+    let sl = String.split (List.nth_exn sl 1) ~on:'\t' in
     let sl = List.map ~f:String.strip sl in
     let _ =
       if sl <> icolumns then
