@@ -37,6 +37,8 @@ val sectioni : t -> int -> section
 val sections : t -> section list
 (** Return all sections in [t]. *)
 
+val num_sections : t -> int
+(** Returns the number of sections in [t] *)
 
 (** {6 Header Information} *)
 

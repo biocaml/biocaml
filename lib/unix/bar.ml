@@ -49,7 +49,7 @@ module Parser = struct
 
   let tag_value (s':string) : string * string =
     let s = String.strip (String.drop_prefix s' 1) in
-    match String.split s '\t' with
+    match String.split s ~on:'\t' with
     | [t; v] -> (t, v)
     | _ -> raise_bad (sprintf "invalid tag-value pair %s" s')
 
@@ -74,7 +74,7 @@ module Parser = struct
     let lines' = Stream.take_while
                    ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines in
     let parse_line s =
-      match String.split s '\t' with
+      match String.split s ~on:'\t' with
       | [i; f] -> (Int.of_string i, Float.of_string f)
       | _ -> raise_bad ("data row must contain exactly two fields")
     in
