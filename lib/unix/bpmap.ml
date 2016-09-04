@@ -16,19 +16,19 @@ let to_list t = t
 
 module Parser = struct
   let header (s:string) : string list =
-    let sl = String.split s '\t' in
+    let sl = String.split s ~on:'\t' in
       if sl = col_names then sl
       else raise_bad "incorrectly formatted header"
 
   let row ~chr_map (s:string) : row =
-    match String.split s '\t' with
+    match String.split s ~on:'\t' with
     | [pmcx; pmcy; mmcx; mmcy; org_ver_chr; pos; seq] ->
        let org, ver_chr =
-         match String.split org_ver_chr ':' with
+         match String.split org_ver_chr ~on:':' with
          | [o; ver_chr] -> o, ver_chr
          | _ -> raise_bad "expecting exactly one colon in Seq column" in
        let ver, chr =
-         match String.split ver_chr ';' with
+         match String.split ver_chr ~on:';' with
          | [v; c] -> v, chr_map c
          | _ -> raise_bad "expecting exactly one semicolon in Seq column" in
       {
