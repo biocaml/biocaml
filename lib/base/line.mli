@@ -7,14 +7,18 @@ type t = private string
 
 val to_string : t -> string
 
+val empty : t
+
 (** [string_to_lines s] splits [s] on newline characters, returning
     the resuling list of lines. If the final line ended with a
     newline, the last string of the list is empty. *)
 val string_to_lines : string -> t list
 
+val rightmost : string -> string option * t
 
 (** {2 Standard String Operations} *)
 
+val append : t -> t -> t
 val split : t -> on:char -> string list
 
 (** {2 S-Expressions } *)
