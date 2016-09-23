@@ -14,3 +14,12 @@ let split str ~on:c =
     else loop acc last_pos (pos - 1)
   in
   loop [] len (len - 1)
+
+let rsplit2_exn line ~on:delim =
+  let pos = rindex line delim in
+  (sub line ~pos:0 ~len:pos,
+   sub line ~pos:(pos+1) ~len:(String.length line - pos - 1)
+  )
+
+let rsplit2 line ~on =
+  try Some (rsplit2_exn line ~on) with Not_found -> None
