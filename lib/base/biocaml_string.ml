@@ -15,6 +15,17 @@ let split str ~on:c =
   in
   loop [] len (len - 1)
 
+let normalize t i =
+  if i < 0
+  then i + length t
+  else i
+
+let slice t start stop =
+  let stop = if stop = 0 then length t else stop in
+  let pos = normalize t start in
+  let len = (normalize t stop) - pos in
+  sub t ~pos ~len
+
 let rsplit2_exn line ~on:delim =
   let pos = rindex line delim in
   (sub line ~pos:0 ~len:pos,
