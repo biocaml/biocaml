@@ -9,10 +9,10 @@ val to_string : t -> string
 
 val empty : t
 
-(** [string_to_lines s] splits [s] on newline characters, returning
+(** [parse_string s] splits [s] on newline characters, returning
     the resuling list of lines. If the final line ended with a
     newline, the last string of the list is empty. *)
-val string_to_lines : string -> t list
+val parse_string : string -> t list
 
 (** [rightmost s] returns a pair whose right member is the longest
     suffix [v] of [s] that represents a line, while the possible

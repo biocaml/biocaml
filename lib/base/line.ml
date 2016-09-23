@@ -10,7 +10,7 @@ let rightmost x =
   | None -> (None, x)
   | Some (b, a) -> (Some b, a)
 
-let string_to_lines s = String.split ~on:'\n' s
+let parse_string s = String.split ~on:'\n' s
 
 
 let split = String.split
