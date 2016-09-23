@@ -35,6 +35,12 @@ let app ?internal_deps name : Project.item =
     ~file:(sprintf "app/%s.ml" name)
     ?internal_deps
 
+let base = lib "base"
+    ~findlib_deps:["ppx_sexp_conv";
+                   "sexplib";
+                  ]
+    ~ml_files:(`Add ["about.ml"])
+
 let unix = lib "unix"
     ~findlib_deps:["camlzip"; "cfstream"; "core";
                    "future.unix"; "ppx_compare"; "ppx_sexp_conv"; "re.perl";
@@ -76,7 +82,7 @@ let optional_pkgs = [
 
 let items =
   [
-    unix; async; lwt; ez; benchmark; test;
+    base ; unix; async; lwt; ez; benchmark; test;
     run_benchmarks; run_tests;
   ]
   |> List.filter ~f:(fun x -> Project.dep_opts_sat x optional_pkgs)
