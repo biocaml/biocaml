@@ -14,6 +14,12 @@ val empty : t
     newline, the last string of the list is empty. *)
 val string_to_lines : string -> t list
 
+(** [rightmost s] returns a pair whose right member is the longest
+    suffix [v] of [s] that represents a line, while the possible
+    remainder of [s] (minus the newline character) is represented in
+    the left member. More formally, if [v = s] then the left member of
+    the pair is [None]; otherwise it is [Some u] where [s = u ^ "\n" ^
+    v]. *)
 val rightmost : string -> string option * t
 
 (** {2 Standard String Operations} *)
