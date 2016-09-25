@@ -58,6 +58,9 @@ let sequence_to_int_list s =
   with Failure msg -> R.error_msg msg
 
 
+type parser_error = [ `Fasta_parser_error of int * string ]
+[@@deriving sexp]
+
 
 module Parser0 = struct
   type state = {
@@ -75,9 +78,6 @@ module Parser0 = struct
     | Sequence of { empty : bool }
     | Terminal
 
-  type error = [ `Fasta_parser0_error of int * string ]
-  [@@deriving sexp]
-
   let initial_state ?(fmt = default_fmt) () =
     {
       fmt ;
@@ -88,7 +88,7 @@ module Parser0 = struct
     }
 
   let fail st msg =
-    R.fail (`Fasta_parser0_error (st.line, msg))
+    R.fail (`Fasta_parser_error (st.line, msg))
 
   let failf st fmt =
     let k x = fail st x in
@@ -244,47 +244,46 @@ end
 let rev_concat xs = String.concat ~sep:"" (List.rev xs)
 
 module Parser = struct
-  type state =
+  type state = {
+    state0 : Parser0.state ;
+    symbol : symbol ;
+  }
+  and symbol =
     | Init
     | Item of string * string list
     | Terminal
 
-  type error = [ `Fasta_parser_error of string ]
-  [@@deriving sexp]
+  let initial_state ?fmt () = {
+    state0 = Parser0.initial_state ?fmt () ;
+    symbol = Init
+  }
 
-  let initial_state = Init
+  let step_aux (sym, accu) item0 =
+    match item0, sym with
+    | _, Terminal -> Terminal, []
+    | (`Comment _ | `Empty_line), _ ->
+      sym, accu
 
-  let failf fmt =
-    let k msg = R.fail (`Fasta_parser_error msg) in
-    Printf.ksprintf k fmt
+    | `Description d, Init ->
+      Item (d, []), accu
 
-  let step st (input : item0 option) =
-    match input, st with
-    | _, Terminal -> R.ok (Terminal, [])
-    | None, Init -> R.ok (Terminal, [])
-    | None, Item (_, []) ->
-      failf "Last item has no sequence"
-    | None, Item (description, xs) ->
-      R.ok (
-        Terminal,
-        [ item ~description ~sequence:(rev_concat xs) ]
-      )
+    | `Description _, Item (_, []) ->
+      assert false (* should be detected by Parser0.step *)
 
-    | Some (`Comment _ | `Empty_line), _ ->
-      R.ok (st, [])
+    | `Description d', Item (d, xs) ->
+      let item = item ~description:d ~sequence:(rev_concat xs) in
+      Item (d', []), item :: accu
 
-    | Some (`Description d), Init ->
-      R.ok (Item (d, []), [])
+    | `Partial_sequence _, Init ->
+      assert false (* should be detected by Parser0.step *)
 
-    | Some (`Description _), Item (d, []) ->
-      failf "Item %s has no sequence" d
+    | `Partial_sequence s, Item (d, xs) ->
+      Item (d, s :: xs), accu
 
-    | Some (`Description d'), Item (d, xs) ->
-      R.ok (Item (d', []), [ item ~description:d ~sequence:(rev_concat xs) ])
-
-    | Some (`Partial_sequence _), Init ->
-      failf "Expected description or comment but got sequence"
-
-    | Some (`Partial_sequence s), Item (d, xs) ->
-      R.ok (Item (d, s :: xs), [])
+  let step st input =
+    Parser0.step st.state0 input >>| fun (state0, items0) ->
+    let init = st.symbol, [] in
+    let symbol, items = List.fold_left items0 ~init ~f:step_aux in
+    { state0 ; symbol },
+    List.rev items
 end

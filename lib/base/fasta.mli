@@ -139,24 +139,28 @@ type item0 = [
 ]
 [@@deriving sexp]
 
+
+type parser_error = [ `Fasta_parser_error of int * string ]
+[@@deriving sexp]
+
 module Parser0 : sig
   type state
 
-  type error = [ `Fasta_parser0_error of int * string ]
-  [@@deriving sexp]
-
   val initial_state : ?fmt:fmt -> unit -> state
 
-  val step : state -> string option -> (state * item0 list, [> error]) result
+  val step :
+    state ->
+    string option ->
+    (state * item0 list, [> parser_error]) result
 end
 
 module Parser : sig
   type state
 
-  type error = [ `Fasta_parser_error of string ]
-  [@@deriving sexp]
+  val initial_state : ?fmt:fmt -> unit -> state
 
-  val initial_state : state
-
-  val step : state -> item0 option -> (state * item list, [> error]) result
+  val step :
+    state ->
+    string option ->
+    (state * item list, [> parser_error]) result
 end

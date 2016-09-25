@@ -23,11 +23,11 @@ let fasta_of_strings ~initial_state ~step xs =
 
 module Parser0 = struct
   type parsing_result =
-    (Fasta.item0 list, Fasta.Parser0.error) result
+    (Fasta.item0 list, Fasta.parser_error) result
   [@@ deriving sexp ]
 
   let failure i msg =
-    Error (`Fasta_parser0_error (i, msg))
+    Error (`Fasta_parser_error (i, msg))
 
   let cases : (string list * parsing_result) list = [
     [ ">A" ], failure 0 "Missing sequence in last item" ;
@@ -65,7 +65,7 @@ end
 
 module Parser = struct
   type parsing_result =
-    (Fasta.item list, Fasta.Parser.error) result
+    (Fasta.item list, Fasta.parser_error) result
   [@@ deriving sexp ]
 
   let failure msg =
@@ -75,7 +75,8 @@ module Parser = struct
   ]
 
   let fasta_of_strings xs =
-    let initial_state = Fasta.Parser.initial_state in
+    let fmt = Fasta.fmt ~allow_empty_lines:true () in
+    let initial_state = Fasta.Parser.initial_state ~fmt () in
     fasta_of_strings xs ~initial_state ~step:Fasta.Parser.step
 
   let test () =
