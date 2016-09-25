@@ -81,6 +81,7 @@ type item = private {
   description : string;
   sequence : string;
 }
+[@@ deriving sexp]
 
 val item :
   description:string ->

@@ -63,6 +63,33 @@ module Parser0 = struct
 end
 
 
+module Parser = struct
+  type parsing_result =
+    (Fasta.item list, Fasta.Parser.error) result
+  [@@ deriving sexp ]
+
+  let failure msg =
+    Error (`Fasta_parser_error msg)
+
+  let cases = [
+  ]
+
+  let fasta_of_strings xs =
+    let initial_state = Fasta.Parser.initial_state in
+    fasta_of_strings xs ~initial_state ~step:Fasta.Parser.step
+
+  let test () =
+    let printer xs =
+      Sexp.to_string ([%sexp_of: parsing_result] xs)
+    in
+    List.iter cases ~f:(fun (input, res) ->
+        let parsed = fasta_of_strings input in
+        assert_equal ~printer res parsed
+      )
+end
+
+
 let tests = "Fasta" >::: [
-  "parser0" >:: Parser0.test
+  "parser0" >:: Parser0.test ;
+  "parser"  >:: Parser.test ;
 ]

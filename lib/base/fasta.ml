@@ -9,6 +9,7 @@ type item = {
   description : string;
   sequence : string;
 }
+[@@ deriving sexp]
 
 (* FIXME: should check there is no newline in the arguments *)
 let item ~description ~sequence = {
