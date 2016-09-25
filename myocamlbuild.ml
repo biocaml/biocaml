@@ -76,7 +76,7 @@ let run_tests = app "biocaml_run_tests"
     ~internal_deps:[test]
 
 let optional_pkgs = [
-  "async"; "lwt";
+  "async"; "lwt"; "core" ;
   "core_bench"; "containers"; "sosa";
   "oUnit";
 ]
