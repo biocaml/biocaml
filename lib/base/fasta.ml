@@ -177,15 +177,17 @@ module Parser0 = struct
               failf st "Unexpected character %c at beginning of line" c
 
             | '\n', false, Comment c ->
+              let c' = String.sub buf ~pos:i ~len:(j - i) in
               loop
                 (newline st ~sym:S)
-                (`Comment c :: accu)
+                (`Comment (c ^ c') :: accu)
                 (j + 1) (j + 1)
 
             | '\n', false, Description d ->
+              let d' = String.sub buf ~pos:i ~len:(j - i) in
               loop
                 (newline st ~sym:(Sequence { empty = true }))
-                (`Description d :: accu)
+                (`Description (d ^ d') :: accu)
                 (j + 1) (j + 1)
 
             | '\n', false, Sequence _ ->
