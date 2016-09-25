@@ -33,7 +33,6 @@ module Parser0 = struct
     [ ">A" ], failure 0 "Missing sequence in last item" ;
     [ "#A" ], Ok [ `Comment "A" ] ;
     [ ">A\nA" ], Ok [ `Description "A" ; `Partial_sequence "A" ] ;
-    [ ">A\nA" ], Ok [ `Description "A" ; `Partial_sequence "A" ] ;
     [ ">" ; "A\n" ; "A" ], Ok [ `Description "A" ; `Partial_sequence "A" ] ;
     [ ">" ; "A\n" ; "AD\nB" ], Ok [ `Description "A" ;
                                     `Partial_sequence "AD" ;
@@ -68,10 +67,23 @@ module Parser = struct
     (Fasta.item list, Fasta.parser_error) result
   [@@ deriving sexp ]
 
-  let failure msg =
-    Error (`Fasta_parser_error msg)
+  let failure = Parser0.failure
 
   let cases = [
+    [ ">A" ], failure 0 "Missing sequence in last item" ;
+
+    [ "#A" ], Ok [] ;
+
+    [ ">A\nA" ], Ok [ Fasta.item ~description:"A" ~sequence:"A" ] ;
+
+    [ ">" ; "A\n" ; "A" ], Ok [ Fasta.item ~description:"A" ~sequence:"A" ] ;
+
+    [ ">" ; "A\n" ; "AD\nB" ], Ok [ Fasta.item ~description:"A" ~sequence:"ADB" ] ;
+
+    [ ">" ; "A\n" ; "AD\n#B" ], failure 2 "Comment after first item" ;
+
+    [ "#ook" ; "\n" ; "\n" ;">" ; "A\n" ; "AD\nB" ],
+    Ok [ Fasta.item ~description:"A" ~sequence:"ADB" ] ;
   ]
 
   let fasta_of_strings xs =

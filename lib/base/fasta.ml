@@ -260,7 +260,8 @@ module Parser = struct
 
   let step_aux (sym, accu) item0 =
     match item0, sym with
-    | _, Terminal -> Terminal, []
+    | _, Terminal -> Terminal, accu
+
     | (`Comment _ | `Empty_line), _ ->
       sym, accu
 
@@ -280,10 +281,21 @@ module Parser = struct
     | `Partial_sequence s, Item (d, xs) ->
       Item (d, s :: xs), accu
 
+  let step_final input ((symbol, items) as res) =
+    match input, symbol with
+    | Some _, _
+    | None, (Init | Terminal) -> res
+    | None, Item (d, xs) ->
+      Terminal,
+      item ~description:d ~sequence:(rev_concat xs) :: items
+
   let step st input =
     Parser0.step st.state0 input >>| fun (state0, items0) ->
     let init = st.symbol, [] in
-    let symbol, items = List.fold_left items0 ~init ~f:step_aux in
+    let symbol, items =
+      List.fold_left items0 ~init ~f:step_aux
+      |> step_final input
+    in
     { state0 ; symbol },
     List.rev items
 end
