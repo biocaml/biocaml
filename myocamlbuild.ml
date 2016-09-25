@@ -66,7 +66,7 @@ let benchmark = lib "benchmark"
     ~findlib_deps:["core_bench" ; "containers" ; "sosa"]
 
 let test = lib "test"
-    ~internal_deps:[unix]
+    ~internal_deps:[base ; unix]
     ~findlib_deps:["oUnit"]
 
 let run_benchmarks = app "biocaml_run_benchmarks"
