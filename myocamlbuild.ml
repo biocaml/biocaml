@@ -37,6 +37,7 @@ let app ?internal_deps name : Project.item =
 
 let base = lib "base"
     ~findlib_deps:["ppx_sexp_conv";
+                   "rresult" ;
                    "sexplib";
                   ]
     ~ml_files:(`Add ["about.ml"])
@@ -65,7 +66,7 @@ let benchmark = lib "benchmark"
     ~findlib_deps:["core_bench" ; "containers" ; "sosa"]
 
 let test = lib "test"
-    ~internal_deps:[unix]
+    ~internal_deps:[base ; unix]
     ~findlib_deps:["oUnit"]
 
 let run_benchmarks = app "biocaml_run_benchmarks"
