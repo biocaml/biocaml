@@ -143,6 +143,14 @@ type item0 = [
 type parser_error = [ `Fasta_parser_error of int * string ]
 [@@deriving sexp]
 
+(** Low-level parsing
+
+    This module provides a function that can be used to convert a
+    stream of strings (representing consecutive chunks of a FASTA
+    file) into a valid sequence of low-level items ({!items0}). This
+    representation is especially relevant to deal with very long
+    sequences (like chromosome) in constant memory. 
+*)
 module Parser0 : sig
   type state
 
@@ -154,6 +162,12 @@ module Parser0 : sig
     (state * item0 list, [> parser_error]) result
 end
 
+(** High-level parsing
+
+    This module provides a function that can be used to convert a
+    stream of strings (representing consecutive chunks of a FASTA
+    file) into a sequence of FASTA items.
+*)
 module Parser : sig
   type state
 

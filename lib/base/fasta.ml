@@ -1,3 +1,5 @@
+(* FIXME: max_line_length and alphabet format options are not implemented *)
+
 open Sexplib.Std
 open Rresult
 module String = Biocaml_string
