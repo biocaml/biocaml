@@ -43,7 +43,7 @@ let base = lib "base"
     ~ml_files:(`Add ["about.ml"])
 
 let unix = lib "unix"
-    ~findlib_deps:["camlzip"; "cfstream"; "core";
+    ~findlib_deps:["camlzip"; "cfstream"; "core_kernel";
                    "future.unix"; "ppx_compare"; "ppx_sexp_conv"; "re.perl";
                    "uri"; "xmlm"
                   ]

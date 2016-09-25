@@ -1,5 +1,5 @@
 (** Sequence Graph (SGR) files. *)
-open Core.Std
+open Core_kernel.Std
 
 type t
 

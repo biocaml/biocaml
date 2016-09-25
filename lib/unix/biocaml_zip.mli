@@ -1,5 +1,5 @@
 (** Streaming interface to the Zlib library. *)
-open Core.Std
+open Core_kernel.Std
 
 (**
 

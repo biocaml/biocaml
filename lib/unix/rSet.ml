@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 
 type t = Range.t list (* retained in canonical form *)
 type range = Range.t

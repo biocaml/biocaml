@@ -1,5 +1,5 @@
 (** Manipulate the lines of a file. *)
-open Core.Std
+open Core_kernel.Std
 open Future_unix.Std
 
 type item = Line.t

@@ -27,7 +27,7 @@
     tab. Tag-value pairs must be in the form "tag=value" with no space
     around the '='.
 *)
-open Core.Std
+open Core_kernel.Std
 
 (** {2 Basic Types} *)
 

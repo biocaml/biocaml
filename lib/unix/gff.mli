@@ -21,7 +21,7 @@
       }
     }
 *)
-open Core.Std
+open Core_kernel.Std
 
 (** {2 GFF Item Types} *)
 

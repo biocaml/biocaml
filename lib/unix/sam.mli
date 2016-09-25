@@ -1,7 +1,7 @@
 (** SAM files. Documentation here assumes familiarity with the {{:
     http://samtools.github.io/hts-specs/SAMv1.pdf } SAM
     specification}. *)
-open Core.Std
+open Core_kernel.Std
 open Future_unix.Std
 
 (******************************************************************************)

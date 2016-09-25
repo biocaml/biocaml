@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 module Result = Biocaml_result
 open Future_unix.Std
 open Result.Monad_infix

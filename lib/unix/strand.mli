@@ -2,7 +2,7 @@
     two strands of DNA. This module provides an [of_string] function
     that parses the various conventions into a canonical
     representation, which we define to be '-' or '+'. *)
-open Core.Std
+open Core_kernel.Std
 
 (** Only valid values are '-' or '+'. *)
 type t = private char

@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 
 module Roman = struct
   (* Roman module courtesy of Nathan Mishra Linger, as posted on Caml List. *)

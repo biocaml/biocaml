@@ -3,7 +3,7 @@
     This module implements VCFv4.1, as defined by 1000 genomes project:
     http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41 *)
 
-open Core.Std
+open Core_kernel.Std
 
 type vcf_id = string
 type vcf_description = string

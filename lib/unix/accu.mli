@@ -5,7 +5,7 @@
     are mapped to bins, and each bin has a corresponding value
     which may be its size or its contents depending on the need.
 *)
-open Core.Std
+open Core_kernel.Std
 
 (** {7 Generic API} *)
 

@@ -5,7 +5,7 @@
     specification}.
 *)
 
-open Core.Std
+open Core_kernel.Std
 
 (** A BAM file is composed of a header and a list of alignment
     records. The datatypes used in this module are based on those

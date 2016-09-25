@@ -20,7 +20,7 @@
     fastq-illumina is now misleading since Illumina has also switched
     to using an offset of 33.
 *)
-open Core.Std
+open Core_kernel.Std
 
 type t = private int
 [@@deriving sexp]

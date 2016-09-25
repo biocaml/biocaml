@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 
 type 'a t = {
   cmp: 'a -> 'a -> int; (* comparison function of bin limit type *)

@@ -11,7 +11,7 @@
     of operations on {! Range.t}.
 *)
 
-open Core.Std
+open Core_kernel.Std
 
 module type Identifier = sig
   include Comparable

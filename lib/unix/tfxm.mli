@@ -17,7 +17,7 @@
     explicitly support buffered transforms where the output type is a
     [Result.t].
 *)
-open Core.Std
+open Core_kernel.Std
 
 (** Type of a buffered transform converting ['input]s to
     ['output]s. *)
