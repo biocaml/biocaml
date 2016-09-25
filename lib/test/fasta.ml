@@ -20,10 +20,24 @@ let cases : (string list * parsing_result) list = [
   [ ">A" ], failure 0 "Missing sequence in last item" ;
   [ "#A" ], Ok [ `Comment "A" ] ;
   [ ">A\nA" ], Ok [ `Description "A" ; `Partial_sequence "A" ] ;
+  [ ">A\nA" ], Ok [ `Description "A" ; `Partial_sequence "A" ] ;
+  [ ">" ; "A\n" ; "A" ], Ok [ `Description "A" ; `Partial_sequence "A" ] ;
+  [ ">" ; "A\n" ; "AD\nB" ], Ok [ `Description "A" ;
+                                  `Partial_sequence "AD" ;
+                                  `Partial_sequence "B" ; ] ;
+  [ ">" ; "A\n" ; "AD\n#B" ], failure 2 "Comment after first item" ;
+  [ "#ook" ; "\n" ; "\n" ;">" ; "A\n" ; "AD\nB" ],
+  Ok [ `Comment "ook" ;
+       `Empty_line ;
+       `Description "A" ;
+       `Partial_sequence "AD" ;
+       `Partial_sequence "B" ; ] ;
+
 ]
 
 let fasta0_of_strings xs : parsing_result =
-  let init = Ok (Fasta.Parser0.initial_state (), []) in
+  let fmt = Fasta.fmt ~allow_empty_lines:true () in
+  let init = Ok (Fasta.Parser0.initial_state ~fmt (), []) in
   List.fold xs ~init ~f:(fun accu s ->
       match accu with
       | Ok (st, items0) ->

@@ -204,10 +204,13 @@ module Parser0 = struct
               assert false (* unreachable state *)
 
             | _, true, Sequence { empty = true } ->
-              loop { st with symbol = Sequence { empty = false } } accu i (j + 1)
+              loop
+                { st with line_start = false ;
+                          symbol = Sequence { empty = false } }
+                accu i (j + 1)
 
             | _, true, Sequence { empty = false } ->
-              loop st accu i (j + 1)
+              loop { st with line_start = false } accu i (j + 1)
 
           else
             match st.symbol with
