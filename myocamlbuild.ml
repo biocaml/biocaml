@@ -37,6 +37,7 @@ let app ?internal_deps name : Project.item =
 
 let base = lib "base"
     ~findlib_deps:["ppx_sexp_conv";
+                   "rresult" ;
                    "sexplib";
                   ]
     ~ml_files:(`Add ["about.ml"])
