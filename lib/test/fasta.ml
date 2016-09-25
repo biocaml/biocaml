@@ -4,7 +4,7 @@ open Rresult
 
 module Fasta = Biocaml_base.Std.Fasta
 
-type nonrec ('a, 'b) result = ('a, 'b) result =
+type ('a, 'b) result = ('a, 'b) Pervasives.result =
   | Ok of 'a
   | Error of 'b
 [@@ deriving sexp]
