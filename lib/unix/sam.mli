@@ -58,7 +58,7 @@ type read_group = private {
   id : string; (** ID *)
   seq_center : string option; (** CN *)
   description : string option; (** DS *)
-  run_date : [`Date of Date.t | `Time of Time.t] option; (** DT *)
+  run_date : [`Date of string | `Time of string] option; (** DT *)
   flow_order : string option; (** FO *)
   key_seq : string option; (** KS *)
   library : string option; (** LB *)
