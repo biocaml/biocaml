@@ -13,7 +13,7 @@ module Xls = struct
     end_ : int ;
     length : int ;
     abs_summit : int ;
-    pileup : int ;
+    pileup : float ;
     log10pvalue : float ;
     fold_enrichment : float ;
     log10qvalue : float ;
@@ -45,7 +45,7 @@ module Xls = struct
           parse_int "end" end_ >>= fun end_ ->
           parse_int "length" length >>= fun length ->
           parse_int "abs_summit" abs_summit >>= fun abs_summit ->
-          parse_int "pileup" pileup >>= fun pileup ->
+          parse_float "pileup" pileup >>= fun pileup ->
           parse_float "log10pvalue" log10pvalue >>= fun log10pvalue ->
           parse_float "log10qvalue" log10qvalue >>= fun log10qvalue ->
           parse_float "fold_enrichment" fold_enrichment >>| fun fold_enrichment ->

@@ -13,7 +13,7 @@ module Xls : sig
     end_ : int ;
     length : int ;
     abs_summit : int ;
-    pileup : int ;
+    pileup : float ;
     log10pvalue : float ;
     fold_enrichment : float ;
     log10qvalue : float ;
