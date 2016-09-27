@@ -1,8 +1,7 @@
 (** SAM files. Documentation here assumes familiarity with the {{:
     http://samtools.github.io/hts-specs/SAMv1.pdf } SAM
     specification}. *)
-open Core.Std
-open Future_unix.Std
+open Core_kernel.Std
 
 (******************************************************************************)
 (** {2 Types} *)
@@ -58,7 +57,7 @@ type read_group = private {
   id : string; (** ID *)
   seq_center : string option; (** CN *)
   description : string option; (** DS *)
-  run_date : [`Date of Date.t | `Time of Time.t] option; (** DT *)
+  run_date : [`Date of string | `Time of string] option; (** DT *)
   flow_order : string option; (** FO *)
   key_seq : string option; (** KS *)
   library : string option; (** LB *)
@@ -193,7 +192,7 @@ type alignment = private {
 (******************************************************************************)
 (** {2 Input/Output } *)
 (******************************************************************************)
-module MakeIO (Future : FUTURE) : sig
+module MakeIO (Future : Future.S) : sig
   open Future
 
   val read
@@ -214,9 +213,9 @@ module MakeIO (Future : FUTURE) : sig
     -> ?header:header
     -> alignment Pipe.Reader.t
     -> unit Deferred.t
-
 end
-include module type of MakeIO(Future)
+
+include module type of MakeIO(Future_unix)
 
 
 

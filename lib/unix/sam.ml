@@ -1,6 +1,5 @@
-open Core.Std
+open Core_kernel.Std
 module Result = Biocaml_result
-open Future_unix.Std
 open Result.Monad_infix
 
 let ( >>?~ )
@@ -50,7 +49,7 @@ type read_group = {
   id : string;
   seq_center : string option;
   description : string option;
-  run_date : [`Date of Date.t | `Time of Time.t] option;
+  run_date : [`Date of string | `Time of string] option;
   flow_order : string option;
   key_seq : string option;
   library : string option;
@@ -239,9 +238,9 @@ let read_group
   (match run_date with
   | None -> Ok None
   | Some run_date ->
-    try Ok (Some (`Date (Date.of_string run_date)))
+    try Ok (Some (`Date run_date))
     with _ ->
-      try Ok (Some (`Time (Time.of_string run_date)))
+      try Ok (Some (`Time run_date))
       with _ ->
         error "invalid run date/time" run_date sexp_of_string
   ) >>= fun run_date ->
@@ -882,8 +881,8 @@ let print_read_group (x:read_group) =
     (s "DS" x.description)
     (s "DT" (Option.map x.run_date
                ~f:(function
-               | `Date x -> Date.to_string x
-               | `Time x -> Time.to_string x) )
+                   | `Date x
+                   | `Time x -> x) )
     )
     (s "FO" x.flow_order)
     (s "KS" x.key_seq)
@@ -992,7 +991,7 @@ let print_alignment a =
 (******************************************************************************)
 (* Input/Output                                                               *)
 (******************************************************************************)
-module MakeIO(Future : FUTURE) = struct
+module MakeIO(Future : Future.S) = struct
   open Future
   module Lines = struct
     include Lines
@@ -1096,7 +1095,7 @@ module MakeIO(Future : FUTURE) = struct
     )
 
 end
-include MakeIO(Future)
+include MakeIO(Future_unix)
 
 let parse_header text =
   read_header (Lines.of_string text)

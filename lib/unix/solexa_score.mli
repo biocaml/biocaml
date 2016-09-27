@@ -17,7 +17,7 @@
     reason for this minimum based on the general definition of Solexa
     scores.
 *)
-open Core.Std
+open Core_kernel.Std
 
 exception Error of string
 

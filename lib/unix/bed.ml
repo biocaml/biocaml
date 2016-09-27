@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 open CFStream
 
 type item = string * int * int * Table.Row.t

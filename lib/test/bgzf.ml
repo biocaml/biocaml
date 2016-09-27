@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 module Bgzf = Biocaml_unix.Std.Bgzf
 open OUnit
 

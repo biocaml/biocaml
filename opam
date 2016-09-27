@@ -34,19 +34,27 @@ build-doc: [
 depends: [
   "ocamlfind" {build}
   "solvuu-build" {build}
-  "core" {>= "111.13.00" }
+  "core_kernel" {>= "111.13.00" }
   "sexplib"
   "camlzip" {>= "1.05"}
   "xmlm"
   "cfstream"
-  "future"
   "ppx_compare"
   "ppx_sexp_conv"
   "re"
+  "rresult"
   "uri"
-  "lwt"
+]
+
+depopts: [
   "async"
+  "core"
+  "lwt"
   "ounit"
+]
+
+conflicts: [
+  "core" {< "111.13.00" }
 ]
 
 available: [

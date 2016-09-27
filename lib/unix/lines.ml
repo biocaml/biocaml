@@ -1,11 +1,10 @@
-open Core.Std
-open Future_unix.Std
+open Core_kernel.Std
 open CFStream
 
 type item = Line.t
 [@@deriving sexp]
 
-module MakeIO (Future : FUTURE) = struct
+module MakeIO (Future : Future.S) = struct
   open Future
 
   let read r =
@@ -20,7 +19,7 @@ module MakeIO (Future : FUTURE) = struct
     Writer.with_file ?perm ?append file ~f:(fun w -> write w pipe_r)
 
 end
-include MakeIO(Future)
+include MakeIO(Future_unix)
 
 let of_char_stream cstr =
   let f _ = match Stream.peek cstr with

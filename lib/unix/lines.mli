@@ -1,11 +1,10 @@
 (** Manipulate the lines of a file. *)
-open Core.Std
-open Future_unix.Std
+open Core_kernel.Std
 
 type item = Line.t
 [@@deriving sexp]
 
-module MakeIO (Future : FUTURE) : sig
+module MakeIO (Future : Future.S) : sig
   open Future
 
   val read : Reader.t -> item Pipe.Reader.t
@@ -20,7 +19,7 @@ module MakeIO (Future : FUTURE) : sig
     -> unit Deferred.t
 
 end
-include module type of MakeIO(Future)
+include module type of MakeIO(Future_unix)
 
 val of_char_stream : char Stream.t -> item Stream.t
 (** Parse a stream of characters into a stream of lines. *)

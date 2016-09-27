@@ -3,7 +3,7 @@
  * standard library and the BatSet module (from Batteries) for enum-related
  * functions
  *)
-open Core.Std
+open Core_kernel.Std
 open CFStream
 
 type 'a t = Empty | Node of 'a node

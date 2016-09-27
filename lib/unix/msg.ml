@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 
 let msg ?(pre="MSG") ?pos msg =
   match pos with

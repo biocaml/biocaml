@@ -7,7 +7,7 @@
     numbered 0. The count of a bin is a floating point number,
     allowing fractional values if necessary.
 *)
-open Core.Std
+open Core_kernel.Std
 
 type 'a t
     (** The type of a histogram whose bin limits are of type ['a]. *)

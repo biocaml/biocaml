@@ -43,19 +43,19 @@ let base = lib "base"
     ~ml_files:(`Add ["about.ml"])
 
 let unix = lib "unix"
-    ~findlib_deps:["camlzip"; "cfstream"; "core";
-                   "future.unix"; "ppx_compare"; "ppx_sexp_conv"; "re.perl";
+    ~findlib_deps:["camlzip"; "cfstream"; "core_kernel";
+                   "ppx_compare"; "ppx_sexp_conv"; "re.perl";
                    "uri"; "xmlm"
                   ]
     ~ml_files:(`Add ["about.ml"])
 
 let async = lib "async"
     ~internal_deps:[unix]
-    ~findlib_deps:["async"; "future.async"]
+    ~findlib_deps:["async"]
 
 let lwt = lib "lwt"
     ~internal_deps:[unix]
-    ~findlib_deps:["lwt"; "future.lwt"]
+    ~findlib_deps:["lwt" ; "lwt.ppx"]
 
 let ez = lib "ez"
     ~internal_deps:[unix]
@@ -76,7 +76,7 @@ let run_tests = app "biocaml_run_tests"
     ~internal_deps:[test]
 
 let optional_pkgs = [
-  "async"; "lwt";
+  "async"; "lwt"; "core" ;
   "core_bench"; "containers"; "sosa";
   "oUnit";
 ]

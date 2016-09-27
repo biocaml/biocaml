@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 (*
 type 'a transcript = {
   exons : (int * int) list;

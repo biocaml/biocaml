@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 module Range = Biocaml_unix.Std.Range
 module RSet = Biocaml_unix.Std.RSet
 open OUnit
@@ -6,10 +6,10 @@ open OUnit
 module Test = struct
 
   let timesf msg f arg =
-    let start = Time.now () in
+    let start = Unix.time () in
     let x = f arg in
-    let stop = Time.now () in
-    printf "%s: %f seconds\n%!" msg Time.(to_float stop -. to_float start);
+    let stop = Unix.time () in
+    printf "%s: %f seconds\n%!" msg (stop -. start);
     x
 
 

@@ -21,7 +21,7 @@
     for [line] and [offset] also shouldn't be used, but we do not
     bother disallowing it.
 *)
-open Core.Std
+open Core_kernel.Std
 
 type t = {
   source : string option;

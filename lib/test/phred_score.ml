@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 module Phred_score = Biocaml_unix.Std.Phred_score
 open OUnit
 

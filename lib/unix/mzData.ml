@@ -17,7 +17,7 @@
 
 (* http://www.umanitoba.ca/afs/plant_science/psgendb/local/install/ncbi_cxx--Jun_15_2010/src/algo/ms/formats/mzdata/mzData.dtd *)
 
-open Core.Std
+open Core_kernel.Std
 open Bigarray
 
 type vec = (float, float64_elt, fortran_layout) Array1.t
