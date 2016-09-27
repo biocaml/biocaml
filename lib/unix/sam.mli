@@ -2,7 +2,6 @@
     http://samtools.github.io/hts-specs/SAMv1.pdf } SAM
     specification}. *)
 open Core_kernel.Std
-open Future_unix.Std
 
 (******************************************************************************)
 (** {2 Types} *)
@@ -193,7 +192,7 @@ type alignment = private {
 (******************************************************************************)
 (** {2 Input/Output } *)
 (******************************************************************************)
-module MakeIO (Future : FUTURE) : sig
+module MakeIO (Future : Future.S) : sig
   open Future
 
   val read
@@ -214,9 +213,9 @@ module MakeIO (Future : FUTURE) : sig
     -> ?header:header
     -> alignment Pipe.Reader.t
     -> unit Deferred.t
-
 end
-include module type of MakeIO(Future)
+
+include module type of MakeIO(Future_unix)
 
 
 

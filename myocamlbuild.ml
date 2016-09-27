@@ -44,18 +44,18 @@ let base = lib "base"
 
 let unix = lib "unix"
     ~findlib_deps:["camlzip"; "cfstream"; "core_kernel";
-                   "future.unix"; "ppx_compare"; "ppx_sexp_conv"; "re.perl";
+                   "ppx_compare"; "ppx_sexp_conv"; "re.perl";
                    "uri"; "xmlm"
                   ]
     ~ml_files:(`Add ["about.ml"])
 
 let async = lib "async"
     ~internal_deps:[unix]
-    ~findlib_deps:["async"; "future.async"]
+    ~findlib_deps:["async"]
 
 let lwt = lib "lwt"
     ~internal_deps:[unix]
-    ~findlib_deps:["lwt"; "future.lwt"]
+    ~findlib_deps:["lwt" ; "lwt.ppx"]
 
 let ez = lib "ez"
     ~internal_deps:[unix]

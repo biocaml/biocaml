@@ -1,6 +1,5 @@
 open Core_kernel.Std
 module Result = Biocaml_result
-open Future_unix.Std
 open Result.Monad_infix
 
 let ( >>?~ )
@@ -992,7 +991,7 @@ let print_alignment a =
 (******************************************************************************)
 (* Input/Output                                                               *)
 (******************************************************************************)
-module MakeIO(Future : FUTURE) = struct
+module MakeIO(Future : Future.S) = struct
   open Future
   module Lines = struct
     include Lines
@@ -1096,7 +1095,7 @@ module MakeIO(Future : FUTURE) = struct
     )
 
 end
-include MakeIO(Future)
+include MakeIO(Future_unix)
 
 let parse_header text =
   read_header (Lines.of_string text)

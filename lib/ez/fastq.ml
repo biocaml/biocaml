@@ -1,7 +1,5 @@
-open Core.Std
-open Future_unix.Std
-open Future
-
+open Core_kernel.Std
+open CFStream
 open Biocaml_unix.Std.Fastq
 
 type nonrec item = item
@@ -10,7 +8,7 @@ let split_name = split_name
 
 let read ic =
   read ic
-  |> Pipe.map ~f:ok_exn
+  |> Stream.map ~f:ok_exn
 
 let write = write
 let write_file = write_file

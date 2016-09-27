@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 
 include Biocaml_unix.Std.Roman_num
 

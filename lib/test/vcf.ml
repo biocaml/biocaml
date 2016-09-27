@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 open CFStream
 module Tfxm = Biocaml_unix.Std.Tfxm
 module Vcf = Biocaml_unix.Std.Vcf

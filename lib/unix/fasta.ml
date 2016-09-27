@@ -1,6 +1,5 @@
 open Core_kernel.Std
 module Result = Biocaml_result
-open Future_unix.Std
 open CFStream
 
 type header = string list
@@ -103,7 +102,7 @@ let parse_item0
 (******************************************************************************)
 (* Input/Output                                                               *)
 (******************************************************************************)
-module Lines = Lines.MakeIO(Future)
+module Lines = Lines.MakeIO(Future_unix)
 
 let read0
     ?(start=Pos.(incr_line unknown))

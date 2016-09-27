@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 
 let with_temp_file pre suff ~f =
   let fn = Filename.temp_file pre suff in

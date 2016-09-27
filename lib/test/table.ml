@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 module Table = Biocaml_unix.Std.Table
 module Line = Biocaml_unix.Std.Line
 open OUnit

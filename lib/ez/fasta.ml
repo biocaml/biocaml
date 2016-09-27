@@ -1,6 +1,5 @@
-open Core.Std
-open Future_unix.Std
-open Future
+open Core_kernel.Std
+open CFStream
 
 include Biocaml_unix.Std.Fasta
 
@@ -24,14 +23,14 @@ let read0
     ?max_line_length
     ?alphabet
     r
-  |> Pipe.map ~f:ok_exn
+  |> Stream.map ~f:ok_exn
 
 let read ?start ?fmt r =
   let header,strm = ok_exn (read ?start ?fmt r) in
-  header, Pipe.map strm ~f:ok_exn
+  header, Stream.map strm ~f:ok_exn
 
 let with_file ?fmt file ~f =
   with_file ?fmt file ~f:(fun header strm ->
-      Ok (f header (Pipe.map strm ~f:ok_exn))
+      Ok (f header (Stream.map strm ~f:ok_exn))
     )
   |> ok_exn

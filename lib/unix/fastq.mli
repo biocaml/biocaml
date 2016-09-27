@@ -46,7 +46,6 @@
     this module.
 *)
 open Core_kernel.Std
-open Future_unix.Std
 
 type item = {
   name: string;
@@ -65,7 +64,7 @@ val split_name : string -> string * string option
 (******************************************************************************)
 (** {2 Input/Output } *)
 (******************************************************************************)
-module MakeIO (Future : FUTURE) : sig
+module MakeIO (Future : Future.S) : sig
   open Future
 
   val read : Reader.t -> item Or_error.t Pipe.Reader.t
@@ -80,7 +79,7 @@ module MakeIO (Future : FUTURE) : sig
     -> unit Deferred.t
 
 end
-include module type of MakeIO(Future)
+include module type of MakeIO(Future_unix)
 
 
 (******************************************************************************)

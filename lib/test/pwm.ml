@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 module Pwm = Biocaml_unix.Std.Pwm
 open OUnit
 open Pwm

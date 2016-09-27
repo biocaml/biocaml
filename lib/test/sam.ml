@@ -1,4 +1,4 @@
-open Core.Std
+open Core_kernel.Std
 open OUnit
 open Or_error.Monad_infix
 module Sam = Biocaml_unix.Std.Sam
