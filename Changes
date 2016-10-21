@@ -1,4 +1,6 @@
 Biocaml Release Notes
+=====================
+
 
 biocaml-0.5.0 2016-10-21
 ------------------------
@@ -19,7 +21,7 @@ biocaml-0.5.0 2016-10-21
 biocaml-0.4.0 2016-02-17
 ------------------------
 
-* library refactoring in unix, lwt, async and ez variants
+* Library refactoring in unix, lwt, async and ez variants
 
 * New parser for BAM format (blocking implementation)
 
@@ -32,10 +34,10 @@ biocaml-0.4.0 2016-02-17
 
 
 
-
 biocaml-0.3.1 2013-09-27
 ------------------------
 * Fix documentation build.
+
 
 
 biocaml-0.3.0 2013-09-20
@@ -57,6 +59,7 @@ biocaml-0.3.0 2013-09-20
 * Move Stream to separate package CFStream.
 
 * Numerous API changes.
+
 
 
 biocaml-0.2.0 2013-02-28
@@ -104,6 +107,7 @@ biocaml-0.2.0 2013-02-28
 * Add unit tests.
 
 * Remove sqlite3 dependency.
+
 
 
 biocaml-0.1.0 2012-08-10
