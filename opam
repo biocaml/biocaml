@@ -19,9 +19,6 @@ authors: [
 build: [
   [make "byte"]
   [make "native"]
-]
-
-install: [
   [make "META"]
   [make "%{name}%.install"]
 ]
