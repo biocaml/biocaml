@@ -1,5 +1,21 @@
 Biocaml Release Notes
 
+biocaml-0.5.0 2016-10-21
+------------------------
+
+* compilation now performed with solvuu-build 
+
+* added biocaml.base library, dedicated to IO-free functionalities
+
+* implemented parsers supporting partial inputs in biocaml.base
+  (Lines, Fasta, Macs2)
+
+* biocaml.unix now depends on core_kernel instead of core
+
+* fixed nearly all compilation warnings
+
+
+
 biocaml-0.4.0 2016-02-17
 ------------------------
 
