@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version: "dev"
+version: "0.5.0"
 maintainer: "biocaml@googlegroups.com"
 homepage: "http://biocaml.org"
 bug-reports: "https://github.com/biocaml/biocaml/issues"
