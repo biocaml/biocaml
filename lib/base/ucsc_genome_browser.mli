@@ -5,7 +5,7 @@ val string_of_assembly : [< assembly] -> string
 type track_attribute = [
   | `name of string
   | `description of string
-  | `type_ of string
+  | `type_ of track_type
   | `visibility of [ `hide | `full | `dense | `pack | `squish ]
   | `color of color
   | `itemRgb of bool
@@ -21,6 +21,18 @@ type track_attribute = [
   | `bigDataUrl of string
 ]
 and color = int * int * int
+and track_type = [
+    `bam
+  | `bedDetail
+  | `bedGraph
+  | `bigBed
+  | `bigWig
+  | `broadPeak
+  | `narrowPeak
+  | `array
+  | `vcf
+  | `wig
+]
 
 val track_line : track_attribute list -> string
 

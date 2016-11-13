@@ -14,7 +14,7 @@ let string_of_assembly = function
 type track_attribute = [
   | `name of string
   | `description of string
-  | `type_ of string
+  | `type_ of track_type
   | `visibility of [ `hide | `full | `dense | `pack | `squish ]
   | `color of color
   | `itemRgb of bool
@@ -30,11 +30,35 @@ type track_attribute = [
   | `bigDataUrl of string
 ]
 and color = int * int * int
+and track_type = [
+    `bam
+  | `bedDetail
+  | `bedGraph
+  | `bigBed
+  | `bigWig
+  | `broadPeak
+  | `narrowPeak
+  | `array
+  | `vcf
+  | `wig
+]
+
+let string_of_track_type = function
+  | `bam -> "bam"
+  | `bedDetail -> "bedDetail"
+  | `bedGraph -> "bedGraph"
+  | `bigBed -> "bigBed"
+  | `bigWig -> "bigWig"
+  | `broadPeak -> "broadPeak"
+  | `narrowPeak -> "narrowPeak"
+  | `array -> "array"
+  | `vcf -> "vcf"
+  | `wig -> "wig"
 
 let unparse_track_attribute buf = function
   | `name n -> bprintf buf " name=\"%s\"" n
   | `description d -> bprintf buf " description=\"%s\"" d
-  | `type_ t -> bprintf buf " type=%s" t
+  | `type_ t -> bprintf buf " type=%s" (string_of_track_type t)
   | `visibility v ->
     let v = match v with
       | `full -> "full"
