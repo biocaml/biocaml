@@ -84,14 +84,14 @@ let string_of_position (chr, maybe_pos) =
     | Some (a, b) -> sprintf ":%d-%d" a b
   )
 
-let custom_track_url ?(params = []) ~db ~position ~data_url =
+let custom_track_url ?(params = []) ~db ~position ~data_url () =
   sprintf
     "%s&position=%s&hgt.customText=%s"
     (base db)
     (string_of_position position)
     data_url
 
-let bigData_custom_track_url ?(params = []) ~db ~position ~track =
+let bigData_custom_track_url ?(params = []) ~db ~position ~track () =
   let escaped_custom_text =
     Uri.pct_encode ~component:`Query (track_line track)
   in

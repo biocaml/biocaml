@@ -35,12 +35,12 @@ val custom_track_url :
   db:[< assembly] ->
   position:string * (int * int) option ->
   data_url:string ->
-  string
+  unit -> string
 
 val bigData_custom_track_url :
   ?params:url_param list ->
   db:[< assembly] ->
   position:string * (int * int) option ->
   track:track_attribute list ->
-  string
+  unit -> string
 
