@@ -25,7 +25,7 @@ let test_custom_track_url () =
 
 
 let test_bigData_custom_track_url_cases = [
-  "http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg18&position=chr21:33038447-33041505&hgct_customText=track%20type=bigBed%20name=myBigBedTrack%20description=%22a%20bigBed%20track%22%20visibility=full%20bigDataUrl=http://genome.ucsc.edu/goldenPath/help/examples/bigBedExample.bb",
+  "http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg18&position=chr21:33038447-33041505&hgct_customText=track%20type=bigBed%20name=%22myBigBedTrack%22%20description=%22a%20bigBed%20track%22%20visibility=full%20bigDataUrl=http://genome.ucsc.edu/goldenPath/help/examples/bigBedExample.bb",
   (`hg18, ("chr21", Some (33038447, 33041505)), [ `type_ "bigBed" ; `name "myBigBedTrack" ; `description "a bigBed track" ; `visibility `full ; `bigDataUrl "http://genome.ucsc.edu/goldenPath/help/examples/bigBedExample.bb"]) ;
 ]
 
