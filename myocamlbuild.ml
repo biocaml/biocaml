@@ -3,7 +3,7 @@ open Solvuu_build.Std
 open Solvuu_build.Util
 
 let project_name = "biocaml"
-let version = "dev"
+let version = "0.6.0"
 
 let annot = ()
 let bin_annot = ()
