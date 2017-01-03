@@ -1,6 +1,14 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.6.0 2017-01-03
+------------------------
+
+* new base/Ucsc_genome_browser module to generate custom track urls
+
+* update wrt solvuu-build
+
+
 
 biocaml-0.5.0 2016-10-21
 ------------------------
