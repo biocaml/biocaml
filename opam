@@ -31,7 +31,7 @@ build-doc: [
 depends: [
   "ocamlfind" {build}
   "solvuu-build" {build & >= "0.2.0"}
-  "core_kernel" {>= "111.13.00" }
+  "core_kernel" {>= "111.13.00" & <= "113.33.03"}
   "sexplib"
   "camlzip" {>= "1.05"}
   "xmlm"
@@ -51,7 +51,7 @@ depopts: [
 ]
 
 conflicts: [
-  "core" {< "111.13.00" }
+  "core" {< "111.13.00" & > "113.33.03"}
 ]
 
 available: [
