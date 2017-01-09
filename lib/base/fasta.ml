@@ -242,6 +242,12 @@ module Parser0 = struct
 
 end
 
+let unparse0 = function
+  | `Comment c -> "#" ^ c
+  | `Empty_line -> ""
+  | `Description d -> ">" ^ d
+  | `Partial_sequence s -> s
+
 (* This could probably be optimized *)
 let rev_concat xs = String.concat ~sep:"" (List.rev xs)
 
@@ -301,3 +307,6 @@ module Parser = struct
     { state0 ; symbol },
     List.rev items
 end
+
+let unparse item =
+  Printf.sprintf ">%s\n%s\n" item.description item.sequence

@@ -149,7 +149,7 @@ type parser_error = [ `Fasta_parser_error of int * string ]
     stream of strings (representing consecutive chunks of a FASTA
     file) into a valid sequence of low-level items ({!items0}). This
     representation is especially relevant to deal with very long
-    sequences (like chromosome) in constant memory. 
+    sequences (like chromosome) in constant memory.
 *)
 module Parser0 : sig
   type state
@@ -161,6 +161,8 @@ module Parser0 : sig
     string option ->
     (state * item0 list, [> parser_error]) result
 end
+
+val unparser0 : item0 -> string
 
 (** High-level parsing
 
@@ -178,3 +180,5 @@ module Parser : sig
     string option ->
     (state * item list, [> parser_error]) result
 end
+
+val unparser : item -> string
