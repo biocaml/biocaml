@@ -28,6 +28,9 @@ type tag_value = private string * string
 type sort_order = [ `Unknown | `Unsorted | `Query_name | `Coordinate ]
 [@@deriving sexp]
 
+type group_order = [ `None | `Query | `Reference ]
+[@@deriving sexp]
+
 (** @HD. A header consists of different types of lines. Confusingly, one of
     these types is called {i the} "header line", which is what this
     type refers to. It does not refer generically to any line within a
@@ -35,6 +38,7 @@ type sort_order = [ `Unknown | `Unsorted | `Query_name | `Coordinate ]
 type header_line = private {
   version : string; (** VN *)
   sort_order : sort_order option; (** SO *)
+  group_order: group_order option; (** GO *)
 } [@@deriving sexp]
 
 (** @SQ. Reference sequence. *)
@@ -103,6 +107,7 @@ type header_item = private [<
 type header = private {
   version : string option;
   sort_order : sort_order option;
+  group_order : group_order option;
   ref_seqs : ref_seq list;
   read_groups : read_group list;
   programs : program list;
@@ -229,6 +234,7 @@ include module type of MakeIO(Future_unix)
 val header_line
   :  version:string
   -> ?sort_order:sort_order
+  -> ?group_order:group_order
   -> unit
   -> header_line Or_error.t
 
@@ -264,6 +270,7 @@ val read_group
 val header
    : ?version:string
   -> ?sort_order:sort_order
+  -> ?group_order:group_order
   -> ?ref_seqs : ref_seq list
   -> ?read_groups : read_group list
   -> ?programs : program list
