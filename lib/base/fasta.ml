@@ -242,7 +242,7 @@ module Parser0 = struct
 
 end
 
-let unparse0 = function
+let unparser0 = function
   | `Comment c -> "#" ^ c
   | `Empty_line -> ""
   | `Description d -> ">" ^ d
@@ -308,5 +308,5 @@ module Parser = struct
     List.rev items
 end
 
-let unparse item =
+let unparser item =
   Printf.sprintf ">%s\n%s\n" item.description item.sequence
