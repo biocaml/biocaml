@@ -12,7 +12,7 @@ let short_paths = ()
 let thread = ()
 let w = "A-4-33-41-42-44-45-48"
 
-let lib ?findlib_deps ?internal_deps ?build_if ?ml_files lib_name
+let lib ?findlib_deps ?internal_deps ?ml_files lib_name
   : Project.item
   =
   Project.lib (sprintf "%s_%s" project_name lib_name)
@@ -115,17 +115,17 @@ let () =
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;
 
-      build_static_file ".merlin" (merlin_file items);
+      build_static_file ".merlin" (fun () -> merlin_file items);
       build_static_file ".ocamlinit"
-        (ocamlinit_file items ~postfix:["open Biocaml_unix.Std"]);
+        (fun () -> ocamlinit_file items ~postfix:["open Biocaml_unix.Std"]);
       build_static_file "project.mk"
-        (makefile items ~project_name);
+        (fun () -> makefile items ~project_name);
       (
         match meta_file ~version libs with
         | None -> ()
         | Some x -> Findlib.build_meta_file x
       );
       build_static_file (sprintf "%s.install" project_name)
-        (install_file items);
+        (fun () -> install_file items);
     )
   | _ -> ()
