@@ -108,18 +108,29 @@ let string_of_position (chr, maybe_pos) =
     | Some (a, b) -> sprintf ":%d-%d" a b
   )
 
+let encode_url_param = function
+  | `pix n -> sprintf "pix=%d" n
+  | `hgt_labelWidth n -> sprintf "hgt.labelWidth=%d" n
+  | `textSize n -> sprintf "textSize=%d" n
+
+let encode_url_params xs =
+  List.map encode_url_param xs
+  |> String.concat "&"
+
 let custom_track_url ?(params = []) ~db ~position ~data_url () =
   sprintf
-    "%s&position=%s&hgt.customText=%s"
+    "%s&position=%s&hgt.customText=%s%s"
     (base db)
     (string_of_position position)
     data_url
+    (encode_url_params params)
 
 let bigData_custom_track_url ?(params = []) ~db ~position ~track () =
   let escaped_custom_text =
     Uri.pct_encode ~component:`Query (track_line track)
   in
-  sprintf "%s&position=%s&hgct_customText=%s"
+  sprintf "%s&position=%s&hgct_customText=%s%s"
     (base db)
     (string_of_position position)
     escaped_custom_text
+    (encode_url_params params)
