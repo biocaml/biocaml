@@ -56,7 +56,7 @@ let async = lib "async"
 
 let lwt = lib "lwt"
     ~internal_deps:[unix]
-    ~findlib_deps:["lwt" ; "lwt.ppx"]
+    ~findlib_deps:["lwt" ; "lwt.ppx" ; "lwt.preemptive"]
 
 let ez = lib "ez"
     ~internal_deps:[unix]
