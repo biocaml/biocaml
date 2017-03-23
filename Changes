@@ -1,6 +1,17 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.7.0 2017-03-23
+------------------------
+
+* support for GO tag in SAM file headers (by holrock)
+
+* generation of richer UCSC genome browser urls
+
+* update wrt solvuu-build
+
+
+
 biocaml-0.6.0 2017-01-03
 ------------------------
 
