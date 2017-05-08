@@ -81,12 +81,22 @@ module Make(Chromosome : Chromosome) = struct
         ~f:(fun x -> Range.(Iset.intersects_range x r.lo r.hi))
 
     let to_stream sel =
-      (Map.to_stream sel)
-      /@ (fun (k,s) -> Stream.map ~f:(fun (lo,hi) -> k, ok_exn (Range.make lo hi)) (Iset.to_stream s))
+      Map.to_stream sel
+      |> Stream.map ~f:(fun (k,s) ->
+          Stream.map (Iset.to_stream s) ~f:(fun (lo,hi) ->
+              k, ok_exn (Range.make lo hi)
+            )
+        )
       |> Stream.concat
 
     let of_stream e =
-      let accu = Accu.create Iset.empty fst (fun (_,r) -> Range.(fun x -> Iset.add_range x r.lo r.hi)) in
+      let accu =
+        Accu.create
+          ~bin:fst
+          ~zero:Iset.empty
+          ~add:(fun (_,r) -> Range.(fun x -> Iset.add_range x r.lo r.hi))
+          ()
+      in
       Stream.iter ~f:(fun loc -> Accu.add accu loc loc ) e ;
       Map.of_stream (Accu.stream accu)
   end
@@ -140,8 +150,12 @@ module Make(Chromosome : Chromosome) = struct
 
   let of_stream e =
     let accu =
-      Accu.create T.empty (fun x -> fst x |> fst)
-        (fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi)) in
+      Accu.create
+        ~bin:(fun x -> fst x |> fst)
+        ~zero:T.empty
+        ~add:(fun ((_,r),v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi))
+        ()
+    in
     Stream.iter ~f:(fun loc -> Accu.add accu loc loc ) e ;
     Map.of_stream (Accu.stream accu)
 
