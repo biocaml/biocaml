@@ -1,6 +1,5 @@
 open Core_kernel.Std
 open CFStream
-open Stream.Infix
 
 type ('a,'b,'c,'d) t = {
   table : ('b,'d) Hashtbl.t ;
@@ -9,7 +8,7 @@ type ('a,'b,'c,'d) t = {
   add : 'c -> 'd -> 'd
 }
 
-let create ?(n = 251) zero proj add = {
+let create ?(n = 251) ~bin:proj ~zero ~add () = {
   table = Hashtbl.Poly.create ~size:n () ;
   zero ; proj ; add
 }
@@ -23,11 +22,9 @@ let stream t = Stream.of_hashtbl t.table
 
 let get t = Hashtbl.find t.table
 
-type 'instance counter = ('instance, 'instance, int, int) t
-
 module Counter = struct
-  type 'a t = 'a counter
-  let create ?n () = create ?n 0 ident ( + )
+  type nonrec 'a t = ('a, 'a, int, int) t
+  let create ?n () = create ?n ~zero:0 ~bin:ident ~add:( + ) ()
   let add = add
   let tick accu x = add accu x 1
   let stream = stream
@@ -37,8 +34,8 @@ module Counter = struct
     c
 end
 
-let counts f e =
-  stream (Counter.of_stream (e /@ f))
+let counts e =
+  stream (Counter.of_stream e)
 
 let product ?filter f l1 l2 = Counter.(
   let c = create () in
@@ -50,12 +47,10 @@ let product ?filter f l1 l2 = Counter.(
   stream c
 )
 
-type ('a, 'b) relation = ('a,'a,'b,'b list) t
-
 module Relation = struct
-  type ('a, 'b) t = ('a,'b) relation
+  type nonrec ('a, 'b) t = ('a,'a,'b,'b list) t
   let create ?n () =
-    create ?n [] ident (fun x xs -> x :: xs)
+    create ?n ~zero:[] ~bin:ident ~add:(fun x xs -> x :: xs) ()
   let add = add
   let stream = stream
   let of_stream xs =
