@@ -3,5 +3,5 @@
 (library
  ((name biocaml_base)
   (public_name biocaml.base)
-  (libraries (rresult uri))
+  (libraries (base rresult uri))
   (preprocess (pps (ppx_sexp_conv)))))

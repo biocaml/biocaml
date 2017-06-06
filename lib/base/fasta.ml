@@ -1,9 +1,7 @@
 (* FIXME: max_line_length and alphabet format options are not implemented *)
 
-open Sexplib.Std
+open Base
 open Rresult
-module String = Biocaml_string
-module List = ListLabels
 
 type header = string list
 
@@ -55,7 +53,7 @@ type item0 = [
 let sequence_to_int_list s =
   try
     String.split s ~on:' '
-    |> List.map ~f:int_of_string
+    |> List.map ~f:Int.of_string
     |> R.ok
   with Failure msg -> R.error_msg msg
 
@@ -127,6 +125,7 @@ module Parser0 = struct
 
     | Some buf -> (
         let allowed_comment_char c =
+          let open Char in
           (c = '#' && st.fmt.allow_sharp_comments)
           || (c = ';' && st.fmt.allow_semicolon_comments)
         in
