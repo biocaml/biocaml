@@ -1,5 +1,5 @@
 open Core_kernel.Std
-module Bin_pred = Biocaml_unix.Std.Bin_pred
+module Bin_pred = Biocaml_unix.Bin_pred
 open OUnit
 
 (*

@@ -1,6 +1,6 @@
 open Core_kernel.Std
-module Gff = Biocaml_unix.Std.Gff
-module Track = Biocaml_unix.Std.Track
+module Gff = Biocaml_unix.Gff
+module Track = Biocaml_unix.Track
 module Tfxm = Biocaml_unix.Tfxm
 open OUnit
 

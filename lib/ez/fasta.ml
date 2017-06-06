@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open CFStream
 
-include Biocaml_unix.Std.Fasta
+include Biocaml_unix.Fasta
 
 let sequence_to_int_list s =
   ok_exn (sequence_to_int_list s)

@@ -9,7 +9,7 @@ module Deferred = struct
   include Monad.Make(struct
     type 'a t = 'a Lwt.t
     let return = Lwt.return
-    let bind = Lwt.bind
+    let bind x ~f = Lwt.bind x f
     let map = `Custom (fun m ~f -> Lwt.map f m)
   end)
 
@@ -23,7 +23,7 @@ module Deferred = struct
 
       let return x = Lwt.return (Ok x)
 
-      let bind m f = Lwt.bind m (function
+      let bind m ~f = Lwt.bind m (function
         | Ok x -> f x
         | Error _ as x -> Lwt.return x
       )
@@ -65,7 +65,7 @@ module Deferred = struct
       let map ?(how = `Sequential) l ~f =
         let map = match how with
           | `Sequential -> Lwt_list.map_s
-	  | `Max_concurrent_jobs _
+          | `Max_concurrent_jobs _
           | `Parallel -> Lwt_list.map_p
         in
         let module M = struct
@@ -82,7 +82,7 @@ module Deferred = struct
       let iter ?(how = `Sequential) l ~f =
         let iter = match how with
           | `Sequential -> Lwt_list.iter_s
-	  | `Max_concurrent_jobs _
+          | `Max_concurrent_jobs _
           | `Parallel -> Lwt_list.iter_p
         in
         let module M = struct
@@ -168,12 +168,13 @@ module Reader = struct
     | None -> `Eof
 
   let read_all ic read_one =
-    Lwt_stream.from (fun () -> match%lwt read_one ic with
-    | `Ok x -> Lwt.return (Some x)
-    | `Eof ->
-      Lwt_io.close ic >>= fun () ->
-      Lwt.return None
-    )
+    Lwt_stream.from (fun () ->
+        read_one ic >>= function
+        | `Ok x -> Lwt.return (Some x)
+        | `Eof ->
+          Lwt_io.close ic >>= fun () ->
+          Lwt.return None
+      )
 
   let lines ic = read_all ic read_line
 

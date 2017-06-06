@@ -1,9 +1,9 @@
 open Core_kernel.Std
-module Table = Biocaml_unix.Std.Table
-module Line = Biocaml_unix.Std.Line
+module Table = Biocaml_unix.Table
+module Line = Biocaml_unix.Line
 open OUnit
 
-let (>><) = (|>)
+let ( >>< ) x f = ( |> ) x f
 
 let test_row () =
   let tdash ?to_line s r =

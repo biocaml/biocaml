@@ -313,8 +313,8 @@ module Make(F : Fetch) = struct
 
     let parse_document_summary x =
       let article_ids = parse_article_ids (echild_exn "ArticleIds" x) in
-      { pmid = int_of_string (List.Assoc.find_exn article_ids "pubmed") ;
-        doi = List.Assoc.find article_ids "doi" ;
+      { pmid = int_of_string (List.Assoc.find_exn ~equal:String.equal article_ids "pubmed") ;
+        doi = List.Assoc.find ~equal:String.equal article_ids "doi" ;
         pubdate = sleaf "PubDate" x ;
         source = sleaf "Source" x ;
         title = sleaf_exn "Title" x }

@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open CFStream
-module Tfxm = Biocaml_unix.Std.Tfxm
-module Vcf = Biocaml_unix.Std.Vcf
+module Tfxm = Biocaml_unix.Tfxm
+module Vcf = Biocaml_unix.Vcf
 open OUnit
 
 let make_stream name =

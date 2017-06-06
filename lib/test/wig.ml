@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open CFStream
-module Tfxm = Biocaml_unix.Std.Tfxm
-module Wig = Biocaml_unix.Std.Wig
+module Tfxm = Biocaml_unix.Tfxm
+module Wig = Biocaml_unix.Wig
 open OUnit
 
 let file_parser_stream file =

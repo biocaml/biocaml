@@ -1,5 +1,5 @@
 open Core_kernel.Std
 
-include Biocaml_unix.Std.Strand
+include Biocaml_unix.Strand
 
 let of_string s = ok_exn (of_string s)

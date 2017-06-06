@@ -1,6 +1,6 @@
 open Core_kernel.Std
-module Range = Biocaml_unix.Std.Range
-module RSet = Biocaml_unix.Std.RSet
+module Range = Biocaml_unix.Range
+module RSet = Biocaml_unix.RSet
 open OUnit
 
 module Test = struct
@@ -24,7 +24,7 @@ let make_int_set (l : (int * int) list) : Int.Set.t =
       Int.Set.union accum (Int.Set.of_list (Range.to_list v))
   in
   List.fold_left ~f ~init:Int.Set.empty l
-    
+
 (** [test ul vl] compares performance and correctness of set intersection and
     union. Sets of type {!IntSet.t} and {!t} are constructed from the given [ul] and
     [vl], and the corresponding intersection and union operations are used on the
@@ -37,7 +37,7 @@ let test vl1 vl2 =
   let intset2 = Test.timesf "making second IntSet" make_int_set vl2 in
   let set1 = Test.timesf "making first efficient set" of_range_list vl1 in
   let set2 = Test.timesf "making second efficient set" of_range_list vl2 in
-  
+
   let is_good intset_op set_op op_name =
     let ans1 = Test.timesf ("naive " ^ op_name) (intset_op intset1) intset2 in
     let ans2 = Test.timesf ("efficient " ^ op_name) (set_op set1) set2 in
@@ -57,7 +57,7 @@ let default_test () =
   test (f ()) (f ());
   printf "\n</RSet Benchmarking>\n";
   ()
-    
+
 let tests = "RSet" >::: [
   "default" >:: default_test;
 ]

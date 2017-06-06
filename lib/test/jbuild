@@ -1,0 +1,8 @@
+(jbuild_version 1)
+
+(library
+ ((name biocaml_test)
+  (public_name biocaml.test)
+  (libraries (biocaml.unix oUnit))
+  (preprocess (pps (ppx_jane)))
+  ))

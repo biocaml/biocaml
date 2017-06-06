@@ -1,5 +1,5 @@
 open Core_kernel.Std
-module UGB = Biocaml_base.Std.Ucsc_genome_browser
+module UGB = Biocaml_base.Ucsc_genome_browser
 open OUnit
 
 let test_track_line_to_string_cases = [

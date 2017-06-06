@@ -1,6 +1,6 @@
 open Core_kernel.Std
-module Gff = Biocaml_unix.Std.Gff
-module Tfxm = Biocaml_unix.Std.Tfxm
+module Gff = Biocaml_unix.Gff
+module Tfxm = Biocaml_unix.Tfxm
 open OUnit
 
 let test_parser () =

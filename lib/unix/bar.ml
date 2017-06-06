@@ -16,7 +16,7 @@ let raise_bad msg = raise (Bad msg)
 
 
 let (<--) a b = fun x -> a (b x)
-let get_assoc_exn a l = List.Assoc.find_exn l a
+let get_assoc_exn a l = List.Assoc.find_exn ~equal:String.equal l a
 let num_sections = List.length <-- snd
 let data_type = get_assoc_exn "Data" <-- fst
 let scale = get_assoc_exn "Scale" <-- fst

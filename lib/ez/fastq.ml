@@ -1,6 +1,6 @@
 open Core_kernel.Std
 open CFStream
-open Biocaml_unix.Std.Fastq
+open Biocaml_unix.Fastq
 
 type nonrec item = item
 

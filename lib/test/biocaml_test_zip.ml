@@ -1,8 +1,8 @@
 open Core_kernel.Std
 open CFStream
-module Bed = Biocaml_unix.Std.Bed
-module Tfxm = Biocaml_unix.Std.Tfxm
-module Zip = Biocaml_unix.Std.Zip
+module Bed = Biocaml_unix.Bed
+module Tfxm = Biocaml_unix.Tfxm
+module Zip = Biocaml_unix.Zip
 open OUnit
 
 type error =

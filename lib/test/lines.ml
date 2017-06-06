@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open CFStream
-module Line = Biocaml_unix.Std.Line
-module Lines = Biocaml_unix.Std.Lines
+module Line = Biocaml_unix.Line
+module Lines = Biocaml_unix.Lines
 open OUnit
 
 let test_of_string () =

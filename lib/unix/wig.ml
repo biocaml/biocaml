@@ -114,9 +114,9 @@ module Transform = struct
   let rec next ~tags p =
     let open Lines.Buffer in
     let assoc_find ~missing l v =
-      match List.Assoc.find l v with | Some v -> Ok v | None -> Error missing in
+      match List.Assoc.find ~equal:String.equal l v with | Some v -> Ok v | None -> Error missing in
     let assoc_find_map ~missing ~wrong ~f l v =
-      match List.Assoc.find l v with
+      match List.Assoc.find ~equal:String.equal l v with
       | Some v -> (try Ok (f v) with _ -> Error wrong)
       | None -> Error missing in
     match (next_line p :> string option) with
@@ -142,7 +142,7 @@ module Transform = struct
           ~missing:(`missing_step_value (current_position p, l))
           ~f:Int.of_string ~wrong:(`wrong_step_value (current_position p, l))
         >>= fun step ->
-        begin match List.Assoc.find assoc "span" with
+        begin match List.Assoc.find ~equal:String.equal assoc "span" with
         | None ->
           Ok (`fixed_step_state_change (chrom, start, step, None))
         | Some span ->
@@ -162,7 +162,7 @@ module Transform = struct
         assoc_find assoc "chrom"
           ~missing:(`missing_chrom_value (current_position p, l))
         >>= fun chrom ->
-        begin match List.Assoc.find assoc "span" with
+        begin match List.Assoc.find ~equal:String.equal assoc "span" with
         | None -> Ok (`variable_step_state_change (chrom, None))
         | Some span ->
           begin match Option.try_with (fun () -> Int.of_string span) with

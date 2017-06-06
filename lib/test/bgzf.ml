@@ -1,5 +1,5 @@
 open Core_kernel.Std
-module Bgzf = Biocaml_unix.Std.Bgzf
+module Bgzf = Biocaml_unix.Bgzf
 open OUnit
 
 let random_string n =

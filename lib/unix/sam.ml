@@ -730,7 +730,7 @@ let optional_field_value_err typ value =
   error "invalid value" (typ,value) [%sexp_of: string * string ]
 
 let optional_field_value_A value =
-  if List.mem ['!';'-';'~'] value
+  if List.mem ~equal:Char.equal ['!';'-';'~'] value
   then optional_field_value_err "A" (Char.to_string value)
   else Ok (`A value)
 

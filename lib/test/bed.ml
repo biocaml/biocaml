@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open CFStream
-module Bed = Biocaml_unix.Std.Bed
-module Tfxm = Biocaml_unix.Std.Tfxm
+module Bed = Biocaml_unix.Bed
+module Tfxm = Biocaml_unix.Tfxm
 open OUnit
 
 let make_stream ?more_columns file : ((Bed.item, Bed.Error.parsing) Result.t) Stream.t =

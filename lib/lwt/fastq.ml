@@ -1,2 +1,2 @@
-include Biocaml_unix.Std.Fastq
+include Biocaml_unix.Fastq
 include MakeIO(Future_lwt)

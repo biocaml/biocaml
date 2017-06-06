@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open OUnit
 open Or_error.Monad_infix
-module Sam = Biocaml_unix.Std.Sam
+module Sam = Biocaml_unix.Sam
 
 let ( %> ) f g x = g (f x)
 
@@ -23,7 +23,7 @@ let tests = "SAM" >::: [
   ]
 
 (* module Sam = Biocaml_unix.Sam_deprecated *)
-(* module Tfxm = Biocaml_unix.Std.Tfxm *)
+(* module Tfxm = Biocaml_unix.Tfxm *)
 
 
 (* let test_parser_deprecated () = *)

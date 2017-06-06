@@ -1,5 +1,5 @@
 open Core_kernel.Std
-module Roman_num = Biocaml_unix.Std.Roman_num
+module Roman_num = Biocaml_unix.Roman_num
 open OUnit
 
 let test_conv () =

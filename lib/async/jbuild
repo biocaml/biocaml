@@ -1,0 +1,8 @@
+(jbuild_version 1)
+
+(library
+ ((name biocaml_async)
+  (public_name biocaml.async)
+  (libraries (biocaml.unix async))
+  (preprocess (pps (ppx_jane)))
+  ))

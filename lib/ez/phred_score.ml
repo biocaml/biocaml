@@ -1,6 +1,6 @@
 open Core_kernel.Std
 
-include Biocaml_unix.Std.Phred_score
+include Biocaml_unix.Phred_score
 
 let of_char ?offset x = ok_exn (of_char ?offset x)
 let to_char ?offset t = ok_exn (to_char ?offset t)

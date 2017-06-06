@@ -1,7 +1,7 @@
 open Core_kernel.Std
 open CFStream
-module Bam = Biocaml_unix.Std.Bam
-module Sam = Biocaml_unix.Std.Sam
+module Bam = Biocaml_unix.Bam
+module Sam = Biocaml_unix.Sam
 open OUnit
 open Utils.Printer
 

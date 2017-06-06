@@ -329,7 +329,7 @@ let string_to_vcfr_filter { vcfm_filters ; _ } s =
     | ["PASS"] -> Ok []
     | chunks ->
       match List.find chunks
-              ~f:(fun chunk -> not (List.Assoc.mem vcfm_filters chunk)) with
+              ~f:(fun chunk -> not (List.Assoc.mem ~equal:String.equal vcfm_filters chunk)) with
         | Some unknown_filter -> Error (`unknown_filter unknown_filter)
         | None -> Ok chunks
 
