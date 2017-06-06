@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 module Roman_num = Biocaml_unix.Roman_num
 open OUnit
 

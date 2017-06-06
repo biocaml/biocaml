@@ -47,7 +47,7 @@
     - [type] - "wiggle_0" is the only value currently supported,
       leaving this attribute unset handles other track types
 *)
-open Core_kernel.Std
+open Core_kernel
 
 (** {2 Item Types} *)
 

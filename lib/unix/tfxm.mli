@@ -15,9 +15,8 @@
     Often mappings need to account for errors, e.g. an input string
     cannot be converted to an integer. Several methods below
     explicitly support buffered transforms where the output type is a
-    [Result.t].
+    [result].
 *)
-open Core_kernel.Std
 
 (** Type of a buffered transform converting ['input]s to
     ['output]s. *)
@@ -44,7 +43,7 @@ exception Feeding_stopped_transform of string
     that the buffer has been stopped but there is not enough input to
     create an output value. It is the caller's choice how to handle
     this or any other kind of error, e.g. make the return type a
-    [Result.t].
+    [result].
 
     - [name] an optional name for the transform that will be used in
     error messages. *)
@@ -169,38 +168,38 @@ val split_and_merge:
     “Split” the inputs of two transforms and “merge” the outputs }     *)
 
 
-(** {2 Result.t Outputs}
+(** {2 result Outputs}
 
     Operations analogous to those above, but for transforms whose
-    output types are [Result.t]s. *)
+    output types are [result]s. *)
 
-(** Like {!make} but the output is a [Result.t]. Also,
+(** Like {!make} but the output is a [result]. Also,
     {!stop} is automatically called when an error occurs. *)
 val make_result:
   ?name:string ->
   feed: ('input -> unit) ->
-  next: (bool -> [ `output of ('a, 'b) Result.t | `end_of_stream | `not_ready ]) ->
+  next: (bool -> [ `output of ('a, 'b) result | `end_of_stream | `not_ready ]) ->
   unit ->
-  ('input, ('a, 'b) Result.t) t
+  ('input, ('a, 'b) result) t
 
 (** Like [on_output] but on the successful  part of the {i output}. *)
-val on_ok: ('input, ('ok, 'error) Result.t) t ->
+val on_ok: ('input, ('ok, 'error) result) t ->
   f:('ok -> 'still_ok) ->
-  ('input, ('still_ok, 'error) Result.t) t
+  ('input, ('still_ok, 'error) result) t
 
 (** Like [on_output] but on the erroneous  part of the {i output}. *)
-val on_error: ('input, ('ok, 'error) Result.t) t ->
+val on_error: ('input, ('ok, 'error) result) t ->
   f:('error -> 'another_errror) ->
-  ('input, ('ok, 'another_errror) Result.t) t
+  ('input, ('ok, 'another_errror) result) t
 
 
 val compose_results:
   on_error:([`left of 'error_left | `right of 'error_right ] -> 'error) ->
-  ( 'input_left, ('middle, 'error_left) Result.t) t ->
-  ( 'middle, ('output_right, 'error_right) Result.t) t ->
-  ( 'input_left, ('output_right, 'error) Result.t) t
+  ( 'input_left, ('middle, 'error_left) result) t ->
+  ( 'middle, ('output_right, 'error_right) result) t ->
+  ( 'input_left, ('output_right, 'error) result) t
 (** [compose_results t u] is like {!compose} but for transforms returning
-    [Result.t]s. The [on_error] function specifies how errors in [t]
+    [result]s. The [on_error] function specifies how errors in [t]
     or [u] should be converted into those in the resultant
     transform.
     {figure src/doc/figures/transform_compose_results.svg 50%
@@ -208,18 +207,18 @@ val compose_results:
 *)
 
 val compose_results_merge_error:
-  ('a, ('b, 'el) Result.t) t ->
-  ('b, ('d, 'er) Result.t) t ->
-  ('a, ('d, [ `left of 'el | `right of 'er ]) Result.t) t
+  ('a, ('b, 'el) result) t ->
+  ('b, ('d, 'er) result) t ->
+  ('a, ('d, [ `left of 'el | `right of 'er ]) result) t
 (** Like {!compose_results} but with a pre-specified [on_error]
     function. *)
 
 val compose_result_left:
-  ( 'input_left, ('middle, 'error) Result.t) t ->
+  ( 'input_left, ('middle, 'error) result) t ->
   ( 'middle, 'output_right) t ->
-  ( 'input_left, ('output_right, 'error) Result.t) t
+  ( 'input_left, ('output_right, 'error) result) t
 (** Like {!compose_results} but only the first transform returns
-    [Result.t]s.
+    [result]s.
     {figure src/doc/figures/transform_compose_result_left.svg 50%
     “Compose” two transforms when only the first one may fail }
 *)

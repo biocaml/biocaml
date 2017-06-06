@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 
 include Biocaml_unix.Range
 

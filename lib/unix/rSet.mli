@@ -1,5 +1,5 @@
 (** Efficient integer sets when many elements expected to be large contiguous sequences of integers. *)
-open Core_kernel.Std
+open Core_kernel
 
 type t
     (** Type of a set of integers. *)

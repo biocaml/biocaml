@@ -14,7 +14,7 @@
     actual records with the efetch utility. These two operations are
     done in one call with the high-level API.
 *)
-open Core_kernel.Std
+open Core_kernel
 
 type database = [
 | `gene

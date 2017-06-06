@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
 
 type how = [ `Parallel | `Sequential | `Max_concurrent_jobs of int ]
@@ -108,7 +108,7 @@ module Reader = struct
     type 'a t = [ `Eof | `Ok of 'a ]
   end
 
-  type t = in_channel
+  type t = In_channel.t
 
   let open_file ?buf_len:_ file =
     In_channel.create file
@@ -138,7 +138,7 @@ module Reader = struct
 end
 
 module Writer = struct
-  type t = out_channel
+  type t = Out_channel.t
 
   let with_file ?perm ?append file ~f =
     Out_channel.with_file ?perm ?append file ~f

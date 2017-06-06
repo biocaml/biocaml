@@ -1,6 +1,6 @@
 (** Roman numerals. Values greater than or equal to 1 are valid roman
     numerals. *)
-open Core_kernel.Std
+open Core_kernel
 
 type t = private int
 

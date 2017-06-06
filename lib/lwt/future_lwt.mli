@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open Lwt
 
 include Biocaml_unix.Future.S

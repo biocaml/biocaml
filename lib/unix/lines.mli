@@ -1,5 +1,4 @@
 (** Manipulate the lines of a file. *)
-open Core_kernel.Std
 
 type item = Line.t
 [@@deriving sexp]
@@ -99,7 +98,7 @@ module Transform : sig
   val group2 :
     unit ->
     (item,
-    (item * item, [> `premature_end_of_input ]) Result.t) Tfxm.t
+    (item * item, [> `premature_end_of_input ]) result) Tfxm.t
 
   val item_to_string: ?buffer:[ `clear of int | `reset of int ] ->
     unit -> (item, string) Tfxm.t
@@ -110,13 +109,13 @@ module Transform : sig
   (** Build a stoppable line-oriented parsing_buffer. *)
   val make : ?name:string -> ?filename:string ->
     next:(Buffer.t ->
-      [ `not_ready | `output of ('b, 'errnext) Result.t ]) ->
+      [ `not_ready | `output of ('b, 'errnext) result ]) ->
     on_error:(
       [`next of 'errnext
       | `incomplete_input of Pos.t * string list * string option] ->
         'err) ->
     unit ->
-    (string, ('b, 'err) Result.t) Tfxm.t
+    (string, ('b, 'err) result) Tfxm.t
 
   (** Do like [make] but merge [`incomplete_input _] with the
       errors of [~next] (which must be polymorphic variants). *)
@@ -128,8 +127,8 @@ module Transform : sig
       | `output of ('a,
                    [> `incomplete_input of
                      Pos.t * string list * string option ]
-                     as 'b) Result.t ]) ->
+                     as 'b) result ]) ->
     unit ->
-    (string, ('a, 'b) Result.t) Tfxm.t
+    (string, ('a, 'b) result) Tfxm.t
 
 end

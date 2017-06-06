@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open Lwt
 
 type how = [ `Parallel | `Sequential | `Max_concurrent_jobs of int ]

@@ -29,7 +29,6 @@
     each chromosome. This is not enforced, but you can use
     [any_overlap] to verify this property when needed.
 *)
-open Core_kernel.Std
 
 (** {2 Item Types} *)
 
@@ -81,7 +80,7 @@ exception Error of  Error.t
 (** The exception raised by the [*_exn] functions. *)
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?more_columns:parsing_spec ->
-  in_channel -> (item, [> Error.parsing]) Result.t Stream.t
+  in_channel -> (item, [> Error.parsing]) result Stream.t
 (** Parse an input-channel into [item] values. *)
 
 val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spec ->
@@ -95,7 +94,7 @@ val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spe
 *)
 
 val item_of_line: how:parsing_spec -> Lines.item ->
-  (item, [> Error.parsing]) Result.t
+  (item, [> Error.parsing]) result
 (** Basic parsing of a single line. *)
 
 val item_to_line: item -> Lines.item
@@ -111,7 +110,7 @@ module Transform: sig
     unit ->
     (string,
      (string * int * int * Table.Row.item array,
-      [> Error.parsing]) Result.t) Tfxm.t
+      [> Error.parsing]) result) Tfxm.t
   (** Create a [Tfxm.t]-based parser, while providing the
      format of the additional columns (default [`strings]). *)
 

@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 module Result = Biocaml_result
 open CFStream
 open Or_error

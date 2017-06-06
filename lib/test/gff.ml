@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 module Gff = Biocaml_unix.Gff
 module Tfxm = Biocaml_unix.Tfxm
 open OUnit

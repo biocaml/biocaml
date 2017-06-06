@@ -2,7 +2,7 @@
     must be converted using Affymetrix's conversion tool. This tool does
     not change file extension, so be sure your file really is in text
     format. *)
-open Core_kernel.Std
+open Core_kernel
 
 type t
 (** The type of a CEL file. *)

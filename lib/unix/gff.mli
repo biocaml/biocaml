@@ -21,7 +21,6 @@
       }
     }
 *)
-open Core_kernel.Std
 
 (** {2 GFF Item Types} *)
 
@@ -83,7 +82,7 @@ module Tags: sig
       [{version = `three; allow_empty_lines = false; sharp_comments = true}]. *)
 
   val of_string: string ->
-    (t, [> `gff of [> `tags_of_string of exn ] ]) Result.t
+    (t, [> `gff of [> `tags_of_string of exn ] ]) result
   (** Parse tags (for now S-Expressions). *)
 
   val to_string: t -> string
@@ -100,7 +99,7 @@ exception Error of  Error.t
 
 val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string ->
   ?tags:Tags.t -> in_channel ->
-  (item, [> Error.parsing]) Result.t Stream.t
+  (item, [> Error.parsing]) result Stream.t
 (** Parse an input-channel into [item] values. *)
 
 val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:Tags.t ->
@@ -122,7 +121,7 @@ module Transform: sig
     ?filename:string ->
     tags: Tags.t ->
     unit ->
-    (string, (item, [> Error.parsing]) Result.t) Tfxm.t
+    (string, (item, [> Error.parsing]) result) Tfxm.t
   (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
   val item_to_string: tags: Tags.t -> unit ->

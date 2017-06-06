@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
 module Line = Biocaml_unix.Line
 module Lines = Biocaml_unix.Lines

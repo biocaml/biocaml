@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 
 type t = int
 [@@deriving sexp]
@@ -50,12 +50,12 @@ let of_char ?(offset=`Offset33) x =
 
 let of_probability ?(f = round_float_to_int) x =
   if 0.0 < x && x <= 1.0 then
-    Ok (f (-10. *. log10 x))
+    Ok (f (-10. *. Float.log10 x))
   else
     error "invalid probability" x sexp_of_float
 
 let of_solexa_score ?(f = round_float_to_int) x =
-  f (10. *. log10((10. ** (Float.of_int x /. 10.)) +. 1.))
+  f (10. *. Float.log10((10. ** (Float.of_int x /. 10.)) +. 1.))
 
 let to_solexa_score ?(f = round_float_to_int) t =
-  f (10. *. log10((10. ** (Float.of_int t /. 10.)) -. 1.))
+  f (10. *. Float.log10((10. ** (Float.of_int t /. 10.)) -. 1.))

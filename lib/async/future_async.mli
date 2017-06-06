@@ -1,5 +1,5 @@
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 include Biocaml_unix.Future.S
   with type 'a Deferred.t = 'a Deferred.t

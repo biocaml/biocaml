@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
 module Tfxm = Biocaml_unix.Tfxm
 module Wig = Biocaml_unix.Wig
@@ -8,7 +8,7 @@ let file_parser_stream file =
   let filename = "etc/test_data/" ^ file in
   let t =
     Wig.Transform.string_to_item  ~filename () in
-  let ic = open_in filename in
+  let ic = In_channel.create filename in
   Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic t
 
 let file_reprinter_stream file =
@@ -17,7 +17,7 @@ let file_reprinter_stream file =
     Wig.Transform.string_to_item ~filename () in
   let printer = Wig.Transform.item_to_string () in
   let transfo = Tfxm.compose_result_left t printer in
-  let ic = open_in filename in
+  let ic = In_channel.create filename in
   Tfxm.in_channel_strings_to_stream ~buffer_size:4 ic transfo
 
 let check_output s m v =
@@ -120,7 +120,7 @@ let test_to_bed_graph () =
       Wig.Transform.string_to_item ~filename () in
     let to_bg = Wig.Transform.item_to_bed_graph () in
     let transfo = Tfxm.compose_results_merge_error t to_bg in
-    let ic = open_in filename in
+    let ic = In_channel.create filename in
     Tfxm.in_channel_strings_to_stream ~buffer_size:7 ic transfo in
   let s = stream "wig_01.wig" in
 

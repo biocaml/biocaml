@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
 open Stream.Infix
 module Interval_tree = Biocaml_unix.Interval_tree

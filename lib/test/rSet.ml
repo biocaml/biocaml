@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 module Range = Biocaml_unix.Range
 module RSet = Biocaml_unix.RSet
 open OUnit

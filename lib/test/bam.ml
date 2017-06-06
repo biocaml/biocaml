@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
 module Bam = Biocaml_unix.Bam
 module Sam = Biocaml_unix.Sam

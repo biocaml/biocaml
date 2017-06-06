@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 
 module Safe = struct
   type error = [ `invalid_int of string

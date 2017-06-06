@@ -2,7 +2,7 @@
     contiguous sequence of integers from a lower bound to an upper
     bound. For example, [\[2, 10\]] is the set of integers from 2 through
     10, inclusive of 2 and 10. *)
-open Core_kernel.Std
+open Core_kernel
 
 (** Type of a range. *)
 type t = private {lo:int; hi:int}
