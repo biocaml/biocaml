@@ -1,11 +1,12 @@
 open Printf
 
-type assembly = [ `dm3 | `hg18 | `hg19 | `mm8 | `mm9 | `mm10 | `sacCer2 ]
+type assembly = [ `dm3 | `hg18 | `hg19 | `hg38 | `mm8 | `mm9 | `mm10 | `sacCer2 ]
 
 let string_of_assembly = function
   | `dm3 -> "dm3"
   | `hg18 -> "hg18"
   | `hg19 -> "hg19"
+  | `hg38 -> "hg38"
   | `mm8 -> "mm8"
   | `mm9 -> "mm9"
   | `mm10 -> "mm10"
