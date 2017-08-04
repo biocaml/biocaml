@@ -38,7 +38,6 @@ depopts: [
   "async"
   "core"
   "lwt"
-  "ounit"
 ]
 
 available: [
