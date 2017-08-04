@@ -19,6 +19,7 @@ authors: [
 build: ["jbuilder" "build" "-p" name "-j" jobs]
 
 depends: [
+  "base64"
   "ocamlfind" {build}
   "jbuilder" {build & >= "1.0+beta8"}
   "core_kernel" {>= "0.9.1"}
