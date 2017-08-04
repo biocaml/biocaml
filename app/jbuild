@@ -2,6 +2,5 @@
 
 (executable
  ((name biocaml_run_tests)
-  (public_name biocaml_run_tests)
   (libraries (biocaml.test))
   ))
