@@ -40,7 +40,7 @@ let assert_alignments header al1 al2 =
   ()
 
 let test_read () =
-  Bam.with_file0 "etc/test_data/bam_01.bam" ~f:(fun header alignments ->
+  Bam.with_file0 (Utils.test_file "bam_01.bam") ~f:(fun header alignments ->
       let sh = Bam.Header.to_sam header in
       assert_equal ~msg:"Sam version" ~printer:[%sexp_of: string option] (Some "1.0") sh.Sam.version ;
       assert_equal ~msg:"Sort order" (Some `Unsorted) sh.Sam.sort_order ;
@@ -55,7 +55,7 @@ let test_read () =
   |> ok_exn
 
 let test_read_write_and_read () =
-  let bamfile = "etc/test_data/bam_01.bam" in
+  let bamfile = Utils.test_file "bam_01.bam" in
   Utils.with_temp_file "biocaml" ".bam" ~f:(fun fn ->
       Bam.with_file0 bamfile ~f:(fun header alignments ->
           Out_channel.with_file fn ~f:(Bam.write0 header (Stream.map alignments ~f:ok_exn)) ;

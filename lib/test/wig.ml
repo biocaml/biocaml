@@ -5,14 +5,14 @@ module Wig = Biocaml_unix.Wig
 open OUnit
 
 let file_parser_stream file =
-  let filename = "etc/test_data/" ^ file in
+  let filename = Utils.test_file file in
   let t =
     Wig.Transform.string_to_item  ~filename () in
   let ic = In_channel.create filename in
   Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic t
 
 let file_reprinter_stream file =
-  let filename = "etc/test_data/" ^ file in
+  let filename = Utils.test_file file in
   let t =
     Wig.Transform.string_to_item ~filename () in
   let printer = Wig.Transform.item_to_string () in
@@ -115,7 +115,7 @@ let test_printer () =
 
 let test_to_bed_graph () =
   let stream file =
-    let filename = "etc/test_data/" ^ file in
+    let filename = Utils.test_file file in
     let t =
       Wig.Transform.string_to_item ~filename () in
     let to_bg = Wig.Transform.item_to_bed_graph () in

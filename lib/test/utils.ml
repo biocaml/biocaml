@@ -1,5 +1,9 @@
 open Core_kernel
 
+let test_data_path = "../etc/test_data"
+
+let test_file fn = Filename.concat test_data_path fn
+
 let with_temp_file pre suff ~f =
   let fn = Filename.temp_file pre suff in
   let r = try `Ok (f fn) with e -> `Error e in

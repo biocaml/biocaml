@@ -5,8 +5,7 @@ module Vcf = Biocaml_unix.Vcf
 open OUnit
 
 let make_stream name =
-  let (/) = Filename.concat in
-  let filename = "etc"/"test_data"/name in
+  let filename = Utils.test_file name in
   let t  = Vcf.Transform.string_to_item ~filename () in
   let ic = In_channel.create filename in
   Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic t
