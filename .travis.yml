@@ -1,0 +1,17 @@
+sudo: required
+
+language: c
+
+matrix:
+  include:
+    - os: linux
+      env: COMPILER=4.03
+
+script: bash -e etc/travis.sh
+
+notifications:
+  email:
+    recipients:
+      - philippe.veber@gmail.com
+    on_success: always
+    on_failure: always
