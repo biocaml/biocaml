@@ -45,7 +45,7 @@
     span multiple lines. This is discouraged and is not supported by
     this module.
 *)
-open Core_kernel.Std
+open Core_kernel
 
 type item = {
   name: string;

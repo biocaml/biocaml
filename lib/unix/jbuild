@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(library
+ ((name biocaml_unix)
+  (public_name biocaml.unix)
+  (c_names (mzData_stubs pwm_stub))
+  (libraries (base64 biocaml.base cfstream core_kernel re.perl xmlm zip))
+  (preprocess (pps (ppx_jane)))
+  ))

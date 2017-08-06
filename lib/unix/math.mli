@@ -1,5 +1,5 @@
 (** Numeric mathematics. *)
-open Core_kernel.Std
+open Core_kernel
 
 (** {6 Arithmetic Operations} *)
 

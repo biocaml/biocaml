@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 
 exception Error of string
 
@@ -26,6 +26,6 @@ let of_ascii x =
 
 let of_probability ?(f = Float.iround_nearest_exn) x =
   if 0.0 <= x && x <= 1.0 then
-    f (-10. *. log10(x /. (1. -. x)))
+    f (-10. *. Float.log10(x /. (1. -. x)))
   else
     Error (sprintf "invalid probability %0.17g" x) |> raise

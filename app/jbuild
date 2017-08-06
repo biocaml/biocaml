@@ -1,0 +1,11 @@
+(jbuild_version 1)
+
+(executable
+ ((name biocaml_run_tests)
+  (libraries (biocaml_test))
+  ))
+
+(alias
+ ((name runtest)
+  (deps (biocaml_run_tests.exe (files_recursively_in ../etc/test_data)))
+  (action (bash "./biocaml_run_tests.exe"))))

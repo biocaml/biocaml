@@ -1,2 +1,2 @@
-include Biocaml_unix.Std.Lines
+include Biocaml_unix.Lines
 include MakeIO(Future_lwt)

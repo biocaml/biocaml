@@ -21,7 +21,7 @@ released can install from source. First get the code from
 
 Then run
 
-    make
+    jbuilder build
 
 ## Merlin
 
@@ -33,7 +33,7 @@ for usage instructions on Merlin itself.
 ## Tests
 To compile tests, install `oUnit` and run `make` again. Tests can then be run by doing
 
-    ./biocaml_run_tests.byte
+    jbuilder runtest
 
 ## Benchmarks
 

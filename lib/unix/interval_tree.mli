@@ -6,7 +6,7 @@
     For a brief description of the implementation, see {{:http://en.wikipedia.org/wiki/Interval_tree#Augmented_tree}the matching Wikipedia article}
 
 *)
-open Core_kernel.Std
+open Core_kernel
 
 type 'a t
 

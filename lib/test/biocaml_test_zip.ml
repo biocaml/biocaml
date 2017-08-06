@@ -1,8 +1,8 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
-module Bed = Biocaml_unix.Std.Bed
-module Tfxm = Biocaml_unix.Std.Tfxm
-module Zip = Biocaml_unix.Std.Zip
+module Bed = Biocaml_unix.Bed
+module Tfxm = Biocaml_unix.Tfxm
+module Zip = Biocaml_unix.Zip
 open OUnit
 
 type error =
@@ -13,7 +13,7 @@ type error =
 let some_ok x = Some (Ok x)
 
 let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
-  let file = "etc/test_data/bed_03_more_cols.bed" in
+  let file = Utils.test_file "bed_03_more_cols.bed" in
   let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
   Unix.system (sprintf "gzip -c %s > %s" file tmp) |> ignore;
 
@@ -22,7 +22,7 @@ let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
       (Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
       (Bed.Transform.string_to_item
          ~more_columns:(`enforce [|`type_string; `type_int; `type_float|]) ()) in
-  let ic = open_in tmp in
+  let ic = In_channel.create tmp in
   let stream = Tfxm.in_channel_strings_to_stream ic unzip_and_parse in
   (stream, fun () -> Sys.remove tmp)
 
@@ -53,7 +53,7 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   cmd "gzip %s" tmp2;
   cmd "cat %s.gz %s.gz > %s.gz" tmp1 tmp2 tmp3;
   let t = Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size () in
-  let ic = open_in (sprintf "%s.gz" tmp3) in
+  let ic = In_channel.create (sprintf "%s.gz" tmp3) in
   let s = Tfxm.in_channel_strings_to_stream ~buffer_size ic t in
   let l = Stream.npeek s 300 in
   let expected = sprintf "%s\n%s\n" first second in

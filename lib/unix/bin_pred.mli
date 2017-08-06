@@ -8,7 +8,7 @@
     score threshold.
  *)
 
-open Core_kernel.Std
+open Core_kernel
 
 type confusion_matrix = private {
   tp : int ;

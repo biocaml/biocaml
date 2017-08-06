@@ -3,7 +3,7 @@
     further information. Gaps are not supported. Internal representation
     uses uppercase, but constructors are case-insensitive. By convention
     the first nucleic acid in a sequence is numbered 1. *)
-open Core_kernel.Std
+open Core_kernel
 
 type t
     (** Type of a sequence *)

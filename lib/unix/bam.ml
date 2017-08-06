@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 module Result = Biocaml_result
 open CFStream
 open Or_error
@@ -375,7 +375,7 @@ module Alignment0 = struct
           | `Seq_match i -> 7l, i
           | `Seq_mismatch i -> 8l, i
         in
-        write idx (bit_or 0l (of_int_exn (i lsl 4)))
+        write idx (bit_or 0l (of_int_exn Pervasives.(i lsl 4)))
       ) ;
     buf
 

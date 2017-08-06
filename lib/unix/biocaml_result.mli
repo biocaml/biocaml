@@ -1,5 +1,5 @@
 (** Extension of Core's Result. Internal use only. *)
-open Core_kernel.Std
+open Core_kernel
 
 include module type of Result
 

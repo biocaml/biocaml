@@ -85,7 +85,7 @@
     - [alphabet]: Require sequence characters to be at most those in
     given string. None means any character is allowed. Default: None.
 *)
-open Core_kernel.Std
+open Core_kernel
 
 (** A header is a list of comment lines. *)
 type header = private string list
@@ -157,13 +157,13 @@ val read0
   -> ?allow_empty_lines:bool
   -> ?max_line_length:int
   -> ?alphabet:string
-  -> in_channel
+  -> In_channel.t
   -> item0 Or_error.t Stream.t
 
 val read
   :  ?start:Pos.t
   -> ?fmt:fmt
-  -> in_channel
+  -> In_channel.t
   -> (header * item Or_error.t Stream.t) Or_error.t
 
 val with_file

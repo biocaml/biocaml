@@ -1,8 +1,8 @@
-open Core_kernel.Std
+open Core_kernel
 open OUnit
 open Rresult
 
-module Fasta = Biocaml_base.Std.Fasta
+module Fasta = Biocaml_base.Fasta
 
 type ('a, 'b) result = ('a, 'b) Pervasives.result =
   | Ok of 'a

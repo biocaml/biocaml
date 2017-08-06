@@ -1,4 +1,4 @@
-module String = Biocaml_string
+open Base
 open Rresult
 
 module Xls = struct
@@ -27,15 +27,15 @@ module Xls = struct
     try R.ok (f x)
     with _ -> R.error_msgf "Failed to parse field %s" field
 
-  let parse_int = parse_field int_of_string
-  let parse_float = parse_field float_of_string
+  let parse_int = parse_field Int.of_string
+  let parse_float = parse_field Float.of_string
 
   let parse line =
     match (line : Line.t :> string) with
     | "" -> R.ok (`Comment "")
-    | line when line = header -> R.ok `Header
+    | line when String.(line = header) -> R.ok `Header
     | line ->
-      if line.[0] = '#' then R.ok (`Comment (String.slice line 1 0))
+      if Char.(line.[0] = '#') then R.ok (`Comment (String.slice line 1 0))
       else
         match String.split ~on:'\t' line with
         | [ chr ; start ; end_ ; length ; abs_summit ;

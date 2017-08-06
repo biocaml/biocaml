@@ -16,22 +16,13 @@ authors: [
   "Francois Berenger"
 ]
 
-build: [
-  [make "byte"]
-  [make "native"]
-  [make "META"]
-  [make "%{name}%.install"]
-]
-
-build-doc: [
-  ["omake" "-j%{jobs}%" "doc"]
-  ["omake" "install_doc" "DOCDIR=%{doc}%/biocaml"]
-]
+build: ["jbuilder" "build" "-p" name "-j" jobs]
 
 depends: [
+  "base64"
   "ocamlfind" {build}
-  "solvuu-build" {build & >= "0.3.0"}
-  "core_kernel" {>= "111.13.00" & <= "113.33.03"}
+  "jbuilder" {build & >= "1.0+beta8"}
+  "core_kernel" {>= "0.9.1"}
   "sexplib"
   "camlzip" {>= "1.05"}
   "xmlm"
@@ -47,11 +38,6 @@ depopts: [
   "async"
   "core"
   "lwt"
-  "ounit"
-]
-
-conflicts: [
-  "core" {< "111.13.00" & > "113.33.03"}
 ]
 
 available: [

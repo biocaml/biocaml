@@ -1,5 +1,5 @@
-open Core_kernel.Std
-module Bgzf = Biocaml_unix.Std.Bgzf
+open Core_kernel
+module Bgzf = Biocaml_unix.Bgzf
 open OUnit
 
 let random_string n =
@@ -41,6 +41,6 @@ let tests = "Bgzf" >::: [
     "Unparse/Parse 1-block file" >:: test_parse_of_unparse 0x100 ;
     "Unparse/Parse 2-block file" >:: test_parse_of_unparse 0x10000 ;
     "Unparse/Parse big file"     >:: test_parse_of_unparse 0x1000000 ;
-    "Parse bgzf_01" >:: test_parse_file_per_char "etc/test_data/bgzf_01.bgzf" ;
-    "Parse bgzf_02" >:: test_parse_file_per_char "etc/test_data/bgzf_02.bgzf" ;
+    "Parse bgzf_01" >:: test_parse_file_per_char (Utils.test_file "bgzf_01.bgzf") ;
+    "Parse bgzf_02" >:: test_parse_file_per_char (Utils.test_file "bgzf_02.bgzf") ;
   ]

@@ -1,7 +1,7 @@
-open Core.Std
+open Core
 open CFStream
 open Biocaml_unix.Std
-open Core.Std
+open Core
 open Core_bench.Std
 
 let s = "actgcatgcatgc\ncaactatcatctatca\ncatcattcatcttctatcta\ncatcatctatctatctat\n"

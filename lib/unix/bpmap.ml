@@ -1,4 +1,4 @@
-open Core_kernel.Std
+open Core_kernel
 open CFStream
 
 type probe = {org_name:string; version:string; chr_name:string; start_pos:int; sequence:Seq.t}

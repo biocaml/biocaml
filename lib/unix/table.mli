@@ -1,5 +1,5 @@
 (** Generic “tables” (like CSV, TSV, Bed …). *)
-open Core_kernel.Std
+open Core_kernel
 
 (** {2 Table Rows/Lines } *)
 

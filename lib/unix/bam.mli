@@ -5,7 +5,7 @@
     specification}.
 *)
 
-open Core_kernel.Std
+open Core_kernel
 
 (** A BAM file is composed of a header and a list of alignment
     records. The datatypes used in this module are based on those
@@ -60,7 +60,7 @@ module Alignment0 : sig
   val encode : alignment -> Header.t -> t Or_error.t
 end
 
-val read0 : in_channel -> (Header.t * Alignment0.t Or_error.t Stream.t) Or_error.t
+val read0 : In_channel.t -> (Header.t * Alignment0.t Or_error.t Stream.t) Or_error.t
 (** [read0 ic] returns an error if a valid header cannot be read from
     [ic] or a pair containing a header and a stream of possibly
     errored (partially parsed) alignments. The stream stops after the first error. *)
@@ -72,11 +72,11 @@ val with_file0 : string -> f:(Header.t -> Alignment0.t Or_error.t Stream.t -> 'a
     stream it receives as a second argument, since after the call to
     [with_file] the underlying channel is closed. *)
 
-val write0 : Header.t -> Alignment0.t Stream.t -> out_channel -> unit
+val write0 : Header.t -> Alignment0.t Stream.t -> Out_channel.t -> unit
 (** [write0 h xs oc] writes the header [h] and (partially parsed)
     alignments [xs] to [oc]. *)
 
-val read : in_channel -> (Header.t * alignment Or_error.t Stream.t) Or_error.t
+val read : In_channel.t -> (Header.t * alignment Or_error.t Stream.t) Or_error.t
 (** [read ic] returns an error if a valid header cannot be read from
     [ic] or a pair containing a header and a stream of possibly
     errored alignments. The stream stops after the first error. *)
@@ -88,6 +88,6 @@ val with_file : string -> f:(Header.t -> alignment Or_error.t Stream.t -> 'a Or_
     stream it receives as a second argument, since after the call to
     [with_file] the underlying channel is closed. *)
 
-val write : Header.t -> alignment Stream.t -> out_channel -> unit Or_error.t
+val write : Header.t -> alignment Stream.t -> Out_channel.t -> unit Or_error.t
 (** [write h xs oc] writes the header [h] and the alignments [xs] to
     [oc]. *)

@@ -17,7 +17,7 @@
 
 (* http://www.umanitoba.ca/afs/plant_science/psgendb/local/install/ncbi_cxx--Jun_15_2010/src/algo/ms/formats/mzdata/mzData.dtd *)
 
-open Core_kernel.Std
+open Core_kernel
 open Bigarray
 
 type vec = (float, float64_elt, fortran_layout) Array1.t
@@ -204,7 +204,7 @@ let rec get_spectrum xml spec depth =
 let empty_vec = Array1.create float64 fortran_layout 0
 
 let of_file fname =
-  let fh = open_in fname in
+  let fh = In_channel.create fname in
   let xml = Xmlm.make_input ~enc:(Some `UTF_8) (`Channel fh) in
   let scans = ref [] in
   while not(Xmlm.eoi xml) do
