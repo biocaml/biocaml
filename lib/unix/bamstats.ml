@@ -13,6 +13,7 @@ type t = {
                            and [!secondary_alignment]
                            and [!supplementary_alignment] *)
 }
+[@@deriving sexp]
 
 let zero = {
   total = 0 ;

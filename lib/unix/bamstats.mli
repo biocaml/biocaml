@@ -13,6 +13,7 @@ type t = {
                            and [!secondary_alignment]
                            and [!supplementary_alignment] *)
 }
+[@@deriving sexp]
 
 val zero : t
 val update0 : t -> Bam.Alignment0.t -> t Or_error.t
