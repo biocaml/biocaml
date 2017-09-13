@@ -15,6 +15,10 @@ module Parser : sig
   (** The initial state to be fed to the {!step} function. *)
   val initial_state : state
 
+  (** Number of lines seen so far. We have [line_number initial_state
+      = 0], and [line_number (fst (step _ (Some _))) > 0] *)
+  val line_number : state -> int
+
   (** [step st i] parses an input. If [i = None], the caller indicates
       that there is no more input; in that case the returned state is
       terminal: all inputs read from this state will be ignored. *)
