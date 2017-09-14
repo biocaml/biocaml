@@ -31,3 +31,12 @@ let split str ~on:c =
 let append x y = x ^ y
 
 let to_string x = x
+
+let concat ?sep xs =
+  if Caml.(sep = Some '\n')
+  then invalid_arg "Biocaml_base.Line.concat: newline character is not allowed as separator" ;
+  let sep = match sep with
+    | None -> ""
+    | Some c -> String.of_char c
+  in
+  String.concat ~sep xs

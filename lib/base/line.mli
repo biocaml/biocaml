@@ -25,6 +25,10 @@ val rightmost : string -> string option * t
 (** {2 Standard String Operations} *)
 
 val append : t -> t -> t
+
+(** @raise [Invalid_arg _] if [sep = '\n'] *)
+val concat : ?sep:char -> t list -> t
+
 val split : t -> on:char -> string list
 
 (** {2 S-Expressions } *)
