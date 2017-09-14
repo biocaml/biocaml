@@ -4,7 +4,7 @@
     integer, where p is a probability. Phred scores are far more
     widely used, and the {!module: Phred_score} module supports
     converting Solexa scores to Phred scores.
-    
+
     For details see {{:http://dx.doi.org/10.1093/nar/gkp1137}The
     Sanger FASTQ file format for sequences with quality scores, and
     the Solexa/Illumina FASTQ variants}. This module supports what is
@@ -17,7 +17,6 @@
     reason for this minimum based on the general definition of Solexa
     scores.
 *)
-open Core_kernel
 
 exception Error of string
 

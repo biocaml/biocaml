@@ -1,12 +1,11 @@
 (** Interval tree (data structure)
-    
+
     An interval tree is a collection of integer-bounded intervals labeled by a
     value.
 
     For a brief description of the implementation, see {{:http://en.wikipedia.org/wiki/Interval_tree#Augmented_tree}the matching Wikipedia article}
 
 *)
-open Core_kernel
 
 type 'a t
 
@@ -73,12 +72,3 @@ val print : 'a t -> unit
 
 val check_integrity : 'a t -> unit
 (** Used for debugging purpose, should be removed in the long run *)
-
-
-
-
-
-
-
-
-

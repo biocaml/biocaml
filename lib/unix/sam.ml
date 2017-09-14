@@ -679,7 +679,7 @@ let parse_cigar text =
             | 'X' -> cigar_op_seq_mismatch n
             | other -> Or_error.error "invalid cigar operation type" other Char.sexp_of_t
           in
-          Or_error.tag x "Sam.parse_cigar: invalid cigar string" >>= fun x ->
+          Or_error.tag x ~tag:"Sam.parse_cigar: invalid cigar string" >>= fun x ->
           loop (x::accum)
         with
           _ ->

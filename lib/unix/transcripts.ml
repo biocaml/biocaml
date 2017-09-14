@@ -1,4 +1,3 @@
-open Core_kernel
 (*
 type 'a transcript = {
   exons : (int * int) list;

@@ -285,7 +285,7 @@ module Make(F : Fetch) = struct
         allele = sleaf "Gene-ref_allele" t ;
         desc = sleaf "Gene-ref_desc" t ;
         maploc = sleaf "Gene-ref_maploc" t ;
-        pseudo = Option.bind (echild "Gene-ref_pseudo" t) (battr "value") ;
+        pseudo = Option.bind (echild "Gene-ref_pseudo" t) ~f:(battr "value") ;
         db =
           Option.value_map
             (echild "Gene-ref_db" t)

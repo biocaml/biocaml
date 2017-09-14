@@ -323,7 +323,7 @@ module Alignment0 = struct
     loop buf 0 []
 
   let optional_fields al =
-    tag (parse_optional_fields al.optional) "Bam.Alignment0.optional_fields"
+    tag (parse_optional_fields al.optional) ~tag:"Bam.Alignment0.optional_fields"
 
 
 
@@ -710,7 +710,7 @@ let write0 header alignments oc =
   Stream.iter alignments ~f:(write_alignment oz) ;
   Bgzf.dispose_out oz
 
-let bind f x = Or_error.bind x f
+let bind f x = Or_error.bind x ~f
 
 let read ic =
   read0 ic >>= fun (header, xs) ->

@@ -14,8 +14,6 @@
 (* Various parts of this module, as well as its global structure are
    adapted from the gzip module in the camlzip library. *)
 
-open Printf
-
 let max_block_size = 0x10000
 let max_isize = 0xff00
 

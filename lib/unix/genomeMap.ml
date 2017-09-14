@@ -129,7 +129,7 @@ module Make(Chromosome : Chromosome) = struct
   let closest lmap (k,r) =
     Option.bind
       (Map.find lmap k)
-      Range.(fun x ->
+      ~f:Range.(fun x ->
           try
             let lo,hi,label,d = T.find_closest r.lo r.hi x in
             Some ((k, ok_exn (make lo hi)), label, d)

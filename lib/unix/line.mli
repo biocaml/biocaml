@@ -1,5 +1,4 @@
 (** Single line of text. See also {!module: Lines}. *)
-open Core_kernel
 
 (** A line is simply a string, possibly empty, that does not contain a
     newline character. As the name suggests, usually such strings are

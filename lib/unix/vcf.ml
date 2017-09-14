@@ -508,7 +508,6 @@ module Transform = struct
       | None -> Error `not_ready
 
   let next_vcf_row meta p =
-    let open Line in
     let open Lines.Buffer in
     match (next_line p :> string option) with
       | Some l when not (String.is_empty l) ->

@@ -21,7 +21,6 @@
     for [line] and [offset] also shouldn't be used, but we do not
     bother disallowing it.
 *)
-open Core_kernel
 
 type t = {
   source : string option;
