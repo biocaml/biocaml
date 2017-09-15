@@ -1,0 +1,9 @@
+open Biocaml_base
+
+exception Parse_error of string
+
+type 'a t = string -> string -> f:('a -> 'a list) -> unit
+
+val lines : Line.t t
+
+val bed5 : Bed.Bed5.item t
