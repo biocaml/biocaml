@@ -32,6 +32,11 @@ val of_string : string -> item Stream.t
 val to_channel : item Stream.t -> out_channel -> unit
 (** Write a stream of lines to an output-channel. *)
 
+val with_file :
+  string ->
+  f:(Line.t Stream.t -> 'a) ->
+  'a
+
 module Buffer : sig
   (** Buffer used to parse strings into lines. *)
 

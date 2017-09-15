@@ -65,6 +65,11 @@ let to_channel xs oc =
     Out_channel.newline oc
   )
 
+let with_file fn ~f =
+  In_channel.with_file fn ~f:(fun ic ->
+      f (read ic)
+    )
+
 module Buffer = struct
 
   type t = {
