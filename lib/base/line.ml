@@ -4,6 +4,8 @@ type t = string [@@deriving sexp]
 
 let empty = ""
 
+let of_string_unsafe = Fn.id
+
 let rightmost x =
   match String.rsplit2 x ~on:'\n' with
   | None -> (None, x)
@@ -30,7 +32,7 @@ let split str ~on:c =
 
 let append x y = x ^ y
 
-let to_string x = x
+let to_string = Fn.id
 
 let concat ?sep xs =
   if Caml.(sep = Some '\n')
@@ -40,3 +42,8 @@ let concat ?sep xs =
     | Some c -> String.of_char c
   in
   String.concat ~sep xs
+
+let lstrip = String.lstrip
+let rstrip = String.rstrip
+let strip = String.strip
+let for_all = String.for_all
