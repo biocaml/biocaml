@@ -22,3 +22,19 @@ module Xls : sig
 
   val parse : Line.t -> (item,  [> `Msg of string]) result
 end
+
+module Broad_peaks : sig
+  type item = {
+    chr : string ;
+    chr_start : int ;
+    chr_end : int ;
+    name : string ;
+    score : int ;
+    strand : string ;
+    fold_change : float ;
+    log10pvalue : float ;
+    log10qvalue : float ;
+  }
+
+  val parse : Line.t -> (item,  [> `Msg of string]) result
+end
