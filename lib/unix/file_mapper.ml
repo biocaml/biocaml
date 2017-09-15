@@ -16,11 +16,13 @@ let lines inbed outbed ~f =
         )
     )
 
-let bed5 infile outfile ~f =
+let line_mapper item_parser item_unparser infile outfile ~f =
   lines infile outfile ~f:(fun line ->
-      match B.Bed.Bed5.item_of_line line with
+      match item_parser line with
       | Ok item ->
-        List.map (f item) ~f:B.Bed.Bed5.line_of_item
+        List.map (f item) ~f:item_unparser
       | Error msg -> raise (Parse_error msg)
     )
 
+let bed5 = B.Bed.Bed5.(line_mapper item_of_line line_of_item)
+let bed5_raw = B.Bed.Bed5_raw.(line_mapper item_of_line line_of_item)
