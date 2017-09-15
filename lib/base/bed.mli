@@ -24,32 +24,45 @@ module Bed4 : sig
 
 end
 
-module Raw_bed5 : sig
-  type item = {
-    chrom : string ;
-    chrom_start : int ;
-    chrom_end : int ;
-    name : string ;
-    score : int ;
-    others : string array ;
-  }
-  [@@deriving sexp]
-
-  val item_of_line : Line.t -> (item, string) result
-end
-
-module Bed5 : sig
+module Bed5_raw : sig
   type item = private {
     chrom : string ;
     chrom_start : int ;
     chrom_end : int ;
     name : string ;
     score : int ;
-    others : string array ;
+    others : string list ;
   }
   [@@deriving sexp]
+
+  val make :
+    chrom:string ->
+    chrom_start:int ->
+    chrom_end:int ->
+    name:string ->
+    score:int ->
+    ?others:string list ->
+    unit -> (item, string) result
+
+  val set_score : item -> int -> item
 
   val item_of_line : Line.t -> (item, string) result
   val line_of_item : item -> Line.t
 end
 
+module Bed5 : sig
+  type item = private Bed5_raw.item
+  [@@deriving sexp]
+
+  val make :
+    chrom:string ->
+    chrom_start:int ->
+    chrom_end:int ->
+    name:string ->
+    score:int ->
+    ?others:string list ->
+    unit -> (item, string) result
+
+  val item_of_line : Line.t -> (item, string) result
+  val line_of_item : item -> Line.t
+end
