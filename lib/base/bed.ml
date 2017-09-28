@@ -43,6 +43,17 @@ module Field (* field parsing *) = struct
       Error msg
 end
 
+type item = string * int * int * string list
+
+let item_of_line l =
+  let open Result in
+  match Line.split l ~on:'\t' with
+  | chrom :: chrom_start :: chrom_end :: others ->
+    Field.(parse "chrom_start" int) chrom_start >>= fun chrom_start ->
+    Field.(parse "chrom_end" int) chrom_end >>| fun chrom_end ->
+    chrom, chrom_start, chrom_end, others
+  | _ -> Error "Expected at least 3 fields separated by tab characters"
+
 module Bed3 = struct
   type item = {
     chrom : string ;

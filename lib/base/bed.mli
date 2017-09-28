@@ -1,6 +1,9 @@
 type parser_error = [ `Bed_parser_error of int * string ]
 [@@deriving sexp]
 
+type item = string * int * int * string list
+
+val item_of_line : Line.t -> (item, string) result
 
 module Bed3 : sig
   type item = private {
