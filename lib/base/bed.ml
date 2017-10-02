@@ -3,45 +3,7 @@ open Base
 type parser_error = [ `Bed_parser_error of int * string ]
 [@@deriving sexp]
 
-module Field (* field parsing *) = struct
-  open Result.Monad_infix
-
-  let exn_validate f x msg =
-    try Ok (f x)
-    with _ -> Error msg
-
-  let int s =
-    exn_validate Int.of_string s "Expected integer value"
-
-  let positive_int s =
-    int s >>= fun i ->
-    if i >= 0 then Ok i
-    else Error "Expected positive integer value"
-
-  let bounded_int ~lo ~hi s =
-    int s >>= fun i ->
-    if i >= lo && i <= hi then Ok i
-    else
-      let msg = Printf.sprintf "Expected integer value between %d and %d" lo hi in
-      Error msg
-
-  let string_with_no_sep s =
-    if String.contains s '\n' || String.contains s '\t' then
-      let msg = "Expected string without tab or newline character" in
-      Error msg
-    else
-      Ok s
-
-  let list f xs =
-    Result.all (List.map xs ~f)
-
-  let parse field_name f s =
-    match f s with
-    | Ok _ as r -> r
-    | Error msg ->
-      let msg = Printf.sprintf "Field %s is incorrect: %s" field_name msg in
-      Error msg
-end
+module Field = Table.Field
 
 type item = string * int * int * string list
 
@@ -49,8 +11,8 @@ let item_of_line l =
   let open Result in
   match Line.split l ~on:'\t' with
   | chrom :: chrom_start :: chrom_end :: others ->
-    Field.(parse "chrom_start" int) chrom_start >>= fun chrom_start ->
-    Field.(parse "chrom_end" int) chrom_end >>| fun chrom_end ->
+    Field.(parse ~ctx:"chrom_start" int) chrom_start >>= fun chrom_start ->
+    Field.(parse ~ctx:"chrom_end" int) chrom_end >>| fun chrom_end ->
     chrom, chrom_start, chrom_end, others
   | _ -> Error "Expected at least 3 fields separated by tab characters"
 
@@ -89,9 +51,9 @@ module Bed5_raw = struct
 
   let make ~chrom ~chrom_start ~chrom_end ~name ~score ?(others = []) () =
     let open Result in
-    Field.(parse "chrom" string_with_no_sep) chrom >>= fun chrom ->
-    Field.(parse "name" string_with_no_sep) name >>= fun name ->
-    Field.(parse "others" (list string_with_no_sep)) others >>= fun others ->
+    Field.(parse ~ctx:"chrom" string_with_no_sep) chrom >>= fun chrom ->
+    Field.(parse ~ctx:"name" string_with_no_sep) name >>= fun name ->
+    Field.(parse_all string_with_no_sep) others >>= fun others ->
     Ok { chrom ; chrom_start ; chrom_end ; name ; score ; others }
 
   let set_score it score = { it with score }
@@ -100,9 +62,9 @@ module Bed5_raw = struct
     let open Result in
     match Line.split l ~on:'\t' with
     | chrom :: chrom_start :: chrom_end :: name :: score :: others ->
-      Field.(parse "chrom_start" int) chrom_start >>= fun chrom_start ->
-      Field.(parse "chrom_end" int) chrom_end >>= fun chrom_end ->
-      Field.(parse "score" int) score >>= fun score ->
+      Field.(parse ~ctx:"chrom_start" int) chrom_start >>= fun chrom_start ->
+      Field.(parse ~ctx:"chrom_end" int) chrom_end >>= fun chrom_end ->
+      Field.(parse ~ctx:"score" int) score >>= fun score ->
       (* don't call [make] to avoid unnecessary checks*)
       Ok { chrom ; chrom_start ; chrom_end ; name ; score ; others }
     | _ -> Error "Expected at least 5 fields separated by tab characters"
@@ -123,18 +85,18 @@ module Bed5 = struct
 
   let make ~chrom ~chrom_start ~chrom_end ~name ~score ?(others = []) () =
     let open Result in
-    Field.(parse "chrom" string_with_no_sep) chrom >>= fun chrom ->
-    Field.(parse "name" string_with_no_sep) name >>= fun name ->
-    Field.(parse "others" (list string_with_no_sep)) others >>= fun others ->
+    Field.(parse ~ctx:"chrom" string_with_no_sep) chrom >>= fun chrom ->
+    Field.(parse ~ctx:"name" string_with_no_sep) name >>= fun name ->
+    Field.(parse_all ~ctx:"others" string_with_no_sep) others >>= fun others ->
     Ok { chrom ; chrom_start ; chrom_end ; name ; score ; others }
 
   let item_of_line l =
     let open Result in
     match Line.split l ~on:'\t' with
     | chrom :: chrom_start :: chrom_end :: name :: score :: others ->
-      Field.(parse "chrom_start" positive_int) chrom_start >>= fun chrom_start ->
-      Field.(parse "chrom_end" positive_int) chrom_end >>= fun chrom_end ->
-      Field.(parse "score" (bounded_int ~lo:0 ~hi:1000)) score >>= fun score ->
+      Field.(parse ~ctx:"chrom_start" positive_int) chrom_start >>= fun chrom_start ->
+      Field.(parse ~ctx:"chrom_end" positive_int) chrom_end >>= fun chrom_end ->
+      Field.(parse ~ctx:"score" (bounded_int ~lo:0 ~hi:1000)) score >>= fun score ->
       (* don't call [make] to avoid unnecessary checks*)
       Ok { chrom ; chrom_start ; chrom_end ; name ; score ; others }
     | _ -> Error "Expected at least 5 fields separated by tab characters"
