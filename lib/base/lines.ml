@@ -18,7 +18,8 @@ module Parser = struct
   let step st i = match st, i with
     | Finished _, _ -> st, []
     | Current_line { n ; value }, None ->
-      Finished { n }, [ value ]
+      Finished { n },
+      if Line.is_empty value then [] else [ value ]
     | Current_line { n ; value }, Some input ->
       match Line.rightmost input with
       | None, line ->

@@ -4,6 +4,9 @@ type t = string [@@deriving sexp]
 
 let empty = ""
 
+let is_empty l =
+  String.(l = "")
+
 let of_string_unsafe = Fn.id
 
 let rightmost x =

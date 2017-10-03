@@ -29,6 +29,7 @@ val of_string_unsafe : string -> t
 
 (** {2 Standard String Operations} *)
 
+val is_empty : t -> bool
 val lstrip : ?drop:(char -> bool) -> t -> t
 val rstrip : ?drop:(char -> bool) -> t -> t
 val strip : ?drop:(char -> bool) -> t -> t

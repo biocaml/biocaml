@@ -17,7 +17,10 @@ let test_base_parser () =
   check_string_list ["" ; "aa" ; "" ; "" ] (l1 :> string list) ;
   let s2, l2 = P.step s1 (Some "aa\n\n\n") in
   check_int 7 (P.line_number s2) ;
-  check_string_list ["bbaa" ; "" ; ""] (l2 :> string list)
+  check_string_list ["bbaa" ; "" ; ""] (l2 :> string list) ;
+  let s3, l3 = P.step s2 None in
+  check_int 7 (P.line_number s3) ;
+  check_string_list [] (l3 :> string list)
 
 module Line = Biocaml_unix.Line
 module Lines = Biocaml_unix.Lines
