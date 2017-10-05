@@ -32,9 +32,9 @@ let line_of_item version = function
     in
     let optescape o =  Option.value_map ~default:"." o ~f:escape in
     String.concat ~sep:"\t" [
-      escape t.seqname ;
+      t.seqname ;
       optescape t.source ;
-      optescape t.feature ;
+      Option.value ~default:"." t.feature ;
       Int.to_string t.start_pos ;
       Int.to_string t.stop_pos ;
       Option.value_map ~default:"." ~f:(sprintf "%g") t.score;
@@ -48,7 +48,7 @@ let line_of_item version = function
              sprintf "%s=%s" (Uri.pct_encode k)
                (List.map v ~f:Uri.pct_encode |> String.concat ~sep:",")
            | `two ->
-             sprintf "%S %s" k
+             sprintf "%s %s" k
                (List.map v ~f:escape |> String.concat ~sep:",")
          ));
     ]
