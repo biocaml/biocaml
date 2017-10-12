@@ -53,3 +53,67 @@ let update0 s al =
   let open Or_error.Monad_infix in
   Bam.Alignment0.flags al
   >>| update_gen s
+
+
+
+module Fragment_length_histogram = struct
+  type t = {
+    min_mapq : int ;
+    counts : int Accu.Counter.t ;
+  }
+
+  let create ?(min_mapq = 0) () = {
+    min_mapq ;
+    counts = Accu.Counter.create () ;
+  }
+
+  let with_mapped_pair ~min_mapq al f =
+    let open Or_error.Monad_infix in
+    Bam.Alignment0.flags al >>= fun fl ->
+    let multi_segment = Sam.Flags.has_multiple_segments fl in
+    let each_segment_properly_aligned = Sam.Flags.each_segment_properly_aligned fl in
+    let segment_unmapped = Sam.Flags.segment_unmapped fl in
+    let qc_ok = match Bam.Alignment0.mapq al with
+      | Some mapq -> mapq >= min_mapq
+      | None -> false
+    in
+    let mapped_fragment =
+      multi_segment && not segment_unmapped && each_segment_properly_aligned
+    in
+    if mapped_fragment && qc_ok then f () else Ok ()
+
+  let update0 { min_mapq ; counts } al =
+    with_mapped_pair ~min_mapq al (fun () ->
+        let length = match Bam.Alignment0.tlen al with
+          | Some l -> Int.abs l
+          | _ -> assert false (* both reads are mapped so there should be a length *)
+        in
+        Accu.Counter.tick counts length ;
+        Ok ()
+      )
+
+end
+
+module Chr_histogram = struct
+  type t = {
+    min_mapq : int ;
+    bam_header : Bam.Header.t ;
+    counts : string Accu.Counter.t ;
+  }
+
+  let create ?(min_mapq = 0) bam_header = {
+    min_mapq ;
+    bam_header ;
+    counts = Accu.Counter.create () ;
+  }
+
+  let update0 { min_mapq ; counts ; bam_header } al =
+    Fragment_length_histogram.with_mapped_pair ~min_mapq al (fun () ->
+        match Bam.Alignment0.rname al bam_header with
+        | Ok (Some chr) ->
+          Accu.Counter.tick counts chr ;
+          Ok ()
+        | Ok None -> Ok ()
+        | Error _ as e -> e
+      )
+end

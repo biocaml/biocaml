@@ -18,3 +18,24 @@ type t = {
 val zero : t
 val update0 : t -> Bam.Alignment0.t -> t Or_error.t
 val update : t -> Sam.alignment -> t
+
+module Fragment_length_histogram : sig
+  type t = private {
+    min_mapq : int ;
+    counts : int Accu.Counter.t ;
+  }
+
+  val create : ?min_mapq:int -> unit -> t
+  val update0 : t -> Bam.Alignment0.t -> unit Or_error.t
+end
+
+module Chr_histogram : sig
+  type t = private {
+    min_mapq : int ;
+    bam_header : Bam.Header.t ;
+    counts : string Accu.Counter.t ;
+  }
+
+  val create : ?min_mapq:int -> Bam.Header.t -> t
+  val update0 : t -> Bam.Alignment0.t -> unit Or_error.t
+end
