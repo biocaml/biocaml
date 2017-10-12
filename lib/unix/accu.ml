@@ -20,6 +20,8 @@ let add (t : ('a,'b,'c,'d) t) x y =
 
 let stream t = Stream.of_hashtbl t.table
 
+let to_alist t = Hashtbl.to_alist t.table
+
 let get t = Hashtbl.find t.table
 
 module Counter = struct
@@ -32,6 +34,7 @@ module Counter = struct
     let c = create () in
     Stream.iter ~f:(tick c) e ;
     c
+  let to_alist = to_alist
 end
 
 let counts e =
@@ -59,6 +62,7 @@ module Relation = struct
       ~f:(fun (x,y) -> add r x y)
       xs ;
     r
+  let to_alist = to_alist
 end
 
 let relation xs = stream (Relation.of_stream xs)

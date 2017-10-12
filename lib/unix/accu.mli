@@ -32,6 +32,8 @@ val add : ('a,'b,'c,'d) t -> 'a -> 'c -> unit
 
 val stream : ('a,'b,'c,'d) t -> ('b * 'd) Stream.t
 
+val to_alist : ('a,'b,'c,'d) t -> ('b * 'd) list
+
 val get : ('a,'b,'c,'d) t -> 'b -> 'd option
 (** [get accu x] returns the value associated to [b] in [accu]. *)
 
@@ -45,6 +47,7 @@ module Counter : sig
   val tick : 'a t -> 'a -> unit
   val stream : 'a t -> ('a * int) Stream.t
   val of_stream : 'a Stream.t -> 'a t
+  val to_alist : 'a t -> ('a * int) list
 end
 
 val counts  : 'a Stream.t -> ('a * int) Stream.t
@@ -66,6 +69,7 @@ module Relation : sig
   val add : ('a,'b) t -> 'a -> 'b -> unit
   val stream : ('a,'b) t -> ('a * 'b list) Stream.t
   val of_stream : ('a * 'b) Stream.t -> ('a, 'b) t
+  val to_alist : ('a, 'b) t -> ('a * 'b list) list
 end
 
 val relation : ('a * 'b) Stream.t -> ('a * 'b list) Stream.t
