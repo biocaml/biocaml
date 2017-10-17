@@ -31,23 +31,23 @@ type record = {
   start_pos  : int ;
   stop_pos   : int ;
   score      : float option ;
-  strand     : [`plus | `minus | `not_applicable | `unknown ] ;
+  strand     : [`Plus | `Minus | `Not_stranded | `Unknown ] ;
   phase      : int option ;
   attributes : (string * string list) list ;
 }
 (** The type of the GFF records/rows. *)
 
-type item = [ `comment of string | `record of record ]
+type item = [ `Comment of string | `Record of record ]
 (** The items being output by the parser. *)
 
 val record :
   ?source:string ->
   ?feature:string ->
   ?score:float ->
-  ?strand:[`plus | `minus | `not_applicable | `unknown ] ->
+  ?strand:[`Plus | `Minus | `Not_stranded | `Unknown ] ->
   ?phase:int ->
   ?attributes:(string * string list) list ->
   string -> int -> int -> record
 
-(* val item_of_line : Line.t -> (item, string) result *)
+val gff3_item_of_line : Line.t -> (item, [> `Msg of string]) result
 val line_of_item : [`two | `three] -> item -> Line.t
