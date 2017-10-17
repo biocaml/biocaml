@@ -16,6 +16,10 @@ let item_of_line l =
     chrom, chrom_start, chrom_end, others
   | _ -> Error "Expected at least 3 fields separated by tab characters"
 
+let line_of_item (chr, start_pos, stop_pos, others) =
+  String.concat ~sep:"\t" (chr :: Int.to_string start_pos :: Int.to_string stop_pos :: others)
+  |> Line.of_string_unsafe
+
 module Bed3 = struct
   type item = {
     chrom : string ;

@@ -4,6 +4,7 @@ type parser_error = [ `Bed_parser_error of int * string ]
 type item = string * int * int * string list
 
 val item_of_line : Line.t -> (item, string) result
+val line_of_item : item -> Line.t
 
 module Bed3 : sig
   type item = private {
