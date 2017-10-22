@@ -59,16 +59,6 @@ let parse_gff_attributes attributes =
   String.split ~on:';' attributes
   |> List.map ~f:parse_att
 
-
-let parse_gtf_attributes attributes =
-  let parse_att x =
-    match String.rsplit2 ~on:' ' x with
-    | None -> fail "Malformed attribute"
-    | Some kv -> Ok kv
-  in
-  Str.split (Str.regexp "; +") (String.sub attributes 1 (String.length attributes-2))
-  |> List.map ~f:parse_att
-
 let parse_tag pos buf =
   match String.index_from buf pos '=' with
   | None -> fail "Tag without a value"
