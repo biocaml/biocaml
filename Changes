@@ -1,6 +1,17 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.8.0 2017-10-23
+------------------------
+
+* switch to jbuilder for compilation
+
+* new ez/Bam
+
+* new unix/Bamstats module
+
+* more parsers in base (Gff, Bed, Table)
+
 biocaml-0.7.0 2017-03-23
 ------------------------
 
