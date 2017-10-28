@@ -42,7 +42,7 @@ let update_gen s flags =
            secondary_alignment flags ||
            supplementary_alignment flags)
     in
-    let mapped_reads = incr_if main_mapping s.read_pairs in
+    let mapped_reads = incr_if main_mapping s.mapped_reads in
     let mapped_pairs = incr_if (main_mapping && pair_witness) s.mapped_pairs in
     { total ; qc_pass ; single_reads ; read_pairs ; mapped_reads ; mapped_pairs }
 
