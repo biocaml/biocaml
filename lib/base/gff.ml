@@ -50,15 +50,6 @@ let parse_strand = function
   | "-" -> Ok `Minus
   | _ -> Error (`Msg "Incorrect strand character")
 
-let parse_gff_attributes attributes =
-  let parse_att x =
-    match String.lsplit2 ~on:'=' x with
-    | None -> fail "Malformed attribute"
-    | Some kv -> Ok kv
-  in
-  String.split ~on:';' attributes
-  |> List.map ~f:parse_att
-
 let parse_tag pos buf =
   match String.index_from buf pos '=' with
   | None -> fail "Tag without a value"
