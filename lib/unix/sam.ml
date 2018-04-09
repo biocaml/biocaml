@@ -625,7 +625,7 @@ let parse_flags s =
   with _ ->
     error "invalid FLAG" s sexp_of_string
 
-let rname_re = Re_perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
+let rname_re = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
 let parse_rname s =
   parse_opt_string "RNAME" rname_re s
 
@@ -687,7 +687,7 @@ let parse_cigar text =
     in
     loop [] >>| List.rev
 
-let rnext_re = Re_perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
+let rnext_re = Re.Perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
 let parse_rnext s =
   if not (Re.execp rnext_re s) then
     error "invalid RNEXT" s sexp_of_string
@@ -707,7 +707,7 @@ let parse_tlen s =
   | 0 -> None
   | x -> Some x
 
-let seq_re = Re_perl.compile_pat "^\\*|[A-Za-z=.]+$"
+let seq_re = Re.Perl.compile_pat "^\\*|[A-Za-z=.]+$"
 let parse_seq s =
   parse_opt_string "SEQ" seq_re s
 
@@ -720,11 +720,11 @@ let parse_qual s =
     |> Result.List.map ~f:(Phred_score.of_char ~offset:`Offset33)
 
 
-let opt_field_tag_re = Re_perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
-let opt_field_Z_re = Re_perl.compile_pat "^[ !-~]+$"
-let opt_field_H_re = Re_perl.compile_pat "^[0-9A-F]+$"
-let opt_field_int_re = Re_perl.compile_pat "^-?[0-9]+$"
-let opt_field_float_re = Re_perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"
+let opt_field_tag_re = Re.Perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
+let opt_field_Z_re = Re.Perl.compile_pat "^[ !-~]+$"
+let opt_field_H_re = Re.Perl.compile_pat "^[0-9A-F]+$"
+let opt_field_int_re = Re.Perl.compile_pat "^-?[0-9]+$"
+let opt_field_float_re = Re.Perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"
 
 let optional_field_value_err typ value =
   error "invalid value" (typ,value) [%sexp_of: string * string ]
