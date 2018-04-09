@@ -28,13 +28,13 @@ module Transform = struct
     let bytes_read = ref 0 in
     let ignore_bytes n = bytes_read := !bytes_read + n in
     let assert_byte f error =
-      let byte = (Char.to_int buffer.[!bytes_read]) in
+      let byte = (Char.to_int (Bytes.get buffer (!bytes_read))) in
       if f byte
       then (incr bytes_read; Ok byte)
       else Error (`wrong_gzip_header (error, byte)) in
     let assert_byte_eq b error = assert_byte ((=) b) error in
     let read_byte () =
-      let byte = (Char.to_int buffer.[!bytes_read]) in
+      let byte = (Char.to_int (Bytes.get buffer (!bytes_read))) in
       (incr bytes_read; Ok byte) in
     let rec skip_null_terminated () =
       read_byte () >>= fun x ->
@@ -60,17 +60,17 @@ module Transform = struct
     (* Skip header CRC *)
       ignore_bytes 2;
     end;
-    if !bytes_read > String.length buffer then
+    if !bytes_read > Bytes.length buffer then
       failwith "NOT-YET"
     else
       Ok !bytes_read
 
   let inflate_as_much_as_possible in_buffer buffer
       zstream zlib_write_buffer zlib_buffer_size format =
-    let len = String.length buffer in
+    let len = Bytes.length buffer in
     let try_to_output  used_out =
       if used_out > 0
-      then (`output (Ok (String.sub zlib_write_buffer ~pos:0 ~len:used_out)))
+      then (`output (Ok (Bytes.To_string.sub zlib_write_buffer ~pos:0 ~len:used_out)))
       else (`not_ready) in
     let (finished, used_in, used_out) =
       Zlib.inflate zstream buffer 0 len
@@ -85,18 +85,18 @@ module Transform = struct
           let continue_after_gzip = len - used_in > 8 in
           if continue_after_gzip then
             Buffer.add_string in_buffer
-              String.(sub buffer ~pos:(used_in + 8) ~len:(len - used_in - 8));
+              (Bytes.To_string.sub buffer ~pos:(used_in + 8) ~len:(len - used_in - 8));
           `finished_gzip (try_to_output used_out)
         | `gzip ->
           Buffer.add_string in_buffer
-            String.(sub buffer ~pos:used_in ~len:(len - used_in));
+            Bytes.To_string.(sub buffer ~pos:used_in ~len:(len - used_in));
           try_to_output used_out
         | _ ->
           `error (`garbage_at_end_of_compressed_data
-                     String.(sub buffer ~pos:used_in ~len:(len - used_in)))
+                     Bytes.To_string.(sub buffer ~pos:used_in ~len:(len - used_in)))
       ) else (
         Buffer.add_string in_buffer
-          String.(sub buffer ~pos:used_in ~len:(len - used_in));
+          Bytes.To_string.(sub buffer ~pos:used_in ~len:(len - used_in));
         try_to_output used_out
       )
     ) else try_to_output used_out
@@ -108,8 +108,8 @@ module Transform = struct
     let current_state =
       ref (match format with `gzip -> `gzip_header | `raw -> `inflate) in
     let rec next stopped =
-      let buffered = Buffer.contents in_buffer in
-      let len = String.length buffered in
+      let buffered = Buffer.to_bytes in_buffer in
+      let len = Bytes.length buffered in
       Buffer.clear in_buffer;
       begin match len with
       | 0 -> if stopped then `end_of_stream else `not_ready
@@ -141,11 +141,11 @@ module Transform = struct
               | Ok bytes_read ->
                 current_state := `inflate;
                 Buffer.add_string in_buffer
-                  String.(sub buffered ~pos:bytes_read ~len:(len - bytes_read));
+                  Bytes.To_string.(sub buffered ~pos:bytes_read ~len:(len - bytes_read));
                 next stopped
               | Error e -> `output (Error e)
             with
-              _ -> Buffer.add_string in_buffer buffered; `not_ready
+              _ -> Buffer.add_bytes in_buffer buffered; `not_ready
           end
         end
       end
@@ -205,9 +205,9 @@ module Transform = struct
                 if used_out < zlib_buffer_size then (
                   this_is_the_end := true;
                   Zlib.deflate_end !zstream;
-                  String.(sub zlib_write_buffer ~pos:0 ~len:used_out ^ output_crc ())
+                  Bytes.To_string.sub zlib_write_buffer ~pos:0 ~len:used_out ^ output_crc ()
                 ) else (
-                  String.(sub zlib_write_buffer ~pos:0 ~len:used_out)
+                  Bytes.To_string.sub zlib_write_buffer ~pos:0 ~len:used_out
                 ) in
               `output to_output
             end

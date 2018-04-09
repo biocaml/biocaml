@@ -10,7 +10,7 @@ let check b msg =
 let checkf b format = Printf.ksprintf (check b) format
 
 let check_buf ~buf ~pos ~len =
-  check (String.length buf >= pos + len) "Buffer too short"
+  check (Bytes.length buf >= pos + len) "Buffer too short"
 
 (* Helper functions to get parts of an Int32.t as an int *)
 let get_8_0 =
