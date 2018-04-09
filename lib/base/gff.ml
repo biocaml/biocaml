@@ -54,7 +54,7 @@ let parse_tag pos buf =
   match String.index_from buf pos '=' with
   | None -> fail "Tag without a value"
   | Some k ->
-    Ok (k + 1, String.slice buf pos k)
+    Ok (k + 1, String.sub buf ~pos ~len:(k - pos + 1))
 
 let lfind_mapi ?(pos = 0) s ~f =
   let n = String.length s in
@@ -77,13 +77,13 @@ let rec parse_value_list pos buf acc =
   match lfind_mapi ~pos buf ~f:comma_or_semi_colon with
   | None ->
     let n = String.length buf in
-    let value = String.slice buf pos n in
+    let value = String.sub buf ~pos ~len:(n - pos + 1) in
     n, List.rev (value :: acc)
   | Some (k, `Comma) ->
-    let value = String.slice buf pos k in
+    let value = String.sub buf ~pos ~len:(k - pos + 1) in
     parse_value_list (k + 1) buf (value :: acc)
   | Some (k, `Semi_colon) ->
-    let value = String.slice buf pos k in
+    let value = String.sub buf ~pos ~len:(k - pos + 1) in
     k + 1, List.rev (value :: acc)
 
 let rec parse_gff3_attributes pos buf acc =
@@ -123,7 +123,7 @@ let gff3_item_of_line line =
   | "" -> fail "Empty line"
   | line ->
     if Char.(line.[0] = '#') then
-      Ok (`Comment (String.slice line 1 0))
+      Ok (`Comment (String.sub line ~pos:1 ~len:(String.length line - 1)))
     else
       let open Result in
       let fields = String.split ~on:'\t' line in

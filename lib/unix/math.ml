@@ -91,7 +91,7 @@ let median a =
   let n = Array.length a in
   assert (n > 0);
   let a = Array.copy a in
-  Array.sort ~cmp:Pervasives.compare a;
+  Array.sort ~compare:Pervasives.compare a;
   if odd n
   then a.((n+1)/2 - 1)
   else let m = (n+1)/2 in (a.(m-1) +. a.(m)) /. 2.0
@@ -133,13 +133,13 @@ let quantile_normalization aa =
 
     let aa = transpose aa in
     let aa = Array.map ~f:(Array.mapi ~f:(fun a b -> (a, b))) aa in
-    (Array.iter ~f:(Array.sort ~cmp:comp2)) aa;
+    (Array.iter ~f:(Array.sort ~compare:comp2)) aa;
     let avg i =
       (Array.fold ~f:(fun sum expt -> snd expt.(i) +. sum) ~init:0.0 aa)
       /. num_expts in
     let norms = Array.init num_pts ~f:avg in
     let aa = Array.map ~f:(Array.mapi ~f:(fun i (idx,_) -> idx, norms.(i))) aa in
-    Array.iter ~f:(Array.sort ~cmp:comp1) aa;
+    Array.iter ~f:(Array.sort ~compare:comp1) aa;
     transpose (Array.map ~f:(Array.map ~f:snd) aa)
 
 let histogram (type t) ?(cmp=Pervasives.compare) arr =
@@ -155,8 +155,8 @@ let histogram (type t) ?(cmp=Pervasives.compare) arr =
   in
   let f (mp : int M.t) (a:t) =
     match M.find mp a with
-    | Some e -> M.add mp ~key:a ~data:(e + 1)
-    | None -> M.add mp ~key:a ~data:1
+    | Some e -> M.set mp ~key:a ~data:(e + 1)
+    | None -> M.set mp ~key:a ~data:1
   in
   let mp = Array.fold ~f ~init:M.empty arr in
   let ans = M.fold ~f:(fun ~key ~data ans -> (key,data)::ans) mp ~init:[] in
@@ -185,7 +185,7 @@ let pearson (a1:float array) (a2:float array) =
 let rank arr =
   let arr = Array.copy arr in
   let arr = Array.mapi ~f:(fun i a -> a,i) arr in
-  Array.sort ~cmp:(fun (a,_) (b,_) -> Pervasives.compare a b) arr;
+  Array.sort ~compare:(fun (a,_) (b,_) -> Pervasives.compare a b) arr;
   let g _ il ans =
     let count = List.length il in
     let n = count + (List.length ans) in
@@ -207,7 +207,7 @@ let rank arr =
   in
   let prev,il,ans = Array.fold ~f ~init:(0.,[],[]) arr in
   let ans = g prev il ans in
-  let ans = List.sort ~cmp:(fun (_,a) (_,b) -> Pervasives.compare a b) ans in
+  let ans = List.sort ~compare:(fun (_,a) (_,b) -> Pervasives.compare a b) ans in
   Array.of_list (List.map ~f:fst ans)
 
 let spearman (arr1:float array) (arr2: float array) =
@@ -304,7 +304,7 @@ let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 =
 
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = Array.mapi a ~f:(fun i b -> (i, b)) in
-  Array.sort ~cmp:(fun a b -> cmp (snd a) (snd b)) a;
+  Array.sort ~compare:(fun a b -> cmp (snd a) (snd b)) a;
   Array.map ~f:fst a
 
 let find_regions ?(max_gap=0) pred a =

@@ -20,7 +20,7 @@ module Make(Chromosome : Chromosome) = struct
 
     let to_stream t = Stream.of_list (to_alist t)
     let of_stream xs =
-      Stream.fold xs ~init:empty ~f:(fun accu (key,data) -> add accu ~key ~data)
+      Stream.fold xs ~init:empty ~f:(fun accu (key,data) -> set accu ~key ~data)
   end
 
   module Selection = struct
@@ -34,19 +34,19 @@ module Make(Chromosome : Chromosome) = struct
         | Some s -> s
       in
       let set_chr = Iset.add_range set_chr lo hi in
-      Map.add sel ~key:chr ~data:set_chr
+      Map.set sel ~key:chr ~data:set_chr
 
     let inter u v =
       Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
           match Map.find v k with
-          | Some set_v -> Map.add accu ~key:k ~data:(Iset.inter set_u set_v)
+          | Some set_v -> Map.set accu ~key:k ~data:(Iset.inter set_u set_v)
           | None -> accu
         )
 
     let union u v =
-      let keys = List.dedup (Map.keys u @ Map.keys v) in
+      let keys = List.dedup_and_sort ~compare:Chromosome.compare (Map.keys u @ Map.keys v) in
       List.fold keys ~init:Map.empty ~f:(fun accu k ->
-          Map.add accu ~key:k ~data:(
+          Map.set accu ~key:k ~data:(
             Iset.union
               (Option.value (Map.find u k) ~default:Iset.empty)
               (Option.value (Map.find v k) ~default:Iset.empty)
@@ -60,7 +60,7 @@ module Make(Chromosome : Chromosome) = struct
             | Some set_v -> Iset.diff set_u set_v
             | None -> set_u
           in
-          Map.add ~key:k ~data:set_u' accu
+          Map.set ~key:k ~data:set_u' accu
         )
 
     let size x =

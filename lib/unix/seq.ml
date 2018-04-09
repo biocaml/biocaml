@@ -21,20 +21,20 @@ let of_buffer b =
   let n = Buffer.length b in
   if n > Caml.Sys.max_string_length then raise_bad too_long
   else
-    let ans = String.create n in
+    let ans = Bytes.create n in
     for i = 0 to n-1 do
       let c = Char.uppercase (Buffer.nth b i) in
-      if is_nucleic_acid c then ans.[i] <- c
+      if is_nucleic_acid c then Bytes.set ans i c
       else raise_bad (bad_acid (Buffer.nth b i))
     done;
     ans
 
 let of_string b =
   let n = String.length b in
-  let ans = String.create n in
+  let ans = Bytes.create n in
   for i = 0 to n-1 do
     let c = Char.uppercase b.[i] in
-    if is_nucleic_acid c then ans.[i] <- c
+    if is_nucleic_acid c then Bytes.set ans i c
     else raise_bad (bad_acid b.[i])
   done;
   ans

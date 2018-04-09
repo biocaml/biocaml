@@ -299,7 +299,7 @@ let header
     );
     (
       List.map ref_seqs ~f:(fun (x:ref_seq) -> x.name)
-      |> List.find_a_dup
+      |> List.find_a_dup ~compare:String.compare
       |> Option.map ~f:(fun name ->
          Error.create "duplicate ref seq name" name sexp_of_string
       )
@@ -572,7 +572,7 @@ let alignment
 
     (
       List.map optional_fields ~f:(fun x -> x.tag)
-      |> List.find_a_dup
+      |> List.find_a_dup ~compare:String.compare
       |> Option.map ~f:(fun dup ->
         Error.create "TAG occurs more than once" dup sexp_of_string)
     );

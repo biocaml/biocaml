@@ -34,7 +34,7 @@ module Tbl = struct
   (* like HT.find but throws more informative exception *)
   let find tbl (x,y) =
     try HT.find tbl (x,y)
-    with Not_found ->
+    with Caml.Not_found ->
       failwith (Msg.err (sprintf "CEL file does not have values for probe \
                                   at position x = %d, y = %d" x y))
 end

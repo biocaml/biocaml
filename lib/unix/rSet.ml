@@ -23,7 +23,7 @@ let to_canonical (vl : Range.t list) : Range.t list =
       | None -> assert false
   in
 
-  let vl = List.sort ~cmp:compare_intervals vl in
+  let vl = List.sort ~compare:compare_intervals vl in
 
   let rec canonize ans vl =
     match vl with

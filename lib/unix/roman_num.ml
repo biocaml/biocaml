@@ -61,7 +61,7 @@ module Roman = struct
   let roman (n:int) : string =
     let size = roman_size n in
     let x = String.make size 'M' in
-    let ( ++ ) c k = String.set x k c; k-1 in
+    let ( ++ ) c k = Bytes.set x k c; k-1 in
     let digit d one five ten k =
       match d with
       | 0 -> k

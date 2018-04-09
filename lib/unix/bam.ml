@@ -44,12 +44,12 @@ let unpack_unsigned_32_little_endian ~buf ~pos =
 (* This function is adapted from Core.Binary_packing.pack_signed_64_little_endian *)
 let pack_u32_in_int64_little_endian ~buf ~pos v =
   (* Safely set the first and last bytes, so that we verify the string bounds. *)
-  buf.[pos] <- Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL v));
-  buf.[pos + 3] <- Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 24))) ;
+  Bytes.set buf pos (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL v))) ;
+  Bytes.set buf (pos + 3) (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 24)))) ;
   (* Now we can use [unsafe_set] for the intermediate bytes. *)
-  String.unsafe_set buf (pos + 1)
+  Bytes.unsafe_set buf (pos + 1)
     (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 8)))) ;
-  String.unsafe_set buf (pos + 2)
+  Bytes.unsafe_set buf (pos + 2)
     (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 16))))
 
 let int64_is_neg n =
@@ -208,8 +208,8 @@ module Alignment0 = struct
       let r = String.make l_seq ' ' in
       for i = 0 to n - 1 do
         let c = int_of_char al.seq.[i] in
-        r.[2 * i] <- char_of_seq_code (c lsr 4) ;
-        if 2 * i + 1 < l_seq then r.[2 * i + 1] <- char_of_seq_code (c land 0xf) ;
+        Bytes.set r (2 * i) (char_of_seq_code (c lsr 4)) ;
+        if 2 * i + 1 < l_seq then Bytes.set r (2 * i + 1) (char_of_seq_code (c land 0xf)) ;
       done ;
       Some r
 
@@ -358,7 +358,7 @@ module Alignment0 = struct
 
 
   let string_of_cigar_ops cigar_ops =
-    let buf = String.create (List.length cigar_ops * 4) in
+    let buf = Bytes.create (List.length cigar_ops * 4) in
     let write ith i32 =
       let pos = ith * 4 in
       Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32 in
@@ -417,13 +417,13 @@ module Alignment0 = struct
 
       | `f f ->
         let bits = Int32.bits_of_float f in
-        let buf = String.create 4 in
+        let buf = Bytes.create 4 in
         Binary_packing.pack_signed_32  ~byte_order:`Little_endian bits ~buf ~pos:0 ;
         Ok ('f', buf)
 
       | `i i ->
         (* FIXME: encode i to the smallest usable integer type *)
-        let buf = String.create 4 in
+        let buf = Bytes.create 4 in
         if int64_fits_u32 i then (
           pack_u32_in_int64_little_endian ~buf ~pos:0 i ;
           Ok ('I', buf)

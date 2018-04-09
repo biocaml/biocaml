@@ -66,7 +66,7 @@ let performance_curve ~scores ~labels =
       n (Array.length labels) () ;
   let examples =
     let r = Array.map2_exn scores labels ~f:(fun x y -> x, y) in
-    Array.sort ~cmp:(Fn.flip compare) r ;
+    Array.sort ~compare:(Fn.flip compare) r ;
     r
   in
   let np = Array.count labels ~f:ident in

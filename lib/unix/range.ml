@@ -60,7 +60,7 @@ let compare_containment u v =
   else None
 
 let any_overlap tl =
-  let tl = List.sort tl ~cmp:(fun u v -> Int.compare u.lo v.lo) in
+  let tl = List.sort tl ~compare:(fun u v -> Int.compare u.lo v.lo) in
   let rec loop tl =
     match tl with
     | [] | _::[] -> false
@@ -68,13 +68,13 @@ let any_overlap tl =
   in loop tl
 
 let all_positional vl =
-  let cmp u v = match compare_containment u v with
+  let compare u v = match compare_containment u v with
     | Some x -> x
     | None -> match compare_positional u v with
       | Some x -> x
       | None -> assert false
   in
-  let vl = List.sort ~cmp vl in
+  let vl = List.sort ~compare vl in
   let rec loop vl =
     match vl with
     | [] | _::[] -> true
@@ -82,13 +82,13 @@ let all_positional vl =
   in loop vl
 
 let max_gap_of_positional vl =
-  let cmp u v = match compare_containment u v with
+  let compare u v = match compare_containment u v with
     | Some x -> x
     | None -> match compare_positional u v with
       | Some x -> x
       | None -> assert false
   in
-  let vl = List.sort ~cmp vl in
+  let vl = List.sort ~compare vl in
   let rec loop ans vl =
     match vl with
     | [] | _::[] -> ans
@@ -132,7 +132,7 @@ let expand_assoc_list tal =
   let ans = Caml.Hashtbl.create 100 in
   let insert (t,a) =
     for i = t.lo to t.hi do
-      let prev = try Caml.Hashtbl.find ans i with Not_found -> [] in
+      let prev = try Caml.Hashtbl.find ans i with Caml.Not_found -> [] in
       Caml.Hashtbl.replace ans i (a::prev)
     done
   in
@@ -144,7 +144,7 @@ let find_regions ?(max_gap=0) pred tal =
   if any_overlap (List.map ~f:fst tal) then
     failwith "overlapping ranges not allowed"
   ;
-  let tal = List.sort tal ~cmp:(fun (u,_) (v,_) ->
+  let tal = List.sort tal ~compare:(fun (u,_) (v,_) ->
     match compare_positional u v with
     | Some x -> x
     | None -> assert false

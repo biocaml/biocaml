@@ -34,10 +34,10 @@ let leaf_exn f k x =
            | _  -> None)
        with
        | Some x -> x
-       | None -> raise Not_found
+       | None -> raise Caml.Not_found
       )
-    | D _ -> raise Not_found
-  with Not_found ->
+    | D _ -> raise Caml.Not_found
+  with Caml.Not_found ->
     invalid_arg (sprintf "Entrez.leaf: no %s child" k)
 
 let ileaf_exn = leaf_exn int_of_string
@@ -67,9 +67,9 @@ let echild_exn k = function
              | _  -> None)
          with
          | Some x -> x
-         | None -> raise Not_found
+         | None -> raise Caml.Not_found
         )
-      with Not_found -> (
+      with Caml.Not_found -> (
           let tags = List.filter_map ~f:tag_of_tree children in
           let msg = sprintf "child: looked for %s but only got %s children" k (String.concat ~sep:"," tags) in
           raise (Invalid_argument msg)

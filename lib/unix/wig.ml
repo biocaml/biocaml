@@ -106,10 +106,10 @@ module Transform = struct
       Ok (List.map by_space ~f:(fun s ->
         begin match String.split ~on:'=' s with
         | [ key; value ] -> (key, value)
-        | _ -> raise Not_found
+        | _ -> raise Caml.Not_found
         end))
     with
-      Not_found -> Error (`cannot_parse_key_values (loc, s))
+      Caml.Not_found -> Error (`cannot_parse_key_values (loc, s))
 
   let rec next ~tags p =
     let open Lines.Buffer in

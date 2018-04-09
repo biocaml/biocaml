@@ -322,7 +322,7 @@ let string_to_vcfr_info { vcfm_info ; _ } s =
         | None -> Error (`unknown_info key)
       in Result.map chunk_values ~f:(fun data -> Hashtbl.set values ~key ~data))
   and values = Hashtbl.Poly.create ()
-  in Result.(map (all_ignore (go values)) ~f:(Fn.const values))
+  in Result.(map (all_unit (go values)) ~f:(Fn.const values))
 
 let string_to_vcfr_filter { vcfm_filters ; _ } s =
   match String.split ~on:';' s with
@@ -378,7 +378,7 @@ let list_to_vcfr_samples { vcfm_format; vcfm_samples ; _ } chunks =
     | raw_sample_keys :: raw_samples ->
       let sample_keys = String.split ~on:':' raw_sample_keys in
       let res = List.map2_exn vcfm_samples raw_samples ~f:(go sample_keys)
-      in Result.map (Result.all_ignore res) ~f:(Fn.const samples)
+      in Result.map (Result.all_unit res) ~f:(Fn.const samples)
     | [] -> Ok samples
 
 let list_to_vcf_row meta chunks =

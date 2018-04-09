@@ -104,7 +104,7 @@ module Transform = struct
   let unzip ?(format=`raw) ?(zlib_buffer_size=Default.zlib_buffer_size) () =
     let zstream =  ref (Zlib.inflate_init false) in
     let in_buffer = Buffer.create 42 in
-    let zlib_write_buffer = String.create zlib_buffer_size  in
+    let zlib_write_buffer = Bytes.create zlib_buffer_size  in
     let current_state =
       ref (match format with `gzip -> `gzip_header | `raw -> `inflate) in
     let rec next stopped =
@@ -165,7 +165,7 @@ module Transform = struct
       ?(level=Default.level) ?(zlib_buffer_size=Default.zlib_buffer_size) () =
     let zstream =  ref (Zlib.deflate_init level false) in
     let in_buffer = Buffer.create 42 in
-    let zlib_write_buffer = String.create zlib_buffer_size  in
+    let zlib_write_buffer = Bytes.create zlib_buffer_size  in
     let state =
       ref (match format with `raw -> `deflating | `gzip -> `gzip_header) in
     let this_is_the_end = ref false in
@@ -180,7 +180,7 @@ module Transform = struct
           gzip_size := Int32.(!gzip_size + (of_int_exn used_in));
           ()),
          (fun () ->
-           let buf = String.create 8 in
+           let buf = Bytes.create 8 in
            Binary_packing.pack_signed_32
              ~byte_order:`Little_endian ~pos:0 ~buf !gzip_crc;
            Binary_packing.pack_signed_32

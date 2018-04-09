@@ -35,7 +35,7 @@ module Xls = struct
     | "" -> R.ok (`Comment "")
     | line when String.(line = header) -> R.ok `Header
     | line ->
-      if Char.(line.[0] = '#') then R.ok (`Comment (String.slice line 1 0))
+      if Char.(line.[0] = '#') then R.ok (`Comment (String.sub line ~pos:1 ~len:(String.length line - 1)))
       else
         match String.split ~on:'\t' line with
         | [ chr ; start ; end_ ; length ; abs_summit ;
