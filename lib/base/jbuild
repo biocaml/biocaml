@@ -4,4 +4,5 @@
  ((name biocaml_base)
   (public_name biocaml.base)
   (libraries (base rresult uri))
-  (preprocess (pps (ppx_sexp_conv)))))
+  (inline_tests)
+  (preprocess (pps (ppx_sexp_conv ppx_inline_test)))))

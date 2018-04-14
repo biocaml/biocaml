@@ -14,6 +14,13 @@ INSTALLATION
 ============
 See INSTALL file.
 
+TESTING
+=======
+
+```sh
+jbuilder runtest        # for inline tests
+jbuilder run_test_suite # for test suite tests
+```
 
 LICENSE
 =======

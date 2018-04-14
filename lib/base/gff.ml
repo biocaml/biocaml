@@ -54,7 +54,10 @@ let parse_tag pos buf =
   match String.index_from buf pos '=' with
   | None -> fail "Tag without a value"
   | Some k ->
-    Ok (k + 1, String.sub buf ~pos ~len:(k - pos + 1))
+    Ok (k + 1, String.sub buf ~pos ~len:(k - pos))
+
+let%test "Gff.parse_tag" =
+  Caml.(parse_tag 0 "gene_id=foo" = Ok (8, "gene_id"))
 
 let lfind_mapi ?(pos = 0) s ~f =
   let n = String.length s in
@@ -77,14 +80,26 @@ let rec parse_value_list pos buf acc =
   match lfind_mapi ~pos buf ~f:comma_or_semi_colon with
   | None ->
     let n = String.length buf in
-    let value = String.sub buf ~pos ~len:(n - pos + 1) in
+    let value = String.sub buf ~pos ~len:(n - pos) in
     n, List.rev (value :: acc)
   | Some (k, `Comma) ->
-    let value = String.sub buf ~pos ~len:(k - pos + 1) in
+    let value = String.sub buf ~pos ~len:(k - pos) in
     parse_value_list (k + 1) buf (value :: acc)
   | Some (k, `Semi_colon) ->
-    let value = String.sub buf ~pos ~len:(k - pos + 1) in
+    let value = String.sub buf ~pos ~len:(k - pos) in
     k + 1, List.rev (value :: acc)
+
+let test_parse_value buf y =
+  let n, x = parse_value_list 0 buf [] in
+  Caml.((n, x) = (String.length buf, y))
+
+let%test "parse_value_list1" =
+  test_parse_value
+    "region_id=chr1:3008683-3009183"
+    ["region_id=chr1:3008683-3009183"]
+
+let%test "parse_value_list2" =
+  test_parse_value "3,4" ["3" ; "4"]
 
 let rec parse_gff3_attributes pos buf acc =
   let open Result in
@@ -94,6 +109,13 @@ let rec parse_gff3_attributes pos buf acc =
     let pos, values = parse_value_list pos buf [] in
     let acc = (tag, values) :: acc in
     parse_gff3_attributes pos buf acc
+
+let%test "Gff.parse_gff3_attributes" =
+  Caml.(
+    parse_gff3_attributes 0 "a=2,3;b=4" []
+    =
+    Ok [ ("a", ["2" ; "3"]) ; ("b", ["4"]) ]
+  )
 
 let parse_fields = function
   | [ seqname ; source ; feature ; start_pos ; stop_pos ;
@@ -161,4 +183,3 @@ let line_of_item version = function
          ));
     ]
     |> Line.of_string_unsafe
-

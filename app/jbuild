@@ -6,6 +6,6 @@
   ))
 
 (alias
- ((name runtest)
+ ((name run_test_suite)
   (deps (biocaml_run_tests.exe (files_recursively_in ../etc/test_data)))
   (action (bash "./biocaml_run_tests.exe"))))
