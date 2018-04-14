@@ -21,10 +21,10 @@ module ListImpl = struct
   let elements x = x
 
   let to_stream x =
-    List.sort ~cmp:compare x |> Stream.of_list
+    List.sort ~compare:compare x |> Stream.of_list
 
   let to_backwards_stream x =
-    List.sort ~cmp:(Fn.flip compare) x |> Stream.of_list
+    List.sort ~compare:(Fn.flip compare) x |> Stream.of_list
 
   let pos x =
     if x < 0 then 0 else x
