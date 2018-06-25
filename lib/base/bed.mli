@@ -3,7 +3,7 @@ type parser_error = [ `Bed_parser_error of int * string ]
 
 type item = string * int * int * string list
 
-val item_of_line : Line.t -> (item, string) result
+val item_of_line : Line.t -> (item, string) Caml.result
 val line_of_item : item -> Line.t
 
 module Bed3 : sig
@@ -46,11 +46,11 @@ module Bed5_raw : sig
     name:string ->
     score:int ->
     ?others:string list ->
-    unit -> (item, string) result
+    unit -> (item, string) Caml.result
 
   val set_score : item -> int -> item
 
-  val item_of_line : Line.t -> (item, string) result
+  val item_of_line : Line.t -> (item, string) Caml.result
   val line_of_item : item -> Line.t
 end
 
@@ -65,8 +65,8 @@ module Bed5 : sig
     name:string ->
     score:int ->
     ?others:string list ->
-    unit -> (item, string) result
+    unit -> (item, string) Caml.result
 
-  val item_of_line : Line.t -> (item, string) result
+  val item_of_line : Line.t -> (item, string) Caml.result
   val line_of_item : item -> Line.t
 end

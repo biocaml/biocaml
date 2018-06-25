@@ -1,4 +1,4 @@
-open Core_kernel
+
 open CFStream
 
 type how = [ `Parallel | `Sequential | `Max_concurrent_jobs of int ]

@@ -186,10 +186,10 @@ type sb_model = {
  (*constraints : sb_constraint list;
  compartmentTypes : sb_compartment_type list;
  speciesTypes : sb_species_type list;*)
-}     
+}
 
 val math_to_string : sb_math -> string
   (** Returns a string with sb_math converted into a S-expression  *)
 
-val in_sbml : in_channel -> sb_model
+val in_sbml : In_channel.t -> sb_model
   (** Returns an sb_model read from input stream *)

@@ -4,6 +4,7 @@
  ((name biocaml_lwt)
   (public_name biocaml.lwt)
   (libraries (biocaml.unix lwt.unix))
+  (flags (:standard))
   (preprocess (pps (ppx_jane)))
   (optional)
   ))

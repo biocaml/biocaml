@@ -49,5 +49,5 @@ val record :
   ?attributes:(string * string list) list ->
   string -> int -> int -> record
 
-val gff3_item_of_line : Line.t -> (item, [> `Msg of string]) result
+val gff3_item_of_line : Line.t -> (item, [> `Msg of string]) Caml.result
 val line_of_item : [`two | `three] -> item -> Line.t

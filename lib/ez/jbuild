@@ -4,5 +4,6 @@
  ((name biocaml_ez)
   (public_name biocaml.ez)
   (libraries (biocaml.unix))
+  (flags (-open Core_kernel))
   (preprocess (pps (ppx_jane)))
   ))

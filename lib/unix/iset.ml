@@ -23,15 +23,15 @@ let singleton_tree x =
   Node (Empty, x, Empty, 1)
 
 let left_branch = function
-  | Empty -> raise Not_found
+  | Empty -> raise Caml.Not_found
   | Node (l, _, _, _) -> l
 
 let right_branch = function
-  | Empty -> raise Not_found
+  | Empty -> raise Caml.Not_found
   | Node (_, _, r, _) -> r
 
 let root = function
-  | Empty -> raise Not_found
+  | Empty -> raise Caml.Not_found
   | Node (_, v, _, _) -> v
 
 let height = function
@@ -93,14 +93,14 @@ let rec make_tree l v r =
 
 (* Utilities *)
 let rec split_leftmost = function
-  | Empty -> raise Not_found
+  | Empty -> raise Caml.Not_found
   | Node (Empty, v, r, _) -> (v, r)
   | Node (l, v, r, _) ->
     let v0, l' = split_leftmost l in
     (v0, make_tree l' v r)
 
 let rec split_rightmost = function
-  | Empty -> raise Not_found
+  | Empty -> raise Caml.Not_found
   | Node (l, v, Empty, _) -> (v, l)
   | Node (l, v, r, _) ->
     let v0, r' = split_rightmost r in
@@ -169,12 +169,12 @@ let rec add s n =
   let (v1, v2) as v = root s in
   let s0 = left_branch s in
   let s1 = right_branch s in
-  if v1 <> min_int && n < v1 - 1 then make_tree (add s0 n) v s1 else
-  if v2 <> max_int && n > v2 + 1 then make_tree s0 v (add s1 n) else
+  if v1 <> Int.min_value && n < v1 - 1 then make_tree (add s0 n) v s1 else
+  if v2 <> Int.max_value && n > v2 + 1 then make_tree s0 v (add s1 n) else
   if n + 1 = v1 then
     if not (is_empty s0) then
       let (u1, u2), s0' = split_rightmost s0 in
-      if u2 <> max_int && u2 + 1 = n then
+      if u2 <> Int.max_value && u2 + 1 = n then
 	make_tree s0' (u1, v2) s1
       else
 	make_tree s0 (n, v2) s1
@@ -183,7 +183,7 @@ let rec add s n =
   else if v2 + 1 = n then
     if not (is_empty s1) then
       let (u1, u2), s1' = split_leftmost s1 in
-      if n <> max_int && n + 1 = u1 then
+      if n <> Int.max_value && n + 1 = u1 then
 	make_tree s0 (v1, u2) s1'
       else
 	make_tree s0 (v1, n) s1
@@ -200,7 +200,7 @@ let rec from s ~n =
   if n > v2 then from s1 ~n else
   make_tree empty (n, v2) s1
 
-let after s ~n = if n = max_int then empty else from s ~n:(n + 1)
+let after s ~n = if n = Int.max_value then empty else from s ~n:(n + 1)
 
 let rec until s ~n =
   if is_empty s then empty else
@@ -211,18 +211,18 @@ let rec until s ~n =
   if n < v1 then until s0 ~n else
   make_tree s0 (v1, n) empty
 
-let before s ~n = if n = min_int then empty else until s ~n:(n - 1)
+let before s ~n = if n = Int.min_value then empty else until s ~n:(n - 1)
 
 let add_range s n1 n2 =
   if n1 > n2 then invalid_arg (Printf.sprintf "ISet.add_range - %d > %d" n1 n2) else
   let n1, l =
-    if n1 = min_int then n1, empty else
+    if n1 = Int.min_value then n1, empty else
     let l = until s ~n:(n1 - 1) in
     if is_empty l then n1, empty else
     let (v1, v2), l' = split_rightmost l in
     if v2 + 1 = n1 then v1, l' else n1, l in
   let n2, r =
-    if n2 = max_int then n2, empty else
+    if n2 = Int.max_value then n2, empty else
     let r = from s ~n:(n2 + 1) in
     if is_empty r then n2, empty else
     let (v1, v2), r' = split_leftmost r in
@@ -260,13 +260,13 @@ let rec union s1 s2 =
   let l2 = before s2 ~n:n1 in
   let r2 = after s2 ~n:n2 in
   let n1, l =
-    if n1 = min_int then n1, empty else
+    if n1 = Int.min_value then n1, empty else
     let l = union l1 l2 in
     if is_empty l then n1, l else
     let (v1, v2), l' = split_rightmost l in (* merge left *)
     if v2 + 1 = n1 then v1, l' else n1, l in
   let n2, r =
-    if n1 = max_int then n2, empty else
+    if n1 = Int.max_value then n2, empty else
     let r = union r1 r2 in
     if is_empty r then n2, r else
     let (v1, v2), r' = split_leftmost r in (* merge right *)
@@ -303,11 +303,11 @@ let rec compl_aux n1 n2 s =
   let v1, v2 = root s in
   let l = left_branch s in
   let r = right_branch s in
-  let l = if v1 = min_int then empty else compl_aux n1 (v1 - 1) l in
-  let r = if v2 = max_int then empty else compl_aux (v2 + 1) n2 r in
+  let l = if v1 = Int.min_value then empty else compl_aux n1 (v1 - 1) l in
+  let r = if v2 = Int.max_value then empty else compl_aux (v2 + 1) n2 r in
   concat l r
 
-let compl s = compl_aux min_int max_int s
+let compl s = compl_aux Int.min_value Int.max_value s
 
 let diff s1 s2 = inter s1 (compl s2)
 
@@ -447,7 +447,7 @@ let rec burst_range n1 n2 a =
 
 let elements s =
   let f a (n1, n2) = burst_range n1 n2 a in
-  List.fold_left f [] (rev_ranges s)
+  List.fold_left ~f ~init:[] (rev_ranges s)
 
 (*$Q ranges;of_list
   (Q.list (Q.pair Q.int Q.int)) (fun l -> \
@@ -469,5 +469,8 @@ let max_elt s =
 
 let choose s = fst (root s)
 
-let of_list l = List.fold_left (fun s (lo,hi) -> add_range s lo hi) empty l
-let of_stream e = Stream.fold ~f:(fun s (lo,hi) -> add_range s lo hi) ~init:empty e
+let of_list l = List.fold_left
+  ~f:(fun s (lo,hi) -> add_range s lo hi) ~init:empty l
+
+let of_stream e = Stream.fold
+  ~f:(fun s (lo,hi) -> add_range s lo hi) ~init:empty e

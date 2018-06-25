@@ -3,6 +3,7 @@
 (executable
  ((name biocaml_run_tests)
   (libraries (biocaml_test))
+  (flags (-open Core))
   ))
 
 (alias

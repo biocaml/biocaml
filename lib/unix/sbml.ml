@@ -218,10 +218,10 @@ module MathML = struct
       | _ -> raise_bad "can't convert unknown operator"
     in
     match math with
-    | MApply (oper, exprlist) -> "(" ^ (operator_to_string oper) ^ " " ^ (String.concat " " (List.map math_to_string exprlist)) ^ ")"
-    | MLambda (bvarlist, lambda_expr) -> "(LAMBDA (" ^ (String.concat " " bvarlist) ^ ") " ^ (math_to_string lambda_expr) ^ ")"
-    | MPiecewise (piecelist, otherwise) -> "(PIECEWISE " ^ (String.concat " " (List.map
-                                                                                 (fun next -> let (var, varexpr) = next in "(" ^ (math_to_string varexpr) ^ " " ^ var ^ ")") piecelist))
+    | MApply (oper, exprlist) -> "(" ^ (operator_to_string oper) ^ " " ^ (String.concat ~sep:" " (List.map ~f:math_to_string exprlist)) ^ ")"
+    | MLambda (bvarlist, lambda_expr) -> "(LAMBDA (" ^ (String.concat ~sep:" " bvarlist) ^ ") " ^ (math_to_string lambda_expr) ^ ")"
+    | MPiecewise (piecelist, otherwise) -> "(PIECEWISE " ^ (String.concat ~sep:" " (List.map
+                                                                                 ~f:(fun next -> let (var, varexpr) = next in "(" ^ (math_to_string varexpr) ^ " " ^ var ^ ")") piecelist))
                                            ^ " " ^ otherwise ^ ")"
     | MFloatNumber f -> (string_of_float f)
     | MIntNumber i -> (string_of_int i)
@@ -251,9 +251,9 @@ module MathML = struct
     | _ -> raise_bad "not a packed string"
 
   let unpack_symbol_type attrs =
-    let (_,sbmlUrl) = List.find (fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
+    let (_,sbmlUrl) = List.find_exn ~f:(fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
     let splitUrl = Core_kernel.String.split ~on:'/' sbmlUrl in
-    List.nth splitUrl (List.length splitUrl - 1)
+    List.nth_exn splitUrl (List.length splitUrl - 1)
 
   let parse_bvarlist i =
     let rec bvarlist_iter i bvarlist =
@@ -275,7 +275,7 @@ module MathML = struct
         let otherwise = extract_string i 2 "malformed otherwise expr" in mathexpr_iter i (MPiecewise (pieces, otherwise))
       | `El_start ((_, "ci"), _) -> mathexpr_iter i (MIdentifier (unpack_string (parse_mathexpr i)))
       | `El_start ((_, "cn"), attrs) -> if (List.length attrs) = 1
-        then match List.hd attrs with
+        then match List.hd_exn attrs with
           | ((_, "type"), "integer") -> mathexpr_iter i (MIntNumber (int_of_string (unpack_string (parse_mathexpr i))))
           | ((_, "type"), "e-notation") ->
             mathexpr_iter i (MFloatNumber (float_of_string (unpack_string (parse_mathexpr i))))
@@ -358,16 +358,16 @@ module SBMLParser = struct
 
   (*abstract stuff for lists and attributes*)
   let store_attrs attrs =
-    let parse_hash = Hashtbl.create 10 in
+    let parse_hash = Caml.Hashtbl.create 10 in
     let store_attr attr =
       match attr with
-      | ((_, nam), value) -> Hashtbl.add parse_hash nam value
-    in List.iter store_attr attrs; parse_hash
+      | ((_, nam), value) -> Caml.Hashtbl.add parse_hash nam value
+    in List.iter ~f:store_attr attrs; parse_hash
 
   let parse_list i assoclist =
     let rec iter_list i templist =
       match Xmlm.input i with
-      | `El_start ((_, tagname), attrs) -> iter_list i ((try ((List.assoc tagname assoclist) attrs i) with Not_found -> raise_bad tagname) :: templist)
+      | `El_start ((_, tagname), attrs) -> iter_list i ((try ((Caml.List.assoc tagname assoclist) attrs i) with Caml.Not_found -> raise_bad tagname) :: templist)
       | `El_end -> templist
       | `Data _ -> iter_list i templist
       | `Dtd _ -> assert false
@@ -375,13 +375,13 @@ module SBMLParser = struct
     iter_list i []
 
   let parse_record i list_dict record_dict =
-    let list_hash = Hashtbl.create 10 in
-    let record_hash = Hashtbl.create 10 in
+    let list_hash = Caml.Hashtbl.create 10 in
+    let record_hash = Caml.Hashtbl.create 10 in
     let rec iter_record i =
       match Xmlm.input i with
-      | `El_start ((_, tagname), attrs) -> (if (String.compare (String.sub tagname 0 4) "list")=0
-                                            then (try (Hashtbl.add list_hash tagname (parse_list i (List.assoc tagname list_dict))) with Not_found -> raise_bad tagname)
-                                            else (try (Hashtbl.add record_hash tagname ((List.assoc tagname record_dict) attrs i)) with Not_found -> raise_bad tagname));
+      | `El_start ((_, tagname), attrs) -> (if (String.compare (String.sub tagname ~pos:0 ~len:4) "list")=0
+                                            then (try (Caml.Hashtbl.add list_hash tagname (parse_list i (Caml.List.assoc tagname list_dict))) with Caml.Not_found -> raise_bad tagname)
+                                            else (try (Caml.Hashtbl.add record_hash tagname ((Caml.List.assoc tagname record_dict) attrs i)) with Caml.Not_found -> raise_bad tagname));
         iter_record i
       | `El_end -> ()
       | `Data _ -> iter_record i
@@ -393,56 +393,56 @@ module SBMLParser = struct
   let parse_unit attrs i =
     ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LUnit ({
-        unit_kind = (Hashtbl.find parse_hash "kind");
-        unit_exponent = (try (int_of_string (Hashtbl.find parse_hash "exponent")) with Not_found -> 1);
-        unit_scale = (try int_of_string (Hashtbl.find parse_hash "scale") with Not_found -> 0);
-        unit_multiplier = (try (float_of_string (Hashtbl.find parse_hash "multiplier")) with Not_found -> 1.0)
+        unit_kind = (Caml.Hashtbl.find parse_hash "kind");
+        unit_exponent = (try (int_of_string (Caml.Hashtbl.find parse_hash "exponent")) with Caml.Not_found -> 1);
+        unit_scale = (try int_of_string (Caml.Hashtbl.find parse_hash "scale") with Caml.Not_found -> 0);
+        unit_multiplier = (try (float_of_string (Caml.Hashtbl.find parse_hash "multiplier")) with Caml.Not_found -> 1.0)
       })
 
   let parse_compartment attrs i =
     ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LCompartment ({
-        compart_id = (Hashtbl.find parse_hash "id");
-        compart_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        compart_size = (try (float_of_string (Hashtbl.find parse_hash "size")) with Not_found -> 0.0);
-        compart_spatialDimensions = (try (int_of_string  (Hashtbl.find parse_hash "spatialDimensions")) with Not_found -> 3);
-        compart_units = (try (Hashtbl.find parse_hash "units") with Not_found -> "");
-        compart_outside = (try (Hashtbl.find parse_hash "outside") with Not_found -> "");
-        compart_constant = (try (bool_of_string (Hashtbl.find parse_hash "constant")) with Not_found -> true);
+        compart_id = (Caml.Hashtbl.find parse_hash "id");
+        compart_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        compart_size = (try (float_of_string (Caml.Hashtbl.find parse_hash "size")) with Caml.Not_found -> 0.0);
+        compart_spatialDimensions = (try (int_of_string  (Caml.Hashtbl.find parse_hash "spatialDimensions")) with Caml.Not_found -> 3);
+        compart_units = (try (Caml.Hashtbl.find parse_hash "units") with Caml.Not_found -> "");
+        compart_outside = (try (Caml.Hashtbl.find parse_hash "outside") with Caml.Not_found -> "");
+        compart_constant = (try (bool_of_string (Caml.Hashtbl.find parse_hash "constant")) with Caml.Not_found -> true);
       })
 
   let parse_species attrs i =
     ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LSpecies ({
-        species_id = (Hashtbl.find parse_hash "id");
-        species_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        species_type = (try (Hashtbl.find parse_hash "speciesType") with Not_found -> "");
-        species_compartment = (Hashtbl.find parse_hash "compartment");
-        species_initialAmount = (try (float_of_string (Hashtbl.find parse_hash "initialAmount")) with Not_found -> 0.0);
-        species_initialConcentration = (try (float_of_string (Hashtbl.find parse_hash "initialConcentration")) with Not_found -> 0.0);
-        species_substanceUnits = (try (Hashtbl.find parse_hash "substanceUnits") with Not_found -> "");
-        species_hasOnlySubstanceUnits = (try (bool_of_string (Hashtbl.find parse_hash "hasOnlySubstanceUnits")) with Not_found -> false);
-        species_boundaryCondition = (try (bool_of_string (Hashtbl.find parse_hash "boundaryCondition")) with Not_found -> false);
-        species_constant = (try (bool_of_string (Hashtbl.find parse_hash "constant")) with Not_found -> false);
+        species_id = (Caml.Hashtbl.find parse_hash "id");
+        species_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        species_type = (try (Caml.Hashtbl.find parse_hash "speciesType") with Caml.Not_found -> "");
+        species_compartment = (Caml.Hashtbl.find parse_hash "compartment");
+        species_initialAmount = (try (float_of_string (Caml.Hashtbl.find parse_hash "initialAmount")) with Caml.Not_found -> 0.0);
+        species_initialConcentration = (try (float_of_string (Caml.Hashtbl.find parse_hash "initialConcentration")) with Caml.Not_found -> 0.0);
+        species_substanceUnits = (try (Caml.Hashtbl.find parse_hash "substanceUnits") with Caml.Not_found -> "");
+        species_hasOnlySubstanceUnits = (try (bool_of_string (Caml.Hashtbl.find parse_hash "hasOnlySubstanceUnits")) with Caml.Not_found -> false);
+        species_boundaryCondition = (try (bool_of_string (Caml.Hashtbl.find parse_hash "boundaryCondition")) with Caml.Not_found -> false);
+        species_constant = (try (bool_of_string (Caml.Hashtbl.find parse_hash "constant")) with Caml.Not_found -> false);
       })
 
   let parse_spreference attrs i =
     ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LSpecieRef ({
-        specref_species = (Hashtbl.find parse_hash "species");
-        specref_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
-        specref_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        specref_stoichiometry = (try (int_of_string (Hashtbl.find parse_hash "stoichiometry")) with Not_found -> 1)
+        specref_species = (Caml.Hashtbl.find parse_hash "species");
+        specref_id = (try (Caml.Hashtbl.find parse_hash "id") with Caml.Not_found -> "");
+        specref_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        specref_stoichiometry = (try (int_of_string (Caml.Hashtbl.find parse_hash "stoichiometry")) with Caml.Not_found -> 1)
       })
 
   let parse_parameter attrs i =
     ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
     LParameter ({
-        param_id = (try (Hashtbl.find parse_hash "id") with Not_found -> raise_bad "no id for parameter") ;
-        param_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        param_value = (try (float_of_string (Hashtbl.find parse_hash "value")) with Not_found -> 0.0);
-        param_units = (try (Hashtbl.find parse_hash "units") with Not_found -> "");
-        param_constant = (try (bool_of_string (Hashtbl.find parse_hash "constant")) with Not_found -> true);
+        param_id = (try (Caml.Hashtbl.find parse_hash "id") with Caml.Not_found -> raise_bad "no id for parameter") ;
+        param_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        param_value = (try (float_of_string (Caml.Hashtbl.find parse_hash "value")) with Caml.Not_found -> 0.0);
+        param_units = (try (Caml.Hashtbl.find parse_hash "units") with Caml.Not_found -> "");
+        param_constant = (try (bool_of_string (Caml.Hashtbl.find parse_hash "constant")) with Caml.Not_found -> true);
       })
 
   (*container record parsing*)
@@ -451,40 +451,40 @@ module SBMLParser = struct
     let parse_hash = store_attrs attrs in
     let (_, record_hash) = parse_record i [] [("math",parse_math)] in
     LFunctionDefinition ({
-        fundef_id = (Hashtbl.find parse_hash "id");
-        fundef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        fundef_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+        fundef_id = (Caml.Hashtbl.find parse_hash "id");
+        fundef_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        fundef_math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
       })
 
   let parse_unitdef attrs i =
     let parse_hash = store_attrs attrs in
     let (_, record_hash) = parse_record i [("listOfUnits",[("unit",parse_unit)])] [] in
     LUnitDefinition ({
-        unitdef_id = (Hashtbl.find parse_hash "id");
-        unitdef_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        unitdef_unitlist = (try (List.rev_map (function LUnit(t) -> t | _ -> raise_bad "unit")
-            (Hashtbl.find record_hash "listOfUnits")) with Not_found -> []);
+        unitdef_id = (Caml.Hashtbl.find parse_hash "id");
+        unitdef_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        unitdef_unitlist = (try (List.rev_map ~f:(function LUnit(t) -> t | _ -> raise_bad "unit")
+            (Caml.Hashtbl.find record_hash "listOfUnits")) with Caml.Not_found -> []);
       })
 
   let parse_iassignment attrs i =
     let parse_hash = store_attrs attrs in
     let _, record_hash = parse_record i [] [ "math", parse_math ] in
     LInitialAssignment ({
-        ia_symbol = (Hashtbl.find parse_hash "symbol");
-        ia_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+        ia_symbol = (Caml.Hashtbl.find parse_hash "symbol");
+        ia_math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
       })
 
   let parse_generic_rule attrs i =
     let parse_hash = store_attrs attrs in
     let _, record_hash = parse_record i [] [ "math", parse_math ] in
     {
-      gr_variable = (Hashtbl.find parse_hash "variable");
-      gr_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+      gr_variable = (Caml.Hashtbl.find parse_hash "variable");
+      gr_math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
     }
   let parse_algebraic_rule _ i =
     let _, record_hash = parse_record i [] [ "math", parse_math ] in
     LRule (AlgebraicRule ({
-        ar_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+        ar_math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
       }))
   let parse_assignment_rule attrs i = LRule (AssignmentRule (parse_generic_rule attrs i))
   let parse_rate_rule attrs i = LRule (RateRule (parse_generic_rule attrs i))
@@ -493,9 +493,9 @@ module SBMLParser = struct
     let (list_hash,record_hash) = (parse_record i [("listOfParameters",[("parameter",parse_parameter)])]
                                      [("math",parse_math)]) in
     {
-      klaw_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> raise_bad "parameter")
-          (Hashtbl.find list_hash "listOfParameters")) with Not_found -> []);
-      klaw_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+      klaw_parameters = (try (List.rev_map ~f:(function LParameter(t) -> t | _ -> raise_bad "parameter")
+          (Caml.Hashtbl.find list_hash "listOfParameters")) with Caml.Not_found -> []);
+      klaw_math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
     }
 
   let parse_reaction attrs i =
@@ -504,30 +504,30 @@ module SBMLParser = struct
                                                    ("listOfProducts",[("speciesReference",parse_spreference)])]
                                      [("kineticLaw",parse_kineticlaw)]) in
     LReaction ({
-        react_id = (Hashtbl.find parse_hash "id");
-        react_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        react_boundaryCondition = (try (bool_of_string (Hashtbl.find parse_hash "reversible")) with Not_found -> true);
-        react_fast = (try (bool_of_string (Hashtbl.find parse_hash "fast")) with Not_found -> false);
-        react_reactants = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference")
-            (Hashtbl.find list_hash "listOfReactants")) with Not_found -> []);
-        react_products = (try (List.rev_map (function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference")
-            (Hashtbl.find list_hash "listOfProducts")) with Not_found -> []);
-        react_kineticLaw = (try (Hashtbl.find record_hash "kineticLaw")
-                            with Not_found -> {klaw_parameters = []; klaw_math = MNoMath});
+        react_id = (Caml.Hashtbl.find parse_hash "id");
+        react_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        react_boundaryCondition = (try (bool_of_string (Caml.Hashtbl.find parse_hash "reversible")) with Caml.Not_found -> true);
+        react_fast = (try (bool_of_string (Caml.Hashtbl.find parse_hash "fast")) with Caml.Not_found -> false);
+        react_reactants = (try (List.rev_map ~f:(function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference")
+            (Caml.Hashtbl.find list_hash "listOfReactants")) with Caml.Not_found -> []);
+        react_products = (try (List.rev_map ~f:(function LSpecieRef(t) -> t | _ -> raise_bad "malformed specieReference")
+            (Caml.Hashtbl.find list_hash "listOfProducts")) with Caml.Not_found -> []);
+        react_kineticLaw = (try (Caml.Hashtbl.find record_hash "kineticLaw")
+                            with Caml.Not_found -> {klaw_parameters = []; klaw_math = MNoMath});
       })
 
   let parse_eassignment attrs i =
     let parse_hash = store_attrs attrs in
     let _, record_hash = parse_record i [] [ "math", parse_math ] in
     LEventAssignment ({
-        ea_variable = (Hashtbl.find parse_hash "variable");
-        ea_math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+        ea_variable = (Caml.Hashtbl.find parse_hash "variable");
+        ea_math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
       })
 
   let parse_math_container _ i =
     let _, record_hash = parse_record i [] [ "math", parse_math ] in
     {
-      math = (try (Hashtbl.find record_hash "math") with Not_found -> MNoMath);
+      math = (try (Caml.Hashtbl.find record_hash "math") with Caml.Not_found -> MNoMath);
     }
 
   let parse_event attrs i =
@@ -536,13 +536,13 @@ module SBMLParser = struct
                                      [("trigger",parse_math_container);
                                       ("delay",parse_math_container)]) in
     LEvent ({
-        event_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
-        event_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-        event_useValuesFromTriggerTime = (try (bool_of_string (Hashtbl.find parse_hash "useValuesFromTriggerTime")) with Not_found -> true);
-        event_trigger = (try Trigger (Hashtbl.find record_hash "trigger") with Not_found -> raise_bad "trigger not found in event");
-        event_delay = (try Delay (Hashtbl.find record_hash "delay") with Not_found -> Delay ({math = MNoMath}));
-        event_assignments = (try (List.rev_map (function LEventAssignment(t) -> t | _ -> raise_bad "malformed eventAssignment")
-            (Hashtbl.find list_hash "listOfEventAssignments")) with Not_found -> []);
+        event_id = (try (Caml.Hashtbl.find parse_hash "id") with Caml.Not_found -> "");
+        event_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+        event_useValuesFromTriggerTime = (try (bool_of_string (Caml.Hashtbl.find parse_hash "useValuesFromTriggerTime")) with Caml.Not_found -> true);
+        event_trigger = (try Trigger (Caml.Hashtbl.find record_hash "trigger") with Caml.Not_found -> raise_bad "trigger not found in event");
+        event_delay = (try Delay (Caml.Hashtbl.find record_hash "delay") with Caml.Not_found -> Delay ({math = MNoMath}));
+        event_assignments = (try (List.rev_map ~f:(function LEventAssignment(t) -> t | _ -> raise_bad "malformed eventAssignment")
+            (Caml.Hashtbl.find list_hash "listOfEventAssignments")) with Caml.Not_found -> []);
       })
 
   let parse_model attrs i =
@@ -560,26 +560,26 @@ module SBMLParser = struct
                                        ("listOfEvents",[("event",parse_event)])]
         [] in
     {
-      sbm_id = (try (Hashtbl.find parse_hash "id") with Not_found -> "");
-      sbm_name = (try (Hashtbl.find parse_hash "name") with Not_found -> "");
-      sbm_functionDefinitions = (try (List.rev_map (function LFunctionDefinition(t) -> t | _ -> raise_bad "malformed functionDefinition")
-          (Hashtbl.find list_hash "listOfFunctionDefinitions")) with Not_found -> []);
-      sbm_unitDefinitions = (try (List.rev_map (function LUnitDefinition(t) -> t | _ -> raise_bad "malformed unitDefinition")
-          (Hashtbl.find list_hash "listOfUnitDefinitions")) with Not_found -> []);
-      sbm_compartments = (try (List.rev_map (function LCompartment(t) -> t | _ -> raise_bad "malformed compartment")
-          (Hashtbl.find list_hash "listOfCompartments")) with Not_found -> []);
-      sbm_species = (try (List.rev_map (function LSpecies(t) -> t | _ -> raise_bad "malformed species")
-          (Hashtbl.find list_hash "listOfSpecies")) with Not_found -> []);
-      sbm_reactions = (try (List.rev_map (function LReaction(t) -> t | _ -> raise_bad "malformed reaction")
-          (Hashtbl.find list_hash "listOfReactions")) with Not_found -> []);
-      sbm_parameters = (try (List.rev_map (function LParameter(t) -> t | _ -> raise_bad "malformed parameter")
-          (Hashtbl.find list_hash "listOfParameters")) with Not_found -> []);
-      sbm_initialAssignments = (try (List.rev_map (function LInitialAssignment(t) -> t | _ -> raise_bad "malformed initialAssignment")
-          (Hashtbl.find list_hash "listOfInitialAssignments")) with Not_found -> []);
-      sbm_rules = (try (List.rev_map (function LRule(t) -> t | _ -> raise_bad "malformed rule")
-          (Hashtbl.find list_hash "listOfRules")) with Not_found -> []);
-      sbm_events = (try (List.rev_map (function LEvent(t) -> t | _ -> raise_bad "malformed event")
-          (Hashtbl.find list_hash "listOfEvents")) with Not_found -> []);
+      sbm_id = (try (Caml.Hashtbl.find parse_hash "id") with Caml.Not_found -> "");
+      sbm_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
+      sbm_functionDefinitions = (try (List.rev_map ~f:(function LFunctionDefinition(t) -> t | _ -> raise_bad "malformed functionDefinition")
+          (Caml.Hashtbl.find list_hash "listOfFunctionDefinitions")) with Caml.Not_found -> []);
+      sbm_unitDefinitions = (try (List.rev_map ~f:(function LUnitDefinition(t) -> t | _ -> raise_bad "malformed unitDefinition")
+          (Caml.Hashtbl.find list_hash "listOfUnitDefinitions")) with Caml.Not_found -> []);
+      sbm_compartments = (try (List.rev_map ~f:(function LCompartment(t) -> t | _ -> raise_bad "malformed compartment")
+          (Caml.Hashtbl.find list_hash "listOfCompartments")) with Caml.Not_found -> []);
+      sbm_species = (try (List.rev_map ~f:(function LSpecies(t) -> t | _ -> raise_bad "malformed species")
+          (Caml.Hashtbl.find list_hash "listOfSpecies")) with Caml.Not_found -> []);
+      sbm_reactions = (try (List.rev_map ~f:(function LReaction(t) -> t | _ -> raise_bad "malformed reaction")
+          (Caml.Hashtbl.find list_hash "listOfReactions")) with Caml.Not_found -> []);
+      sbm_parameters = (try (List.rev_map ~f:(function LParameter(t) -> t | _ -> raise_bad "malformed parameter")
+          (Caml.Hashtbl.find list_hash "listOfParameters")) with Caml.Not_found -> []);
+      sbm_initialAssignments = (try (List.rev_map ~f:(function LInitialAssignment(t) -> t | _ -> raise_bad "malformed initialAssignment")
+          (Caml.Hashtbl.find list_hash "listOfInitialAssignments")) with Caml.Not_found -> []);
+      sbm_rules = (try (List.rev_map ~f:(function LRule(t) -> t | _ -> raise_bad "malformed rule")
+          (Caml.Hashtbl.find list_hash "listOfRules")) with Caml.Not_found -> []);
+      sbm_events = (try (List.rev_map ~f:(function LEvent(t) -> t | _ -> raise_bad "malformed event")
+          (Caml.Hashtbl.find list_hash "listOfEvents")) with Caml.Not_found -> []);
     }
 
   (*reader function*)

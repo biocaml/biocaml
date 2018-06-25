@@ -1,4 +1,4 @@
-open Core_kernel
+
 
 type 'a t = {
   cmp: 'a -> 'a -> int; (* comparison function of bin limit type *)

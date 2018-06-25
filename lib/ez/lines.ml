@@ -1,5 +1,5 @@
 open CFStream
-open Core_kernel
+
 include Biocaml_unix.Lines
 
 let file_mapper inbed outbed ~f =

@@ -12,7 +12,7 @@ module Parser = struct
 
   let line_number = function
     | Current_line { n ; value } ->
-      if (value :> string) = "" then n else n + 1
+      if (String.equal (value :> string) "") then n else n + 1
     | Finished { n } -> n
 
   let step st i = match st, i with

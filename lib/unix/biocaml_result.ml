@@ -1,4 +1,4 @@
-open Core_kernel
+
 
 include Result
 

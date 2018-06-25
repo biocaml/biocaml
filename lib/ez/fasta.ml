@@ -1,4 +1,3 @@
-open Core_kernel
 open CFStream
 
 include Biocaml_unix.Fasta

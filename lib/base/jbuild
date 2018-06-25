@@ -5,4 +5,9 @@
   (public_name biocaml.base)
   (libraries (base rresult uri))
   (inline_tests)
+  (flags (
+    :standard
+    -open Base
+    -open Biocaml_base
+  ))
   (preprocess (pps (ppx_sexp_conv ppx_inline_test)))))

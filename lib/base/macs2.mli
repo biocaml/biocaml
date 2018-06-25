@@ -20,7 +20,7 @@ module Xls : sig
     name : string ;
   }
 
-  val parse : Line.t -> (item,  [> `Msg of string]) result
+  val parse : Line.t -> (item,  [> `Msg of string]) Caml.result
 end
 
 module Broad_peaks : sig
@@ -36,5 +36,5 @@ module Broad_peaks : sig
     log10qvalue : float ;
   }
 
-  val parse : Line.t -> (item,  [> `Msg of string]) result
+  val parse : Line.t -> (item,  [> `Msg of string]) Caml.result
 end

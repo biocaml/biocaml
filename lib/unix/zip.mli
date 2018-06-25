@@ -55,13 +55,13 @@ end
 
 val unzip_in_channel :
   ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int ->
-  ?buffer_size:int -> in_channel ->
+  ?buffer_size:int -> In_channel.t ->
   (string, [> Error.t]) result Stream.t
 (** Decompress an Input Channel. *)
 
 val zip_in_channel :
   ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int -> ?level:int ->
-  ?buffer_size:int -> in_channel ->
+  ?buffer_size:int -> In_channel.t ->
   string Stream.t
 (** Compress an Input Channel. *)
 
@@ -70,7 +70,7 @@ exception Error of Error.unzip
 
 val unzip_in_channel_exn :
   ?format:[ `gzip | `raw ] -> ?zlib_buffer_size:int ->
-  ?buffer_size:int -> in_channel ->
+  ?buffer_size:int -> In_channel.t ->
   string Stream.t
 (** Like [unzip_in_channel] but calls to [Stream.next] may raise
     [Error e] exceptions. *)

@@ -4,7 +4,7 @@
  ((name biocaml_unix)
   (public_name biocaml.unix)
   (c_names (mzData_stubs pwm_stub))
-  (flags (:standard -unsafe-string))
+  (flags (:standard -unsafe-string -open Core_kernel))
   (libraries (base64 biocaml.base camlzip cfstream core_kernel re.perl xmlm))
   (preprocess (pps (ppx_jane)))
   ))

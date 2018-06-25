@@ -1,4 +1,4 @@
-open Core_kernel
+
 open CFStream
 open Biocaml_unix.Fastq
 
