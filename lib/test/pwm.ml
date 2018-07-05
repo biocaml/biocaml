@@ -1,4 +1,4 @@
-open Core_kernel
+
 module Pwm = Biocaml_unix.Pwm
 open OUnit
 open Pwm

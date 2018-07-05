@@ -1,4 +1,4 @@
-open Core_kernel
+
 module UGB = Biocaml_base.Ucsc_genome_browser
 open OUnit
 

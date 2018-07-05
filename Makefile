@@ -9,7 +9,7 @@ clean:
 
 .PHONY: test
 test:
-	jbuilder build @runtest --dev -j 1
+	jbuilder build @runtest --dev
 
 doc:
 	make doc

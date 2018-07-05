@@ -1,4 +1,4 @@
-open Core_kernel
+
 open CFStream
 module Bed = Biocaml_unix.Bed
 module Tfxm = Biocaml_unix.Tfxm
