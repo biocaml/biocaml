@@ -1,5 +1,5 @@
 module Field : sig
-  type 'a result = ('a, string) Caml.result
+  type 'a result = ('a, string) Result.t
   type 'a parser = string -> 'a result
 
   val int : int parser

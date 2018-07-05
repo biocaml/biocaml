@@ -112,7 +112,7 @@ val fmt :
 val default_fmt : fmt
 
 (** Parse a space separated list of integers. *)
-val sequence_to_int_list : string -> (int list, [> `Msg of string]) Caml.result
+val sequence_to_int_list : string -> (int list, [> `Msg of string]) Result.t
 
 
 (** An [item0] is more raw than [item]. It is useful for parsing files
@@ -159,7 +159,7 @@ module Parser0 : sig
   val step :
     state ->
     string option ->
-    (state * item0 list, [> parser_error]) Caml.result
+    (state * item0 list, [> parser_error]) Result.t
 end
 
 val unparser0 : item0 -> string
@@ -178,7 +178,7 @@ module Parser : sig
   val step :
     state ->
     string option ->
-    (state * item list, [> parser_error]) Caml.result
+    (state * item list, [> parser_error]) Result.t
 end
 
 val unparser : item -> string
