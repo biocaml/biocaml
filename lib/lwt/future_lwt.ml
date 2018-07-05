@@ -1,5 +1,3 @@
-open Core_kernel
-
 type how = [ `Parallel | `Sequential | `Max_concurrent_jobs of int ]
 
 module Deferred = struct

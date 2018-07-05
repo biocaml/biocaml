@@ -252,7 +252,7 @@ module MathML = struct
 
   let unpack_symbol_type attrs =
     let (_,sbmlUrl) = List.find_exn ~f:(fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
-    let splitUrl = Core_kernel.String.split ~on:'/' sbmlUrl in
+    let splitUrl = String.split ~on:'/' sbmlUrl in
     List.nth_exn splitUrl (List.length splitUrl - 1)
 
   let parse_bvarlist i =
