@@ -1,4 +1,4 @@
-open Core_kernel
+
 
 module type Identifier = sig
   include Comparable

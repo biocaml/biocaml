@@ -1,6 +1,5 @@
 (* FIXME: max_line_length and alphabet format options are not implemented *)
 
-open Base
 open Rresult
 
 type header = string list

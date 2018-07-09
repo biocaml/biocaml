@@ -89,7 +89,7 @@ let unparse_track_attribute buf = function
 let track_line opts =
   let buf = Buffer.create 1024 in
   bprintf buf "track" ;
-  List.iter (unparse_track_attribute buf) opts ;
+  List.iter ~f:(unparse_track_attribute buf) opts ;
   Buffer.contents buf
 
 type url_param = [
@@ -116,8 +116,8 @@ let encode_url_param = function
   | `textSize n -> sprintf "textSize=%d" n
 
 let encode_url_params xs =
-  List.map encode_url_param xs
-  |> String.concat "&"
+  List.map ~f:encode_url_param xs
+  |> String.concat ~sep:"&"
 
 let custom_track_url ?(params = []) ~db ~position ~data_url () =
   sprintf

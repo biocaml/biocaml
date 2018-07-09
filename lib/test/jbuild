@@ -4,5 +4,6 @@
  ((name biocaml_test)
   (libraries (biocaml.unix oUnit))
   (preprocess (pps (ppx_jane)))
+  (flags (:standard -short-paths -open Core))
   (optional)
   ))

@@ -1,4 +1,4 @@
-open Core_kernel
+
 open CFStream
 let (/) = Filename.concat
 
@@ -89,8 +89,8 @@ let load_matrix_data fn =
 
 
 module SS = struct
-  include Core_kernel.Tuple.Make(String)(String)
-  include Core_kernel.Tuple.Comparable(String)(String)
+  include Tuple.Make(String)(String)
+  include Tuple.Comparable(String)(String)
 end
 
 module SSM = Map.Make(SS)

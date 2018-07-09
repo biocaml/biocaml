@@ -1,4 +1,3 @@
-open Base
 
 type parser_error = [ `Bed_parser_error of int * string ]
 [@@deriving sexp]

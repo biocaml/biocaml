@@ -1,5 +1,5 @@
 open CFStream
-open Core_kernel
+
 
 module B = Biocaml_base
 

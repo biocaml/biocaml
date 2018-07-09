@@ -127,21 +127,21 @@ exception Error of  Error.t
 (** The exceptions raised by the [Wig] module's [*_exn] functions. *)
 
 val in_channel_to_item_stream: ?buffer_size:int -> ?filename:string ->
-  ?tags:Tags.t -> in_channel -> (item, Error.t) result Stream.t
+  ?tags:Tags.t -> In_channel.t -> (item, Error.t) result Stream.t
 (** Get a stream of [item] values out of an input-channel. *)
 
 val in_channel_to_item_stream_exn: ?buffer_size:int -> ?filename:string ->
-  ?tags:Tags.t -> in_channel -> item Stream.t
+  ?tags:Tags.t -> In_channel.t -> item Stream.t
 (** Do like [in_channel_to_item_stream] but each call to [Stream.next]
     may throw an exception. *)
 
 val in_channel_to_bed_graph:  ?buffer_size:int -> ?filename:string ->
-  ?tags:Tags.t -> in_channel ->
+  ?tags:Tags.t -> In_channel.t ->
   (bed_graph_value, Error.t) result Stream.t
 (** Get a stream of [bed_graph_value] values out of a WIG-file input-channel. *)
 
 val in_channel_to_bed_graph_exn: ?buffer_size:int -> ?filename:string ->
-  ?tags:Tags.t -> in_channel -> bed_graph_value Stream.t
+  ?tags:Tags.t -> In_channel.t -> bed_graph_value Stream.t
 (** Do like [in_channel_to_bed_graph] but each call to [Stream.next]
     may throw an exception. *)
 

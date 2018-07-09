@@ -1,5 +1,5 @@
-open Core
-open Async
+
+
 
 type how = Monad_sequence.how
 
@@ -68,7 +68,7 @@ module Unix = struct
   (* let getpid = Unix.getpid *)
 
   module Stats = struct
-    type t = Core.Unix.stats = {
+    type _t = Core.Unix.stats = {
       st_dev   : int;
       st_ino   : int;
       st_kind  : Core.Unix.file_kind;

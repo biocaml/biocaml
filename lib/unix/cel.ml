@@ -1,4 +1,4 @@
-open Core_kernel
+
 open CFStream
 
 type idata = {mean:float; stdv:float; npixels:int}

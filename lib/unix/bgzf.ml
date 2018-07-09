@@ -57,7 +57,7 @@ let dispose_in iz =
 
 let close_in iz =
   dispose_in iz ;
-  close_in iz.ic
+  In_channel.close iz.ic
 
 
 
@@ -65,6 +65,7 @@ let may_eof f x =
   try Some (f x)
   with End_of_file -> None
 
+let input_byte t = In_channel.input_byte t |> Option.value_exn
 let input_u16 ic =
   let b1 = input_byte ic in
   let b2 = input_byte ic in
@@ -76,10 +77,10 @@ let input_s32 ic =
   let b3 = input_byte ic in
   let b4 = input_byte ic in
   let open Int32 in
-  logor (of_int b1)
-    (logor (shift_left (of_int b2) 8)
-      (logor (shift_left (of_int b3) 16)
-                   (shift_left (of_int b4) 24)))
+  bit_or (of_int_exn b1)
+    (bit_or (shift_left (of_int_exn b2) 8)
+       (bit_or (shift_left (of_int_exn b3) 16)
+          (shift_left (of_int_exn b4) 24)))
 
 (* Raises End_of_file iff there is no more block to read *)
 let read_header iz =
@@ -123,7 +124,7 @@ let read_block iz =
     try
       Pervasives.really_input iz.ic iz.in_bufz 0 cdata_size ;
       let ref_crc = input_s32 iz.ic in
-      let ref_size = input_s32 iz.ic |> Int32.to_int in
+      let ref_size = input_s32 iz.ic |> Int32.to_int_exn in
       Zlib.inflate_end iz.in_stream ;
       iz.in_stream <- Zlib.inflate_init false ;
       let crc, size = loop 0 cdata_size 0 max_block_size Int32.zero 0 in
@@ -147,7 +148,7 @@ let input iz buf pos len =
         if iz.in_eof then read
         else (
           let n = min iz.in_avail len in
-          String.blit iz.in_buf iz.in_pos buf pos n ;
+          Caml.String.blit iz.in_buf iz.in_pos buf pos n ;
           iz.in_pos <- iz.in_pos + n ;
           iz.in_avail <- iz.in_avail - n ;
           loop (pos + n) (len - n) (read + n)
@@ -178,7 +179,7 @@ let input_char =
     else buf.[0]
 
 let input_u8 iz =
-  Char.code (input_char iz)
+  Char.to_int (input_char iz)
 
 (* input_s* functions adapted from Batteries BatIO module *)
 let input_s8 iz =
@@ -201,10 +202,10 @@ let input_s32 iz =
   let b2 = input_u8 iz in
   let b3 = input_u8 iz in
   let b4 = input_u8 iz in
-  Int32.logor (Int32.of_int b1)
-    (Int32.logor (Int32.shift_left (Int32.of_int b2) 8)
-      (Int32.logor (Int32.shift_left (Int32.of_int b3) 16)
-                   (Int32.shift_left (Int32.of_int b4) 24)))
+  Int32.bit_or (Int32.of_int_exn b1)
+    (Int32.bit_or (Int32.shift_left (Int32.of_int_exn b2) 8)
+      (Int32.bit_or (Int32.shift_left (Int32.of_int_exn b3) 16)
+                   (Int32.shift_left (Int32.of_int_exn b4) 24)))
 
 let with_file_in fn ~f =
   let iz = open_in fn in
@@ -228,13 +229,13 @@ type out_channel = {
 }
 
 let output_int16 oc n =
-  Pervasives.output_byte oc n ;
-  Pervasives.output_byte oc (n lsr 8)
+  Out_channel.output_byte oc n ;
+  Out_channel.output_byte oc (n lsr 8)
 
 let output_int32 oc n =
   let r = ref n in
   for _ = 1 to 4 do
-    Pervasives.output_byte oc (Int32.to_int !r);
+    Out_channel.output_byte oc (Int32.to_int_exn !r);
     r := Int32.shift_right_logical !r 8
   done
 
@@ -242,21 +243,21 @@ let write_block oc buf len ~isize ~crc32 =
   let xlen = 6 in
   let bsize = 20 + xlen + len in
   assert (bsize < 0x10000) ;
-  output_byte oc 0x1F;                  (* ID1 *)
-  output_byte oc 0x8B;                  (* ID2 *)
-  output_byte oc 8;                     (* compression method *)
-  output_byte oc 4;                     (* flags *)
+  Out_channel.output_byte oc 0x1F;                  (* ID1 *)
+  Out_channel.output_byte oc 0x8B;                  (* ID2 *)
+  Out_channel.output_byte oc 8;                     (* compression method *)
+  Out_channel.output_byte oc 4;                     (* flags *)
   for _ = 1 to 4 do
-    output_byte oc 0                    (* mtime *)
+    Out_channel.output_byte oc 0                    (* mtime *)
   done ;
-  output_byte oc 0;                     (* xflags *)
-  output_byte oc 0xFF;                  (* OS (unknown) *)
+  Out_channel.output_byte oc 0;                     (* xflags *)
+  Out_channel.output_byte oc 0xFF;                  (* OS (unknown) *)
   output_int16 oc xlen ;                (* XLEN *)
-  output_byte oc 0x42 ;                 (* SI1 *)
-  output_byte oc 0x43 ;                 (* SI2 *)
+  Out_channel.output_byte oc 0x42 ;                 (* SI1 *)
+  Out_channel.output_byte oc 0x43 ;                 (* SI2 *)
   output_int16 oc 2 ;                   (* SLEN *)
   output_int16 oc (bsize - 1);          (* BSIZE - 1*)
-  output oc buf 0 len ;                 (* DATA *)
+  Caml.output oc buf 0 len ;                 (* DATA *)
   output_int32 oc crc32 ;               (* CRC32 *)
   output_int32 oc isize                 (* ISIZE *)
 
@@ -288,7 +289,8 @@ let push_block oz =
   assert (used_in = oz.out_pos) ;
   let crc32 = Zlib.update_crc Int32.zero oz.out_ubuffer 0 used_in in
   Zlib.deflate_end stream ;
-  write_block oz.out_chan oz.out_cbuffer used_out ~isize:(Int32.of_int used_in) ~crc32 ;
+  write_block oz.out_chan oz.out_cbuffer used_out
+    ~isize:(Int32.of_int_exn used_in) ~crc32 ;
   oz.out_pos <- 0
 
 let rec output oz buf pos len =
@@ -297,7 +299,7 @@ let rec output oz buf pos len =
   if oz.out_pos = String.length oz.out_ubuffer then push_block oz ;
   let available = String.length oz.out_ubuffer - oz.out_pos in
   let ncopy = min len available in
-  String.blit buf pos oz.out_ubuffer oz.out_pos ncopy ;
+  Caml.String.blit buf pos oz.out_ubuffer oz.out_pos ncopy ;
   oz.out_pos <- oz.out_pos + ncopy ;
   let remaining = len - ncopy in
   if remaining > 0 then output oz buf (pos + ncopy) remaining
@@ -311,7 +313,7 @@ let output_char =
 (* output_* functions adapted from Batteries BatIO module *)
 let output_u8 oz n =
   (* if n < 0 || n > 0xFF then raise (Invalid_argument "Bgzf.output_u8") ; *)
-  output_char oz (Char.unsafe_chr (n land 0xFF))
+  output_char oz (Char.unsafe_of_int (n land 0xFF))
 
 let output_s8 oz n =
   if n < -0x80 || n > 0x7F then raise (Invalid_argument "Bgzf.output_s8") ;
@@ -332,8 +334,8 @@ let output_s16 oz n =
     output_u16 oz n
 
 let output_s32 oz n =
-  let base = Int32.to_int n in
-  let big = Int32.to_int (Int32.shift_right_logical n 24) in
+  let base = Int32.to_int_exn n in
+  let big = Int32.to_int_exn (Int32.shift_right_logical n 24) in
   output_u8 oz base ;
   output_u8 oz (base lsr 8) ;
   output_u8 oz (base lsr 16) ;

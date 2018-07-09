@@ -1,4 +1,3 @@
-open Base
 open Biocaml_base
 open OUnit
 

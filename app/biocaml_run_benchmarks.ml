@@ -1,4 +1,3 @@
-open Core.Std
 open Biocaml_unix.Std
 open Biocaml_benchmark
 

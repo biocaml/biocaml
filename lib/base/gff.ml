@@ -1,8 +1,5 @@
 (* https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md *)
 
-open Base
-open Printf
-
 type record = {
   seqname    : string ;
   source     : string option ;

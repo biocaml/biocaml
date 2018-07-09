@@ -1,4 +1,4 @@
-open Base
+
 open Rresult
 
 let parse_field f field x =
