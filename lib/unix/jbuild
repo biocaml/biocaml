@@ -5,6 +5,6 @@
   (public_name biocaml.unix)
   (c_names (mzData_stubs pwm_stub))
   (flags (:standard -short-paths -unsafe-string -open Core_kernel))
-  (libraries (base64 biocaml.base camlzip cfstream core_kernel re.perl xmlm))
+  (libraries (base64 biocaml.base zip cfstream core_kernel re.perl xmlm))
   (preprocess (pps (ppx_jane)))
   ))
