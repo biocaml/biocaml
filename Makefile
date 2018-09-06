@@ -1,15 +1,15 @@
 .PHONY: all
 all:
-	jbuilder build --dev @install
-	jbuilder build --dev @runtest
+	dune build @install
+	dune build @runtest
 
 .PHONY: clean
 clean:
-	jbuilder clean
+	dune clean
 
 .PHONY: test
 test:
-	jbuilder build @runtest --dev
+	dune build @runtest
 
 doc:
 	make doc
