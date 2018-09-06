@@ -18,8 +18,8 @@ TESTING
 =======
 
 ```sh
-jbuilder runtest        # for inline tests
-jbuilder run_test_suite # for test suite tests
+dune runtest        # for inline tests
+dune run_test_suite # for test suite tests
 ```
 
 LICENSE
