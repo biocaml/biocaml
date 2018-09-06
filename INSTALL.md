@@ -21,7 +21,7 @@ released can install from source. First get the code from
 
 Then run
 
-    jbuilder build
+    dune build
 
 ## Merlin
 
@@ -33,7 +33,7 @@ for usage instructions on Merlin itself.
 ## Tests
 To compile tests, install `oUnit` and run `make` again. Tests can then be run by doing
 
-    jbuilder runtest
+    dune runtest
 
 ## Benchmarks
 

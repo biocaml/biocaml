@@ -16,12 +16,12 @@ authors: [
   "Francois Berenger"
 ]
 
-build: ["jbuilder" "build" "-p" name "-j" jobs]
+build: ["dune" "build" "-p" name "-j" jobs]
 
 depends: [
   "base64"
   "ocamlfind" {build}
-  "jbuilder" {build & >= "1.0+beta8"}
+  "dune" {build}
   "core_kernel" {>= "v0.11.0"}
   "sexplib"
   "camlzip" {>= "1.05"}
