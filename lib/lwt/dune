@@ -1,0 +1,8 @@
+(library
+ (name biocaml_lwt)
+  (public_name biocaml.lwt)
+  (libraries biocaml.unix lwt.unix)
+  (flags :standard -short-paths -open Core_kernel)
+  (preprocess (pps ppx_jane))
+  (optional)
+  )
