@@ -1,6 +1,14 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.9.0 2018-12-06
+------------------------
+
+* switch from jbuilder to dune
+* fixed compilation warnings
+* safe-string-ification
+* update wrt world
+
 biocaml-0.8.0 2017-10-23
 ------------------------
 
