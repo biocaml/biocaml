@@ -73,3 +73,9 @@ module Relation : sig
 end
 
 val relation : ('a * 'b) Stream.t -> ('a * 'b list) Stream.t
+
+
+module Bins : sig
+  type nonrec ('a, 'b) t = ('a, 'b, 'a, 'a list) t
+  val of_list : 'a list -> f:('a -> 'b) -> ('a, 'b) t
+end

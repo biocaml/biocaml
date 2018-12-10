@@ -66,3 +66,17 @@ module Relation = struct
 end
 
 let relation xs = stream (Relation.of_stream xs)
+
+module Bins = struct
+  type nonrec ('a, 'b) t = ('a, 'b, 'a, 'a list) t
+
+  let of_list xs ~f =
+    let accu =
+      create
+        ~bin:f
+        ~zero:[]
+        ~add:(fun h t -> h :: t) ()
+    in
+    List.iter xs ~f:(fun x -> add accu x x) ;
+    accu
+end
