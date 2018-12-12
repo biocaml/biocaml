@@ -8,7 +8,6 @@ documentation. We welcome contributors and feedback from users. Please
 contact us with any comments and suggestions for features you would
 like added.
 """
-version: "dev"
 maintainer: "biocaml@googlegroups.com"
 homepage: "http://biocaml.org"
 bug-reports: "https://github.com/biocaml/biocaml/issues"
