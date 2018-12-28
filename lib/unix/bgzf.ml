@@ -59,13 +59,8 @@ let close_in iz =
   dispose_in iz ;
   In_channel.close iz.ic
 
-
-
-let may_eof f x =
-  try Some (f x)
-  with End_of_file -> None
-
 let input_byte t = In_channel.input_byte t |> Option.value_exn
+
 let input_u16 ic =
   let b1 = input_byte ic in
   let b2 = input_byte ic in
@@ -84,7 +79,7 @@ let input_s32 ic =
 
 (* Raises End_of_file iff there is no more block to read *)
 let read_header iz =
-  match may_eof input_byte iz.ic with
+  match In_channel.input_byte iz.ic with
   | None -> iz.in_eof <- true ; raise End_of_file
   | Some id1 ->
     try
