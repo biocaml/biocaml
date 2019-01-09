@@ -28,6 +28,10 @@ val seek_in : in_channel -> Int64.t -> unit
    correspond to an offset in the {i uncompressed} data of the
    block. *)
 
+val virtual_offset : in_channel -> Int64.t
+(** [virtual_offset iz] provides the current position in the file
+   using the same encoding than for [seek_in]. *)
+
 exception Error of string
 (** Exception signaling an incorrect format while reading data from an
     open file. All input functions may raise this exception. *)

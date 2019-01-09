@@ -33,6 +33,7 @@ type in_channel = {
   ic : Pervasives.in_channel ; (* Underlying channel *)
   in_bufz : string ; (* Compressed block *)
   in_buf : string ;   (* Uncompressed block *)
+  mutable in_block_offset : Int64.t ; (* Offset of the current block *)
   mutable in_pos : int ; (* Position in the current block *)
   mutable in_avail : int ; (* Number of available characters in the current block, can be less than [max_block_size] *)
   mutable in_eof : bool ; (* Flag indicating we reached the end of the file *)
@@ -43,6 +44,7 @@ let of_in_channel ic = {
   ic ;
   in_bufz = String.make max_block_size '\000' ;
   in_buf = String.make max_block_size '\000' ;
+  in_block_offset = Int64.zero ;
   in_pos = 0 ;
   in_avail = 0 ;
   in_stream = Zlib.inflate_init false ;
@@ -115,6 +117,7 @@ let read_block iz =
     else loop posz lenz (pos + used_out) (len - used_out) crc size
   in
   try
+    iz.in_block_offset <- In_channel.pos iz.ic ;
     let cdata_size = read_header iz in (* read_header raises End_of_file iff there is no more block to read *)
     try
       Pervasives.really_input iz.ic iz.in_bufz 0 cdata_size ;
@@ -206,6 +209,7 @@ let seek_in iz i =
   let coffset = Int64.shift_right i 16 in
   let uoffset = Int64.(to_int_exn (bit_and 0xFFFFL i)) in
   In_channel.seek iz.ic coffset ;
+  iz.in_block_offset <- coffset ;
   iz.in_pos <- 0 ;
   iz.in_avail <- 0 ;
   iz.in_eof <- false ;
@@ -213,6 +217,8 @@ let seek_in iz i =
   iz.in_pos <- iz.in_pos + uoffset ;
   iz.in_avail <- iz.in_avail - uoffset
 
+let virtual_offset iz =
+  Int64.(shift_left iz.in_block_offset 16 + of_int_exn iz.in_pos)
 
 let with_file_in fn ~f =
   let iz = open_in fn in
