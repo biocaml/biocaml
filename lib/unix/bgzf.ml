@@ -145,7 +145,7 @@ let input iz buf pos len =
         if iz.in_pos = iz.in_avail then read_block iz ;
         if iz.in_eof then read
         else (
-          let n = min iz.in_avail len in
+          let n = min (iz.in_avail - iz.in_pos) len in
           Caml.String.blit iz.in_buf iz.in_pos buf pos n ;
           iz.in_pos <- iz.in_pos + n ;
           loop (pos + n) (len - n) (read + n)
