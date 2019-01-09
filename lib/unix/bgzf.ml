@@ -209,11 +209,15 @@ let seek_in iz i =
   let uoffset = Int64.(to_int_exn (bit_and 0xFFFFL i)) in
   In_channel.seek iz.ic coffset ;
   iz.in_block_offset <- coffset ;
-  iz.in_pos <- 0 ;
-  iz.in_avail <- 0 ;
   iz.in_eof <- false ;
-  read_block iz ;
-  iz.in_pos <- iz.in_pos + uoffset
+  if uoffset = 0 then (
+    iz.in_pos <- 0 ;
+    iz.in_avail <- 0
+  )
+  else (
+    read_block iz ;
+    iz.in_pos <- iz.in_pos + uoffset
+  )
 
 let virtual_offset iz =
   Int64.(shift_left iz.in_block_offset 16 + of_int_exn iz.in_pos)
