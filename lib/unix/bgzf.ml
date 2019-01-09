@@ -220,7 +220,10 @@ let seek_in iz i =
   )
 
 let virtual_offset iz =
-  Int64.(shift_left iz.in_block_offset 16 + of_int_exn iz.in_pos)
+  if iz.in_pos = iz.in_avail then
+    Int64.(shift_left (In_channel.pos iz.ic) 16)
+  else
+    Int64.(shift_left iz.in_block_offset 16 + of_int_exn iz.in_pos)
 
 let with_file_in fn ~f =
   let iz = open_in fn in
