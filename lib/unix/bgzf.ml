@@ -202,6 +202,18 @@ let input_s32 iz =
       (Int32.bit_or (Int32.shift_left (Int32.of_int_exn b3) 16)
                    (Int32.shift_left (Int32.of_int_exn b4) 24)))
 
+let seek_in iz i =
+  let coffset = Int64.shift_right i 16 in
+  let uoffset = Int64.(to_int_exn (bit_and 0xFFFFL i)) in
+  In_channel.seek iz.ic coffset ;
+  iz.in_pos <- 0 ;
+  iz.in_avail <- 0 ;
+  iz.in_eof <- false ;
+  read_block iz ;
+  iz.in_pos <- iz.in_pos + uoffset ;
+  iz.in_avail <- iz.in_avail - uoffset
+
+
 let with_file_in fn ~f =
   let iz = open_in fn in
   let r =

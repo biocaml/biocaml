@@ -19,6 +19,15 @@ val dispose_in : in_channel -> unit
     thus not be used after that call), apart from the underlying
     regular channel (which can be used further). *)
 
+val seek_in : in_channel -> Int64.t -> unit
+(** [seek_in iz p] moves the current handler to the position [p], a
+   so-called {i virtual file offset}, as described in paragraph 4.1.1
+   of the {{:https://samtools.github.io/hts-specs/SAMv1.pdf}SAM/BAM
+   format specification}. The upper 48 bits correspond to a standard
+   file offset which must match a block beginning, and the lower 16
+   correspond to an offset in the {i uncompressed} data of the
+   block. *)
+
 exception Error of string
 (** Exception signaling an incorrect format while reading data from an
     open file. All input functions may raise this exception. *)
