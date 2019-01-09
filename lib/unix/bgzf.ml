@@ -59,7 +59,7 @@ let close_in iz =
   dispose_in iz ;
   In_channel.close iz.ic
 
-let input_byte t = In_channel.input_byte t |> Option.value_exn
+let input_byte t = Caml.input_byte t
 
 let input_u16 ic =
   let b1 = input_byte ic in
