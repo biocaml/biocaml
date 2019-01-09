@@ -625,11 +625,14 @@ let read_alignment iz =
 let read_alignment_stream iz =
   Stream.from (fun _ -> read_alignment iz)
 
-let read0 ic =
-  let iz = Bgzf.of_in_channel ic in
+let read_header iz =
   read_sam_header iz >>= fun sam_header ->
   read_reference_information iz >>= fun ref_seq ->
-  let header = { sam_header ; ref_seq } in
+  Ok { sam_header ; ref_seq }
+
+let read0 ic =
+  let iz = Bgzf.of_in_channel ic in
+  read_header iz >>= fun header ->
   return (header, read_alignment_stream iz)
 
 

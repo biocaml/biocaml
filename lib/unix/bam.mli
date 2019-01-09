@@ -91,3 +91,9 @@ val with_file : string -> f:(Header.t -> alignment Or_error.t Stream.t -> 'a Or_
 val write : Header.t -> alignment Stream.t -> Out_channel.t -> unit Or_error.t
 (** [write h xs oc] writes the header [h] and the alignments [xs] to
     [oc]. *)
+
+(** {2 Low-level access} *)
+
+val read_header : Bgzf.in_channel -> Header.t Or_error.t
+val read_alignment : Bgzf.in_channel -> Alignment0.t Or_error.t option
+val read_alignment_stream : Bgzf.in_channel -> Alignment0.t Or_error.t Stream.t
