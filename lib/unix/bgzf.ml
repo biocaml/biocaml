@@ -142,13 +142,12 @@ let input iz buf pos len =
     let rec loop pos len read =
       if len = 0 then read
       else (
-        if iz.in_avail = 0 then read_block iz ;
+        if iz.in_pos = iz.in_avail then read_block iz ;
         if iz.in_eof then read
         else (
           let n = min iz.in_avail len in
           Caml.String.blit iz.in_buf iz.in_pos buf pos n ;
           iz.in_pos <- iz.in_pos + n ;
-          iz.in_avail <- iz.in_avail - n ;
           loop (pos + n) (len - n) (read + n)
         )
       )
@@ -214,8 +213,7 @@ let seek_in iz i =
   iz.in_avail <- 0 ;
   iz.in_eof <- false ;
   read_block iz ;
-  iz.in_pos <- iz.in_pos + uoffset ;
-  iz.in_avail <- iz.in_avail - uoffset
+  iz.in_pos <- iz.in_pos + uoffset
 
 let virtual_offset iz =
   Int64.(shift_left iz.in_block_offset 16 + of_int_exn iz.in_pos)
