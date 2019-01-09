@@ -1,4 +1,3 @@
-
 module Table = Biocaml_unix.Table
 module Line = Biocaml_unix.Line
 open OUnit

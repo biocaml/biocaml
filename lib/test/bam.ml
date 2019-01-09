@@ -3,7 +3,6 @@ open CFStream
 module Bam = Biocaml_unix.Bam
 module Sam = Biocaml_unix.Sam
 open OUnit
-open Utils.Printer
 
 let assert_equal ?msg ?printer ?cmp x y =
   let printer = Option.map printer ~f:(fun p x -> Sexp.to_string_hum (p x)) in

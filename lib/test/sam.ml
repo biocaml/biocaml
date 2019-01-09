@@ -1,6 +1,5 @@
 
 open OUnit
-open Or_error.Monad_infix
 module Sam = Biocaml_unix.Sam
 
 let ( %> ) f g x = g (f x)

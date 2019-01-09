@@ -1,6 +1,6 @@
 (library
  (name biocaml_test)
-  (libraries biocaml.unix oUnit)
+  (libraries biocaml.unix core oUnit)
   (preprocess (pps ppx_jane))
   (flags :standard -short-paths -open Core)
   (optional)
