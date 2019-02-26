@@ -50,4 +50,5 @@ val record :
   string -> int -> int -> record
 
 val gff3_item_of_line : Line.t -> (item, [> `Msg of string]) Result.t
+val gtf_item_of_line  : Line.t -> (item, [> `Msg of string]) Result.t
 val line_of_item : [`two | `three] -> item -> Line.t

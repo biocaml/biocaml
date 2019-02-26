@@ -22,6 +22,7 @@ let record
   }
 
 let fail s = Error (`Msg s)
+let failf fmt = Printf.ksprintf fail fmt
 
 let parse_float s =
   try Ok (Float.of_string s)
@@ -107,14 +108,78 @@ let rec parse_gff3_attributes pos buf acc =
     let acc = (tag, values) :: acc in
     parse_gff3_attributes pos buf acc
 
+let parse_gff3_attributes buf = parse_gff3_attributes 0 buf []
+
 let%test "Gff.parse_gff3_attributes" =
   Caml.(
-    parse_gff3_attributes 0 "a=2,3;b=4" []
+    parse_gff3_attributes "a=2,3;b=4"
     =
     Ok [ ("a", ["2" ; "3"]) ; ("b", ["4"]) ]
   )
 
-let parse_fields = function
+
+let parse_gtf_attributes buf =
+  let open Result.Monad_infix in
+  let rec tokenize acc p =
+    if p >= String.length buf then Ok (List.rev acc)
+    else
+      match buf.[p] with
+      | '\t' -> fail "Unexpected tag character"
+      | '\n' -> fail "Unexpected EOL character"
+      | ' ' -> tokenize acc (p + 1)
+      | ';' -> tokenize (`SEMICOLON :: acc) (p + 1)
+      | '"' ->
+        next_quote (p + 1) >>= fun q ->
+        let len = q - p - 1 in
+        tokenize (`QUOTED (p + 1, len) :: acc) (q + 1)
+      | _ ->
+        token_end p >>= fun q ->
+        tokenize (`TOKEN (p, q - p + 1) :: acc) (q + 1)
+
+  and next_quote p =
+    if p >= String.length buf then fail "Reached end of string but expected dquote"
+    else
+      match buf.[p] with
+      | '"' -> Ok p
+      | _ -> next_quote (p + 1)
+
+  and token_end p =
+    if p >= String.length buf then Ok (p - 1)
+    else
+      match buf.[p] with
+      | ' ' -> Ok (p - 1)
+      | _ -> token_end (p + 1)
+  in
+  let rec attribute acc = function
+    | `TOKEN (p, q) :: (`QUOTED (r, s) | `TOKEN (r, s)) :: rest ->
+      let att = String.sub buf ~pos:p ~len:q, [ String.sub buf ~pos:r ~len:s ] in
+      attribute_tail (att :: acc) rest
+    | _ -> failf "Cannot parse attributes: %s" buf
+  and attribute_tail acc = function
+    | []
+    | [`SEMICOLON] -> Ok (List.rev acc)
+    | `SEMICOLON :: rest -> attribute acc rest
+    | _ -> failf "Cannot parse attributes: %s" buf
+  in
+  tokenize [] 0 >>= fun tokens ->
+  attribute [] tokens
+
+let%test "Gff.parse_gtf_attributes1" =
+  Caml.(
+    parse_gtf_attributes {|gene_id "FBgn0031081"|}
+    =
+    Ok [ ("gene_id", ["FBgn0031081"]) ]
+  )
+
+let%test "Gff.parse_gtf_attributes" =
+  Caml.(
+    parse_gtf_attributes {|gene_id "FBgn0031081"; gene_symbol "Nep3"; transcript_id "FBtr0070000"; transcript_symbol "Nep3-RA";|}
+    =
+    Ok [ ("gene_id", ["FBgn0031081"]) ; ("gene_symbol", ["Nep3"]) ;
+         ("transcript_id", ["FBtr0070000"]) ; ("transcript_symbol", ["Nep3-RA"]) ]
+  )
+
+let parse_fields parse_attributes = function
   | [ seqname ; source ; feature ; start_pos ; stop_pos ;
       score ; strand ; phase ; attributes ] ->
     let open Result in
@@ -123,7 +188,7 @@ let parse_fields = function
     parse_opt' parse_int phase >>= fun phase ->
     parse_opt' parse_float score >>= fun score ->
     parse_strand strand >>= fun strand ->
-    parse_gff3_attributes 0 attributes [] >>= fun attributes ->
+    parse_attributes attributes >>= fun attributes ->
     Ok {
       seqname ;
       source = parse_opt Fn.id source ;
@@ -137,7 +202,7 @@ let parse_fields = function
     }
   | _ -> fail "Incorrect number of fields"
 
-let gff3_item_of_line line =
+let item_of_line parse_attributes line =
   match (line : Line.t :> string) with
   | "" -> fail "Empty line"
   | line ->
@@ -146,8 +211,12 @@ let gff3_item_of_line line =
     else
       let open Result in
       let fields = String.split ~on:'\t' line in
-      parse_fields fields >>| fun r ->
+      parse_fields parse_attributes fields >>| fun r ->
       `Record r
+
+let gff3_item_of_line line = item_of_line parse_gff3_attributes line
+
+let gtf_item_of_line line = item_of_line parse_gtf_attributes line
 
 let line_of_item version = function
   | `Comment c -> Line.of_string_unsafe ("#" ^ c)
