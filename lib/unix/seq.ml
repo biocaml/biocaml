@@ -1,5 +1,3 @@
-
-
 type t = string
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
@@ -40,9 +38,9 @@ let of_string b =
   ans
 
 let of_buffer_unsafe b = Buffer.contents b |> String.uppercase
-let of_string_unsafe s = String.copy s |> String.uppercase
+let of_string_unsafe s = Bytes.copy s |> String.uppercase
 
-let to_string = String.copy
+let to_string = Bytes.copy
 let nth t i = String.get t (i-1)
 let length = String.length
 (* FIXME: conform Core "t must come first" and have the same names *)

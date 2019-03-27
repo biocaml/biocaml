@@ -108,7 +108,7 @@ module Transform = struct
     let current_state =
       ref (match format with `gzip -> `gzip_header | `raw -> `inflate) in
     let rec next stopped =
-      let buffered = Buffer.to_bytes in_buffer in
+      let buffered = Buffer.contents_bytes in_buffer in
       let len = Bytes.length buffered in
       Buffer.clear in_buffer;
       begin match len with
@@ -224,7 +224,7 @@ module Transform = struct
           update_crc buffered used_in;
           if used_in < len
           then (Buffer.add_substring in_buffer
-                  buffered used_in (String.length buffered - used_in));
+                  buffered ~pos:used_in ~len:(String.length buffered - used_in));
           if used_out > 0 then
             `output String.(sub zlib_write_buffer ~pos:0 ~len:used_out)
           else
