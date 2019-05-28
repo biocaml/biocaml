@@ -169,7 +169,7 @@ type sb_event = {
   event_assignments: sb_event_assignment list;
 }
 
-(*a wrapper type to deal with heterogenous lists*)
+(*a wrapper type to deal with heterogeneous lists*)
 type sb_L = LFunctionDefinition of sb_function_definition | LUnitDefinition of sb_unit_definition |
             LCompartment of sb_compartment | LSpecies of sb_species | LReaction of sb_reaction |
             LParameter of sb_parameter | LInitialAssignment of sb_initial_assignment | LRule of sb_rule |
