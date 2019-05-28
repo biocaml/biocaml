@@ -106,7 +106,7 @@ val column : 'a array array -> int -> 'a array
 
 val transpose : 'a array array -> 'a array array
 (** [transpose m] transpose the given matrix [m].  If the number of
-    rows [Array.length m] ot the number of columns [Array.length
+    rows [Array.length m] or the number of columns [Array.length
     a.(0)] is 0, return the empty matrix [[| |]].  Behavior undefined
     if [m] is not rectangular. *)
 

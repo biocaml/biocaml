@@ -169,7 +169,7 @@ module Transform: sig
     (string, (item, [> Error.parsing]) result) Tfxm.t
   (** Create the parsing [Tfxm.t]. The parser is
       "best-effort" and stateless (i.e. a line containing ["1000 42."]
-      will parsed succesfully as a [`variable_step_value (1000, 42.)]
+      will parsed successfully as a [`variable_step_value (1000, 42.)]
       even if no ["variableStep"] was line present before). *)
 
   val item_to_string: ?tags: Tags.t -> unit -> (item, string) Tfxm.t

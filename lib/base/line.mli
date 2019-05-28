@@ -8,7 +8,7 @@ type t = private string
 val empty : t
 
 (** [parse_string s] splits [s] on newline characters, returning
-    the resuling list of lines. If the final line ended with a
+    the resulting list of lines. If the final line ended with a
     newline, the last string of the list is empty. *)
 val parse_string : string -> t list
 

@@ -10,7 +10,7 @@ type probe = {
 
 type row = {
   pmcoord : int * int; (** x,y-coordinates of perfect match probe. *)
-  mmcoord : int * int; (** x,y-coordinates of mis-match probe *)
+  mmcoord : int * int; (** x,y-coordinates of mismatch probe *)
   probe : probe
 }
     (** Type of information on one data row. *)

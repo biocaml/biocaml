@@ -15,7 +15,7 @@ val close_in : in_channel -> unit
     call. *)
 
 val dispose_in : in_channel -> unit
-(** Releases the ressources associated to a (BGZF) channel (it can
+(** Releases the resources associated to a (BGZF) channel (it can
     thus not be used after that call), apart from the underlying
     regular channel (which can be used further). *)
 
@@ -82,7 +82,7 @@ val close_out : out_channel -> unit
     after that call. *)
 
 val dispose_out : out_channel -> unit
-(** Releases the ressources associated to a (BGZF) channel (it can
+(** Releases the resources associated to a (BGZF) channel (it can
     thus not be used after that call), apart from the underlying
     regular channel (which can be used further). *)
 

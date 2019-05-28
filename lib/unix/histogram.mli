@@ -18,7 +18,7 @@ val make : ('a -> 'a -> int) -> 'a list -> 'a t option
     list of the boundaries dividing them. The list [\[v0; v1; ...; vn\]]
     of length [n+1] represents the [n] bins [\[v0, v1)], [\[v1, v2)],
     ..., [\[vn-1, vn)], where [cmp] is used as the comparison
-    function. Resturns [None] if [bins] are not monotonically
+    function. Returns [None] if [bins] are not monotonically
     increasing, or if length of [bins] is less than 2. *)
 
 val to_list : 'a t -> (('a * 'a) * float) list

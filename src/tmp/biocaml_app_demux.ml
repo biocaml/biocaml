@@ -467,7 +467,7 @@ let more_help original_help : string =
    \  ;; the undetermined library (reads that do not match other cases)\n\
    \  (library The_undetermined undetermined)\n\
     )\n\
-    ;; Ask for gzipped output files (the interger is the compression level)\n\
+    ;; Ask for gzipped output files (the integer is the compression level)\n\
     (gzip-output 3)\n\
 ";
   par buf "*Entries in the specification file:*";
@@ -484,7 +484,7 @@ let more_help original_help : string =
      A matching rule is either 'undetermined' or a boolean expression
      where the leaves are barcode definitions. There are two syntaxes
      for barcodes: the explicit one (like in the previous example), and
-     the abreviated one: ACTGTT:3:2:1 means 'ACTGTT on read 3 at
+     the abbreviated one: ACTGTT:3:2:1 means 'ACTGTT on read 3 at
      position 2 with mismatch 1'.";
     (* explain alternate syntax here *)
     "`gzip-output`: expects a gzip-compression level (in [1, 9]).";

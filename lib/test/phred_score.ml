@@ -9,7 +9,7 @@ let test_char_conv () =
   assert_bool
     "char conversion failed"
     (List.for_all visible_chars ~f:(fun i ->
-      let x = i - 33 in (* substract default offset *)
+      let x = i - 33 in (* subtract default offset *)
       Phred_score.(
         x
         |> fun x -> ok_exn (of_int x)

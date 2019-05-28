@@ -348,7 +348,7 @@ module Alignment0 = struct
   (* ==== ALIGNMENT ENCODING ==== *)
   (* ============================ *)
 
-  (* Alignement.t -> Alignment0.t conversion *)
+  (* Alignment.t -> Alignment0.t conversion *)
   let find_ref_id header ref_name =
     let open Or_error in
     match Array.findi header.ref_seq ~f:(fun _ rs -> rs.Sam.name = ref_name) with

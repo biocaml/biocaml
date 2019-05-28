@@ -1,7 +1,7 @@
 (** BED data files.
 
     A BED file is in the format shown below, where columns
-    must be separted by a tab character.
+    must be separated by a tab character.
 
     {v
     chrA   lo1   hi1
