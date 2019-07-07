@@ -63,4 +63,10 @@ val roc_curve : scores:float array -> labels:bool array -> (float * float) array
     {{:http://en.wikipedia.org/wiki/Receiver_operating_characteristic}ROC}
     curve of the prediction, and the associated Area Under Curve (AUC) *)
 
-val rp_curve : scores:float array -> labels:bool array -> (float * float) array
+val recall_precision_curve :
+  scores:float array ->
+  labels:bool array ->
+  (float * float) array * float
+(** [recall_precision_curve ~scores ~labels] returns the
+    {{:https://en.wikipedia.org/wiki/Precision_and_recall}RP}
+    curve of the prediction, and the associated average precision *)
