@@ -1,6 +1,13 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.10.0 2019-08-17
+------------------------
+* unix/Bgzf: several major bugfixes
+* upgrade to core v0.12
+* bugfix on unix/Bin_pred
+* unix/Bam: random access functions
+
 biocaml-0.9.0 2018-12-06
 ------------------------
 * switch from jbuilder to dune
