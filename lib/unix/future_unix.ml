@@ -133,7 +133,7 @@ module Reader = struct
   let lines ic = read_all ic read_line
   let contents = In_channel.input_all
   let file_contents = In_channel.read_all
-  let file_lines = In_channel.read_lines
+  let file_lines fn = In_channel.read_lines fn
 
 end
 

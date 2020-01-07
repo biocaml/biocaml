@@ -74,7 +74,7 @@ module Row = struct
         try Float.of_string s with _ -> raise (Float_of_string s)
       let of_line ~format l =
         let tokens =
-          String.split_on_chars ~on:separators l |> List.filter ~f:((<>) "")
+          String.split_on_chars ~on:separators l |> List.filter ~f:String.((<>) "")
           |> Array.of_list in
         begin match format with
         | None ->

@@ -136,7 +136,7 @@ let expand_assoc_list tal =
       Caml.Hashtbl.replace ans i (a::prev)
     done
   in
-  let _ = List.iter ~f:insert tal in
+  let () = List.iter ~f:insert tal in
   let ans = Caml.Hashtbl.fold (fun key value ans -> (key,value)::ans) ans [] in
   List.rev (List.map ~f:(fun (i,al) -> i, List.rev al) ans)
 

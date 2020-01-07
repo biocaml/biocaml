@@ -27,7 +27,7 @@ let coord_convention = get_assoc_exn "probe_coordinate_convention" <-- fst
 let sections = snd
 
 let section (_,secs) nm =
-  match List.find ~f:(fun s -> s.sec_name = nm) secs with
+  match List.find ~f:(fun s -> String.(s.sec_name = nm)) secs with
   | None -> failwith (sprintf "section %s not found" nm)
   | Some s -> s
 
@@ -79,7 +79,7 @@ module Parser = struct
       | _ -> raise_bad ("data row must contain exactly two fields")
     in
     let data = Stream.to_list (Stream.map ~f:parse_line lines') in
-    let data = List.sort ~compare:(fun (p1,_) (p2,_) -> Pervasives.compare p1 p2) data in
+    let data = List.sort ~compare:(fun (p1,_) (p2,_) -> Stdlib.compare p1 p2) data in
     let sec = {sec_num=seq_num; sec_name=seq_name; sec_data=data} in
       if List.length data = num_hits then
         (junk_blank_lines lines; sec)
@@ -93,8 +93,11 @@ module Parser = struct
         try
           let hdr = header lines in
           let secs = ref [] in
-          let _ = while not (Stream.is_empty lines) do secs := (section lines)::!secs done in
-          let secs = List.sort ~compare:(fun s1 s2 -> Pervasives.compare s1.sec_name s2.sec_name) !secs in
+          let () =
+            while not (Stream.is_empty lines) do
+              secs := (section lines)::!secs
+            done in
+          let secs = List.sort ~compare:(fun s1 s2 -> Stdlib.compare s1.sec_name s2.sec_name) !secs in
           let expected_num_secs = int_of_string (get_assoc_exn "Number Sequences" hdr) in
           let actual_num_secs = List.length secs in
             if actual_num_secs = expected_num_secs then

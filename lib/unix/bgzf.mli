@@ -7,7 +7,7 @@ val open_in : string -> in_channel
 (** Opens a BGZF file for reading. @raise Sys_error if the path
     given in argument does not refer to an existing file. *)
 
-val of_in_channel : Pervasives.in_channel -> in_channel
+val of_in_channel : Stdlib.in_channel -> in_channel
 (** Uses a regular channel to read a BGZF compressed file. *)
 
 val close_in : in_channel -> unit
@@ -74,7 +74,7 @@ val open_out : ?level:int -> string -> out_channel
     to an existing file. @raise Invalid_arg if [level] is not between
     1 and 9. *)
 
-val of_out_channel : ?level:int -> Pervasives.out_channel -> out_channel
+val of_out_channel : ?level:int -> Stdlib.out_channel -> out_channel
 (** Uses a regular channel to write a BGZF compressed file. *)
 
 val close_out : out_channel -> unit

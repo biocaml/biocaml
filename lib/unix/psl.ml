@@ -101,10 +101,10 @@ let parse_line pos line =
 let line_to_item = parse_line
 
 let version_line = "psLayout version 3"
-let is_spaces_line = String.for_all ~f:((=) ' ')
+let is_spaces_line = String.for_all ~f:Char.((=) ' ')
 let header_line1 = "match\tmis- \trep. \tN's\tQ gap\tQ gap\tT gap\tT gap\tstrand\tQ        \tQ   \tQ    \tQ  \tT        \tT   \tT    \tT  \tblock\tblockSizes \tqStarts\t tStarts"
 let header_line2 = "     \tmatch\tmatch\t   \tcount\tbases\tcount\tbases\t      \tname     \tsize\tstart\tend\tname     \tsize\tstart\tend\tcount"
-let is_dashes_line = String.for_all ~f:((=) '-')
+let is_dashes_line = String.for_all ~f:Char.((=) '-')
 
 module Transform = struct
 
@@ -118,10 +118,10 @@ module Transform = struct
           | None -> `not_ready
           | Some line ->
             let line' = (line :> string) in
-            if line' = version_line
+            if String.equal line' version_line
             || is_spaces_line line'
-            || line' = header_line1
-            || line' = header_line2
+            || String.equal line' header_line1
+            || String.equal line' header_line2
             || is_dashes_line line'
             then
               get_line ()

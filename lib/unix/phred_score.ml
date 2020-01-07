@@ -12,7 +12,7 @@ let min_as_char = int_of_offset
 let max_as_char = 126
 
 let round_float_to_int x =
-  if Float.mod_float x 1.0 < 0.5
+  if Float.(mod_float x 1.0 < 0.5)
   then Float.(to_int (round_down x))
   else Float.(to_int (round_up x))
 
@@ -49,7 +49,7 @@ let of_char ?(offset=`Offset33) x =
       [%sexp_of: char * offset ]
 
 let of_probability ?(f = round_float_to_int) x =
-  if 0.0 < x && x <= 1.0 then
+  if Float.(0.0 < x && x <= 1.0) then
     Ok (f (-10. *. Float.log10 x))
   else
     error "invalid probability" x sexp_of_float

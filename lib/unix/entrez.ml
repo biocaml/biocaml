@@ -20,7 +20,7 @@ let rec string_of_tree = function
 
 let attr k = function
   | E (_,attrs,_) ->
-    List.find_map attrs ~f:(fun ((_,k'),value) -> if k = k' then Some value else None)
+    List.find_map attrs ~f:(fun ((_,k'),value) -> if String.(k = k') then Some value else None)
   | _ -> None
 
 let battr k x = Option.map (attr k x) ~f:bool_of_string
@@ -30,7 +30,7 @@ let leaf_exn f k x =
     match x with
     | E (_,_,children) ->
       (match List.find_map children ~f:(function
-           | E (tag,_, [D d]) when tag = k -> Some (f d)
+           | E (tag,_, [D d]) when String.(tag = k) -> Some (f d)
            | _  -> None)
        with
        | Some x -> x
@@ -48,7 +48,7 @@ let sleaf k x = try Some (sleaf_exn k x) with Invalid_argument _ -> None
 let leaves f k t = match t with
     E (_,_,children) ->
     List.filter_map children ~f:(function
-        | E (tag,_, [D d]) when tag = k -> Some (f d)
+        | E (tag,_, [D d]) when String.equal tag k -> Some (f d)
         | _  -> None)
   | _ -> []
 
@@ -63,7 +63,7 @@ let echild_exn k = function
     begin
       try
         (match List.find_map children ~f:(function
-             | E (tag,_, _) as r when tag = k -> Some r
+             | E (tag,_, _) as r when String.equal tag k -> Some r
              | _  -> None)
          with
          | Some x -> x
@@ -83,7 +83,7 @@ let echild_exn k = function
 let echild k x = try Some (echild_exn k x) with _ -> None
 
 let fold_echildren ?tag f =
-  let pred = Option.value_map tag ~default:(fun _ -> true) ~f:( = ) in
+  let pred = Option.value_map tag ~default:(fun _ -> true) ~f:String.( = ) in
   fun x init ->
     match x with
     | E (_,_,children) ->

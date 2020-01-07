@@ -1,4 +1,3 @@
-
 module Result = Biocaml_result
 open Result.Monad_infix
 
@@ -288,7 +287,7 @@ let header
         | Ok _ -> None
     );
     (
-      if Option.is_some sort_order && (version = None) then
+      if Option.is_some sort_order && Poly.(version = None) then
         Some (Error.create
                 "sort order cannot be defined without version"
                 (sort_order, version)
@@ -345,7 +344,7 @@ let parse_tag_value s =
       error "invalid tag" s sexp_of_string
   in
   let parse_value tag s =
-    if (s <> "")
+    if String.(s <> "")
       && (String.for_all s ~f:(function ' ' .. '~' -> true | _ -> false))
     then
       Ok s
@@ -366,7 +365,7 @@ let find_all l x' =
   let rec loop accum = function
     | [] -> accum
     | (x,y)::l ->
-      let accum = if x = x' then y::accum else accum in
+      let accum = if Poly.(x = x') then y::accum else accum in
       loop accum l
   in
   List.rev (loop [] l)
@@ -1031,7 +1030,7 @@ module MakeIO(Future : Future.S) = struct
       | `Ok line ->
         if String.length (line : Line.t :> string) = 0 then
           return (Or_error.error_string "invalid empty line")
-        else if (line : Line.t :> string).[0] <> '@' then
+        else if Char.((line : Line.t :> string).[0] <> '@') then
           return (Ok hdr)
         else (
           Pipe.junk lines >>= fun () ->

@@ -50,7 +50,7 @@ module Transform = struct
       String.chop_prefix ~prefix:"browser " line
       |> Option.value ~default:""
       |> String.split_on_chars ~on:[' '; '\t'; '\r']
-      |> List.filter ~f:((<>) "") in
+      |> List.filter ~f:String.((<>) "") in
     begin match tokens with
     | "position" :: pos :: [] -> parse_chormpos position pos
     | "hide" :: "all" :: [] -> Ok (`browser (`hide `all))
@@ -87,7 +87,7 @@ module Transform = struct
     begin match try_escaped s with
     | Some (found, chars_read) ->
       if chars_read < lgth_s then (
-        if List.exists stop_before ~f:((=) s.[chars_read]) then
+        if List.exists stop_before ~f:Char.((=) s.[chars_read]) then
           (found, Some s.[chars_read],
            String.slice s (chars_read + 1) (String.length s))
         else
@@ -95,7 +95,7 @@ module Transform = struct
       ) else
         (found, None, "")
     | None ->
-      begin match String.lfindi s ~f:(fun _ c -> List.exists stop_before ~f:((=) c)) with
+      begin match String.lfindi s ~f:(fun _ c -> List.exists stop_before ~f:Char.((=) c)) with
       | Some idx ->
         (String.sub s ~pos:0 ~len:idx, Some s.[idx],
          String.slice s (idx + 1) (String.length s))
@@ -111,7 +111,7 @@ module Transform = struct
         begin match escapable_string rest ~stop_before:[' '; '\t'] with
         | (value, _, rest) ->
           let str = String.strip rest in
-          if str = "" then Ok ((tag, value) :: acc)
+          if String.(str = "") then Ok ((tag, value) :: acc)
           else loop str ((tag, value) :: acc)
         end
       | (str, _, rest) -> Error (`wrong_key_value_format (List.rev acc, str, rest))
@@ -127,8 +127,8 @@ module Transform = struct
     | Some "" -> next p
     | Some l when String.(is_prefix (strip l) ~prefix:"#") ->
       `output (Ok (`comment String.(sub l ~pos:1 ~len:(length l - 1))))
-    | Some l when String.strip l = "track"-> `output (Ok (`track []))
-    | Some l when String.strip l = "browser" -> `output (Ok (`browser (`unknown l)))
+    | Some l when String.(strip l = "track") -> `output (Ok (`track []))
+    | Some l when String.(strip l = "browser") -> `output (Ok (`browser (`unknown l)))
     | Some l when String.(is_prefix (strip l) ~prefix:"track ") ->
       parse_track (String.chop_prefix_exn ~prefix:"track " l |> String.strip)
       |> (fun x -> `output x)

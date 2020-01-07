@@ -124,7 +124,7 @@ let item_to_string r =
 let name_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
-  if n = 0 || line.[0] <> '@' then
+  if n = 0 || Char.(line.[0] <> '@') then
     error
       "invalid name"
       (pos, line)
@@ -138,7 +138,7 @@ let sequence_of_line ?pos:_ line =
 let comment_of_line ?(pos=Pos.unknown) line =
   let line = (line : Line.t :> string) in
   let n = String.length line in
-  if n = 0 || line.[0] <> '+' then
+  if n = 0 || Char.(line.[0] <> '+') then
     error
       "invalid comment"
       (pos, line)

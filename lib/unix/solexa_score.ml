@@ -25,7 +25,7 @@ let of_ascii x =
     Error (sprintf "%c is not a valid score" x) |> raise
 
 let of_probability ?(f = Float.iround_nearest_exn) x =
-  if 0.0 <= x && x <= 1.0 then
+  if Float.(0.0 <= x && x <= 1.0) then
     f (-10. *. Float.log10(x /. (1. -. x)))
   else
     Error (sprintf "invalid probability %0.17g" x) |> raise

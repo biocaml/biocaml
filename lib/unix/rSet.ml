@@ -30,7 +30,7 @@ let to_canonical (vl : Range.t list) : Range.t list =
       | [] -> ans
       | v::[] -> v::ans
       | u::(v::vl as tail) ->
-          if u = v then
+          if Poly.equal u v then
             canonize ans tail
           else if Range.superset u v then
             canonize ans (u::vl)
@@ -73,7 +73,7 @@ let inter s t =
             match Range.intersect u v with
               | None -> invalid_arg "impossible to get here"
               | Some w ->
-                  match Pervasives.compare u.Range.hi v.Range.hi with
+                  match Stdlib.compare u.Range.hi v.Range.hi with
                     | -1 -> loop (w::ans) s vl
                     |  0 -> loop (w::ans) s t
                     |  1 -> loop (w::ans) ul t

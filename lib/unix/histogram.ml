@@ -63,7 +63,7 @@ let maximum hist = hist.bin_limits.(Array.length hist.bin_limits - 1)
 
 let find_bin_index hist x =
   let i = ref (-1) in
-  let _ =
+  let () =
     for j = 0 to Array.length hist.bin_limits - 2 do
       let cmp_lo = hist.cmp x hist.bin_limits.(j) in
       let cmp_hi = hist.cmp x hist.bin_limits.(j+1) in
@@ -89,7 +89,7 @@ let in_range hist x =
     (cmp_lo = 1 || cmp_lo = 0) && (cmp_hi = -1)
 
 let make_uniform min max n =
-  if min >= max then
+  if Float.( >= ) min max then
     Error (sprintf "minimum %.3f must be strictly less than maximum %.3f" min max)
   else if n < 1 then
     Error (sprintf "cannot create histogram with %d bins" n)
@@ -97,6 +97,6 @@ let make_uniform min max n =
     let delt = (max -. min) /. (Float.of_int n) in
     let bins = Array.init (n+1) ~f:(fun i -> min +. (delt *. Float.of_int i)) in
     bins.(Array.length bins - 1) <- max;
-    Result.of_option  (make Pervasives.compare (Array.to_list bins))
+    Result.of_option  (make Stdlib.compare (Array.to_list bins))
       ~error:"not ordered"
   end

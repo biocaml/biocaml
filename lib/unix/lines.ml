@@ -28,7 +28,7 @@ let of_char_stream cstr =
       let ans = Buffer.create 100 in
       let rec loop () = match Stream.next cstr with
         | Some c ->
-          if c <> '\n' then (Buffer.add_char ans c; loop())
+          if Char.(c <> '\n') then (Buffer.add_char ans c; loop())
         | None -> ()
       in
       loop();
@@ -46,10 +46,10 @@ let of_string s =
   let n = String.length s in
   let f pos =
     if pos >= n then None
-    else if s.[pos] = '\n' then Some (Line.of_string_unsafe "", pos + 1)
+    else if Char.equal s.[pos] '\n' then Some (Line.of_string_unsafe "", pos + 1)
     else
       let sub, new_pos =
-        match String.lfindi ~pos s ~f:(fun _ c -> c = '\n') with
+        match String.lfindi ~pos s ~f:Char.(fun _ c -> c = '\n') with
         | Some pos' ->
           String.sub s ~pos ~len:(pos' - pos), pos' + 1
         | None ->
@@ -113,7 +113,7 @@ module Buffer = struct
 
   let next_line p =
     let l = Queue.dequeue p.lines in
-    if l <> None then (
+    if Poly.(l <> None) then (
       p.parsed_lines <- p.parsed_lines + 1;
     );
     l
@@ -129,7 +129,7 @@ module Buffer = struct
     Pos.make ?source:p.filename ~line:p.parsed_lines ()
 
   let is_empty p =
-    Queue.is_empty p.lines && p.unfinished_line = None
+    Queue.is_empty p.lines && Poly.(p.unfinished_line = None)
 
   let contents p = Queue.to_list p.lines, p.unfinished_line
 

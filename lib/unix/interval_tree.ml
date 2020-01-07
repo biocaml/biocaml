@@ -235,7 +235,7 @@ let rec check_height_integrity = function
     h
 
 let check_integrity t =
-  ignore (check_height_integrity t)
+  ignore (check_height_integrity t : int)
 
 let rec print_aux margin = function
   | Empty -> ()

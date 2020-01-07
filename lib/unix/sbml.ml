@@ -196,6 +196,9 @@ type sb_model = {
     speciesTypes : sb_species_type list;*)
 }
 
+let ignore_input i =
+  ignore (Xmlm.input i : Xmlm.signal)
+
 module MathML = struct
   (* MathML prettyprinting *)
   let rec math_to_string math =
@@ -235,7 +238,7 @@ module MathML = struct
 
   let extract_string i depth errmsg =
     let rec skip_tags i depth =
-      if depth > 0 then begin ignore (Xmlm.input i); skip_tags i (depth - 1) end else ()
+      if depth > 0 then begin ignore_input i; skip_tags i (depth - 1) end else ()
     in
     skip_tags i depth;
     let result = match Xmlm.input i with
@@ -251,7 +254,7 @@ module MathML = struct
     | _ -> raise_bad "not a packed string"
 
   let unpack_symbol_type attrs =
-    let (_,sbmlUrl) = List.find_exn ~f:(fun next -> let ((_,tag), _) = next in tag = "definitionURL") attrs in
+    let (_,sbmlUrl) = List.find_exn ~f:(fun next -> let ((_,tag), _) = next in String.equal tag "definitionURL") attrs in
     let splitUrl = String.split ~on:'/' sbmlUrl in
     List.nth_exn splitUrl (List.length splitUrl - 1)
 
@@ -283,8 +286,8 @@ module MathML = struct
         else mathexpr_iter i (MFloatNumber (float_of_string (unpack_string (parse_mathexpr i))))
       | `El_start ((_, "sep"), _) -> mathexpr_iter i (MIdentifier ((unpack_string (formula)) ^ "e" ^ (unpack_string (parse_mathexpr i))))
       | `El_start ((_, "csymbol"), attrs) ->
-        if (unpack_symbol_type attrs) = "time" then
-          begin ignore (Xmlm.input i); mathexpr_iter i (MTime) end
+        if String.equal (unpack_symbol_type attrs) "time" then
+          begin ignore_input i; mathexpr_iter i (MTime) end
         else raise_bad "malformed csymbol expr"
       | `El_start ((_, "exponentiale"), _) -> mathexpr_iter i (MExponent)
 
@@ -315,13 +318,13 @@ module MathML = struct
       (* add more operators *)
 
       | `El_start ((_, "csymbol"), attrs) ->
-        if (unpack_symbol_type attrs) = "delay" then
-          begin ignore (Xmlm.input i); MDelay end
+        if String.equal (unpack_symbol_type attrs) "delay" then
+          begin ignore_input i; MDelay end
         else raise_bad "malformed csymbol expr"
       (* assume a user-defined function in functionDefinition*)
       | `El_start ((_, "ci"), _) -> MFundef (unpack_string (parse_mathexpr i))
       | _ -> raise_bad "malformed apply expr"
-    in ignore (Xmlm.input i); oper
+    in ignore_input i; oper
   and
     parse_exprlist i =
     let rec exprlist_iter i exprlist =
@@ -335,10 +338,10 @@ module MathML = struct
     parse_piecelist i =
     let rec piecelist_iter i piecelist =
       match Xmlm.peek i with
-      | `El_start ((_, "piece"), _) -> ignore (Xmlm.input i);
+      | `El_start ((_, "piece"), _) -> ignore_input i;
         let piece_var = extract_string i 1 "malformed piece expr" in
         let piece_expr = parse_mathexpr i in
-        ignore (Xmlm.input i);
+        ignore_input i;
         piecelist_iter i ((piece_var, piece_expr) :: piecelist)
       | `El_start ((_, "otherwise"), _) -> piecelist
       | _ -> raise_bad "malformed piecewise expr"
@@ -347,7 +350,7 @@ module MathML = struct
 
   let parse_math _ i =
     let sbm = parse_mathexpr i in
-    ignore (Xmlm.input i); (*math tag end*)
+    ignore_input i; (*math tag end*)
     sbm
 end
 
@@ -388,10 +391,10 @@ module SBMLParser = struct
       | `Dtd _ -> assert false
     in iter_record i; (list_hash, record_hash)
 
-  (*leaf record parsing, 'ignore (Xmlm.input i)' is for skipping tag's end *)
+  (*leaf record parsing, 'ignore_input i' is for skipping tag's end *)
 
   let parse_unit attrs i =
-    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
+    ignore_input i; let parse_hash = store_attrs attrs in
     LUnit ({
         unit_kind = (Caml.Hashtbl.find parse_hash "kind");
         unit_exponent = (try (int_of_string (Caml.Hashtbl.find parse_hash "exponent")) with Caml.Not_found -> 1);
@@ -400,7 +403,7 @@ module SBMLParser = struct
       })
 
   let parse_compartment attrs i =
-    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
+    ignore_input i; let parse_hash = store_attrs attrs in
     LCompartment ({
         compart_id = (Caml.Hashtbl.find parse_hash "id");
         compart_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
@@ -412,7 +415,7 @@ module SBMLParser = struct
       })
 
   let parse_species attrs i =
-    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
+    ignore_input i; let parse_hash = store_attrs attrs in
     LSpecies ({
         species_id = (Caml.Hashtbl.find parse_hash "id");
         species_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
@@ -427,7 +430,7 @@ module SBMLParser = struct
       })
 
   let parse_spreference attrs i =
-    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
+    ignore_input i; let parse_hash = store_attrs attrs in
     LSpecieRef ({
         specref_species = (Caml.Hashtbl.find parse_hash "species");
         specref_id = (try (Caml.Hashtbl.find parse_hash "id") with Caml.Not_found -> "");
@@ -436,7 +439,7 @@ module SBMLParser = struct
       })
 
   let parse_parameter attrs i =
-    ignore (Xmlm.input i); let parse_hash = store_attrs attrs in
+    ignore_input i; let parse_hash = store_attrs attrs in
     LParameter ({
         param_id = (try (Caml.Hashtbl.find parse_hash "id") with Caml.Not_found -> raise_bad "no id for parameter") ;
         param_name = (try (Caml.Hashtbl.find parse_hash "name") with Caml.Not_found -> "");
@@ -585,13 +588,13 @@ module SBMLParser = struct
   (*reader function*)
   let in_sbml ichan =
     let i = (Xmlm.make_input ~strip:true (`Channel ichan)) in
-    ignore (Xmlm.input i); (* `Dtd *)
-    ignore (Xmlm.input i); (* smbl tag start *)
+    ignore_input i; (* `Dtd *)
+    ignore_input i; (* smbl tag start *)
     let model =
       match Xmlm.input i with
       | `El_start ((_, "model"), attrs) -> parse_model attrs i
       | _ -> raise_bad "malformed sbml" in
-    ignore (Xmlm.input i); (* smbl tag end *)
+    ignore_input i; (* smbl tag end *)
     if not (Xmlm.eoi i) then raise_bad "sbml too long";
     model
 

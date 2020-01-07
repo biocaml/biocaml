@@ -6,7 +6,7 @@ type t = (string * int * float) list
 exception Bad of string
 let raise_bad msg = raise (Bad msg)
 
-let cmpsi (s1,i1,_) (s2,i2,_) = Pervasives.compare (s1,i1) (s2,i2)
+let cmpsi (s1,i1,_) (s2,i2,_) = Stdlib.compare (s1,i1) (s2,i2)
 
 let of_list l = List.sort ~compare:cmpsi l
 let to_list t = t
@@ -31,7 +31,7 @@ let npartition_exn ~eq l =
   map ~f:rev (fold_left ~f:insertl ~init:[] l)
 
 let to_chr_lists t =
-  let eq (s1,_,_) (s2,_,_) = s1 = s2 in
+  let eq (s1,_,_) (s2,_,_) = String.(s1 = s2) in
   let ll = npartition_exn ~eq t in
   let ll =
     List.map ~f:(fun l ->

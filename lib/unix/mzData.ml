@@ -90,7 +90,7 @@ let rec return_on_end_tag xml v =
 
 let rec attribute_exn name = function
   | [] -> failwith "MzData.spectrums: attribute not found"
-  | ((_, n), v) :: tl -> if n = name then v else attribute_exn name tl
+  | ((_, n), v) :: tl -> if String.(n = name) then v else attribute_exn name tl
 
 
 (* mzData parsing
@@ -117,11 +117,11 @@ module Precursor = struct
       let depth = depth + 1 in (* for </cvParam> *)
       let name = attribute_exn "name" attr in
       let value = attribute_exn "value" attr in
-      if name = "MassToChargeRatio" then
+      if String.(name = "MassToChargeRatio") then
         get_ionSelection xml { p with mz = Float.of_string value } depth
-      else if name = "ChargeState" then
+      else if String.(name = "ChargeState") then
         get_ionSelection xml { p with z = Float.of_string value } depth
-      else if name = "Intensity" then
+      else if String.(name = "Intensity") then
         get_ionSelection xml { p with int = Float.of_string value } depth
       else
         get_ionSelection xml p depth
@@ -167,7 +167,7 @@ let rec vec_of_binary_data xml =
   | `El_start((_, "data"), atts) ->
     let precision = int_of_string(attribute_exn "precision" atts) in
     let length = int_of_string(attribute_exn "length" atts) in
-    let little_endian = attribute_exn "endian" atts = "little" in
+    let little_endian = String.(attribute_exn "endian" atts = "little") in
     let data = get_next_data xml in
     let v = Base64.decode ~precision ~little_endian data in
     if Array1.dim v <> length then

@@ -79,8 +79,8 @@ let load_matrix_data fn =
     |> Stream.skip ~n:1
     |> Stream.map ~f:(Line.split ~on:'\t')
     |> Stream.to_list
-    |> List.sort ~compare:(fun x y -> compare (List.hd x) (List.hd y))
-    |> List.group ~break:(fun x y -> List.hd x<> List.hd y)
+    |> List.sort ~compare:(fun x y -> Poly.compare (List.hd x) (List.hd y))
+    |> List.group ~break:Poly.(fun x y -> List.hd x <> List.hd y)
     |> List.map ~f:(List.map ~f:parse)
     |> List.map ~f:matrix_of_lines
   )

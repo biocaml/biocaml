@@ -80,14 +80,14 @@ module Parser = struct
   let section_name s =
     let s = String.strip s in
     let l = String.length s in
-      if l < 2 || not (s.[0] = '[' && s.[l-1] = ']')
+      if l < 2 || not Char.(s.[0] = '[' && s.[l-1] = ']')
       then None
       else Some (String.slice s 1 (l-1))
 
   let line_is_section sec_name l =
     match section_name l with
       | None -> false
-      | Some s -> s = sec_name
+      | Some s -> String.(s = sec_name)
 
   let intensity_row s =
     let to_int s = Int.of_string (String.strip s) in
@@ -122,8 +122,8 @@ module Parser = struct
     let sl = String.split (Stream.next_exn lines) ~on:'=' in
     let sl = String.split (List.nth_exn sl 1) ~on:'\t' in
     let sl = List.map ~f:String.strip sl in
-    let _ =
-      if sl <> icolumns then
+    let () =
+      if Poly.(sl <> icolumns) then
         raise_bad "intensity section column names incorrect" in
 
     let lines =

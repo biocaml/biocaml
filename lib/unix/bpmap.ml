@@ -17,7 +17,7 @@ let to_list t = t
 module Parser = struct
   let header (s:string) : string list =
     let sl = String.split s ~on:'\t' in
-      if sl = col_names then sl
+      if Poly.(sl = col_names) then sl
       else raise_bad "incorrectly formatted header"
 
   let row ~chr_map (s:string) : row =
@@ -51,7 +51,7 @@ module Parser = struct
       let lines = Lines.of_channel cin in
       let err msg = Msg.err ~pos:(Pos.make ~source:file ~line:(Stream.count lines) ()) msg in
         try
-          ignore (header ((Stream.next_exn lines) : Lines.item :> string));
+          ignore (header ((Stream.next_exn lines) : Lines.item :> string) : string list);
           Stream.to_list (Stream.map ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string)) lines)
         with
             Failure msg | Bad msg -> raise_bad (err msg)

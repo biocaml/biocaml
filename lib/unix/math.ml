@@ -31,23 +31,23 @@ let transpose a =
 
 let log ?base x =
   match base with
-    | None -> Pervasives.log x
-    | Some b -> (Pervasives.log x) /. (Pervasives.log b)
+    | None -> Stdlib.log x
+    | Some b -> (Stdlib.log x) /. (Stdlib.log b)
 
-let log10 = Pervasives.log10
+let log10 = Stdlib.log10
 let log2 = log ~base:2.0
 
 let even x = (x mod 2) = 0
 let odd x = (x mod 2) <> 0
 
 let min a =
-  Option.value_exn ~message:"Math.min: empty" (Array.reduce a ~f:min)
+  Option.value_exn ~message:"Math.min: empty" (Array.reduce a ~f:Poly.min)
 let max a =
-  Option.value_exn ~message:"Math.max: empty" (Array.reduce a ~f:max)
+  Option.value_exn ~message:"Math.max: empty" (Array.reduce a ~f:Poly.max)
 
 let prange add step lo hi =
   let rec f acc x =
-    if x > hi then
+    if Poly.(x > hi) then
       List.rev acc
     else
       let next = add x step in
@@ -59,11 +59,11 @@ let range_ints = prange (+)
 let range_floats = prange (+.)
 
 let range step first last =
-  assert (step > 0.0);
+  assert Float.(step > 0.0);
   let n =
     (((last -. first) /. step) |> Float.abs |> Float.round_up |> Int.of_float) + 1 in
   let a = Array.create ~len:n 0.0 in
-  let (op,comp) = if first <= last then ((+.),(<=)) else ((-.),(>=)) in
+  let (op,comp) = Float.(if first <= last then ((+.),(<=)) else ((-.),(>=))) in
   Array.iteri ~f:(fun i _ -> a.(i) <- op first (Float.of_int i *. step)) a;
   if comp a.(n-1) last
   then a
@@ -91,7 +91,7 @@ let median a =
   let n = Array.length a in
   assert (n > 0);
   let a = Array.copy a in
-  Array.sort ~compare:Pervasives.compare a;
+  Array.sort ~compare:Stdlib.compare a;
   if odd n
   then a.((n+1)/2 - 1)
   else let m = (n+1)/2 in (a.(m-1) +. a.(m)) /. 2.0
@@ -128,8 +128,8 @@ let quantile_normalization aa =
     let num_expts = Float.of_int (Array.length aa.(0)) in
     let num_pts = Array.length aa in
 
-    let comp1 (a,_) (b,_) = Pervasives.compare a b in
-    let comp2 (_,a) (_,b) = Pervasives.compare a b in
+    let comp1 (a,_) (b,_) = Stdlib.compare a b in
+    let comp2 (_,a) (_,b) = Stdlib.compare a b in
 
     let aa = transpose aa in
     let aa = Array.map ~f:(Array.mapi ~f:(fun a b -> (a, b))) aa in
@@ -142,7 +142,7 @@ let quantile_normalization aa =
     Array.iter ~f:(Array.sort ~compare:comp1) aa;
     transpose (Array.map ~f:(Array.map ~f:snd) aa)
 
-let histogram (type t) ?(cmp=Pervasives.compare) arr =
+let histogram (type t) ?(cmp=Stdlib.compare) arr =
   let module M = struct
     include Map.Make(struct
       type t_ = t (* required only because OCaml doesn't have type non-rec definitions *)
@@ -185,7 +185,7 @@ let pearson (a1:float array) (a2:float array) =
 let rank arr =
   let arr = Array.copy arr in
   let arr = Array.mapi ~f:(fun i a -> a,i) arr in
-  Array.sort ~compare:(fun (a,_) (b,_) -> Pervasives.compare a b) arr;
+  Array.sort ~compare:(fun (a,_) (b,_) -> Stdlib.compare a b) arr;
   let g _ il ans =
     let count = List.length il in
     let n = count + (List.length ans) in
@@ -200,14 +200,14 @@ let rank arr =
     if count = 0 then (* ans is list of ranks and original index pairs
                          in reverse *)
       x, [i], ans
-    else if x = prev then
+    else if Poly.(x = prev) then
       x, i::il, ans
     else
       x, [i], g prev il ans
   in
   let prev,il,ans = Array.fold ~f ~init:(0.,[],[]) arr in
   let ans = g prev il ans in
-  let ans = List.sort ~compare:(fun (_,a) (_,b) -> Pervasives.compare a b) ans in
+  let ans = List.sort ~compare:(fun (_,a) (_,b) -> Stdlib.compare a b) ans in
   Array.of_list (List.map ~f:fst ans)
 
 let spearman (arr1:float array) (arr2: float array) =
@@ -220,7 +220,7 @@ let cnd x =
   let b1,b2,b3,b4,b5,p,c =
     0.319381530, -0.356563782, 1.781477937, -1.821255978,
     1.330274429, 0.2316419, 0.39894228 in
-  if x >= 0. then
+  if Float.(x >= 0.) then
     let t = 1. /. (1. +. (p *. x)) in
     (1. -. (c *. (exp (-.x *. x /. 2.)) *. t *.
       (t *. (t *. (t *. ((t *. b5) +. b4) +. b3) +. b2) +. b1 )))
@@ -235,7 +235,7 @@ let ltqnorm p =
    First version was written in perl, by Peter J. Acklam, 2000-07-19.
    Second version was ported to python, by Dan Field, 2004-05-03.
 *)
-    if (p <= 0.) || (p >= 1.) then
+    if Float.(p <= 0. || p >= 1.) then
       raise (ValueError ("Argument to ltqnorm " ^ (Float.to_string p) ^
         " must be in open interval (0,1)"))
     else
@@ -265,12 +265,12 @@ let ltqnorm p =
       in
 
     (* Rational approximation for lower region: *)
-    if p < plow then
+    if Float.(p < plow) then
       let q  = sqrt ((-2.) *. (log p)) in
       f q
 
     (* Rational approximation for upper region: *)
-    else if phigh < p then
+    else if Float.(phigh < p) then
       let q = sqrt ((-2.) *. (log (1. -. p))) in
       f q
 
@@ -300,7 +300,7 @@ let wilcoxon_rank_sum_to_p arr1 arr2 =
   2. *. (1. -. (cnd (Float.abs z)))
 
 let wilcoxon_rank_sum ?(alpha=0.05) arr1 arr2 =
-  (wilcoxon_rank_sum_to_p arr1 arr2) < alpha
+  Float.(wilcoxon_rank_sum_to_p arr1 arr2 < alpha)
 
 let idxsort (cmp : 'a -> 'a -> int) (a : 'a array) : int array =
   let a = Array.mapi a ~f:(fun i b -> (i, b)) in

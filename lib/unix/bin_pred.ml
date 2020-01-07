@@ -12,7 +12,7 @@ type curve = (float * confusion_matrix) array
 let zero = { tp = 0 ; tn = 0 ; fn = 0 ; fp = 0 }
 
 let update accu ~threshold ~score ~label =
-  match threshold < score, label with
+  match Float.(threshold < score), label with
   | true, true -> { accu with tp = accu.tp + 1 }
   | true, false -> { accu with fp = accu.fp + 1 }
   | false, true -> { accu with fn = accu.fn + 1 }
@@ -71,7 +71,7 @@ let performance_curve ~scores ~labels =
       n (Array.length labels) () ;
   let examples =
     let r = Array.map2_exn scores labels ~f:(fun x y -> x, y) in
-    Array.sort ~compare:(Fn.flip compare) r ;
+    Array.sort ~compare:(Fn.flip Poly.compare) r ;
     r
   in
   let np = Array.count labels ~f:ident in
@@ -83,7 +83,7 @@ let performance_curve ~scores ~labels =
     else
       let score, label = examples.(i) in
       let acc =
-        if score < current_threshold then
+        if Float.(score < current_threshold) then
           (current_threshold, current_matrix) :: acc
         else
           acc
@@ -147,7 +147,7 @@ let%test "rp_curve perfect recognition" =
   let scores = [| 2.1 ; 1.2 ; 5.6 ; 0. |] in
   let labels = [| true ; false ; true ; false |] in
   let _, auc = recall_precision_curve ~scores ~labels in
-  auc = 1.
+  Float.(auc = 1.)
 
 let%test "rp_curve against sklearn" =
   let scores = [|

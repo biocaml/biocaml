@@ -416,7 +416,7 @@ let partition_range p n1 n2 (a, b) =
   let rec loop n1 n2 acc =
     let acc =
       let a, b, (v, n) = acc in
-      if p n1 = v then acc else
+      if Bool.(p n1 = v) then acc else
       if v then
 	(make_tree a (n, n1) empty, b, (not v, n1))
       else

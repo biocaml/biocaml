@@ -102,7 +102,7 @@ module Transform = struct
     try
       let by_space =
         String.split_on_chars s ~on:[' '; '\n'; '\t'; '\r']
-        |> List.filter ~f:((<>) "") in
+        |> List.filter ~f:(String.(<>) "") in
       Ok (List.map by_space ~f:(fun s ->
         begin match String.split ~on:'=' s with
         | [ key; value ] -> (key, value)
@@ -175,7 +175,7 @@ module Transform = struct
     | Some l ->
       let by_space =
         String.split_on_chars l ~on:[' '; '\n'; '\t'; '\r']
-        |> List.filter ~f:((<>) "") in
+        |> List.filter ~f:(String.(<>) "") in
       begin match by_space with
       | [ one_value ] ->
         (try `output (Ok (`fixed_step_value Float.(of_string one_value)))

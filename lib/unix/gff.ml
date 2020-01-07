@@ -121,12 +121,12 @@ module Transform = struct
         | (ok, []) -> Ok ok
         | (_, notok :: _) -> Error notok) in
     let rec loop pos acc =
-      begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> c = '=') with
+      begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> Char.equal c '=') with
       | Some equal ->
         parse_string "tag" position (String.slice whole_thing pos equal)
         >>= fun tag ->
         let pos = equal + 1 in
-        begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> c = ';') with
+        begin match String.lfindi whole_thing ~pos ~f:(fun _ c -> Char.equal c ';') with
         | Some semicolon ->
           let delimited = String.slice whole_thing pos semicolon in
           get_csv delimited

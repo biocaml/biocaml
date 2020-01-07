@@ -126,7 +126,7 @@ module Alignment0 = struct
   (* option constructor for encodings where a special value of the
      input type (here it is [none]) plays the role of [None] *)
   let option ~none x =
-    if x = none then None
+    if Poly.(x = none) then None
     else Some x
 
   let ref_id al = option ~none:(- 1) al.ref_id
@@ -229,7 +229,7 @@ module Alignment0 = struct
   let parse_cstring buf pos =
     let rec aux i =
       if i < String.length buf then
-        if buf.[i] = '\000' then return i
+        if Char.(buf.[i] = '\000') then return i
         else aux (i + 1)
       else error_string "Unfinished NULL terminated string"
     in
@@ -351,7 +351,7 @@ module Alignment0 = struct
   (* Alignment.t -> Alignment0.t conversion *)
   let find_ref_id header ref_name =
     let open Or_error in
-    match Array.findi header.ref_seq ~f:(fun _ rs -> rs.Sam.name = ref_name) with
+    match Array.findi header.ref_seq ~f:(fun _ rs -> String.(rs.Sam.name = ref_name)) with
     | Some (i, _) -> Ok i
     | None  -> error_string "Bam: unknown reference id"
 
@@ -374,7 +374,7 @@ module Alignment0 = struct
           | `Seq_match i -> 7l, i
           | `Seq_mismatch i -> 8l, i
         in
-        write idx (bit_or 0l (of_int_exn Pervasives.(i lsl 4)))
+        write idx (bit_or 0l (of_int_exn Stdlib.(i lsl 4)))
       ) ;
     buf
 
@@ -535,7 +535,7 @@ let input_s32_as_int iz =
 let read_sam_header iz =
   try
     let magic = Bgzf.input_string iz 4 in
-    check (magic = magic_string) "Incorrect magic string, not a BAM file" >>= fun () ->
+    check String.(magic = magic_string) "Incorrect magic string, not a BAM file" >>= fun () ->
     let l_text = input_s32_as_int iz in
      check (l_text >= 0) "Incorrect size of plain text in BAM header" >>= fun () ->
     let text = Bgzf.input_string iz l_text in
@@ -547,7 +547,7 @@ let read_one_reference_information iz =
     let l_name = input_s32_as_int iz in
     check (l_name > 0) "Incorrect encoding of reference sequence name in BAM header" >>= fun () ->
     let name = Bgzf.input_string iz (l_name - 1) in
-    let _ = Bgzf.input_char iz in (* name is a NULL terminated string *)
+    let (_ : char) = Bgzf.input_char iz in (* name is a NULL terminated string *)
     let length = input_s32_as_int iz in
     Sam.ref_seq ~name ~length ()
   with End_of_file -> error_string "EOF while reading BAM reference information"
@@ -600,7 +600,7 @@ let read_alignment_aux iz block_size =
 
     let read_name =
       let r = Bgzf.input_string iz (l_read_name - 1) in
-      Pervasives.ignore (Bgzf.input_char iz) ; (* trailing null character *)
+      let (_ : char) = Bgzf.input_char iz in (* trailing null character *)
       r
     in
 

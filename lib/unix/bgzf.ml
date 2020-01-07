@@ -30,7 +30,7 @@ let max_isize = 0xff00
 exception Error of string
 
 type in_channel = {
-  ic : Pervasives.in_channel ; (* Underlying channel *)
+  ic : Stdlib.in_channel ; (* Underlying channel *)
   in_bufz : string ; (* Compressed block *)
   in_buf : string ;   (* Uncompressed block *)
   mutable in_block_offset : Int64.t ; (* Offset of the current block *)
@@ -51,7 +51,7 @@ let of_in_channel ic = {
   in_eof = false
 }
 
-let open_in fn = of_in_channel (Pervasives.open_in_bin fn)
+let open_in fn = of_in_channel (Stdlib.open_in_bin fn)
 
 let dispose_in iz =
   iz.in_eof <- true ;
@@ -91,14 +91,14 @@ let read_header iz =
       if cm <> 8 then raise(Error "unknown compression method") ;
       let flags = input_byte iz.ic in
       if flags <> 0x04 then raise(Error("bad flags, not a bgzf file"));
-      for _ = 1 to 6 do ignore (input_byte iz.ic) done;
+      for _ = 1 to 6 do ignore (input_byte iz.ic : int) done;
       let xlen = input_u16 iz.ic in
       let si1 = input_byte iz.ic in
       let si2 = input_byte iz.ic in
       let slen = input_u16 iz.ic in
       if si1 <> 66 || si2 <> 67 || slen <> 2 then raise (Error "bad extra subfield") ;
       let bsize = input_u16 iz.ic in
-      for _ = 1 to xlen - 6 do ignore (input_byte iz.ic) done ;
+      for _ = 1 to xlen - 6 do ignore (input_byte iz.ic : int) done ;
       bsize - xlen - 19
     with End_of_file -> raise (Error "premature end of file, not a bgzf file")
 
@@ -120,13 +120,13 @@ let read_block iz =
     iz.in_block_offset <- In_channel.pos iz.ic ;
     let cdata_size = read_header iz in (* read_header raises End_of_file iff there is no more block to read *)
     try
-      Pervasives.really_input iz.ic iz.in_bufz 0 cdata_size ;
+      Stdlib.really_input iz.ic iz.in_bufz 0 cdata_size ;
       let ref_crc = input_s32 iz.ic in
       let ref_size = input_s32 iz.ic |> Int32.to_int_exn in
       Zlib.inflate_end iz.in_stream ;
       iz.in_stream <- Zlib.inflate_init false ;
       let crc, size = loop 0 cdata_size 0 max_block_size Int32.zero 0 in
-      if crc <> ref_crc then raise (Error "CRC mismatch, data corrupted") ;
+      if Int32.(crc <> ref_crc) then raise (Error "CRC mismatch, data corrupted") ;
       if size <> ref_size then raise (Error "size mismatch, data corrupted") ;
       iz.in_pos <- 0 ;
       iz.in_avail <- size
@@ -239,7 +239,7 @@ let with_file_in fn ~f =
 exception Unparser_error of string
 
 type out_channel = {
-  out_chan : Pervasives.out_channel ;
+  out_chan : Stdlib.out_channel ;
   out_ubuffer : string ;
   out_cbuffer : string ;
   mutable out_pos : int ; (* position in out_ubuffer *)
@@ -290,7 +290,7 @@ let of_out_channel ?(level = 6) oc =
   }
 
 let open_out ?(level = 6) filename =
-  of_out_channel ~level (Pervasives.open_out_bin filename)
+  of_out_channel ~level (Stdlib.open_out_bin filename)
 
 
 let push_block oz =
@@ -366,11 +366,11 @@ let bgzf_eof = "\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x1b\x
 
 let dispose_out oz =
   if oz.out_pos > 0 then push_block oz ;
-  Pervasives.output_string oz.out_chan bgzf_eof
+  Stdlib.output_string oz.out_chan bgzf_eof
 
 let close_out oz =
   dispose_out oz ;
-  Pervasives.close_out oz.out_chan
+  Stdlib.close_out oz.out_chan
 
 let with_file_out ?level fn ~f =
   let oz = open_out ?level fn in

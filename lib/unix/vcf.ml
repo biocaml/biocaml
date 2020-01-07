@@ -123,7 +123,7 @@ let vcf_format_type_to_string = function
   | `string_value    -> "string"
 
 let coerce_to_vcf_format_type t s =
-  if s = "."
+  if String.equal s "."
   then
     (* Note(superbobry): any value might be missing, according to VCF4.1
         specification. *)
@@ -316,7 +316,7 @@ let string_to_vcfr_info { vcfm_info ; _ } s =
 
       let chunk_values = match Hashtbl.find vcfm_info key with
         | Some (Info (_t, `flag_value, _description))
-          when raw_value = "" -> Ok [`flag key]
+          when String.equal raw_value "" -> Ok [`flag key]
         | Some (Info (n, t, _description)) ->
           coerce_n ~f:(coerce_to_vcf_info_type t) key n raw_value
         | None -> Error (`unknown_info key)
@@ -348,7 +348,7 @@ let string_to_vcfr_alts { vcfm_alt ; _ } s =
     | chunks ->
       let res = List.map chunks ~f:(fun chunk ->
           let n = String.length chunk in
-          match (chunk.[0] = '<' && chunk.[n - 1] = '>', is_valid_dna chunk) with
+          match Char.(chunk.[0] = '<' && chunk.[n - 1] = '>', is_valid_dna chunk) with
             | (true, _)  ->
               if Hashtbl.mem vcfm_alt (String.sub ~pos:1 ~len:(n - 2) chunk)
               then Ok chunk
@@ -420,7 +420,7 @@ module Transform = struct
     let { vcfm_info; vcfm_format; _ } = meta in
     let l = Option.value_exn (next_line p :> string option) in
     let chunks =
-      List.filter ~f:(fun s -> s <> "") (String.split ~on:'\t' l)
+      List.filter ~f:String.(fun s -> s <> "") (String.split ~on:'\t' l)
     in begin match chunks with
       | "#CHROM" :: "POS" :: "ID" :: "REF" :: "ALT" :: "QUAL" ::
           "FILTER" :: "INFO" :: rest ->
@@ -446,7 +446,7 @@ module Transform = struct
             and vcfm_format = merge_with_reserved reserved_format vcfm_format
                 ~c:(fun n t description -> Format (n, t, description));
             and (vcfm_header, vcfm_samples) =
-              if samples = []
+              if List.is_empty samples
               then (chunks, samples)
               else List.split_n chunks List.(length chunks - length samples)
             in Ok (`complete { meta with vcfm_info; vcfm_format;
@@ -512,7 +512,7 @@ module Transform = struct
     match (next_line p :> string option) with
       | Some l when not (String.is_empty l) ->
         let chunks =
-          List.filter ~f:(fun s -> s <> "") (String.split ~on:'\t' l)
+          List.filter ~f:String.(fun s -> s <> "") (String.split ~on:'\t' l)
         in begin match list_to_vcf_row meta chunks with
           | Ok row    -> `output (Ok row)
           | Error err ->

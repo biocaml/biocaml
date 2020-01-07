@@ -75,7 +75,7 @@ let parse_item0
 
   (* n > 0 if we got here *)
 
-  else if s.[0] = '>' then
+  else if Char.equal s.[0] '>' then
     Ok (`Description (String.slice s 1 n))
 
   else
