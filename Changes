@@ -1,6 +1,10 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.10.1 2020-01-25
+------------------------
+* upgrade to core v0.13
+
 biocaml-0.10.0 2019-08-17
 ------------------------
 * unix/Bgzf: several major bugfixes
