@@ -12,7 +12,9 @@ module ListImpl = struct
 
   let empty = []
 
-  let is_empty x = ( = ) empty x
+  let is_empty = function
+    | [] -> true
+    | _ :: _ -> false
 
   let add t ~low ~high ~data = (low, high, data) :: t
 
@@ -21,10 +23,10 @@ module ListImpl = struct
   let elements x = x
 
   let to_stream x =
-    List.sort ~compare:compare x |> Stream.of_list
+    List.sort ~compare:Poly.compare x |> Stream.of_list
 
   let to_backwards_stream x =
-    List.sort ~compare:(Fn.flip compare) x |> Stream.of_list
+    List.sort ~compare:(Fn.flip Poly.compare) x |> Stream.of_list
 
   let pos x =
     if x < 0 then 0 else x
@@ -89,11 +91,12 @@ module L = TestAdditions(ListImpl)
 let test_add () =
   for _ = 1 to 100 do
     let intervals = random_intervals 100 |> Stream.to_list in
-    List.fold_left intervals ~init:T.empty ~f:(fun accu (lo,hi,_) ->
-      let r = T.add accu ~low:lo ~high:hi ~data:() in
-      Interval_tree.check_integrity r ; r
-    )
-    |> ignore
+    ignore (
+      List.fold_left intervals ~init:T.empty ~f:(fun accu (lo,hi,_) ->
+          let r = T.add accu ~low:lo ~high:hi ~data:() in
+          Interval_tree.check_integrity r ; r
+        )
+        : unit Interval_tree.t)
   done
 
 let test_creation () =

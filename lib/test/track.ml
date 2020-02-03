@@ -10,7 +10,7 @@ let test_parser () =
     Tfxm.feed transfo (l ^ "\n");
     assert_bool l (f (Tfxm.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
+  let test_output l o = test_line l Poly.(fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
 
@@ -51,7 +51,7 @@ let test_wig_parser () =
     Tfxm.feed transfo (l ^ "\n");
     assert_bool l (f (Tfxm.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
+  let test_output l o = test_line l Poly.(fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
 
@@ -70,7 +70,7 @@ let test_gff_parser () =
     Tfxm.feed transfo (l ^ "\n");
     assert_bool l (f (Tfxm.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
+  let test_output l o = test_line l Poly.(fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
   test_output "track a=\"b b\" \"c c\"="
@@ -94,7 +94,7 @@ let test_bed_parser () =
     Tfxm.feed transfo (l ^ "\n");
     assert_bool l (f (Tfxm.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> `output (Ok o) = oo) in
+  let test_output l o = test_line l Poly.(fun oo -> `output (Ok o) = oo) in
 
   test_output "# some comment" (`comment " some comment");
   test_output "track a=\"b b\" \"c c\"="
@@ -109,7 +109,7 @@ let test_printer () =
   let transfo = Track.Transform.string_content_to_string () in
   let test_line i l =
     Tfxm.feed transfo i;
-    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
+    assert_bool l Poly.(Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -122,7 +122,7 @@ let test_wig_printer () =
   let transfo = Track.Transform.wig_to_string () in
   let test_line i l =
     Tfxm.feed transfo i;
-    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
+    assert_bool l Poly.(Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -135,7 +135,7 @@ let test_gff_printer () =
   let transfo = Track.Transform.gff_to_string ~tags:Gff.Tags.default () in
   let test_line i l =
     Tfxm.feed transfo i;
-    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
+    assert_bool l Poly.(Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`browser (`hide `all)) "browser hide all";
@@ -153,7 +153,7 @@ let test_bed_printer () =
   let transfo = Track.Transform.bed_to_string () in
   let test_line i l =
     Tfxm.feed transfo i;
-    assert_bool l (Tfxm.next transfo = `output (l ^ "\n"))
+    assert_bool l Poly.(Tfxm.next transfo = `output (l ^ "\n"))
   in
   test_line (`comment "foo") "#foo";
   test_line (`track ["a", "bb"; "some long", "one even longer"])

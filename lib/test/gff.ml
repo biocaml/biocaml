@@ -10,7 +10,7 @@ let test_parser () =
     Tfxm.feed transfo (joined ^ "\n");
     assert_bool joined (f (Tfxm.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> oo = `output (Ok o)) in
+  let test_output l o = test_line l Poly.(fun oo -> oo = `output (Ok o)) in
   test_output ["# some comment"]  (`comment " some comment");
 
   test_output [
@@ -66,7 +66,7 @@ let test_parser () =
     Tfxm.feed transfo (joined ^ "\n");
     assert_bool joined (f (Tfxm.next transfo))
   in
-  let test_output l o = test_line l (fun oo -> oo = `output (Ok o)) in
+  let test_output l o = test_line l Poly.(fun oo -> oo = `output (Ok o)) in
   test_output ["# some comment"] (`comment " some comment");
 
   test_output [
@@ -85,7 +85,7 @@ let test_printer () =
     let res =  Tfxm.next transfo in
     match res with
     | `output o ->
-      if s <> o then eprintf "NOT EQUALS:\n%S\n%S\n%!" s o;
+      if String.(s <> o) then eprintf "NOT EQUALS:\n%S\n%S\n%!" s o;
       assert_equal ~printer:ident s o
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
@@ -113,7 +113,7 @@ let test_printer () =
     let res =  Tfxm.next transfo in
     match res with
     | `output o ->
-      if s <> o then eprintf "NOT EQUALS (version 2):\n%S\n%S\n%!" s o;
+      if String.(s <> o) then eprintf "NOT EQUALS (version 2):\n%S\n%S\n%!" s o;
       assert_equal ~printer:ident s o
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false

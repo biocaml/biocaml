@@ -57,7 +57,7 @@ let labels =
     (Array.map rocr_pos ~f:(fun _ -> true))
     (Array.map rocr_neg ~f:(fun _ -> false))
 
-let assert_float_equal ?msg x y = assert_equal ~cmp:(fun x y -> Float.abs (x -. y) < 0.00001) ~printer:Float.to_string ?msg x y
+let assert_float_equal ?msg x y = assert_equal ~cmp:Float.(fun x y -> abs (x -. y) < 0.00001) ~printer:Float.to_string ?msg x y
 
 (* let p x = BatArray.print (BatTuple.Tuple2.print BatFloat.print BatFloat.print) BatIO.stdout x *)
 

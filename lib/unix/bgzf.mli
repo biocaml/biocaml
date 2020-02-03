@@ -43,13 +43,13 @@ val input_u16 : in_channel -> int
 val input_s16 : in_channel -> int
 val input_s32 : in_channel -> int32
 
-val input: in_channel -> string -> int -> int -> int
+val input: in_channel -> bytes -> int -> int -> int
 (** [input ic buf pos len] reads at most [len] characters in file
     [ic], stores them in string [buf] at position [pos], and returns
     the number of characters actually read. *)
 
 (* FIXME: should raise End_of_file if not enough characters are available! *)
-val really_input : in_channel -> string -> int -> int -> unit
+val really_input : in_channel -> bytes -> int -> int -> unit
 (** Same as [input] but reads exactly [len] characters. @raise
     End_of_file if there are less than [len] characters available.  *)
 
@@ -87,9 +87,12 @@ val dispose_out : out_channel -> unit
     regular channel (which can be used further). *)
 
 
-val output : out_channel -> string -> int -> int -> unit
-(** [output oc buf pos len] writes [len] characters of string [buf]
+val output : out_channel -> bytes -> pos:int -> len:int -> unit
+(** [output oc buf ~pos ~len] writes [len] characters of string [buf]
     from position [pos] into the compressed file [oc]. *)
+
+val output_from_string : out_channel -> string -> pos:int -> len:int -> unit
+(** Same as [output] but reading from a string instead of bytes. *)
 
 val output_char : out_channel -> char -> unit
 

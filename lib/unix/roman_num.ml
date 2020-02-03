@@ -60,7 +60,7 @@ module Roman = struct
 
   let roman (n:int) : string =
     let size = roman_size n in
-    let x = String.make size 'M' in
+    let x = Bytes.make size 'M' in
     let ( ++ ) c k = Bytes.set x k c; k-1 in
     let digit d one five ten k =
       match d with
@@ -83,7 +83,7 @@ module Roman = struct
         count (digit (n mod 10) one five ten k) (n/10, next)
       | _ -> assert false
     in
-    count (size-1) (n,numerals); x
+    count (size-1) (n,numerals); Bytes.to_string x
 
 end
 

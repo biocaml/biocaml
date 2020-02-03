@@ -40,7 +40,7 @@ let dr5_matrix ?seq () =
 let test_c_version_doesnt_crash () =
   let seq = random_dna_string 10000 in
   let mat = dr5_matrix ~seq ()in
-  ignore (fast_scan mat seq 10.)
+  ignore (fast_scan mat seq 10. : _ list)
 
 let test_c_and_caml_versions_agree () =
   let seq = random_dna_string 100000 in
@@ -48,12 +48,12 @@ let test_c_and_caml_versions_agree () =
   let c_res = fast_scan mat seq (-10.)
   and ocaml_res = scan mat seq (-10.) in
   assert_bool "Hits number" List.(length c_res = length ocaml_res) ;
-  assert_bool "Same positions" List.(map ~f:fst c_res = map ~f:fst ocaml_res) ;
+  assert_bool "Same positions" List.(Poly.equal (map ~f:fst c_res) (map ~f:fst ocaml_res)) ;
   let eps =
     List.(fold2_exn
-	    ~f:(fun accu (_,x1) (_,x2) -> Pervasives.max accu (Float.abs (x1 -. x2)))
+	    ~f:(fun accu (_,x1) (_,x2) -> Float.max accu (Float.abs (x1 -. x2)))
 	    ~init:0. c_res ocaml_res)
-  in assert_bool "Score no more different than eps=1e-4" (eps < 1e-4)
+  in assert_bool "Score no more different than eps=1e-4" Float.(eps < 1e-4)
 
 let test_reverse_complement () =
   let bg = flat_background () in
@@ -65,10 +65,10 @@ let test_reverse_complement () =
   and a'' = (m'' : t :> float array array) in
   assert_bool
     "Reverse complement should be idempotent"
-    (a = a'') ;
+    (Poly.equal a a'') ;
   assert_bool
     "Wrong permutation of the first element of the matrix"
-    Array.(a.(0).(0) = a'.(length a' - 1).(3))
+    Array.(Base.Float.equal a.(0).(0) a'.(length a' - 1).(3))
 
 let test_best_hit () =
   let m = dr5_matrix () in
@@ -76,8 +76,8 @@ let test_best_hit () =
   let f s =
     let all_hits = scan m s Float.neg_infinity
     and _, best_hit = best_hit m s in
-    let best_of_all_hits = List.fold_left ~f:(fun accu (_, s) -> max accu s) ~init:Float.neg_infinity all_hits in
-    best_hit = best_of_all_hits
+    let best_of_all_hits = List.fold_left ~f:(fun accu (_, s) -> Float.max accu s) ~init:Float.neg_infinity all_hits in
+    Float.(best_hit = best_of_all_hits)
   in
   assert_bool
     "best_hit returns the best position found by scan"

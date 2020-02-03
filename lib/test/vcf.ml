@@ -12,6 +12,7 @@ let make_stream name =
 
 let compare_rows r1 r2 =
   let open Vcf in
+  let open Poly in
   r1.vcfr_chrom = r2.vcfr_chrom &&
   r1.vcfr_pos   = r2.vcfr_pos &&
   r1.vcfr_ids   = r2.vcfr_ids &&

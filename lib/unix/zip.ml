@@ -161,6 +161,8 @@ module Transform = struct
    \x00\x00\x00\x00\
    \x00\xff"
 
+  let bytes_empty () = Bytes.make 0 ' '
+
   let zip ?(format=`raw)
       ?(level=Default.level) ?(zlib_buffer_size=Default.zlib_buffer_size) () =
     let zstream =  ref (Zlib.deflate_init level false) in
@@ -171,7 +173,7 @@ module Transform = struct
     let this_is_the_end = ref false in
     let update_crc, output_crc =
       match format with
-      | `raw -> ((fun _ _ -> ()), (fun () -> ""))
+      | `raw -> ((fun _ _ -> ()), (fun () -> bytes_empty ()))
       | `gzip ->
         let gzip_crc = ref 0l in
         let gzip_size = ref 0l in
@@ -191,21 +193,21 @@ module Transform = struct
       match state.contents with
       | `gzip_header -> state := `deflating; `output gzip_default_header
       | `deflating ->
-        let buffered = Buffer.contents in_buffer in
-        begin match String.length buffered with
+        let buffered = Buffer.contents_bytes in_buffer in
+        begin match Bytes.length buffered with
         | 0 ->
           if stopped
           then begin
             if !this_is_the_end then `end_of_stream
             else begin
               let (_, _, used_out) =
-                Zlib.deflate !zstream "" 0 0
+                Zlib.deflate !zstream (bytes_empty ()) 0 0
                   zlib_write_buffer 0 zlib_buffer_size Zlib.Z_FINISH in
               let to_output =
                 if used_out < zlib_buffer_size then (
                   this_is_the_end := true;
                   Zlib.deflate_end !zstream;
-                  Bytes.To_string.sub zlib_write_buffer ~pos:0 ~len:used_out ^ output_crc ()
+                  (Bytes.To_string.sub zlib_write_buffer ~pos:0 ~len:used_out) ^ (Bytes.to_string (output_crc ()))
                 ) else (
                   Bytes.To_string.sub zlib_write_buffer ~pos:0 ~len:used_out
                 ) in
@@ -223,10 +225,10 @@ module Transform = struct
           in
           update_crc buffered used_in;
           if used_in < len
-          then (Buffer.add_substring in_buffer
-                  buffered ~pos:used_in ~len:(String.length buffered - used_in));
+          then (Buffer.add_subbytes in_buffer
+                  buffered ~pos:used_in ~len:(Bytes.length buffered - used_in));
           if used_out > 0 then
-            `output String.(sub zlib_write_buffer ~pos:0 ~len:used_out)
+            `output Bytes.To_string.(sub zlib_write_buffer ~pos:0 ~len:used_out)
           else
             `not_ready
         end

@@ -15,7 +15,7 @@ let some_ok x = Some (Ok x)
 let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
   let file = Utils.test_file "bed_03_more_cols.bed" in
   let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
-  Unix.system (sprintf "gzip -c %s > %s" file tmp) |> ignore;
+  ignore (Unix.system (sprintf "gzip -c %s > %s" file tmp) : Unix.Exit_or_signal.t) ;
 
   let unzip_and_parse =
     Tfxm.compose_results_merge_error
@@ -30,10 +30,10 @@ let test_unzip () =
   let s, clean_up = make_stream () in
 
   let the_expected_list = [|`string "some_string"; `int 42; `float 3.14|] in
-  assert_bool "03 chrA" (Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
-  assert_bool "03 chrB" (Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
-  assert_bool "03 chrC" (Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
-  assert_bool "03 EOF" (Stream.next s = None);
+  assert_bool "03 chrA" Poly.(Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
+  assert_bool "03 chrB" Poly.(Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
+  assert_bool "03 chrC" Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
+  assert_bool "03 EOF" Poly.(Stream.next s = None);
   clean_up ()
 
 let cmd fmt = ksprintf (fun s ->

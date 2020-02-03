@@ -41,7 +41,7 @@ let test vl1 vl2 =
   let is_good intset_op set_op op_name =
     let ans1 = Test.timesf ("naive " ^ op_name) (intset_op intset1) intset2 in
     let ans2 = Test.timesf ("efficient " ^ op_name) (set_op set1) set2 in
-    assert_bool op_name (Int.Set.to_list ans1 = to_list ans2)
+    assert_bool op_name Poly.(Int.Set.to_list ans1 = to_list ans2)
   in
   is_good Int.Set.inter inter "intersection";
   is_good Int.Set.union union "union";

@@ -9,7 +9,7 @@ let check b msg =
 let checkf b format = Printf.ksprintf (check b) format
 
 let check_buf ~buf ~pos ~len =
-  check (Bytes.length buf >= pos + len) "Buffer too short"
+  check (String.length buf >= pos + len) "Buffer too short"
 
 (* Helper functions to get parts of an Int32.t as an int *)
 let get_8_0 =
@@ -30,26 +30,85 @@ let get_4_0 =
   let mask = Int32.of_int_exn 0xf in
   fun x -> Int32.bit_and mask x |> Int32.to_int_exn
 
-(* NB: uint32 is unpacked as an int64 *)
-let unpack_unsigned_32_little_endian ~buf ~pos =
-  let b1 = Char.to_int buf.[pos + 0] |> Int64.of_int_exn in
-  let b2 = Char.to_int buf.[pos + 1] in
-  let b3 = Char.to_int buf.[pos + 2] in
-  let b4 = Char.to_int buf.[pos + 3] in
-  Int64.bit_or
-    (Int64.shift_left b1 24)
-    (Int64.of_int_exn (b2 lor b3 lor b4))
+(* this is adapted from JaneStreet's core_kernel Binary_packing
+   module in order to read from strings instead of bytes *)
+module BP = struct
+  let unpack_unsigned_8 ~buf ~pos = Char.to_int (String.get buf pos)
 
-(* This function is adapted from Core.Binary_packing.pack_signed_64_little_endian *)
-let pack_u32_in_int64_little_endian ~buf ~pos v =
-  (* Safely set the first and last bytes, so that we verify the string bounds. *)
-  Bytes.set buf pos (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL v))) ;
-  Bytes.set buf (pos + 3) (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 24)))) ;
-  (* Now we can use [unsafe_set] for the intermediate bytes. *)
-  Bytes.unsafe_set buf (pos + 1)
-    (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 8)))) ;
-  Bytes.unsafe_set buf (pos + 2)
-    (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 16))))
+  let unpack_signed_8 ~buf ~pos =
+    let n = unpack_unsigned_8 ~buf ~pos in
+    if n >= 0x80 then -(0x100 - n) else n
+
+  let unpack_signed_32_little_endian ~buf ~pos =
+    let b1 =
+      Int32.shift_left
+        (Int32.of_int_exn (Caml.Char.code (String.get buf (pos + 3))))
+        24
+    in
+    let b2 = Char.to_int (String.get buf (pos + 2)) lsl 16 in
+    let b3 = Char.to_int (String.get buf (pos + 1)) lsl 8 in
+    let b4 = Char.to_int (String.get buf pos) in
+    (* LSB *)
+    Int32.bit_or b1 (Int32.of_int_exn (b2 lor b3 lor b4))
+
+  let unpack_unsigned_16_little_endian ~buf ~pos =
+    let b1 = Char.to_int (String.get buf (pos + 1)) lsl 8 in
+    let b2 = Char.to_int (String.get buf pos) in
+    b1 lor b2
+
+  let unpack_signed_16_little_endian ~buf ~pos =
+    let n = unpack_unsigned_16_little_endian ~buf ~pos in
+    if n >= 0x8000 then -(0x10000 - n) else n
+
+  (* NB: uint32 is unpacked as an int64 *)
+  let unpack_unsigned_32_little_endian ~buf ~pos =
+    let b1 = Char.to_int (String.get buf (pos + 0)) |> Int64.of_int_exn in
+    let b2 = Char.to_int (String.get buf (pos + 1)) in
+    let b3 = Char.to_int (String.get buf (pos + 2)) in
+    let b4 = Char.to_int (String.get buf (pos + 3)) in
+    Int64.bit_or
+      (Int64.shift_left b1 24)
+      (Int64.of_int_exn (b2 lor b3 lor b4))
+
+  let unpack_signed_64_little_endian ~buf ~pos =
+    Int64.bit_or
+      (Int64.bit_or
+         (Int64.shift_left
+            (Int64.of_int_exn (
+                ((Char.to_int (String.get buf (pos + 7)) lsl 16))
+                lor (Char.to_int (String.get buf (pos + 6)) lsl 8)
+                lor Char.to_int (String.get buf (pos + 5))))
+            40)
+         (Int64.shift_left
+            (Int64.of_int_exn
+               ((Char.to_int (String.get buf (pos + 4)) lsl 16)
+                lor (Char.to_int (String.get buf (pos + 3)) lsl 8)
+                lor Char.to_int (String.get buf (pos + 2))))
+            16))
+      (Int64.of_int_exn (
+          (Char.to_int (String.get buf (pos + 1)) lsl 8) lor Char.to_int (String.get buf pos)))
+
+  let unpack_float_little_endian ~buf ~pos =
+    Int64.float_of_bits (unpack_signed_64_little_endian ~buf ~pos)
+
+  let pack_signed_32_little_endian bits =
+    let buf = Bytes.create 4 in
+    Binary_packing.pack_signed_32 ~byte_order:`Little_endian bits ~buf ~pos:0 ;
+    Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
+
+  let pack_u32_in_int64_little_endian v =
+    let buf = Bytes.create 4 in
+    (* Safely set the first and last bytes, so that we verify the string bounds. *)
+    Bytes.set buf 0 (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL v))) ;
+    Bytes.set buf 3 (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 24)))) ;
+    (* Now we can use [unsafe_set] for the intermediate bytes. *)
+    Bytes.unsafe_set buf 1
+      (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 8)))) ;
+    Bytes.unsafe_set buf 2
+      (Char.unsafe_of_int Int64.(to_int_exn (bit_and 0xFFL (shift_right_logical v 16)))) ;
+    Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
+end
+
 
 let int64_is_neg n =
   Int64.(bit_and 0x8000000000000000L n <> zero)
@@ -164,7 +223,7 @@ module Alignment0 = struct
 
   let cigar al =
     result_list_init (String.length al.cigar / 4) ~f:(fun i ->
-        let s32 = Binary_packing.unpack_signed_32 ~byte_order:`Little_endian ~buf:al.cigar ~pos:(i * 4) in
+        let s32 = BP.unpack_signed_32_little_endian ~buf:al.cigar ~pos:(i * 4) in
         cigar_op_of_s32 s32
       )
 
@@ -204,13 +263,13 @@ module Alignment0 = struct
     if n = 0 then None
     else
       let l_seq = l_seq al in
-      let r = String.make l_seq ' ' in
+      let r = Bytes.make l_seq ' ' in
       for i = 0 to n - 1 do
         let c = int_of_char al.seq.[i] in
         Bytes.set r (2 * i) (char_of_seq_code (c lsr 4)) ;
         if 2 * i + 1 < l_seq then Bytes.set r (2 * i + 1) (char_of_seq_code (c land 0xf)) ;
       done ;
-      Some r
+      Some (Bytes.unsafe_to_string ~no_mutation_while_string_reachable:r)
 
   let qual al =
     let shift = String.map ~f:Char.(fun c -> of_int_exn (to_int c + 33)) in
@@ -229,7 +288,7 @@ module Alignment0 = struct
   let parse_cstring buf pos =
     let rec aux i =
       if i < String.length buf then
-        if Char.(buf.[i] = '\000') then return i
+        if Char.(String.get buf i = '\000') then return i
         else aux (i + 1)
       else error_string "Unfinished NULL terminated string"
     in
@@ -249,32 +308,32 @@ module Alignment0 = struct
     check_buf ~buf ~pos ~len >>= fun () ->
     match typ with
     | 'c' ->
-      let i = Int64.of_int_exn (Binary_packing.unpack_signed_8 ~buf ~pos) in
+      let i = Int64.of_int_exn (BP.unpack_signed_8 ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'C' ->
-      let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_8 ~buf ~pos) in
+      let i = Int64.of_int_exn (BP.unpack_unsigned_8 ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 's' ->
-      let i = Int64.of_int_exn (Binary_packing.unpack_signed_16_little_endian ~buf ~pos) in
+      let i = Int64.of_int_exn (BP.unpack_signed_16_little_endian ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'S' ->
-      let i = Int64.of_int_exn (Binary_packing.unpack_unsigned_16_little_endian ~buf ~pos) in
+      let i = Int64.of_int_exn (BP.unpack_unsigned_16_little_endian ~buf ~pos) in
       return (Sam.optional_field_value_i i, len)
     | 'i' ->
-      let i = Binary_packing.unpack_signed_32 ~byte_order:`Little_endian ~buf ~pos in
+      let i = BP.unpack_signed_32_little_endian ~buf ~pos in
       return (Sam.optional_field_value_i (Int64.of_int32 i), len)
     | 'I' ->
-      let i = unpack_unsigned_32_little_endian ~buf ~pos in
+      let i = BP.unpack_unsigned_32_little_endian ~buf ~pos in
       return (Sam.optional_field_value_i i, len)
     | 'f' ->
-      let f = Binary_packing.unpack_float ~byte_order:`Little_endian ~buf ~pos in
+      let f = BP.unpack_float_little_endian ~buf ~pos in
       return (Sam.optional_field_value_f f, len)
     | _ -> error_string "Incorrect numeric optional field type identifier"
 
   let parse_optional_field_value buf pos = function
     | 'A' ->
       check_buf ~buf ~pos ~len:1 >>= fun () ->
-      Sam.optional_field_value_A buf.[pos] >>= fun v ->
+      Sam.optional_field_value_A (String.get buf pos) >>= fun v ->
       return (v, 1)
     | 'c' | 'C' | 's' | 'S' | 'i' | 'I' | 'f' as typ ->
       parse_cCsSiIf buf pos typ
@@ -288,8 +347,8 @@ module Alignment0 = struct
       return (value, pos' - pos)
     | 'B' ->
       check_buf ~buf ~pos ~len:5 >>= fun () ->
-      let typ = buf.[0]  in
-      let n = Binary_packing.unpack_signed_32 ~buf ~pos:(pos + 1) ~byte_order:`Little_endian in
+      let typ = String.get buf 0 in
+      let n = BP.unpack_signed_32_little_endian ~buf ~pos:(pos + 1) in
       (
         match Int32.to_int n with
         | Some n ->
@@ -376,7 +435,7 @@ module Alignment0 = struct
         in
         write idx (bit_or 0l (of_int_exn Stdlib.(i lsl 4)))
       ) ;
-    buf
+    Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
 
   let sizeof al =
     let l_seq = l_seq al in
@@ -416,20 +475,15 @@ module Alignment0 = struct
 
       | `f f ->
         let bits = Int32.bits_of_float f in
-        let buf = Bytes.create 4 in
-        Binary_packing.pack_signed_32  ~byte_order:`Little_endian bits ~buf ~pos:0 ;
-        Ok ('f', buf)
+        Ok ('f', BP.pack_signed_32_little_endian bits)
 
       | `i i ->
         (* FIXME: encode i to the smallest usable integer type *)
-        let buf = Bytes.create 4 in
         if int64_fits_u32 i then (
-          pack_u32_in_int64_little_endian ~buf ~pos:0 i ;
-          Ok ('I', buf)
+          Ok ('I', BP.pack_u32_in_int64_little_endian i)
         )
         else if int64_fits_s32 i then (
-          Binary_packing.pack_signed_32 ~buf ~byte_order:`Little_endian ~pos:0 (Int32.of_int64_exn i) ;
-          Ok ('i', buf)
+          Ok ('i', BP.pack_signed_32_little_endian (Int32.of_int64_exn i))
         )
         else error "Sam integer cannot be encoded in BAM format" i Int64.sexp_of_t
 

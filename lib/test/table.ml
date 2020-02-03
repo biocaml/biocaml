@@ -10,7 +10,7 @@ let test_row () =
       Table.Row.of_line ~separators:['-']
         ~format:[| `type_int; `type_float; `type_string|]
         (Line.of_string_unsafe s) in
-    assert_bool (sprintf "%s: of_line" s) ((=) r row_result);
+    assert_bool (sprintf "%s: of_line" s) (Poly.(=) r row_result);
     Result.iter row_result ~f:(fun row ->
           match to_line with
           | Some str ->

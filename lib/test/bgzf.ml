@@ -4,7 +4,7 @@ open OUnit
 
 let random_string n =
   String.init n ~f:(fun _ ->
-      if Random.float 1. > 0.5 then '.' else 'o'
+      if Float.(Random.float 1. > 0.5) then '.' else 'o'
     )
 
 let test_parse_past_eof () =
@@ -31,7 +31,7 @@ let test_parse_file_per_char fn () =
   with_file_in fn ~f:(fun iz ->
       try
         while true do
-          ignore (input_char iz)
+          ignore (input_char iz : char)
         done
       with End_of_file -> ()
     )

@@ -14,13 +14,13 @@ let some_ok x = Some (Ok x)
 
 let test_parser () =
   let s = make_stream "bed_01.bed" in
-  assert_bool "01 chrA" (Stream.next s = some_ok ("chrA", 42, 45, [| |]));
-  assert_bool "01 chrB" (Stream.next s = some_ok ("chrB", 100, 130, [| |]));
-  assert_bool "01 chrC" (Stream.next s = some_ok ("chrC", 200, 245, [| |]));
-  assert_bool "01 EOF" (Stream.next s = None);
+  assert_bool "01 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, [| |]));
+  assert_bool "01 chrB" Poly.(Stream.next s = some_ok ("chrB", 100, 130, [| |]));
+  assert_bool "01 chrC" Poly.(Stream.next s = some_ok ("chrC", 200, 245, [| |]));
+  assert_bool "01 EOF" Poly.(Stream.next s = None);
 
   let s = make_stream "bed_02_incomplete_line.bed" in
-  assert_bool "02 chrA" (Stream.next s = some_ok ("chrA", 42, 45, [| |]));
+  assert_bool "02 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, [| |]));
   assert_bool "02 chrB error "
     (match Stream.next s with
     | Some _ -> true
@@ -30,16 +30,16 @@ let test_parser () =
     make_stream ~more_columns:(`enforce [|`type_string; `type_int; `type_float|])
       "bed_03_more_cols.bed" in
   let the_expected_list = [|`string "some_string"; `int 42; `float 3.14|] in
-  assert_bool "03 chrA" (Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
-  assert_bool "03 chrB" (Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
-  assert_bool "03 chrC" (Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
-  assert_bool "03 EOF" (Stream.next s = None);
+  assert_bool "03 chrA" Poly.(Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
+  assert_bool "03 chrB" Poly.(Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
+  assert_bool "03 chrC" Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
+  assert_bool "03 EOF" Poly.(Stream.next s = None);
 
   let s =
     make_stream ~more_columns:(`enforce [|`type_string; `type_int; `type_float|])
       "bed_04_more_cols_error.bed" in
   let the_expected_list = [|`string "some_string"; `int 42; `float 3.14|] in
-  assert_bool "04 chrA" (Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
+  assert_bool "04 chrA" Poly.(Stream.next s = some_ok ("chrA",  42,  45, the_expected_list));
   assert_bool "04 chrB error "
     (match Stream.next s with
     | Some (Error (`bed (`wrong_format (`int_of_string _, _, _)))) -> true
@@ -48,7 +48,7 @@ let test_parser () =
     (match Stream.next s with
     | Some (Error (`bed (`wrong_format (`column_number, _, _)))) -> true
     | _ -> false);
-  assert_bool "04 EOF" (Stream.next s = None);
+  assert_bool "04 EOF" Poly.(Stream.next s = None);
 
   ()
 

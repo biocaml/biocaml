@@ -21,16 +21,16 @@ let file_reprinter_stream file =
   Tfxm.in_channel_strings_to_stream ~buffer_size:4 ic transfo
 
 let check_output s m v =
-  assert_bool (sprintf "check_output: %s" m) (Stream.next s = Some (Ok v))
+  assert_bool (sprintf "check_output: %s" m) Poly.(Stream.next s = Some (Ok v))
 let check_error s m f =
   assert_bool (sprintf "check_error: %s" m) (
     match Stream.next s with
     | Some (Error e) -> f e
     | _ -> false)
 let check_end s =
-  assert_bool "check_end 1" (Stream.next s = None);
-  assert_bool "check_end 2" (Stream.next s = None);
-  assert_bool "check_end 3" (Stream.next s = None);
+  assert_bool "check_end 1" Poly.(Stream.next s = None);
+  assert_bool "check_end 2" Poly.(Stream.next s = None);
+  assert_bool "check_end 3" Poly.(Stream.next s = None);
   ()
 
 let test_parser () =

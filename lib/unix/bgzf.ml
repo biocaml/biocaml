@@ -31,8 +31,8 @@ exception Error of string
 
 type in_channel = {
   ic : Stdlib.in_channel ; (* Underlying channel *)
-  in_bufz : string ; (* Compressed block *)
-  in_buf : string ;   (* Uncompressed block *)
+  in_bufz : bytes ; (* Compressed block *)
+  in_buf : bytes ;   (* Uncompressed block *)
   mutable in_block_offset : Int64.t ; (* Offset of the current block *)
   mutable in_pos : int ; (* Position in the current block *)
   mutable in_avail : int ; (* Number of available characters in the current block, can be less than [max_block_size] *)
@@ -42,8 +42,8 @@ type in_channel = {
 
 let of_in_channel ic = {
   ic ;
-  in_bufz = String.make max_block_size '\000' ;
-  in_buf = String.make max_block_size '\000' ;
+  in_bufz = Bytes.make max_block_size '\000' ;
+  in_buf = Bytes.make max_block_size '\000' ;
   in_block_offset = Int64.zero ;
   in_pos = 0 ;
   in_avail = 0 ;
@@ -135,7 +135,7 @@ let read_block iz =
 
 
 let input iz buf pos len =
-  let n = String.length buf in
+  let n = Bytes.length buf in
   if pos < 0 || len < 0 || pos + len > n then raise (Invalid_argument "Bgzf.input") ;
   if iz.in_eof then 0
   else (
@@ -146,7 +146,7 @@ let input iz buf pos len =
         if iz.in_eof then read
         else (
           let n = min (iz.in_avail - iz.in_pos) len in
-          Caml.String.blit iz.in_buf iz.in_pos buf pos n ;
+          Stdlib.Bytes.blit iz.in_buf iz.in_pos buf pos n ;
           iz.in_pos <- iz.in_pos + n ;
           loop (pos + n) (len - n) (read + n)
         )
@@ -165,15 +165,15 @@ let rec really_input iz buf pos len =
 
 let input_string iz n =
   if n < 0 then raise (Invalid_argument "Bgzf.input_string iz n: n should be non negative") ;
-  let r = String.make n '@' in
+  let r = Bytes.make n '@' in
   really_input iz r 0 n ;
-  r
+  Bytes.unsafe_to_string ~no_mutation_while_string_reachable:r
 
 let input_char =
   let buf = Bytes.create 1 in
   fun iz ->
     if input iz buf 0 1 = 0 then raise End_of_file
-    else buf.[0]
+    else Bytes.get buf 0
 
 let input_u8 iz =
   Char.to_int (input_char iz)
@@ -240,8 +240,8 @@ exception Unparser_error of string
 
 type out_channel = {
   out_chan : Stdlib.out_channel ;
-  out_ubuffer : string ;
-  out_cbuffer : string ;
+  out_ubuffer : bytes ;
+  out_cbuffer : bytes ;
   mutable out_pos : int ; (* position in out_ubuffer *)
   out_level : int ;
 }
@@ -300,7 +300,7 @@ let push_block oz =
       Zlib.deflate
         stream
         oz.out_ubuffer 0 oz.out_pos
-        oz.out_cbuffer 0 (String.length oz.out_cbuffer)
+        oz.out_cbuffer 0 (Bytes.length oz.out_cbuffer)
         Zlib.Z_FINISH
     with Zlib.Error(_, _) -> raise (Unparser_error("error during compression"))
   in
@@ -311,22 +311,25 @@ let push_block oz =
     ~isize:(Int32.of_int_exn used_in) ~crc32 ;
   oz.out_pos <- 0
 
-let rec output oz buf pos len =
-  if pos < 0 || len < 0 || pos + len > String.length buf then invalid_arg "Bgzf.output";
+let rec output ~length ~blit oz buf ~pos ~len =
+  if pos < 0 || len < 0 || pos + len > length buf then invalid_arg "Bgzf.output";
   (* If output buffer is full, flush it *)
-  if oz.out_pos = String.length oz.out_ubuffer then push_block oz ;
-  let available = String.length oz.out_ubuffer - oz.out_pos in
+  if oz.out_pos = Bytes.length oz.out_ubuffer then push_block oz ;
+  let available = Bytes.length oz.out_ubuffer - oz.out_pos in
   let ncopy = min len available in
-  Caml.String.blit buf pos oz.out_ubuffer oz.out_pos ncopy ;
+  blit buf pos oz.out_ubuffer oz.out_pos ncopy ;
   oz.out_pos <- oz.out_pos + ncopy ;
   let remaining = len - ncopy in
-  if remaining > 0 then output oz buf (pos + ncopy) remaining
+  if remaining > 0 then output ~length ~blit oz buf ~pos:(pos + ncopy) ~len:remaining
+
+let output_from_string = output ~length:String.length ~blit:Caml.Bytes.blit_string
+let output = output ~length:Bytes.length ~blit:Caml.Bytes.blit
 
 let output_char =
   let buf = Bytes.make 1 ' ' in
   fun oz c ->
     Bytes.set buf 0 c ;
-    output oz buf 0 1
+    output oz buf ~pos:0 ~len:1
 
 (* output_* functions adapted from Batteries BatIO module *)
 let output_u8 oz n =
@@ -360,7 +363,7 @@ let output_s32 oz n =
   output_u8 oz big
 
 let output_string oz s =
-  output oz s 0 (String.length s)
+  output_from_string oz s ~pos:0 ~len:(String.length s)
 
 let bgzf_eof = "\x1f\x8b\x08\x04\x00\x00\x00\x00\x00\xff\x06\x00BC\x02\x00\x1b\x00\x03\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
