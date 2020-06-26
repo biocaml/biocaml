@@ -1,6 +1,11 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.11.0 2020-06-26
+------------------------
+* upgrade to core v0.14
+* safe string compilation
+
 biocaml-0.10.1 2020-01-25
 ------------------------
 * upgrade to core v0.13
