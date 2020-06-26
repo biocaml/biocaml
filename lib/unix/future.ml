@@ -149,11 +149,4 @@ module type S = sig
 
   end
 
-  module Unix : sig
-    type file_perm = Unix.file_perm
-    val getcwd : unit -> string Deferred.t
-    (* val rename : src:string -> dst:string -> unit Deferred.t *)
-    (* val getpid : unit -> Pid.t *)
-  end
-
 end

@@ -116,7 +116,7 @@ module Transform = struct
     let get_csv s =
       List.map (String.split ~on:',' s)
         ~f:(fun s -> parse_string "value" position String.(strip s))
-      |> List.partition_map ~f:Result.ok_fst
+      |> List.partition_map ~f:Result.to_either
       |> (function
         | (ok, []) -> Ok ok
         | (_, notok :: _) -> Error notok) in

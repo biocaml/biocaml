@@ -147,5 +147,3 @@ module Writer = struct
   let write_char = Out_channel.output_char
   let write_line t s = Out_channel.output_string t s; Out_channel.newline t
 end
-
-module Unix = Unix
