@@ -1,6 +1,10 @@
 Biocaml Release Notes
 =====================
 
+biocaml-0.11.1 2020-07-29
+------------------------
+* upgrade to core v0.14 for biocaml.lwt and biocaml.async
+
 biocaml-0.11.0 2020-06-26
 ------------------------
 * upgrade to core v0.14
