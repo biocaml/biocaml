@@ -63,7 +63,7 @@ module Sys = Sys
 
 module Unix = struct
   type file_perm = Unix.file_perm
-  let getcwd = Unix.getcwd
+  (* let getcwd = Unix.getcwd *)
   (* let rename = Unix.rename *)
   (* let getpid = Unix.getpid *)
 

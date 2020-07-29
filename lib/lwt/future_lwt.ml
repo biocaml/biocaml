@@ -193,8 +193,8 @@ module Writer = struct
 
   let with_file ?perm ?(append=false) file ~f =
     let flags = match append with
-      | true ->  Unix.([O_WRONLY; O_CREAT; O_APPEND])
-      | false -> Unix.([O_WRONLY; O_CREAT; O_TRUNC])
+      | true -> Caml_unix.([O_WRONLY; O_CREAT; O_APPEND])
+      | false -> Caml_unix.([O_WRONLY; O_CREAT; O_TRUNC])
     in
     Lwt_io.with_file ~flags ?perm ~mode:Lwt_io.output file f
 
@@ -215,9 +215,9 @@ end
 
 (* end *)
 
-module Unix = struct
+(* module Unix = struct *)
 
-  type file_perm = Unix.file_perm
+  (* type file_perm = Caml_unix.file_perm *)
 
   (* Lwt doesn't provide a non-blocking version of getcwd because
      presumably it is doesn't block. However, Async does because it
@@ -230,7 +230,7 @@ module Unix = struct
 
      However, I think Async is right, so I wrap it in Lwt's
      detach. *)
-  let getcwd () = Lwt_preemptive.detach Unix.getcwd ()
+  (* let getcwd () = Lwt_preemptive.detach Caml_unix.getcwd () *)
 
   (* let rename ~src ~dst = Lwt_unix.rename src dst *)
 
@@ -258,4 +258,4 @@ module Unix = struct
   (* let stat x = Lwt_preemptive.detach Unix.stat x *)
   (* let lstat x = Lwt_preemptive.detach Unix.lstat x *)
 
-end
+(* end *)
