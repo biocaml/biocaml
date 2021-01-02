@@ -34,6 +34,8 @@ module Alignment0 : sig
 
   val flags : t -> Sam.Flags.t Or_error.t
 
+  val ref_id : t -> int option
+
   val rname : t -> Header.t -> string option Or_error.t
 
   (** Positions are 0-based, -1 if undefined*)
