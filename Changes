@@ -1,58 +1,55 @@
-Biocaml Release Notes
-=====================
-
-biocaml-0.11.1 2020-07-29
-------------------------
+v0.11.1 2020-07-29
+------------------
 * upgrade to core v0.14 for biocaml.lwt and biocaml.async
 
-biocaml-0.11.0 2020-06-26
-------------------------
+v0.11.0 2020-06-26
+------------------
 * upgrade to core v0.14
 * safe string compilation
 
-biocaml-0.10.1 2020-01-25
-------------------------
+v0.10.1 2020-01-25
+------------------
 * upgrade to core v0.13
 
-biocaml-0.10.0 2019-08-17
-------------------------
+v0.10.0 2019-08-17
+------------------
 * unix/Bgzf: several major bugfixes
 * upgrade to core v0.12
 * bugfix on unix/Bin_pred
 * unix/Bam: random access functions
 
-biocaml-0.9.0 2018-12-06
-------------------------
+v0.9.0 2018-12-06
+-----------------
 * switch from jbuilder to dune
 * fixed compilation warnings
 * safe-string-ification
 * update wrt world
 
 
-biocaml-0.8.0 2017-10-23
-------------------------
+v0.8.0 2017-10-23
+-----------------
 * switch to jbuilder for compilation
 * new ez/Bam
 * new unix/Bamstats module
 * more parsers in base (Gff, Bed, Table)
 
 
-biocaml-0.7.0 2017-03-23
-------------------------
+v0.7.0 2017-03-23
+-----------------
 * support for GO tag in SAM file headers (by holrock)
 * generation of richer UCSC genome browser urls
 * update wrt solvuu-build
 
 
-biocaml-0.6.0 2017-01-03
-------------------------
+v0.6.0 2017-01-03
+-----------------
 * new base/Ucsc_genome_browser module to generate custom track urls
 * update wrt solvuu-build
 
 
-biocaml-0.5.0 2016-10-21
-------------------------
-* compilation now performed with solvuu-build 
+v0.5.0 2016-10-21
+-----------------
+* compilation now performed with solvuu-build
 * added biocaml.base library, dedicated to IO-free functionalities
 * implemented parsers supporting partial inputs in biocaml.base
   (Lines, Fasta, Macs2)
@@ -60,8 +57,8 @@ biocaml-0.5.0 2016-10-21
 * fixed nearly all compilation warnings
 
 
-biocaml-0.4.0 2016-02-17
-------------------------
+v0.4.0 2016-02-17
+-----------------
 * Library refactoring in unix, lwt, async and ez variants
 * New parser for BAM format (blocking implementation)
 * Added a parser for BGZF format
@@ -70,13 +67,13 @@ biocaml-0.4.0 2016-02-17
   Future (including Fastq, Lines, Sam)
 
 
-biocaml-0.3.1 2013-09-27
-------------------------
+v0.3.1 2013-09-27
+-----------------
 * Fix documentation build.
 
 
-biocaml-0.3.0 2013-09-20
-------------------------
+v0.3.0 2013-09-20
+-----------------
 * Switch build system to OMake.
 * Delete or replace separate command line apps with unified `biocaml`
   app.
@@ -89,8 +86,8 @@ biocaml-0.3.0 2013-09-20
 * Numerous API changes.
 
 
-biocaml-0.2.0 2013-02-28
-------------------------
+v0.2.0 2013-02-28
+-----------------
 * Switch to Core from Batteries.
 * New Transform module supporting buffered mappings from values of
   type 'a to 'b. Numerous changes to other modules to use Transform,
@@ -121,6 +118,6 @@ biocaml-0.2.0 2013-02-28
 
 
 
-biocaml-0.1.0 2012-08-10
-----------------------
+v0.1.0 2012-08-10
+-----------------
 * First formal release.
