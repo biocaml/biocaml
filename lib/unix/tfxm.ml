@@ -55,7 +55,7 @@ let of_function ?name f =
       | Some o -> `output (f o)
       | None -> if stopped then `end_of_stream else `not_ready)
 
-let identity ?name () = of_function ?name ident
+let identity ?name () = of_function ?name Fun.id
 
 let to_stream_fun tr en =
   let rec loop_until_ready tr en =

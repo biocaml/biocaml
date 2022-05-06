@@ -74,7 +74,7 @@ let performance_curve ~scores ~labels =
     Array.sort ~compare:(Fn.flip Poly.compare) r ;
     r
   in
-  let np = Array.count labels ~f:ident in
+  let np = Array.count labels ~f:Fun.id in
   let nn = Array.count labels ~f:(fun x -> not x) in
   let initial = { tp = 0 ; tn = nn ; fp = 0 ; fn = np } in
   let rec loop acc current_threshold current_matrix i =

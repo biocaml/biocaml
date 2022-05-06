@@ -663,8 +663,8 @@ let parse_cigar text =
       if Scanf.Scanning.end_of_input ch then Ok accum
       else
         try
-          let n = Scanf.bscanf ch "%d" ident in
-          let c = Scanf.bscanf ch "%c" ident in
+          let n = Scanf.bscanf ch "%d" Fun.id in
+          let c = Scanf.bscanf ch "%c" Fun.id in
           let x =
             match c with
             | 'M' -> cigar_op_alignment_match n

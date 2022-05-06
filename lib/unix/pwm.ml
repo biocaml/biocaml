@@ -53,9 +53,9 @@ let make mat bg =
 
 let tandem ?(orientation = `direct) ~spacer mat1 mat2 bg =
   Array.concat [
-    (if Poly.(orientation = `everted) then reverse_complement else ident) (make mat1 bg) ;
+    (if Poly.(orientation = `everted) then reverse_complement else Fun.id) (make mat1 bg) ;
     Array.init spacer ~f:(fun _ -> Caml.Array.make 5 0.) ;
-    (if Poly.(orientation = `inverted) then reverse_complement else ident) (make mat2 bg)
+    (if Poly.(orientation = `inverted) then reverse_complement else Fun.id) (make mat2 bg)
   ]
 
 

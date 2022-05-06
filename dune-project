@@ -31,7 +31,8 @@ like added.
   (depends
     base64
     (dune (>= 1.10))
-    (core_kernel (>= v0.14.0))
+    (core (>= v0.15.0))
+    (core_unix (>= v0.15.0))
     sexplib
     (camlzip (>= 1.05))
     xmlm
@@ -43,5 +44,4 @@ like added.
     uri)
   (depopts
     async
-    core
     lwt))

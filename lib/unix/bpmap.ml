@@ -60,7 +60,7 @@ module Parser = struct
 
 end
 
-let of_file ?(chr_map=ident) file = Parser.bpmap ~chr_map file
+let of_file ?(chr_map=Fun.id) file = Parser.bpmap ~chr_map file
 
 let row_to_string r =
   let (pmx,pmy) = r.pmcoord in

@@ -71,9 +71,9 @@ module Transform = struct
   open Result.Monad_infix
 
   let parse_string msg pos i =
-    begin try Ok (Scanf.sscanf i "%S " ident) with
+    begin try Ok (Scanf.sscanf i "%S " Fun.id) with
     | _ ->
-      begin match (Scanf.sscanf i "%s " ident) with
+      begin match (Scanf.sscanf i "%s " Fun.id) with
       | "" -> Error (`cannot_parse_string (pos, msg))
       | s -> Ok (Uri.pct_decode s)
       end
@@ -151,9 +151,9 @@ module Transform = struct
   let parse_attributes_version_2 position l =
     let whole_thing = String.(concat ~sep:"\t" l |> strip) in
     let parse_string i =
-      begin try Some (Scanf.bscanf i "%S " ident) with
+      begin try Some (Scanf.bscanf i "%S " Fun.id) with
       | _ ->
-        begin match (Scanf.bscanf i "%s " ident) with
+        begin match (Scanf.bscanf i "%s " Fun.id) with
         | "" -> None
         | s -> Some s
         end

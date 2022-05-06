@@ -39,7 +39,7 @@ let to_chr_lists t =
       x, List.map ~f:(fun (_,b,c) -> b,c) l) ll in
   ll
 
-let of_channel ?(chr_map=ident) ?(increment_bp=0) cin =
+let of_channel ?(chr_map=Fun.id) ?(increment_bp=0) cin =
   let parse_line' delim line =
     match String.split line ~on:delim with
     | [c; i; f] ->
@@ -55,12 +55,12 @@ let of_channel ?(chr_map=ident) ?(increment_bp=0) cin =
   In_channel.input_lines cin
   |> List.map ~f:parse_line
 
-let of_file ?(chr_map=ident) ?(increment_bp=0) file =
+let of_file ?(chr_map=Fun.id) ?(increment_bp=0) file =
   In_channel.with_file file ~f:(of_channel ~chr_map ~increment_bp)
 
-let to_channel ?(chr_map=ident) ?(increment_bp=0) t cout =
+let to_channel ?(chr_map=Fun.id) ?(increment_bp=0) t cout =
   let f (s,i,v) = fprintf cout "%s\t%d\t%f\n" (chr_map s) (i+increment_bp) v in
   List.iter ~f t
 
-let to_file ?(chr_map=ident) ?(increment_bp=0) t file =
+let to_file ?(chr_map=Fun.id) ?(increment_bp=0) t file =
   Out_channel.with_file file ~f:(to_channel ~chr_map ~increment_bp t)

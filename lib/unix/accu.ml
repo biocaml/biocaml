@@ -26,7 +26,7 @@ let get t = Hashtbl.find t.table
 
 module Counter = struct
   type nonrec 'a t = ('a, 'a, int, int) t
-  let create ?n () = create ?n ~zero:0 ~bin:ident ~add:( + ) ()
+  let create ?n () = create ?n ~zero:0 ~bin:Fun.id ~add:( + ) ()
   let add = add
   let tick accu x = add accu x 1
   let stream = stream
@@ -53,7 +53,7 @@ let product ?filter f l1 l2 = Counter.(
 module Relation = struct
   type nonrec ('a, 'b) t = ('a,'a,'b,'b list) t
   let create ?n () =
-    create ?n ~zero:[] ~bin:ident ~add:(fun x xs -> x :: xs) ()
+    create ?n ~zero:[] ~bin:Fun.id ~add:(fun x xs -> x :: xs) ()
   let add = add
   let stream = stream
   let of_stream xs =
