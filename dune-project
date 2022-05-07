@@ -5,7 +5,7 @@
 (source (github biocaml/biocaml))
 (homepage "https://github.com/biocaml/biocaml/")
 (bug_reports "https://github.com/biocaml/biocaml/issues")
-(license "LGPL + linking exception")
+(license "LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception")
 (authors
   "Sebastien Mondet"
   "Ashish Agarwal"
