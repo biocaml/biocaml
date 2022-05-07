@@ -1,3 +1,7 @@
+v0.11.2 2022-05-07
+------------------
+* upgrade to core v0.15
+
 v0.11.1 2020-07-29
 ------------------
 * upgrade to core v0.14 for biocaml.lwt and biocaml.async
