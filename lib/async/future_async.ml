@@ -68,10 +68,10 @@ module Unix = struct
   (* let getpid = Unix.getpid *)
 
   module Stats = struct
-    type _t = Core.Unix.stats = {
+    type _t = Core_unix.stats = {
       st_dev   : int;
       st_ino   : int;
-      st_kind  : Core.Unix.file_kind;
+      st_kind  : Core_unix.file_kind;
       st_perm  : file_perm;
       st_nlink : int;
       st_uid   : int;
@@ -84,7 +84,7 @@ module Unix = struct
     }
   end
 
-  (* let stat x = In_thread.run (fun () -> Core.Unix.stat x) *)
-  (* let lstat x = In_thread.run (fun () -> Core.Unix.lstat x) *)
+  (* let stat x = In_thread.run (fun () -> Core_unix.stat x) *)
+  (* let lstat x = In_thread.run (fun () -> Core_unix.lstat x) *)
 
 end
