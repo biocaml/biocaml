@@ -14,8 +14,8 @@ let some_ok x = Some (Ok x)
 
 let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
   let file = Utils.test_file "bed_03_more_cols.bed" in
-  let tmp = Filename.temp_file "biocaml_test_zip" ".gz" in
-  ignore (Unix.system (sprintf "gzip -c %s > %s" file tmp) : Unix.Exit_or_signal.t) ;
+  let tmp = Filename_unix.temp_file "biocaml_test_zip" ".gz" in
+  ignore (Core_unix.system (sprintf "gzip -c %s > %s" file tmp) : Core_unix.Exit_or_signal.t) ;
 
   let unzip_and_parse =
     Tfxm.compose_results_merge_error
@@ -24,7 +24,7 @@ let make_stream () : ((Bed.item, error) Result.t) Stream.t * (unit -> unit) =
          ~more_columns:(`enforce [|`type_string; `type_int; `type_float|]) ()) in
   let ic = In_channel.create tmp in
   let stream = Tfxm.in_channel_strings_to_stream ic unzip_and_parse in
-  (stream, fun () -> Sys.remove tmp)
+  (stream, fun () -> Sys_unix.remove tmp)
 
 let test_unzip () =
   let s, clean_up = make_stream () in
@@ -38,15 +38,15 @@ let test_unzip () =
 
 let cmd fmt = ksprintf (fun s ->
   (* eprintf "cmd: %S\n%!" s; *)
-  let r = Sys.command s in
+  let r = Sys_unix.command s in
   if r <> 0 then failwithf "Command %s returned %d" s r ()) fmt
 
 let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   let first = "ABCDEFGHIJKLMNOPQ" in
   let second = "abcdefghijklmnopqrstuvwxyz" in
-  let tmp1 = Filename.temp_file "biocaml_test_zip_01" "" in
-  let tmp2 = Filename.temp_file "biocaml_test_zip_02" "" in
-  let tmp3 = Filename.temp_file "biocaml_test_zip_03" "" in
+  let tmp1 = Filename_unix.temp_file "biocaml_test_zip_01" "" in
+  let tmp2 = Filename_unix.temp_file "biocaml_test_zip_02" "" in
+  let tmp3 = Filename_unix.temp_file "biocaml_test_zip_03" "" in
   cmd "echo '%s' > %s" first tmp1;
   cmd "echo '%s' > %s" second tmp2;
   cmd "gzip %s" tmp1;
@@ -61,7 +61,7 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
     String.concat ~sep:"" (List.map l ~f:(function
     | Ok s -> s
     | Error _ -> failwithf "There was an unzipping error !" ())) in
-  assert_equal ~printer:(ident) ~msg:"isomorphismish" expected obtained;
+  assert_equal ~printer:Fun.id ~msg:"isomorphismish" expected obtained;
   cmd "rm -f %s.gz %s.gz %s.gz %s" tmp1 tmp2 tmp3 tmp3;
   ()
 

@@ -14,10 +14,10 @@ let test_row () =
     Result.iter row_result ~f:(fun row ->
           match to_line with
           | Some str ->
-            assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:ident
+            assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:Fun.id
               (Table.Row.to_line ~sep:"-" row : Line.t :> string) str
           | None ->
-            assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:ident
+            assert_equal ~msg:(sprintf "%s: to_line" s) ~printer:Fun.id
               (Table.Row.to_line ~sep:"-" row : Line.t :> string) s
               (* row = Line.of_string_unsafe s) *)
       )

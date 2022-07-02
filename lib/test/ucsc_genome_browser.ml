@@ -9,7 +9,7 @@ let test_track_line_to_string_cases = [
 
 let test_track_line_to_string () =
   List.iter test_track_line_to_string_cases ~f:(fun (answer, opts) ->
-      assert_equal ~printer:ident answer (UGB.track_line opts)
+      assert_equal ~printer:Fun.id answer (UGB.track_line opts)
     )
 
 let test_custom_track_url_cases = [
@@ -20,7 +20,7 @@ let test_custom_track_url_cases = [
 let test_custom_track_url () =
   List.iter test_custom_track_url_cases ~f:(fun (answer, (db, position, data_url)) ->
       let generated_url = UGB.custom_track_url ~db ~position ~data_url () in
-      assert_equal ~printer:ident answer generated_url
+      assert_equal ~printer:Fun.id answer generated_url
     )
 
 
@@ -32,7 +32,7 @@ let test_bigData_custom_track_url_cases = [
 let test_bigData_custom_track_url () =
   List.iter test_bigData_custom_track_url_cases ~f:(fun (answer, (db, position, track)) ->
       let generated_url = UGB.bigData_custom_track_url ~db ~position ~track () in
-      assert_equal ~printer:ident answer generated_url
+      assert_equal ~printer:Fun.id answer generated_url
     )
 
 

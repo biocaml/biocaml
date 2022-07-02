@@ -23,7 +23,7 @@ let test_parse_of_unparse n () =
   Utils.with_temp_file "test" ".bgzf" ~f:(fun fn ->
       with_file_out fn ~f:(fun oz -> output_string oz s) ;
       let s' = with_file_in fn ~f:(fun iz -> input_string iz n) in
-      assert_equal ~printer:ident s s'
+      assert_equal ~printer:Fun.id s s'
     )
 
 let test_parse_file_per_char fn () =

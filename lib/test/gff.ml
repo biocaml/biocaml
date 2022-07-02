@@ -86,7 +86,7 @@ let test_printer () =
     match res with
     | `output o ->
       if String.(s <> o) then eprintf "NOT EQUALS:\n%S\n%S\n%!" s o;
-      assert_equal ~printer:ident s o
+      assert_equal ~printer:Fun.id s o
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
   in
@@ -114,7 +114,7 @@ let test_printer () =
     match res with
     | `output o ->
       if String.(s <> o) then eprintf "NOT EQUALS (version 2):\n%S\n%S\n%!" s o;
-      assert_equal ~printer:ident s o
+      assert_equal ~printer:Fun.id s o
     | `not_ready -> assert_bool "not_ready" false
     | `end_of_stream -> assert_bool "end_of_stream" false
   in

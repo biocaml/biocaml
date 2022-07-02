@@ -6,9 +6,9 @@ open OUnit
 module Test = struct
 
   let timesf msg f arg =
-    let start = Unix.time () in
+    let start = Core_unix.time () in
     let x = f arg in
-    let stop = Unix.time () in
+    let stop = Core_unix.time () in
     printf "%s: %f seconds\n%!" msg (stop -. start);
     x
 

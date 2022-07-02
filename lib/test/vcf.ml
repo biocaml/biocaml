@@ -20,8 +20,8 @@ let compare_rows r1 r2 =
   r1.vcfr_alts  = r2.vcfr_alts &&
   r1.vcfr_qual  = r2.vcfr_qual &&
   r1.vcfr_filter = r2.vcfr_filter &&
-  Hashtbl.equal r1.vcfr_info r2.vcfr_info (=) &&
-  Hashtbl.equal r1.vcfr_samples r2.vcfr_samples (=)
+  Hashtbl.equal (=) r1.vcfr_info r2.vcfr_info &&
+  Hashtbl.equal (=) r1.vcfr_samples r2.vcfr_samples
 
 let make_row ~chrom ~pos ~ids ~ref ~alts ~qual ~filter ~info ~samples =
     let open Vcf in

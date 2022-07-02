@@ -5,16 +5,16 @@ let test_data_path = "../etc/test_data"
 let test_file fn = Filename.concat test_data_path fn
 
 let with_temp_file pre suff ~f =
-  let fn = Filename.temp_file pre suff in
+  let fn = Filename_unix.temp_file pre suff in
   let r = try `Ok (f fn) with e -> `Error e in
-  Unix.unlink fn ;
+  Core_unix.unlink fn ;
   match r with
   | `Ok y -> y
   | `Error e -> raise e
 
 module Printer = struct
 
-  let string = ident
+  let string = Fun.id
   let int = string_of_int
   let option f x = match x with
     | None -> "None"
