@@ -728,10 +728,9 @@ let opt_field_float_re = Re.Perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0
 let optional_field_value_err typ value =
   error "invalid value" (typ,value) [%sexp_of: string * string ]
 
-let optional_field_value_A value =
-  if List.mem ~equal:Char.equal ['!';'-';'~'] value
-  then optional_field_value_err "A" (Char.to_string value)
-  else Ok (`A value)
+let optional_field_value_A = function
+  | '!'..'~' as value -> Ok (`A value)
+  | c -> optional_field_value_err "A" (sprintf "char code %d" (Char.to_int c))
 
 let optional_field_value_i i = `i i
 
