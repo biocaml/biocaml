@@ -1,0 +1,7 @@
+{
+    "ocaml.sandbox": {
+        "kind": "custom",
+        "template": "cd ${firstWorkspaceFolder} && fnm exec --using $(cat .nvmrc) -- npx esy $prog $args"
+    },
+    "editor.formatOnSave": true,
+}
