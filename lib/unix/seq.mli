@@ -5,16 +5,16 @@
     the first nucleic acid in a sequence is numbered 1. *)
 
 type t
-    (** Type of a sequence *)
+(** Type of a sequence *)
 
 exception Bad of string
-  (** Raised to indicate ill-formed sequence. *)
+(** Raised to indicate ill-formed sequence. *)
 
 val of_string : string -> t
-  (** Make sequence from string. Raise [Bad] if unsuccessful. *)
+(** Make sequence from string. Raise [Bad] if unsuccessful. *)
 
 val of_buffer : Buffer.t -> t
-  (** Make sequence from buffer. Raise [Bad] if unsuccessful. *)
+(** Make sequence from buffer. Raise [Bad] if unsuccessful. *)
 
 val nth : t -> int -> char
 (** [nth t i] returns the [i]th nucleic acid in sequence [t]. Raise
@@ -45,6 +45,7 @@ val fold_lefti : ('a -> int -> char -> 'a) -> 'a -> t -> 'a
 (** {6 Unsafe Sequences} *)
 
 val of_buffer_unsafe : Buffer.t -> t
+
 val of_string_unsafe : string -> t
 (** Make a sequence from given buffer or string. Every character in
     input should satisfy {!is_nucleic_acid}, else returned sequence is

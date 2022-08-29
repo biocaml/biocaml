@@ -23,18 +23,13 @@
     number 10 because there would be an ambiguity with the maternal
     chromosome "chrX". *)
 
-
 module Error : sig
-
+  type t = [ `chromosome_ambiguous_in_roman_form of string ]
   (** Possible errors:
 
       - `chromosome_ambiguous_in_roman_form chr - [chr]'s Roman
       representation is ambiguous, e.g. "chr10" and "chrX" both lead
       to "X" *)
-  type t = [
-  | `chromosome_ambiguous_in_roman_form of string
-  ]
-
 end
 
 exception Error of Error.t

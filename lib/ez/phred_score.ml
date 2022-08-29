@@ -1,5 +1,3 @@
-
-
 include Biocaml_unix.Phred_score
 
 let of_char ?offset x = ok_exn (of_char ?offset x)

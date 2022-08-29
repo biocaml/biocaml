@@ -21,12 +21,8 @@
     to using an offset of 33.
 *)
 
-
-type t = private int
-[@@deriving sexp]
-
-type offset = [`Offset33 | `Offset64]
-[@@deriving sexp]
+type t = private int [@@deriving sexp]
+type offset = [ `Offset33 | `Offset64 ] [@@deriving sexp]
 
 val of_char : ?offset:offset -> char -> t Or_error.t
 (** [of_char ~offset x] returns the PHRED score encoded by ASCII
@@ -80,6 +76,7 @@ val to_solexa_score : ?f:(float -> int) -> t -> Solexa_score.t
     provided to dictate this.
 *)
 
+val min_as_char : offset -> t
 (** The min and max PHRED scores when encoded as ASCII
     characters. Since PHRED scores are virtually always ASCII encoded,
     you are unlikely to see values outside this range. However, this
@@ -87,5 +84,5 @@ val to_solexa_score : ?f:(float -> int) -> t -> Solexa_score.t
     e.g. [of_probability 1e-13] exceeds [max_as_char], and
     [of_probability 0.9] is smaller than [min_as_char] (for either
     offset). *)
-val min_as_char : offset -> t
+
 val max_as_char : t

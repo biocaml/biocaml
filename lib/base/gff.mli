@@ -24,31 +24,37 @@
 
 (** {2 GFF Item Types} *)
 
-type record = {
-  seqname    : string ;
-  source     : string option ;
-  feature    : string option ;
-  start_pos  : int ;
-  stop_pos   : int ;
-  score      : float option ;
-  strand     : [`Plus | `Minus | `Not_stranded | `Unknown ] ;
-  phase      : int option ;
-  attributes : (string * string list) list ;
-}
 (** The type of the GFF records/rows. *)
+type record =
+  { seqname : string
+  ; source : string option
+  ; feature : string option
+  ; start_pos : int
+  ; stop_pos : int
+  ; score : float option
+  ; strand : [ `Plus | `Minus | `Not_stranded | `Unknown ]
+  ; phase : int option
+  ; attributes : (string * string list) list
+  }
 
-type item = [ `Comment of string | `Record of record ]
 (** The items being output by the parser. *)
+type item =
+  [ `Comment of string
+  | `Record of record
+  ]
 
-val record :
-  ?source:string ->
-  ?feature:string ->
-  ?score:float ->
-  ?strand:[`Plus | `Minus | `Not_stranded | `Unknown ] ->
-  ?phase:int ->
-  ?attributes:(string * string list) list ->
-  string -> int -> int -> record
+val record
+  :  ?source:string
+  -> ?feature:string
+  -> ?score:float
+  -> ?strand:[ `Plus | `Minus | `Not_stranded | `Unknown ]
+  -> ?phase:int
+  -> ?attributes:(string * string list) list
+  -> string
+  -> int
+  -> int
+  -> record
 
-val gff3_item_of_line : Line.t -> (item, [> `Msg of string]) Result.t
-val gtf_item_of_line  : Line.t -> (item, [> `Msg of string]) Result.t
-val line_of_item : [`two | `three] -> item -> Line.t
+val gff3_item_of_line : Line.t -> (item, [> `Msg of string ]) Result.t
+val gtf_item_of_line : Line.t -> (item, [> `Msg of string ]) Result.t
+val line_of_item : [ `two | `three ] -> item -> Line.t

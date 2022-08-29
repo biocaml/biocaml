@@ -7,14 +7,16 @@ type 'a transcript = {
   lo : int;
   hi : int;
   chr : string;
-  info : 'a
+  info : 'a;
 }
 
 type 'a t = 'a transcript list
 
 val of_composite_file :
-  ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) ->
-  string -> (string * int) t
+  ?chr_map:(string -> string) ->
+  ?increment_lo_hi:int * int ->
+  string ->
+  (string * int) t
 (** Parse given composite file. Exons belonging to same transcript, as
     defined by transcript name, are merged into one transcript
     object. Info on return type is a string * int, the name of the
@@ -22,8 +24,10 @@ val of_composite_file :
     strand is ignored. *)
 
 val of_bed_file :
-  ?chr_map:(string -> string) -> ?increment_lo_hi:(int * int) ->
-  string -> (string * int) t
+  ?chr_map:(string -> string) ->
+  ?increment_lo_hi:int * int ->
+  string ->
+  (string * int) t
 (** Parse given BED file. Each line is treated as a unique transcript
     with just a single exon in it, which are the coordinates of the
     transcript itself. Info of type string * int in answer are as in

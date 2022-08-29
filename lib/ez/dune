@@ -1,7 +1,7 @@
 (library
  (name biocaml_ez)
-  (public_name biocaml.ez)
-  (libraries biocaml.unix)
-  (flags :standard -short-paths -open Core)
-  (preprocess (pps ppx_jane))
-  )
+ (public_name biocaml.ez)
+ (libraries biocaml.unix)
+ (flags :standard -short-paths -open Core)
+ (preprocess
+  (pps ppx_jane)))

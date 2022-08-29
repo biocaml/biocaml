@@ -8,9 +8,8 @@
     allowing fractional values if necessary.
 *)
 
-
 type 'a t
-    (** The type of a histogram whose bin limits are of type ['a]. *)
+(** The type of a histogram whose bin limits are of type ['a]. *)
 
 val make : ('a -> 'a -> int) -> 'a list -> 'a t option
 (** [make cmp bins] returns a new histogram from the given [bins],
@@ -43,13 +42,13 @@ val count_exn : 'a t -> int -> float
     [Invalid_argument] if an invalid bin number is requested. *)
 
 val num_bins : 'a t -> int
-  (** Number of bins. *)
+(** Number of bins. *)
 
 val minimum : 'a t -> 'a
-  (** Lower limit of the minimum bin. *)
+(** Lower limit of the minimum bin. *)
 
 val maximum : 'a t -> 'a
-  (** Upper limit of the maximum bin. *)
+(** Upper limit of the maximum bin. *)
 
 val increment : ?delt:float -> 'a t -> 'a -> 'a t
 (** [increment delt hist x] increments the count of the bin containing
@@ -69,7 +68,6 @@ val find_bin_index : 'a t -> 'a -> int option
 val in_range : 'a t -> 'a -> bool
 (** [in_range hist x] is true if [x] greater than or equal to [minimum
     hist] and strictly less than [maximum hist]. *)
-
 
 (** {6 Histograms With Float Bins} *)
 

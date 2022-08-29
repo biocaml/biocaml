@@ -1,18 +1,17 @@
-
-
 type t = (string * int * float) list
-    (* Stored in ascending order by (string,int) pairs. *)
+(* Stored in ascending order by (string,int) pairs. *)
 
 exception Bad of string
+
 let raise_bad msg = raise (Bad msg)
-
-let cmpsi (s1,i1,_) (s2,i2,_) = Stdlib.compare (s1,i1) (s2,i2)
-
+let cmpsi (s1, i1, _) (s2, i2, _) = Stdlib.compare (s1, i1) (s2, i2)
 let of_list l = List.sort ~compare:cmpsi l
 let to_list t = t
 
 let of_chr_lists l =
-  let ans = List.map ~f:(fun (a,l) -> List.map ~f:(fun (b,c) -> a,b,c) l) l in
+  let ans =
+    List.map ~f:(fun (a, l) -> List.map ~f:(fun (b, c) -> (a, b, c)) l) l
+  in
   let ans = List.concat ans in
   List.sort ~compare:cmpsi ans
 
@@ -21,46 +20,48 @@ let npartition_exn ~eq l =
   let insertl ll a =
     let rec loop prefix ll =
       match ll with
-        | [] -> rev ([a]::prefix)
-        | l::ll ->
-          if eq a (hd_exn l)
-          then (rev ((a::l)::prefix)) @ ll
-          else loop (l::prefix) ll
-    in loop [] ll
+      | [] -> rev ([ a ] :: prefix)
+      | l :: ll ->
+          if eq a (hd_exn l) then rev ((a :: l) :: prefix) @ ll
+          else loop (l :: prefix) ll
+    in
+    loop [] ll
   in
   map ~f:rev (fold_left ~f:insertl ~init:[] l)
 
 let to_chr_lists t =
-  let eq (s1,_,_) (s2,_,_) = String.(s1 = s2) in
+  let eq (s1, _, _) (s2, _, _) = String.(s1 = s2) in
   let ll = npartition_exn ~eq t in
   let ll =
-    List.map ~f:(fun l ->
-      let x, _, _  = List.hd_exn l in
-      x, List.map ~f:(fun (_,b,c) -> b,c) l) ll in
+    List.map
+      ~f:(fun l ->
+        let x, _, _ = List.hd_exn l in
+        (x, List.map ~f:(fun (_, b, c) -> (b, c)) l))
+      ll
+  in
   ll
 
-let of_channel ?(chr_map=Fun.id) ?(increment_bp=0) cin =
+let of_channel ?(chr_map = Fun.id) ?(increment_bp = 0) cin =
   let parse_line' delim line =
     match String.split line ~on:delim with
-    | [c; i; f] ->
-       chr_map c, int_of_string i + increment_bp, Float.of_string f
+    | [ c; i; f ] ->
+        (chr_map c, int_of_string i + increment_bp, Float.of_string f)
     | _ -> raise_bad "ill-formed line"
   in
   let parse_line line =
     try parse_line' '\t' line
-    with Bad _ ->
-      try parse_line' ' ' line
-      with Bad msg -> failwith msg
+    with Bad _ -> ( try parse_line' ' ' line with Bad msg -> failwith msg)
   in
-  In_channel.input_lines cin
-  |> List.map ~f:parse_line
+  In_channel.input_lines cin |> List.map ~f:parse_line
 
-let of_file ?(chr_map=Fun.id) ?(increment_bp=0) file =
+let of_file ?(chr_map = Fun.id) ?(increment_bp = 0) file =
   In_channel.with_file file ~f:(of_channel ~chr_map ~increment_bp)
 
-let to_channel ?(chr_map=Fun.id) ?(increment_bp=0) t cout =
-  let f (s,i,v) = fprintf cout "%s\t%d\t%f\n" (chr_map s) (i+increment_bp) v in
+let to_channel ?(chr_map = Fun.id) ?(increment_bp = 0) t cout =
+  let f (s, i, v) =
+    fprintf cout "%s\t%d\t%f\n" (chr_map s) (i + increment_bp) v
+  in
   List.iter ~f t
 
-let to_file ?(chr_map=Fun.id) ?(increment_bp=0) t file =
+let to_file ?(chr_map = Fun.id) ?(increment_bp = 0) t file =
   Out_channel.with_file file ~f:(to_channel ~chr_map ~increment_bp t)

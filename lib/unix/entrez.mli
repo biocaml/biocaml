@@ -15,42 +15,43 @@
     done in one call with the high-level API.
 *)
 
-type database = [
-| `gene
-| `genome
-| `geodatasets
-| `geoprofiles
-| `protein
-| `pubmed
-| `pubmedcentral
-| `sra
-| `unigene
-| `taxonomy
-]
+type database =
+  [ `gene
+  | `genome
+  | `geodatasets
+  | `geoprofiles
+  | `protein
+  | `pubmed
+  | `pubmedcentral
+  | `sra
+  | `unigene
+  | `taxonomy ]
 (** Represents available databases *)
-
 
 (** {4 Low level access} *)
 
 (** For a documentation of the parameters, see
     {{:http://www.ncbi.nlm.nih.gov/books/NBK25499/}this reference} *)
 
-
 val esearch_url :
-  ?retstart:int -> ?retmax:int ->
-  ?rettype:[`uilist | `count] ->
+  ?retstart:int ->
+  ?retmax:int ->
+  ?rettype:[ `uilist | `count ] ->
   ?field:string ->
-  ?datetype:[`pdat | `mdat | `edat] ->
+  ?datetype:[ `pdat | `mdat | `edat ] ->
   ?reldate:int ->
-  ?mindate:string -> ?maxdate:string ->
-  database -> string -> string
+  ?mindate:string ->
+  ?maxdate:string ->
+  database ->
+  string ->
+  string
 (** Construction of esearch URLs. *)
 
 type esearch_answer = {
-  count : int ;
-  retmax : int ;
-  retstart : int ;
-  ids : string list
+  count : int;
+  retmax : int;
+  retstart : int;
+  ids : string list;
 }
 (** Represents the result of a request to esearch *)
 
@@ -58,16 +59,20 @@ val esearch_answer_of_string : string -> esearch_answer
 (** Parses an answer of esearch under XML format *)
 
 val esummary_url :
-  ?retstart:int -> ?retmax:int ->
-  database -> string list -> string
+  ?retstart:int -> ?retmax:int -> database -> string list -> string
 (** Construction of esummary URLs *)
 
 val efetch_url :
-  ?rettype:string -> ?retmode:[`xml|`text|`asn_1] ->
-  ?retstart:int -> ?retmax:int ->
-  ?strand:[`plus|`minus] ->
-  ?seq_start:int -> ?seq_stop:int ->
-  database -> string list -> string
+  ?rettype:string ->
+  ?retmode:[ `xml | `text | `asn_1 ] ->
+  ?retstart:int ->
+  ?retmax:int ->
+  ?strand:[ `plus | `minus ] ->
+  ?seq_start:int ->
+  ?seq_stop:int ->
+  database ->
+  string list ->
+  string
 (** Construction of efetch URLs. Note that this access method does not
     support more than 200 ids. For legible values of [rettype] and
     [retmode] please consult
@@ -85,77 +90,67 @@ module type Fetch = sig
   val ( >|= ) : 'a fetched -> ('a -> 'b) -> 'b fetched
 end
 
-module Make(F : Fetch) : sig
+module Make (F : Fetch) : sig
   open F
 
   module Object_id : sig
-    type t = [`int of int | `string of string ]
+    type t = [ `int of int | `string of string ]
+
     val to_string : t -> string
   end
 
   module Dbtag : sig
-    type t = {
-      db : string ;
-      tag : Object_id.t ;
-    }
+    type t = { db : string; tag : Object_id.t }
   end
 
   module Gene_ref : sig
     type t = {
-      locus : string option ;
-      allele : string option ;
-      desc : string option ;
-      maploc : string option ;
-      pseudo : bool option ;
-      db : Dbtag.t list ;
+      locus : string option;
+      allele : string option;
+      desc : string option;
+      maploc : string option;
+      pseudo : bool option;
+      db : Dbtag.t list;
     }
   end
 
   module PubmedSummary : sig
-    type t = { pmid : int ;
-               doi : string option ;
-               pubdate : string option ;
-               source : string option ;
-               title : string }
+    type t = {
+      pmid : int;
+      doi : string option;
+      pubdate : string option;
+      source : string option;
+      title : string;
+    }
+
     val search : string -> t list fetched
   end
 
   module Pubmed : sig
-    type t =  { pmid : int ;
-                title : string ;
-                abstract : string }
+    type t = { pmid : int; title : string; abstract : string }
+
     val search : string -> t list fetched
   end
 
   module Gene : sig
-    type t = { 
-      _type : [ `unknown | `tRNA | `rRNA | `snRNA | `scRNA |
-                `snoRNA | `protein_coding | `pseudo | `transposon | `miscRNA |
-                `ncRNA | `other ] ;
-      summary : string option ;
-      gene : Gene_ref.t ;
+    type t = {
+      _type :
+        [ `unknown
+        | `tRNA
+        | `rRNA
+        | `snRNA
+        | `scRNA
+        | `snoRNA
+        | `protein_coding
+        | `pseudo
+        | `transposon
+        | `miscRNA
+        | `ncRNA
+        | `other ];
+      summary : string option;
+      gene : Gene_ref.t;
     }
+
     val search : string -> t list fetched
   end
-
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

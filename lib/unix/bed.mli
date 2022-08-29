@@ -37,25 +37,19 @@ type item = string * int * int * Table.Row.t
 
 (** {2 Tags: Describe The Format: TODO } *)
 
-type parsing_spec = [
-  | `enforce of Table.Row.t_type
-  | `strings
-]
+type parsing_spec = [ `enforce of Table.Row.t_type | `strings ]
 (** The specification of how to parse the remaining columns. *)
-
 
 (** {2 Error Types} *)
 
-module Error: sig
-
+module Error : sig
   (** Definitions of error types ([with sexp]) *)
 
-  type parsing_base = [
-    | `wrong_format of
-        [ `column_number
-        | `float_of_string of string
-        | `int_of_string of string ] *
-          Table.Row.t_type * string
+  type parsing_base =
+    [ `wrong_format of
+      [ `column_number | `float_of_string of string | `int_of_string of string ]
+      * Table.Row.t_type
+      * string
     | `wrong_number_of_columns of Table.Row.t ]
   (** The parsing errors. *)
 
@@ -71,20 +65,25 @@ module Error: sig
   val sexp_of_parsing : parsing -> Sexplib.Sexp.t
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
-
 end
 
 (** {2 [In_channel] Functions } *)
 
-exception Error of  Error.t
+exception Error of Error.t
 (** The exception raised by the [*_exn] functions. *)
 
-val in_channel_to_item_stream : ?buffer_size:int -> ?more_columns:parsing_spec ->
-  In_channel.t -> (item, [> Error.parsing]) result Stream.t
+val in_channel_to_item_stream :
+  ?buffer_size:int ->
+  ?more_columns:parsing_spec ->
+  In_channel.t ->
+  (item, [> Error.parsing ]) result Stream.t
 (** Parse an input-channel into [item] values. *)
 
-val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spec ->
-  In_channel.t -> item Stream.t
+val in_channel_to_item_stream_exn :
+  ?buffer_size:int ->
+  ?more_columns:parsing_spec ->
+  In_channel.t ->
+  item Stream.t
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
@@ -93,32 +92,30 @@ val in_channel_to_item_stream_exn: ?buffer_size:int -> ?more_columns:parsing_spe
     See also {!Line.t}.
 *)
 
-val item_of_line: how:parsing_spec -> Lines.item ->
-  (item, [> Error.parsing]) result
+val item_of_line :
+  how:parsing_spec -> Lines.item -> (item, [> Error.parsing ]) result
 (** Basic parsing of a single line. *)
 
-val item_to_line: item -> Lines.item
+val item_to_line : item -> Lines.item
 (** Basic “printing” of one single [item]. *)
 
 (** {2 Transforms } *)
 
-module Transform: sig
+module Transform : sig
   (** Lower-level transforms of BED data-streams. *)
 
   val string_to_item :
     ?more_columns:parsing_spec ->
     unit ->
-    (string,
-     (string * int * int * Table.Row.item array,
-      [> Error.parsing]) result) Tfxm.t
+    ( string,
+      (string * int * int * Table.Row.item array, [> Error.parsing ]) result )
+    Tfxm.t
   (** Create a [Tfxm.t]-based parser, while providing the
      format of the additional columns (default [`strings]). *)
 
-  val item_to_string: unit ->
-    (item, string) Tfxm.t
+  val item_to_string : unit -> (item, string) Tfxm.t
   (** Create a [Tfxm.t] which “prints” BED data
      (reminder: includes ends-of-line). *)
-
 end
 
 (** {2 S-Expressions} *)
@@ -127,4 +124,3 @@ val item_of_sexp : Sexplib.Sexp.t -> item
 val sexp_of_item : item -> Sexplib.Sexp.t
 val parsing_spec_of_sexp : Sexplib.Sexp.t -> parsing_spec
 val sexp_of_parsing_spec : parsing_spec -> Sexplib.Sexp.t
-

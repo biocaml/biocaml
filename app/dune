@@ -1,11 +1,12 @@
 (executable
  (name biocaml_run_tests)
  (libraries biocaml_test)
- (flags :standard -short-paths -open Core)
-)
+ (flags :standard -short-paths -open Core))
 
 (alias
  (name run_test_suite)
-  (deps biocaml_run_tests.exe (source_tree ../etc/test_data))
-  (action (bash "./biocaml_run_tests.exe"))
-  )
+ (deps
+  biocaml_run_tests.exe
+  (source_tree ../etc/test_data))
+ (action
+  (bash "./biocaml_run_tests.exe")))

@@ -1,24 +1,19 @@
-
 module Range = Biocaml_unix.Range
 module RSet = Biocaml_unix.RSet
 open OUnit
 
 module Test = struct
-
   let timesf msg f arg =
     let start = Core_unix.time () in
     let x = f arg in
     let stop = Core_unix.time () in
     printf "%s: %f seconds\n%!" msg (stop -. start);
     x
-
-
 end
 
 let make_int_set (l : (int * int) list) : Int.Set.t =
-  let f accum (lo,hi) =
-    if lo > hi then
-      accum
+  let f accum (lo, hi) =
+    if lo > hi then accum
     else
       let v = Range.make_unsafe lo hi in
       Int.Set.union accum (Int.Set.of_list (Range.to_list v))
@@ -47,17 +42,18 @@ let test vl1 vl2 =
   is_good Int.Set.union union "union";
   is_good Int.Set.diff diff "diff"
 
-
 (** This function generates random lists and uses them as arguments for [test].
     The state of the [Random] module is not modified. *)
 let default_test () =
-  let f () = List.init 10000 ~f:(fun _ -> let x = Random.int 100 in x, Random.int 20 + x) in
-  Random.init 42 ;
+  let f () =
+    List.init 10000 ~f:(fun _ ->
+        let x = Random.int 100 in
+        (x, Random.int 20 + x))
+  in
+  Random.init 42;
   printf "\n<RSet Benchmarking>\n";
   test (f ()) (f ());
   printf "\n</RSet Benchmarking>\n";
   ()
 
-let tests = "RSet" >::: [
-  "default" >:: default_test;
-]
+let tests = "RSet" >::: [ "default" >:: default_test ]

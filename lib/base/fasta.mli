@@ -77,43 +77,39 @@
 (** A header is a list of comment lines. *)
 type header = private string list
 
-type item = private {
-  description : string;
-  sequence : string;
-}
-[@@ deriving sexp]
+type item = private
+  { description : string
+  ; sequence : string
+  }
+[@@deriving sexp]
 
-val item :
-  description:string ->
-  sequence:string ->
-  item
-
+val item : description:string -> sequence:string -> item
 
 (******************************************************************************)
 (** {2 Parsing} *)
 (******************************************************************************)
 
-type fmt = {
-  allow_sharp_comments : bool;
-  allow_semicolon_comments : bool;
-  allow_empty_lines : bool;
-  max_line_length : int option;
-  alphabet : string option;
-}
+type fmt =
+  { allow_sharp_comments : bool
+  ; allow_semicolon_comments : bool
+  ; allow_empty_lines : bool
+  ; max_line_length : int option
+  ; alphabet : string option
+  }
 
-val fmt :
-  ?allow_sharp_comments:bool ->
-  ?allow_semicolon_comments:bool ->
-  ?allow_empty_lines:bool ->
-  ?max_line_length:int ->
-  ?alphabet:string ->
-  unit -> fmt
+val fmt
+  :  ?allow_sharp_comments:bool
+  -> ?allow_semicolon_comments:bool
+  -> ?allow_empty_lines:bool
+  -> ?max_line_length:int
+  -> ?alphabet:string
+  -> unit
+  -> fmt
 
 val default_fmt : fmt
 
 (** Parse a space separated list of integers. *)
-val sequence_to_int_list : string -> (int list, [> `Msg of string]) Result.t
-
+val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
 
 (** An [item0] is more raw than [item]. It is useful for parsing files
     with large sequences because you get the sequence in smaller
@@ -131,17 +127,15 @@ val sequence_to_int_list : string -> (int list, [> `Msg of string]) Result.t
     - [`Partial_sequence _] - Multiple sequential partial sequences
     comprise the sequence of a single [item].
 *)
-type item0 = [
-| `Comment of string
-| `Empty_line
-| `Description of string
-| `Partial_sequence of string
-]
+type item0 =
+  [ `Comment of string
+  | `Empty_line
+  | `Description of string
+  | `Partial_sequence of string
+  ]
 [@@deriving sexp]
 
-
-type parser_error = [ `Fasta_parser_error of int * string ]
-[@@deriving sexp]
+type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
 
 (** Low-level parsing
 
@@ -155,11 +149,7 @@ module Parser0 : sig
   type state
 
   val initial_state : ?fmt:fmt -> unit -> state
-
-  val step :
-    state ->
-    string option ->
-    (state * item0 list, [> parser_error]) Result.t
+  val step : state -> string option -> (state * item0 list, [> parser_error ]) Result.t
 end
 
 val unparser0 : item0 -> string
@@ -174,11 +164,7 @@ module Parser : sig
   type state
 
   val initial_state : ?fmt:fmt -> unit -> state
-
-  val step :
-    state ->
-    string option ->
-    (state * item list, [> parser_error]) Result.t
+  val step : state -> string option -> (state * item list, [> parser_error ]) Result.t
 end
 
 val unparser : item -> string

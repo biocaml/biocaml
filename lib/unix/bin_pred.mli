@@ -8,14 +8,10 @@
     score threshold.
  *)
 
-type confusion_matrix = private {
-  tp : int ;
-  tn : int ;
-  fp : int ;
-  fn : int ;
-}
+type confusion_matrix = private { tp : int; tn : int; fp : int; fn : int }
 
-val confusion_matrix : scores:float array -> labels:bool array -> threshold:float -> confusion_matrix
+val confusion_matrix :
+  scores:float array -> labels:bool array -> threshold:float -> confusion_matrix
 (** [confusion_matrix ~scores ~labels ~threshold] computes a confusion
     matrix from the classifier scores and example labels, based on a
     threshold. It assumes that example [i] has score [scores.(i)] and
@@ -24,49 +20,40 @@ val confusion_matrix : scores:float array -> labels:bool array -> threshold:floa
     [true] label. *)
 
 val positive : confusion_matrix -> int
-
 val negative : confusion_matrix -> int
-
 val cardinal : confusion_matrix -> int
-
 val sensitivity : confusion_matrix -> float
 
 val recall : confusion_matrix -> float
 (** same as [sensitivity] *)
 
 val false_positive_rate : confusion_matrix -> float
-
 val accuracy : confusion_matrix -> float
-
 val specificity : confusion_matrix -> float
-
 val positive_predictive_value : confusion_matrix -> float
 
 val precision : confusion_matrix -> float
 (** same as [positive_predictive_value] *)
 
 val negative_predictive_value : confusion_matrix -> float
-
 val false_discovery_rate : confusion_matrix -> float
-
 val f1_score : confusion_matrix -> float
 
-
-val performance_curve : scores:float array -> labels:bool array -> (float * confusion_matrix) array
+val performance_curve :
+  scores:float array -> labels:bool array -> (float * confusion_matrix) array
 (** [performance_curve ~scores ~labels] returns the series of
     confusion matrices obtained by varying the threshold from
     [infinity] to [neg_infinity]. Each confusion matrix comes with the
     corresponding threshold. *)
 
-val roc_curve : scores:float array -> labels:bool array -> (float * float) array * float
+val roc_curve :
+  scores:float array -> labels:bool array -> (float * float) array * float
 (** [roc_curve ~scores ~labels] returns the
     {{:http://en.wikipedia.org/wiki/Receiver_operating_characteristic}ROC}
     curve of the prediction, and the associated Area Under Curve (AUC) *)
 
 val recall_precision_curve :
-  scores:float array ->
-  labels:bool array ->
-  (float * float) array * float
+  scores:float array -> labels:bool array -> (float * float) array * float
 (** [recall_precision_curve ~scores ~labels] returns the
     {{:https://en.wikipedia.org/wiki/Precision_and_recall}RP}
     curve of the prediction, and the associated average precision *)

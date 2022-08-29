@@ -10,11 +10,13 @@ type t
 exception Bad of string
 
 type section = private {
-  sec_num : int; (** order in which section appears in file, first
+  sec_num : int;
+      (** order in which section appears in file, first
                      section is numbered 1 *)
-  sec_name : string; (** chromosome name relative to which coordinates
+  sec_name : string;
+      (** chromosome name relative to which coordinates
                          are given *)
-  sec_data : (int * float) list (** pairs of coordinate-score data *)
+  sec_data : (int * float) list;  (** pairs of coordinate-score data *)
 }
 
 val of_file : string -> t

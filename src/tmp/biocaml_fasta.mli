@@ -54,58 +54,58 @@
 
 *)
 open Core.Std
+
 open Biocaml_internal_utils
 
 (** {2 Fasta Content Type Definitions } *)
 
-type char_seq = string
 (** A sequence of characters. *)
+type char_seq = string
 
-type int_seq = int list
 (** A sequence of integer quality scores. *)
+type int_seq = int list
 
-type 'a item = {
-  header : string;
-  sequence : 'a;
-}
 (** A named FASTA item. *)
+type 'a item =
+  { header : string
+  ; sequence : 'a
+  }
 
 (** {2 Tags: Describe The Format } *)
 
-module Tags: sig
+module Tags : sig
   (** Additional format-information tags (c.f. {!Biocaml_tags}). *)
 
-  type t = {
-    forbid_empty_lines: bool;
-    only_header_comment: bool;
-    sharp_comments: bool;
-    semicolon_comments: bool;
-    max_items_per_line: int option;
-    sequence: [ `int_sequence | `char_sequence of char list option ]
-  }
   (** The format details for any kind of FASTA file. *)
+  type t =
+    { forbid_empty_lines : bool
+    ; only_header_comment : bool
+    ; sharp_comments : bool
+    ; semicolon_comments : bool
+    ; max_items_per_line : int option
+    ; sequence : [ `int_sequence | `char_sequence of char list option ]
+    }
 
-  val char_sequence_default: t
   (** The default tags (for [char_seq]). *)
+  val char_sequence_default : t
 
-  val int_sequence_default: t
   (** The default tags (for [int_seq]). *)
+  val int_sequence_default : t
 
-  val is_char_sequence: t -> bool
   (** Test the value of [t.sequence]. *)
+  val is_char_sequence : t -> bool
 
-  val is_int_sequence: t -> bool
   (** Test the value of [t.sequence]. *)
+  val is_int_sequence : t -> bool
 
-  val to_string: t -> string
   (** Serialize tags (for now S-Expressions). *)
+  val to_string : t -> string
 
-  val of_string: string -> (t, [> `tags_of_string of exn]) Result.t
   (** Parse tags (for now S-Expressions). *)
+  val of_string : string -> (t, [> `tags_of_string of exn ]) Result.t
 
-  val t_of_sexp: Sexplib.Sexp.t -> t
-  val sexp_of_t: t -> Sexplib.Sexp.t
-
+  val t_of_sexp : Sexplib.Sexp.t -> t
+  val sexp_of_t : t -> Sexplib.Sexp.t
 end
 
 (** {2 Error Types} *)
@@ -138,75 +138,73 @@ module Error : sig
 
   *)
 
-  type string_to_raw_item = [
-  | `empty_line of Pos.t
-  | `incomplete_input of Pos.t * string list * string option
-  | `malformed_partial_sequence of Pos.t * string
-  | `sequence_is_too_long of Pos.t * string
-  ]
   (** Errors raised when converting a string to a {!type: raw_item}. *)
+  type string_to_raw_item =
+    [ `empty_line of Pos.t
+    | `incomplete_input of Pos.t * string list * string option
+    | `malformed_partial_sequence of Pos.t * string
+    | `sequence_is_too_long of Pos.t * string
+    ]
 
-  type t = [
-  | string_to_raw_item
-  | `unnamed_char_seq of char_seq
-  | `unnamed_int_seq of int_seq
-  ]
   (** Union of all errors. *)
+  type t =
+    [ string_to_raw_item
+    | `unnamed_char_seq of char_seq
+    | `unnamed_int_seq of int_seq
+    ]
 
   val sexp_of_string_to_raw_item : string_to_raw_item -> Sexplib.Sexp.t
   val string_to_raw_item_of_sexp : Sexplib.Sexp.t -> string_to_raw_item
   val sexp_of_t : t -> Sexplib.Sexp.t
   val t_of_sexp : Sexplib.Sexp.t -> t
-
 end
 
 (** {2 [In_channel] Functions } *)
 
-exception Error of Error.t
 (** The only exception raised by this module. *)
+exception Error of Error.t
 
-val in_channel_to_char_seq_item_stream :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  (char_seq item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [char_seq item] results. *)
+val in_channel_to_char_seq_item_stream
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> (char_seq item, [> Error.t ]) Result.t Stream.t
 
-val in_channel_to_int_seq_item_stream :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  (int_seq item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq item] results. *)
+val in_channel_to_int_seq_item_stream
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> (int_seq item, [> Error.t ]) Result.t Stream.t
 
-
-val in_channel_to_char_seq_item_stream_exn :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  char_seq item Stream.t
 (** Returns a stream of [char_seq item]s. Comments are
     discarded. [Stream.next] will raise [Error _] in case of any error. *)
+val in_channel_to_char_seq_item_stream_exn
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> char_seq item Stream.t
 
-val in_channel_to_int_seq_item_stream_exn :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  int_seq item Stream.t
 (** Returns a stream of [int_seq item]s. Comments are
     discarded.  [Stream.next] will raise [Error _] in case of any error. *)
+val in_channel_to_int_seq_item_stream_exn
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> int_seq item Stream.t
 
 (** {2 [Out_channel] Functions } *)
 
-val char_seq_items_to_out_channel :
-  ?tags:Tags.t ->
-  char_seq item Stream.t ->
-  out_channel ->
-  unit
+val char_seq_items_to_out_channel
+  :  ?tags:Tags.t
+  -> char_seq item Stream.t
+  -> out_channel
+  -> unit
 
 (** {2 Raw Items}
 
@@ -218,11 +216,6 @@ val char_seq_items_to_out_channel :
     do, so using [raw_item]s can be more efficient.
 *)
 
-type 'a raw_item = [
-  | `comment of string
-  | `header of string
-  | `partial_sequence of 'a
-]
 (** Lowest level items parsed by this module:
 
     - [`comment _] - a single comment line without the final
@@ -238,135 +231,133 @@ type 'a raw_item = [
       header. It may be only part of the sequence, which can be useful
       for files with large sequences (e.g. genomic sequence
       files).  *)
+type 'a raw_item =
+  [ `comment of string
+  | `header of string
+  | `partial_sequence of 'a
+  ]
 
-val in_channel_to_char_seq_raw_item_stream :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  (char_seq raw_item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [char_seq raw_item] results. *)
+val in_channel_to_char_seq_raw_item_stream
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> (char_seq raw_item, [> Error.t ]) Result.t Stream.t
 
-val in_channel_to_int_seq_raw_item_stream :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  (int_seq raw_item, [> Error.t]) Result.t Stream.t
 (** Parse an input-channel into a stream of [int_seq raw_item] results. *)
+val in_channel_to_int_seq_raw_item_stream
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> (int_seq raw_item, [> Error.t ]) Result.t Stream.t
 
-val in_channel_to_char_seq_raw_item_stream_exn :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  char_seq raw_item Stream.t
 (** Returns a stream of [char_seq raw_item]s.  Comments are
     discarded. [Stream.next] will raise [Error _] in case of any error. *)
+val in_channel_to_char_seq_raw_item_stream_exn
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> char_seq raw_item Stream.t
 
-val in_channel_to_int_seq_raw_item_stream_exn :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  in_channel ->
-  int_seq raw_item Stream.t
 (** Returns a stream of [int_seq raw_item]s. Comments are discarded.
     [Stream.next] will raise [Error _] in case of any error. *)
+val in_channel_to_int_seq_raw_item_stream_exn
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> in_channel
+  -> int_seq raw_item Stream.t
 
-val char_seq_raw_item_to_string: char_seq raw_item -> string
 (** Convert a [raw_item] to a string (ignore comments). End-of-line
     characters are included. *)
+val char_seq_raw_item_to_string : char_seq raw_item -> string
 
-val int_seq_raw_item_to_string: int_seq raw_item -> string
 (** Convert a [raw_item] to a string (ignore comments). End-of-line
     characters are included. *)
-
+val int_seq_raw_item_to_string : int_seq raw_item -> string
 
 (** {2 Transforms } *)
 
-module Transform: sig
+module Transform : sig
   (** Low-level transforms, c.f. {!module:Biocaml_transform}. *)
 
   (** {3 Parsers For [char_seq] Items} *)
 
-  val string_to_char_seq_raw_item:
-    ?filename:string ->
-    ?tags:Tags.t ->
-    unit ->
-    (string, (char_seq raw_item, [> Error.t]) Result.t) Biocaml_transform.t
   (** Parse a stream of strings as a char_seq FASTA file. *)
+  val string_to_char_seq_raw_item
+    :  ?filename:string
+    -> ?tags:Tags.t
+    -> unit
+    -> (string, (char_seq raw_item, [> Error.t ]) Result.t) Biocaml_transform.t
 
-  val char_seq_raw_item_to_item:
-    unit ->
-    (char_seq raw_item,
-     (char_seq item, [> `unnamed_char_seq of char_seq ]) Result.t)
-      Biocaml_transform.t
   (** Aggregate a stream of FASTA [char_seq raw_item]s into [char_seq
       item]s. Comments are discared. *)
-
+  val char_seq_raw_item_to_item
+    :  unit
+    -> ( char_seq raw_item
+       , (char_seq item, [> `unnamed_char_seq of char_seq ]) Result.t )
+       Biocaml_transform.t
 
   (** {3 Printers For [char_seq] Items} *)
 
-  val char_seq_item_to_raw_item: ?tags:Tags.t -> unit ->
-    (char_seq item, char_seq raw_item) Biocaml_transform.t
   (** Cut a stream of [char_seq item]s into a stream of [char_seq
       raw_item]s, where lines are cut at [items_per_line]
       characters (where [items_per_line] is defined with the
       [`max_items_per_line _] tag, if not specified the default is
       80). *)
+  val char_seq_item_to_raw_item
+    :  ?tags:Tags.t
+    -> unit
+    -> (char_seq item, char_seq raw_item) Biocaml_transform.t
 
-  val char_seq_raw_item_to_string:
-    ?tags:Tags.t ->
-    unit ->
-    (char_seq raw_item, string) Biocaml_transform.t
   (** Print [char_seq item]s. Comments will be ignored if
       neither of the tags [`sharp_comments] or
       [`semicolon_comments] is provided. *)
-
+  val char_seq_raw_item_to_string
+    :  ?tags:Tags.t
+    -> unit
+    -> (char_seq raw_item, string) Biocaml_transform.t
 
   (** {3 Parsers For [int_seq] Items} *)
 
-  val string_to_int_seq_raw_item:
-    ?filename:string ->
-    ?tags:Tags.t ->
-    unit ->
-    (string, (int_seq raw_item, [> Error.t]) Result.t) Biocaml_transform.t
   (** Parse a stream of strings as an int_seq FASTA file. *)
+  val string_to_int_seq_raw_item
+    :  ?filename:string
+    -> ?tags:Tags.t
+    -> unit
+    -> (string, (int_seq raw_item, [> Error.t ]) Result.t) Biocaml_transform.t
 
-  val int_seq_raw_item_to_item:
-    unit ->
-    (int_seq raw_item,
-     (int_seq item, [> `unnamed_int_seq of int_seq ]) Result.t)
-      Biocaml_transform.t
   (** Aggregate a stream of FASTA [int_seq raw_item]s into [int_seq
       item]s. Comments are discared. *)
-
+  val int_seq_raw_item_to_item
+    :  unit
+    -> ( int_seq raw_item
+       , (int_seq item, [> `unnamed_int_seq of int_seq ]) Result.t )
+       Biocaml_transform.t
 
   (** {3 Printers For [int_seq] Items} *)
 
-  val int_seq_item_to_raw_item: ?tags:Tags.t -> unit ->
-    (int_seq item, int_seq raw_item) Biocaml_transform.t
   (** Cut a stream of [int_seq item]s into a stream of [int_seq
       raw_item]s, the default line-cutting threshold is [27]
       (c.f. {!Tags.t}). *)
+  val int_seq_item_to_raw_item
+    :  ?tags:Tags.t
+    -> unit
+    -> (int_seq item, int_seq raw_item) Biocaml_transform.t
 
-  val int_seq_raw_item_to_string:
-    ?tags:Tags.t ->
-    unit ->
-    (int_seq raw_item, string) Biocaml_transform.t
   (** Print [int_seq item]s. Comments will be ignored if no
       [*_comments] tag is provided. *)
-
+  val int_seq_raw_item_to_string
+    :  ?tags:Tags.t
+    -> unit
+    -> (int_seq raw_item, string) Biocaml_transform.t
 end
 
-
 (** {2 Random Generation} *)
-module Random: sig
-
-  type specification = [
-    | `non_sequence_probability of float
-    | `tags of Tags.t
-  ]
+module Random : sig
   (** The specification guiding the random generation of ['a raw_item]
       values is a list of [specification] values. {ul
         {li [`non_sequence_probability f] means that the output will {i
@@ -374,25 +365,28 @@ module Random: sig
         {li [`tags t] specifies which [Tags.t] should be respected.}
       }
   *)
+  type specification =
+    [ `non_sequence_probability of float
+    | `tags of Tags.t
+    ]
 
-  val specification_of_string: string ->
-    (specification list, [> `fasta of [> `parse_specification of exn]])
-      Result.t
   (** Parse a [specification] from a [string]. Right now, the DSL is
       based on S-Expressions. *)
+  val specification_of_string
+    :  string
+    -> (specification list, [> `fasta of [> `parse_specification of exn ] ]) Result.t
 
-  val get_tags: [> specification] list -> Tags.t option
   (** Get the first [Tags.t] in the specification, if any. *)
+  val get_tags : [> specification ] list -> Tags.t option
 
-  val unit_to_random_char_seq_raw_item: [> specification] list ->
-    ((unit, char_seq raw_item) Biocaml_transform.t,
-     [> `inconsistent_tags of [> `int_sequence ]]) Result.t
   (** Create a transformation that generates random [char_seq
       raw_item] values according to the specification. *)
-
-
+  val unit_to_random_char_seq_raw_item
+    :  [> specification ] list
+    -> ( (unit, char_seq raw_item) Biocaml_transform.t
+       , [> `inconsistent_tags of [> `int_sequence ] ] )
+       Result.t
 end
-
 
 (** {2 S-expressions} *)
 

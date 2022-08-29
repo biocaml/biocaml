@@ -43,7 +43,7 @@ val input_u16 : in_channel -> int
 val input_s16 : in_channel -> int
 val input_s32 : in_channel -> int32
 
-val input: in_channel -> bytes -> int -> int -> int
+val input : in_channel -> bytes -> int -> int -> int
 (** [input ic buf pos len] reads at most [len] characters in file
     [ic], stores them in string [buf] at position [pos], and returns
     the number of characters actually read. *)
@@ -62,7 +62,6 @@ val with_file_in : string -> f:(in_channel -> 'a) -> 'a
     and returns the result after having closed the channel. If the
     call to [f] raises an exception, it is caught and the channel is
     closed before the exception is re-raised. *)
-
 
 type out_channel
 (** Representation of files opened for writing.*)
@@ -85,7 +84,6 @@ val dispose_out : out_channel -> unit
 (** Releases the resources associated to a (BGZF) channel (it can
     thus not be used after that call), apart from the underlying
     regular channel (which can be used further). *)
-
 
 val output : out_channel -> bytes -> pos:int -> len:int -> unit
 (** [output oc buf ~pos ~len] writes [len] characters of string [buf]

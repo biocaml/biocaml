@@ -23,21 +23,21 @@ exception Error of string
 type t = int
 
 val of_ascii : char -> t
-  (** [of_ascii x] returns the PHRED score encoded by ASCII character
+(** [of_ascii x] returns the PHRED score encoded by ASCII character
       [x].
 
       @raise Error if [x]'s ASCII code is not between 33 - 126.
   *)
 
 val to_ascii : t -> char
-  (** [to_ascii t] encodes [t] as an ASCII character.
+(** [to_ascii t] encodes [t] as an ASCII character.
 
       @raise Error if [t] cannot be encoded as a visible ASCII
       character (codes 33 - 126).
   *)
 
 val of_probability : ?f:(float -> int) -> float -> t
-  (** [of_probability ~f x] returns [-10 * log_10(x/(1-x))], which is the
+(** [of_probability ~f x] returns [-10 * log_10(x/(1-x))], which is the
       definition of Solexa scores.
 
       Solexa scores are integral, and it is unclear what convention is
@@ -49,6 +49,6 @@ val of_probability : ?f:(float -> int) -> float -> t
   *)
 
 val to_probability : t -> float
-  (** [to_probablity x] converts [x] to a probablity score. Note this
+(** [to_probablity x] converts [x] to a probablity score. Note this
       is not the inverse of [of_probability] due to the rounding done by
       the latter. *)

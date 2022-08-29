@@ -25,14 +25,14 @@
 (** {2 GFF Item Types} *)
 
 type record = {
-  seqname: string;
-  source: string option;
-  feature: string option;
-  pos: int * int;
-  score: float option;
-  strand: [`plus | `minus | `not_applicable | `unknown ];
-  phase: int option;
-  attributes: (string * string list) list;
+  seqname : string;
+  source : string option;
+  feature : string option;
+  pos : int * int;
+  score : float option;
+  strand : [ `plus | `minus | `not_applicable | `unknown ];
+  phase : int option;
+  attributes : (string * string list) list;
 }
 (** The type of the GFF records/rows. *)
 
@@ -41,9 +41,8 @@ type item = [ `comment of string | `record of record ]
 
 (** {2 Error Types} *)
 
-module Error: sig
+module Error : sig
   (** The errors of the [Gff] module. *)
-
 
   type parsing =
     [ `cannot_parse_float of Pos.t * string
@@ -68,24 +67,22 @@ end
 
 (** {2 {!Tags.t} } *)
 
-module Tags: sig
-
+module Tags : sig
   type t = {
-    version: [`two | `three];
-    allow_empty_lines: bool;
-    sharp_comments: bool;
+    version : [ `two | `three ];
+    allow_empty_lines : bool;
+    sharp_comments : bool;
   }
   (** Additional format-information tags (c.f. {!Tags}). *)
 
-  val default: t
+  val default : t
   (** Default tags for a random Gff file:
       [{version = `three; allow_empty_lines = false; sharp_comments = true}]. *)
 
-  val of_string: string ->
-    (t, [> `gff of [> `tags_of_string of exn ] ]) result
+  val of_string : string -> (t, [> `gff of [> `tags_of_string of exn ] ]) result
   (** Parse tags (for now S-Expressions). *)
 
-  val to_string: t -> string
+  val to_string : t -> string
   (** Serialize tags (for now S-Expressions). *)
 
   val t_of_sexp : Sexplib.Sexp.t -> t
@@ -94,42 +91,42 @@ end
 
 (** {2 [In_channel.t] Functions } *)
 
-exception Error of  Error.t
+exception Error of Error.t
 (** The exception raised by the [*_exn] functions. *)
 
-val in_channel_to_item_stream : ?buffer_size:int -> ?filename:string ->
-  ?tags:Tags.t -> In_channel.t ->
-  (item, [> Error.parsing]) result Stream.t
+val in_channel_to_item_stream :
+  ?buffer_size:int ->
+  ?filename:string ->
+  ?tags:Tags.t ->
+  In_channel.t ->
+  (item, [> Error.parsing ]) result Stream.t
 (** Parse an input-channel into [item] values. *)
 
-val in_channel_to_item_stream_exn : ?buffer_size:int -> ?tags:Tags.t ->
-  In_channel.t -> item Stream.t
+val in_channel_to_item_stream_exn :
+  ?buffer_size:int -> ?tags:Tags.t -> In_channel.t -> item Stream.t
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
 
 (** {2 [To_string] Function } *)
 
-val item_to_string: ?tags:Tags.t -> item -> string
+val item_to_string : ?tags:Tags.t -> item -> string
 (** Convert an item to a string. *)
 
 (** {2 {!Tfxm.t} } *)
 
-module Transform: sig
+module Transform : sig
   (** Lower-level stream transformations. *)
 
-  val string_to_item:
+  val string_to_item :
     ?filename:string ->
-    tags: Tags.t ->
+    tags:Tags.t ->
     unit ->
-    (string, (item, [> Error.parsing]) result) Tfxm.t
+    (string, (item, [> Error.parsing ]) result) Tfxm.t
   (** Create a parsing [Biocaml_transform.t] for a given version. *)
 
-  val item_to_string: tags: Tags.t -> unit ->
-    (item, string) Tfxm.t
+  val item_to_string : tags:Tags.t -> unit -> (item, string) Tfxm.t
   (** Create a printer for a given version. *)
-
 end
-
 
 (** {2 S-Expressions } *)
 

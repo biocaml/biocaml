@@ -1,29 +1,24 @@
-
 open OUnit
 module Sam = Biocaml_unix.Sam
 
 let ( %> ) f g x = g (f x)
 
-
 let test_parse_optional_field s v =
   let f = Sam.parse_optional_field s in
-  assert_equal
-    ~msg:"Optional field value (i type)"
-    ~printer:((Or_error.sexp_of_t Sam.sexp_of_optional_field) %> Sexplib.Sexp.to_string_hum)
+  assert_equal ~msg:"Optional field value (i type)"
+    ~printer:
+      (Or_error.sexp_of_t Sam.sexp_of_optional_field
+      %> Sexplib.Sexp.to_string_hum)
     f v
 
 let test_parser () =
-  test_parse_optional_field
-    "YS:i:-1"
+  test_parse_optional_field "YS:i:-1"
     (Sam.optional_field "YS" (Sam.optional_field_value_i (-1L)))
 
-let tests = "SAM" >::: [
-     "Parse SAM" >:: test_parser ;
-  ]
+let tests = "SAM" >::: [ "Parse SAM" >:: test_parser ]
 
 (* module Sam = Biocaml_unix.Sam_deprecated *)
 (* module Tfxm = Biocaml_unix.Tfxm *)
-
 
 (* let test_parser_deprecated () = *)
 (*   let transfo = Sam.Transform.string_to_raw () in *)
@@ -197,7 +192,6 @@ check (`alignment
 (*   test_line (`header ("HD", [ "VN", "1.3"; "SO", "coordinate"])) *)
 (*     "@HD\tVN:1.3\tSO:coordinate"; *)
 (*   () *)
-
 
 (* let tests = "SAM" >::: [ *)
 (*     "Parse SAM" >:: test_parser ; *)
