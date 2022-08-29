@@ -3,7 +3,7 @@
  (public_name biocaml.unix)
  (c_names mzData_stubs pwm_stub)
  (flags :standard -short-paths -open Core)
- (libraries base64 biocaml.base zip cfstream core core_kernel.binary_packing re.perl xmlm ppx_expect.evaluator)
+ (libraries base64 biocaml.base zip camlp-streams cfstream core core_kernel.binary_packing re.perl xmlm ppx_expect.evaluator)
  (inline_tests)
  (preprocess (pps ppx_jane ppx_inline_test))
  )
