@@ -1,9 +1,11 @@
 /_build
-/biocaml.install
-/.merlin
-/.ocamlinit
-/*.byte
-/*.native
+/_build.prev
+/_esy
+/node_modules
+/_cache
+.merlin
+/*.install
+/_release
 /tmp
 *~
-.merlin
+*.swp
