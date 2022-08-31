@@ -24,10 +24,11 @@
 (** An abstract representation of a chromosome identifier *)
 module type Chromosome = sig
   type t
+
   val compare : t -> t -> int
 end
 
-module Make(Chromosome : Chromosome) : sig
+module Make (Chromosome : Chromosome) : sig
   type range = Range.t
   type location = Chromosome.t * range
 
@@ -37,7 +38,6 @@ module Make(Chromosome : Chromosome) : sig
 
     val empty : t
     val add : t -> location -> t
-
     val inter : t -> t -> t
     val union : t -> t -> t
     val diff : t -> t -> t
@@ -48,14 +48,12 @@ module Make(Chromosome : Chromosome) : sig
         intersection with [sel], and [false] otherwise. *)
 
     val overlap : t -> location -> int
-
     val to_stream : t -> location Stream.t
 
     val of_stream : location Stream.t -> t
     (** [of_stream e] computes a selection (i.e. a set of non
         overlapping locations) as the union of the locations contained
         in [e] *)
-
   end
 
   (** Partial function over the genome (e.g. conservation signal)
@@ -84,7 +82,6 @@ module Make(Chromosome : Chromosome) : sig
     should be associative and commutative since when many locations
     in [ls] intersect, there is no guarantee on the order followed to
     aggregate them and their annotation. *)
-
   end
 
   (** A set of locations (e.g. a set of gene loci) *)
@@ -93,7 +90,6 @@ module Make(Chromosome : Chromosome) : sig
 
     val to_stream : t -> location Stream.t
     val of_stream : location Stream.t -> t
-
 
     val intersects : t -> location -> bool
     (** [intersects lset loc] returns [true] if [loc] has a non-empty
@@ -109,7 +105,6 @@ module Make(Chromosome : Chromosome) : sig
     val intersecting_elems : t -> location -> location Stream.t
     (** [intersecting_elems lset loc] returns a stream of all
         locations in [lset] that intersect [loc]. *)
-
   end
 
   (** A set of locations with an attached value on each of them *)
@@ -133,7 +128,5 @@ module Make(Chromosome : Chromosome) : sig
     val intersecting_elems : 'a t -> location -> (location * 'a) Stream.t
     (** [intersecting_elems lmap loc] returns a stream of elements
         in [lmap] whose location intersects with [loc]. *)
-
   end
 end
-

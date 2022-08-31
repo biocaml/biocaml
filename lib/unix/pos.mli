@@ -22,22 +22,19 @@
     bother disallowing it.
 *)
 
-type t = {
-  source : string option;
-  line : int option;
-  offset : int option;
-} [@@deriving sexp]
+type t = { source : string option; line : int option; offset : int option }
+[@@deriving sexp]
 
-val make: ?source:string -> ?line:int -> ?offset:int -> unit -> t
+val make : ?source:string -> ?line:int -> ?offset:int -> unit -> t
 
-(** Position with all fields set to None. *)
 val unknown : t
+(** Position with all fields set to None. *)
 
 val incr_line : ?n:int -> t -> t
 (** [incr_line ?n pos] increments the line number of [pos] by
     [n]. Default: [n = 1]. If [pos.line = None], it is treated as
     zero, i.e. the returned line number is set to [n]. *)
 
+val to_string : t -> string
 (** Print string in a human legible format. No particular format is
     guaranteed. *)
-val to_string : t -> string

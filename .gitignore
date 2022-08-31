@@ -1,9 +1,6 @@
 /_build
-/biocaml.install
-/.merlin
-/.ocamlinit
-/*.byte
-/*.native
-/tmp
-*~
+/_build.prev
 .merlin
+/*.install
+*~
+*.swp

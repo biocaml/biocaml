@@ -15,30 +15,28 @@ val of_file : string -> t
 val of_file_opt : string -> t option
 (** Parse given file if possible. *)
 
-
 (** {6 Operations on Intensity Section} *)
 
 type idata = {
-  mean:float; (** mean intensity value *)
-  stdv:float; (** standard deviation of intensity *)
-  npixels:int (** number of pixels used in mean/stdv calculation *)
+  mean : float;  (** mean intensity value *)
+  stdv : float;  (** standard deviation of intensity *)
+  npixels : int;  (** number of pixels used in mean/stdv calculation *)
 }
 
-(** Represents row in intensity section *)
 type irow = {
-  xcoord:int; (** x-coordinate *)
-  ycoord:int; (** y-coordinate *)
-  idata:idata
+  xcoord : int;  (** x-coordinate *)
+  ycoord : int;  (** y-coordinate *)
+  idata : idata;
 }
+(** Represents row in intensity section *)
 
 val ifold : ('a -> irow -> 'a) -> 'a -> t -> 'a
-  (** [ifold f a t] folds over data rows in intensity section of [t]. *)
+(** [ifold f a t] folds over data rows in intensity section of [t]. *)
 
 val iiter : (irow -> unit) -> t -> unit
-  (** [iiter f t] iterates over the rows in intensity section of [t]. *)
+(** [iiter f t] iterates over the rows in intensity section of [t]. *)
 
-val data :
-  Bpmap.t -> t list -> (Bpmap.probe * (idata * idata) list) list
+val data : Bpmap.t -> t list -> (Bpmap.probe * (idata * idata) list) list
 (** [data bpmap cels] returns a list associating probes with pairs of
     (PM,MM) idata in each of the given cel files (in the same order of
     course). Raise [Failure] if any file in [cels] lacks a value for any

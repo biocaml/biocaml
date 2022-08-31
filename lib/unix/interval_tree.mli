@@ -14,13 +14,11 @@ exception Empty_tree
 (** {6 Accessors} *)
 
 val is_empty : 'a t -> bool
-
 val cardinal : 'a t -> int
 
 val intersects : 'a t -> low:int -> high:int -> bool
 (** [intersects a b t] returns [true] if one interval in [t]
     intersects with the interval \[[a];[b]\].*)
-
 
 (** {6 Constructors} *)
 
@@ -34,15 +32,11 @@ val add : 'a t -> low:int -> high:int -> data:'a -> 'a t
     in an interval tree. E.g., [add 1 2 () (add 1 2 ())] contains 2
     intervals. *)
 
-
 (** {6 Conversion} *)
 
 val elements : 'a t -> (int * int * 'a) list
-
 val to_stream : 'a t -> (int * int * 'a) Stream.t
-
 val to_backwards_stream : 'a t -> (int * int * 'a) Stream.t
-
 
 (** {6 Searching and filtering} *)
 
@@ -60,8 +54,7 @@ val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) Stream.t
 (** [find_intersecting_elem a b t] is equivalent to [Stream.filter ~f:(fun
     (x,y,_) -> intersects x y t) (stream t)] but is more efficient. *)
 
-
-val filter_overlapping: 'a t -> low:int -> high:int -> 'a t
+val filter_overlapping : 'a t -> low:int -> high:int -> 'a t
 (** Create an interval tree with the elements which overlap with
     [[low, high]]. *)
 

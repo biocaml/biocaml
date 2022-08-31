@@ -3,18 +3,17 @@
     that parses the various conventions into a canonical
     representation, which we define to be '-' or '+'. *)
 
-
-(** Only valid values are '-' or '+'. *)
 type t = private char
+(** Only valid values are '-' or '+'. *)
 
 val minus : t
 val plus : t
 
-(** Convert string to strand name if possible. *)
 val of_string : string -> t Or_error.t
+(** Convert string to strand name if possible. *)
 
-(** Return '-' or '+'. *)
 val minus_plus : t -> char
+(** Return '-' or '+'. *)
 
-(** Return "rev" or "fwd". *)
 val rev_fwd : t -> string
+(** Return "rev" or "fwd". *)

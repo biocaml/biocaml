@@ -3,10 +3,8 @@
     bound. For example, [\[2, 10\]] is the set of integers from 2 through
     10, inclusive of 2 and 10. *)
 
-
+type t = private { lo : int; hi : int } [@@deriving compare, sexp]
 (** Type of a range. *)
-type t = private {lo:int; hi:int}
-[@@deriving compare, sexp]
 
 val make : int -> int -> t Or_error.t
 (** [make lo hi] returns the range [{lo; hi}]. Return [Error] if [lo >
@@ -40,10 +38,9 @@ val gap : t -> t -> int
 (** [gap u v] returns the size of the gap between [u] and [v]. It is
     equivalent to the negative of [overlap]. *)
 
-
 (** {6 Set Operations} *)
 
-val union : t -> t -> [`Joint of t | `Disjoint of t * t]
+val union : t -> t -> [ `Joint of t | `Disjoint of t * t ]
 (** [union u v] returns the range(s) representing the union of [u] and
     [v]. If [u] and [v] overlap, their union can be represented as a
     single range. If not, their union is a disjoint combination of two
@@ -52,7 +49,6 @@ val union : t -> t -> [`Joint of t | `Disjoint of t * t]
 val intersect : t -> t -> t option
 (** [intersect u v] returns the range representing the intersection of
     [u] and [v]. Return None if intersection is empty. *)
-
 
 (** {6 Positional Range}
     Positional means an range is viewed as coming either before or
@@ -75,7 +71,6 @@ val compare_positional : t -> t -> int option
 (** [compare_positional u v] returns -1 if [u] is strictly before [v],
     0 if [u] is equal to [v], +1 if [u] is strictly after [v], and returns
     None otherwise. *)
-
 
 (** {6 Containment Range}
     Containment means a range is viewed as being inside, or a subset
@@ -100,8 +95,6 @@ val compare_containment : t -> t -> int option
     [v], 0 if [u] is equal to [v], +1 if [u] is a strict superset of [v],
     and returns None otherwise. *)
 
-
-
 (** {6 Range Lists} *)
 
 val any_overlap : t list -> bool
@@ -116,15 +109,10 @@ val max_gap_of_positional : t list -> int
     [Failure] if any pairs of given ranges not positionally comparable, or
     if given less than two ranges. *)
 
-
 (** {6 More Specialized Operations} *)
 
 val find_min_range :
-  ?init_direction:string ->
-  t ->
-  (t -> bool) ->
-  int ->
-  t option
+  ?init_direction:string -> t -> (t -> bool) -> int -> t option
 (** [find_min_range v pred i] finds the minimum sized range within [v]
     centered around [i] that satisfies [pred]. Successively larger ranges
     are created starting from \[i, i\] and the first one to satisfy [pred]
@@ -149,7 +137,6 @@ val expand_assoc_list : (t * 'a) list -> (int * 'a list) list
 val find_regions : ?max_gap:int -> ('a -> bool) -> (t * 'a) list -> t list
 (** TO DO: fill in this documentation. For now see
     {!Math.find_regions}. *)
-
 
 val make_random : t -> t
 (** [make_random t] returns a random range that is a subset of

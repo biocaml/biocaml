@@ -1,81 +1,287 @@
-.keyword { font-weight : bold ; color : #080; }
-.keywordsign { color : #C04600 }
-.superscript { font-size : 4 }
-.subscript { font-size : 4 }
-.comment { color : Green }
-.constructor { color : #824623 }
-.type { color : #5C6585 }
-.string { color : #9B1410 }
-.warning { color : Red ; font-weight : bold }
-.info { margin-left : 3em; margin-right: 3em }
-.param_info { margin-top: 4px; margin-left : 3em; margin-right : 3em }
-.code { color : #111A50 ; }
-.typetable { border-style : hidden }
-.paramstable { border-style : hidden ; padding: 5pt 5pt}
-tr { background-color : White }
-td.typefieldcomment { background-color : #FFFFFF ; font-size: smaller ;}
-*:target { background: yellow; }
-body {
-    /* font: 13px sans-serif; */
-    max-width: 50em;
-    color: black; text-align: left;
-    /* padding-left: 4%; */
-    margin: auto;
+.keyword {
+     font-weight: bold;
+     color: #080;
 }
-h1 { font-size : 195% ; text-align: center;
-     border: 3px solid #000;}
-h2 { font-size : 180% ;
-     border: 1px solid #000000;
-     margin-top: 2em; margin-bottom: 1em;
+
+.keywordsign {
+     color: #C04600
+}
+
+.superscript {
+     font-size: 4
+}
+
+.subscript {
+     font-size: 4
+}
+
+.comment {
+     color: Green
+}
+
+.constructor {
+     color: #824623
+}
+
+.type {
+     color: #5C6585
+}
+
+.string {
+     color: #9B1410
+}
+
+.warning {
+     color: Red;
+     font-weight: bold
+}
+
+.info {
+     margin-left: 3em;
+     margin-right: 3em
+}
+
+.param_info {
+     margin-top: 4px;
+     margin-left: 3em;
+     margin-right: 3em
+}
+
+.code {
+     color: #111A50;
+}
+
+.typetable {
+     border-style: hidden
+}
+
+.paramstable {
+     border-style: hidden;
+     padding: 5pt 5pt
+}
+
+tr {
+     background-color: White
+}
+
+td.typefieldcomment {
+     background-color: #FFFFFF;
+     font-size: smaller;
+}
+
+*:target {
+     background: yellow;
+}
+
+body {
+     /* font: 13px sans-serif; */
+     max-width: 50em;
+     color: black;
+     text-align: left;
+     /* padding-left: 4%; */
+     margin: auto;
+}
+
+h1 {
+     font-size: 195%;
      text-align: center;
-     padding: 2px; }
-h3 { font-size : 150% ;
+     border: 3px solid #000;
+}
+
+h2 {
+     font-size: 180%;
+     border: 1px solid #000000;
+     margin-top: 2em;
+     margin-bottom: 1em;
+     text-align: center;
+     padding: 2px;
+}
+
+h3 {
+     font-size: 150%;
      margin-top: 5px;
      margin-bottom: 2px;
      /* text-align: center; */
      /* padding: 2px; */
      text-decoration: underline;
-   }
-h4 { font-size : 100% ;
+}
+
+h4 {
+     font-size: 100%;
      font-weight: bold;
      margin-top: 5px;
      margin-bottom: 2px;
      text-align: center;
-     padding: 2px; }
-h5 { font-size : 100% ; border: 1px solid #000000; margin-top: 5px;
-     margin-bottom: 2px;text-align: center;
-     ;padding: 2px; }
-h6 { font-size : 100% ; border: 1px solid #000000; margin-top: 5px;
-     margin-bottom: 2px;text-align: center;
-     padding: 2px; }
-div.h7 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #E0FFFF ; padding: 2px; }
-div.h8 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #F0FFFF ; padding: 2px; }
-div.h9 { font-size : 20pt ; border: 1px solid #000000; margin-top: 5px; margin-bottom: 2px;text-align: center; background-color: #FFFFFF ; padding: 2px; }
-a {color: #416DFF; text-decoration: none}
-a:hover {background-color: #ddd; text-decoration: underline}
-pre { margin-bottom: 4px; font-family: monospace; }
-pre.verbatim, pre.codepre { }
-.indextable {border: 1px #ddd solid; border-collapse: collapse}
-.indextable td, .indextable th {border: 1px #ddd solid; min-width: 80px}
-.indextable td.module {background-color: #eee ;  padding-left: 2px; padding-right: 2px}
-.indextable td.module a {color: 4E6272; text-decoration: none; display: block; width: 100%}
-.indextable td.module a:hover {text-decoration: underline; background-color: transparent}
-.deprecated {color: #888; font-style: italic}
-.indextable tr td div.info { margin-left: 2px; margin-right: 2px }
-ul.indexlist { margin-left: 0; padding-left: 0;}
-ul.indexlist li { list-style-type: none ; margin-left: 0; padding-left: 0; }
+     padding: 2px;
+}
 
-.figure { border: 1px black solid ; margin: auto; text-align: center; }
-.caption { font-size: 90%; font-style: italic; color: #074724 ; padding: 1em;}
+h5 {
+     font-size: 100%;
+     border: 1px solid #000000;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     text-align: center;
+     ;
+     padding: 2px;
+}
 
-.included-module { border: 1px black solid; background-color: #DDD;
-                   width: 95%; margin : auto; }
-.included-module-type { border: 1px black solid; background-color: #DDD;
-                   width: 95%; margin : auto; }
-.navbar { font-size: 85%; font-family: sans-serif; background-color: #DDD; }
+h6 {
+     font-size: 100%;
+     border: 1px solid #000000;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     text-align: center;
+     padding: 2px;
+}
 
-.module_element { padding: 5px; margin: 1px; }
-.module_element:hover { padding: 3px; margin: 1px; border: 2px #ccc solid; }
+div.h7 {
+     font-size: 20pt;
+     border: 1px solid #000000;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     text-align: center;
+     background-color: #E0FFFF;
+     padding: 2px;
+}
 
-div.sig_block {margin-left: 2em; padding: 2px;          }
-div.class_definition { margin-left: 2em;  padding: 2px; }
+div.h8 {
+     font-size: 20pt;
+     border: 1px solid #000000;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     text-align: center;
+     background-color: #F0FFFF;
+     padding: 2px;
+}
+
+div.h9 {
+     font-size: 20pt;
+     border: 1px solid #000000;
+     margin-top: 5px;
+     margin-bottom: 2px;
+     text-align: center;
+     background-color: #FFFFFF;
+     padding: 2px;
+}
+
+a {
+     color: #416DFF;
+     text-decoration: none
+}
+
+a:hover {
+     background-color: #ddd;
+     text-decoration: underline
+}
+
+pre {
+     margin-bottom: 4px;
+     font-family: monospace;
+}
+
+pre.verbatim,
+pre.codepre {}
+
+.indextable {
+     border: 1px #ddd solid;
+     border-collapse: collapse
+}
+
+.indextable td,
+.indextable th {
+     border: 1px #ddd solid;
+     min-width: 80px
+}
+
+.indextable td.module {
+     background-color: #eee;
+     padding-left: 2px;
+     padding-right: 2px
+}
+
+.indextable td.module a {
+     color: 4E6272;
+     text-decoration: none;
+     display: block;
+     width: 100%
+}
+
+.indextable td.module a:hover {
+     text-decoration: underline;
+     background-color: transparent
+}
+
+.deprecated {
+     color: #888;
+     font-style: italic
+}
+
+.indextable tr td div.info {
+     margin-left: 2px;
+     margin-right: 2px
+}
+
+ul.indexlist {
+     margin-left: 0;
+     padding-left: 0;
+}
+
+ul.indexlist li {
+     list-style-type: none;
+     margin-left: 0;
+     padding-left: 0;
+}
+
+.figure {
+     border: 1px black solid;
+     margin: auto;
+     text-align: center;
+}
+
+.caption {
+     font-size: 90%;
+     font-style: italic;
+     color: #074724;
+     padding: 1em;
+}
+
+.included-module {
+     border: 1px black solid;
+     background-color: #DDD;
+     width: 95%;
+     margin: auto;
+}
+
+.included-module-type {
+     border: 1px black solid;
+     background-color: #DDD;
+     width: 95%;
+     margin: auto;
+}
+
+.navbar {
+     font-size: 85%;
+     font-family: sans-serif;
+     background-color: #DDD;
+}
+
+.module_element {
+     padding: 5px;
+     margin: 1px;
+}
+
+.module_element:hover {
+     padding: 3px;
+     margin: 1px;
+     border: 2px #ccc solid;
+}
+
+div.sig_block {
+     margin-left: 2em;
+     padding: 2px;
+}
+
+div.class_definition {
+     margin-left: 2em;
+     padding: 2px;
+}

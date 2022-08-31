@@ -8,7 +8,6 @@
     meant to be usable from various contexts, including async or lwt.
 *)
 module Parser : sig
-
   (** Parser state *)
   type state
 

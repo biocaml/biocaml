@@ -133,6 +133,7 @@ val choose : t -> int
 val to_stream : t -> (int * int) Stream.t
 (** Enumerates all contiguous ranges in the set *)
 
-val of_stream : (int*int) Stream.t -> t
-val of_list : (int*int) list -> t
+val of_stream : (int * int) Stream.t -> t
+
+val of_list : (int * int) list -> t
 (** Build a ISet.t out of a list or enum of ranges *)
