@@ -1,11 +1,6 @@
 /_build
 /_build.prev
-/_esy
-/node_modules
-/_cache
 .merlin
 /*.install
-/_release
-/tmp
 *~
 *.swp
