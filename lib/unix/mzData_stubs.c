@@ -122,7 +122,7 @@ static const unsigned char of_base64[] = {
   24, /*   Y  */
   25, /*   Z  */
   0,  /*   [  */
-  0,  /* '\'  */ 
+  0,  /* '\'  */
   0,  /*   ]  */
   0,  /*   ^  */
   0,  /*   _  */
@@ -171,17 +171,17 @@ static size_t pack_offset;
    larger than 0x7fffff. */
 
 CAMLexport
-value biocaml_base64_init(value vunit) 
+value biocaml_base64_init(value vunit)
 {
   /* no OCaml alloc */
   int i, j, k, index;
   char *c;
-  
+
   i = 1;
   is_little_endian = ((char *)&i)[0];
   if (is_little_endian) pack_offset = 0;
   else pack_offset = sizeof(int) - 3;
-  
+
   /* Fill the lookup tables */
   for (i='+'; i<='z'; i++) {
     for (j='+'; j<='z'; j++) {
@@ -241,7 +241,7 @@ value biocaml_base64_init(value vunit)
   unsigned int index;                                                   \
   unsigned char *b, buffer[lenbuf]; /* partially decoded string */      \
   ty *data; /* to cast the decoded bytes */                             \
-  double *vec = (double *) Data_bigarray_val(vvec);                     \
+  double *vec = (double *) Caml_ba_data_val(vvec);                     \
                                                                         \
   if (is_little_endian) {                                               \
     DECODE_BODY(ty, lenbuf, INDEX_LITTLE_ENDIAN, to_host_little_endian); \
