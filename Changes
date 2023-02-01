@@ -1,3 +1,8 @@
+unreleased
+----------
+* fix deprecation warnings in mzData #183
+* fix build dependency in lwt #182
+
 v0.11.2 2022-05-07
 ------------------
 * upgrade to core v0.15
