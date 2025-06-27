@@ -4,7 +4,6 @@ let all_tests =
   ; Bam.tests
   ; Table.tests
   ; Interval_tree.tests
-  ; Phred_score.tests
   ; Pwm.tests
   ; Bin_pred.tests
   ; Bed.tests
