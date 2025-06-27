@@ -1,5 +1,4 @@
 open OUnit
-open Rresult
 module Fasta = Biocaml_base.Fasta
 
 type ('a, 'b) result = ('a, 'b) Stdlib.result =
@@ -8,6 +7,7 @@ type ('a, 'b) result = ('a, 'b) Stdlib.result =
 [@@deriving sexp]
 
 let fasta_of_strings ~initial_state ~step xs =
+  let open Result.Monad_infix in
   List.fold
     xs
     ~init:(Ok (initial_state, []))

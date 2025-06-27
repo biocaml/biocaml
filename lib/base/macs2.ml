@@ -1,8 +1,6 @@
-open Rresult
-
 let parse_field f field x =
-  try R.ok (f x) with
-  | _ -> R.error_msgf "Failed to parse field %s" field
+  try Ok (f x) with
+  | _ -> Error (`Msg (sprintf "Failed to parse field %s" field))
 ;;
 
 let parse_int = parse_field Int.of_string
@@ -34,11 +32,11 @@ module Xls = struct
 
   let parse line =
     match (line : Line.t :> string) with
-    | "" -> R.ok (`Comment "")
-    | line when String.(line = header) -> R.ok `Header
+    | "" -> Ok (`Comment "")
+    | line when String.(line = header) -> Ok `Header
     | line ->
       if Char.(line.[0] = '#')
-      then R.ok (`Comment (String.sub line ~pos:1 ~len:(String.length line - 1)))
+      then Ok (`Comment (String.sub line ~pos:1 ~len:(String.length line - 1)))
       else (
         match String.split ~on:'\t' line with
         | [ chr
@@ -52,6 +50,7 @@ module Xls = struct
           ; log10qvalue
           ; name
           ] ->
+          let open Result.Monad_infix in
           parse_int "start" start
           >>= fun start ->
           parse_int "end" end_
@@ -80,7 +79,7 @@ module Xls = struct
             ; log10qvalue
             ; name
             }
-        | _ -> R.error_msg "Wrong number of fields")
+        | _ -> Error (`Msg "Wrong number of fields"))
   ;;
 end
 
@@ -109,6 +108,7 @@ module Broad_peaks = struct
       ; log10pvalue
       ; log10qvalue
       ] ->
+      let open Result.Monad_infix in
       parse_int "start" chr_start
       >>= fun chr_start ->
       parse_int "end" chr_end
@@ -131,6 +131,6 @@ module Broad_peaks = struct
       ; fold_change
       ; log10qvalue
       }
-    | _ -> R.error_msg "Wrong number of fields"
+    | _ -> Error (`Msg "Wrong number of fields")
   ;;
 end

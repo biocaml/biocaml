@@ -1,7 +1,7 @@
 (library
  (name biocaml_base)
  (public_name biocaml.base)
- (libraries base rresult uri)
+ (libraries base uri)
  (inline_tests)
  (flags :standard -short-paths -open Base -open Printf)
  (preprocess

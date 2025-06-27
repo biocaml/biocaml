@@ -1,7 +1,5 @@
 (* FIXME: max_line_length and alphabet format options are not implemented *)
 
-open Rresult
-
 type header = string list
 
 type item =
@@ -48,8 +46,8 @@ type item0 =
 [@@deriving sexp]
 
 let sequence_to_int_list s =
-  try String.split s ~on:' ' |> List.map ~f:Int.of_string |> R.ok with
-  | Failure msg -> R.error_msg msg
+  try String.split s ~on:' ' |> List.map ~f:Int.of_string |> Result.return with
+  | Failure msg -> Error (`Msg msg)
 ;;
 
 type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
@@ -74,7 +72,7 @@ module Parser0 = struct
     { fmt; line = 0; line_start = true; started_first_item = false; symbol = S }
   ;;
 
-  let fail st msg = R.fail (`Fasta_parser_error (st.line, msg))
+  let fail st msg = Error (`Fasta_parser_error (st.line, msg))
 
   let failf st fmt =
     let k x = fail st x in
@@ -95,14 +93,14 @@ module Parser0 = struct
   let step st = function
     | None -> (
       match st.symbol with
-      | S -> R.ok ({ st with symbol = Terminal }, [])
+      | S -> Ok ({ st with symbol = Terminal }, [])
       | Comment c ->
         assert (not st.started_first_item);
-        R.ok ({ st with symbol = Terminal }, [ `Comment c ])
+        Ok ({ st with symbol = Terminal }, [ `Comment c ])
       | Description _ -> fail st "Missing sequence in last item"
       | Sequence { empty = true } -> fail st "Missing sequence in last item"
-      | Sequence { empty = false } -> R.ok ({ st with symbol = Terminal }, [])
-      | Terminal -> R.ok (st, []))
+      | Sequence { empty = false } -> Ok ({ st with symbol = Terminal }, [])
+      | Terminal -> Ok (st, []))
     | Some buf ->
       let allowed_comment_char c =
         let open Char in
@@ -114,7 +112,7 @@ module Parser0 = struct
         if j < n
         then (
           match buf.[j], st.line_start, st.symbol with
-          | _, _, Terminal -> R.ok (st, [])
+          | _, _, Terminal -> Ok (st, [])
           | _, false, S -> assert false (* unreachable state *)
           | '>', true, S ->
             loop
@@ -178,13 +176,13 @@ module Parser0 = struct
             loop { st with line_start = false } accu i (j + 1))
         else (
           match st.symbol with
-          | S | Terminal -> R.ok (st, accu)
+          | S | Terminal -> Ok (st, accu)
           | Comment c ->
             let c' = String.sub buf ~pos:i ~len:(j - i) in
-            R.ok ({ st with symbol = Comment (c ^ c') }, accu)
+            Ok ({ st with symbol = Comment (c ^ c') }, accu)
           | Description d ->
             let d' = String.sub buf ~pos:i ~len:(j - i) in
-            R.ok ({ st with symbol = Description (d ^ d') }, accu)
+            Ok ({ st with symbol = Description (d ^ d') }, accu)
           | Sequence _ as sym ->
             let symbol, res =
               if i = j
@@ -193,9 +191,9 @@ module Parser0 = struct
                 let seq = String.sub buf ~pos:i ~len:(j - i) in
                 Sequence { empty = false }, `Partial_sequence seq :: accu)
             in
-            R.ok ({ st with symbol }, res))
+            Ok ({ st with symbol }, res))
       in
-      loop st [] 0 0 >>| fun (st, res) -> st, List.rev res
+      loop st [] 0 0 |> Result.map ~f:(fun (st, res) -> st, List.rev res)
   ;;
 end
 
@@ -245,10 +243,12 @@ module Parser = struct
 
   let step st input =
     Parser0.step st.state0 input
-    >>| fun (state0, items0) ->
-    let init = st.symbol, [] in
-    let symbol, items = List.fold_left items0 ~init ~f:step_aux |> step_final input in
-    { state0; symbol }, List.rev items
+    |> Result.map ~f:(fun (state0, items0) ->
+         let init = st.symbol, [] in
+         let symbol, items =
+           List.fold_left items0 ~init ~f:step_aux |> step_final input
+         in
+         { state0; symbol }, List.rev items)
   ;;
 end
 
