@@ -10,6 +10,7 @@
   camlp-streams
   cfstream
   core
+  core_unix
   core_kernel.binary_packing
   re.perl
   xmlm

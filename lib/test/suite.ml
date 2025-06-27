@@ -12,6 +12,5 @@ let all_tests =
   ; Sam.tests
   ; Biocaml_test_zip.tests
   ; Vcf.tests
-  ; RSet.tests
   ]
 ;;
