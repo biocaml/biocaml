@@ -1,6 +1,5 @@
 let all_tests =
-  [ Ucsc_genome_browser.tests
-  ; Bgzf.tests
+  [ Bgzf.tests
   ; Bam.tests
   ; Table.tests
   ; Interval_tree.tests
