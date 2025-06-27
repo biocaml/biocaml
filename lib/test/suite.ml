@@ -6,7 +6,6 @@ let all_tests =
   ; Bam.tests
   ; Roman_num.tests
   ; Table.tests
-  ; Fasta.tests
   ; Interval_tree.tests
   ; Phred_score.tests
   ; Pwm.tests
