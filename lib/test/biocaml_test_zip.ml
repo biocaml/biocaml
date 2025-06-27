@@ -4,7 +4,10 @@ module Tfxm = Biocaml_unix.Tfxm
 module Zip = Biocaml_unix.Zip
 open OUnit
 
-type error = [ `left of Zip.Error.unzip | `right of Bed.Error.parsing ]
+type error =
+  [ `left of Zip.Error.unzip
+  | `right of Bed.Error.parsing
+  ]
 
 let some_ok x = Some (Ok x)
 
@@ -12,9 +15,7 @@ let make_stream () : (Bed.item, error) Result.t Stream.t * (unit -> unit) =
   let file = Utils.test_file "bed_03_more_cols.bed" in
   let tmp = Filename_unix.temp_file "biocaml_test_zip" ".gz" in
   ignore
-    (Core_unix.system (sprintf "gzip -c %s > %s" file tmp)
-      : Core_unix.Exit_or_signal.t);
-
+    (Core_unix.system (sprintf "gzip -c %s > %s" file tmp) : Core_unix.Exit_or_signal.t);
   let unzip_and_parse =
     Tfxm.compose_results_merge_error
       (Zip.Transform.unzip ~format:`gzip ~zlib_buffer_size:24 ())
@@ -24,20 +25,22 @@ let make_stream () : (Bed.item, error) Result.t Stream.t * (unit -> unit) =
   in
   let ic = In_channel.create tmp in
   let stream = Tfxm.in_channel_strings_to_stream ic unzip_and_parse in
-  (stream, fun () -> Sys_unix.remove tmp)
+  stream, fun () -> Sys_unix.remove tmp
+;;
 
 let test_unzip () =
   let s, clean_up = make_stream () in
-
   let the_expected_list = [| `string "some_string"; `int 42; `float 3.14 |] in
-  assert_bool "03 chrA"
-    Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
-  assert_bool "03 chrB"
+  assert_bool "03 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+  assert_bool
+    "03 chrB"
     Poly.(Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
-  assert_bool "03 chrC"
+  assert_bool
+    "03 chrC"
     Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
   assert_bool "03 EOF" Poly.(Stream.next s = None);
   clean_up ()
+;;
 
 let cmd fmt =
   ksprintf
@@ -46,6 +49,7 @@ let cmd fmt =
       let r = Sys_unix.command s in
       if r <> 0 then failwithf "Command %s returned %d" s r ())
     fmt
+;;
 
 let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   let first = "ABCDEFGHIJKLMNOPQ" in
@@ -64,7 +68,8 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   let l = Stream.npeek s 300 in
   let expected = sprintf "%s\n%s\n" first second in
   let obtained =
-    String.concat ~sep:""
+    String.concat
+      ~sep:""
       (List.map l ~f:(function
         | Ok s -> s
         | Error _ -> failwithf "There was an unzipping error !" ()))
@@ -72,22 +77,14 @@ let test_gunzip_multiple ~zlib_buffer_size ~buffer_size () =
   assert_equal ~printer:Fun.id ~msg:"isomorphismish" expected obtained;
   cmd "rm -f %s.gz %s.gz %s.gz %s" tmp1 tmp2 tmp3 tmp3;
   ()
+;;
 
 let gunzip_multiple_tests =
   List.map
-    [
-      (10, 1);
-      (10, 2);
-      (10, 10);
-      (1, 10);
-      (200, 1);
-      (200, 10);
-      (200, 200);
-      (10, 200);
-      (1, 200);
-    ]
+    [ 10, 1; 10, 2; 10, 10; 1, 10; 200, 1; 200, 10; 200, 200; 10, 200; 1, 200 ]
     ~f:(fun (zlib_buffer_size, buffer_size) ->
       sprintf "Gunzip|cat(%d,%d)" zlib_buffer_size buffer_size
       >:: test_gunzip_multiple ~zlib_buffer_size ~buffer_size)
+;;
 
 let tests = "ZIP" >::: [ "Gunzip" >:: test_unzip ] @ gunzip_multiple_tests
