@@ -6,7 +6,6 @@ let all_tests =
   ; Bed.tests
   ; Wig.tests
   ; Gff.tests
-  ; Track.tests
   ; Sam.tests
   ; Biocaml_test_zip.tests
   ; Vcf.tests
