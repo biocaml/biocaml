@@ -15,19 +15,23 @@ module Roman = struct
     | 'D' -> 500
     | 'M' -> 1000
     | c -> raise (BadNumeral c)
+  ;;
 
   let arabic (x : string) : int =
     let n = String.length x in
     let rec loop i v p =
-      if i < n then
+      if i < n
+      then (
         let c = eval (String.get x i) in
-        loop (i + 1) (if p < c then v - p else v + p) c
+        loop (i + 1) (if p < c then v - p else v + p) c)
       else v + p
     in
-    if n > 0 then
+    if n > 0
+    then (
       let v = eval (String.get x 0) in
-      loop 1 0 v
+      loop 1 0 v)
     else 0
+  ;;
 
   (****************************************************************************)
   (* (arabic ==> roman) abstract interpretation on SIZES *)
@@ -46,12 +50,13 @@ module Roman = struct
     | 8 -> 4
     | 9 -> 2
     | _ -> assert false
+  ;;
 
   let rec count_size k = function
     | 0, _ -> k
     | n, j ->
-        if j >= 3 then count_size (digit_size (n mod 10) + k) (n / 10, j - 2)
-        else n + k
+      if j >= 3 then count_size (digit_size (n mod 10) + k) (n / 10, j - 2) else n + k
+  ;;
 
   let roman_size n = if n < 0 then 0 else count_size 0 (n, numerals_size)
 
@@ -87,11 +92,12 @@ module Roman = struct
       | 0, _ -> ()
       | _, [ _ ] -> ()
       | n, one :: five :: (ten :: _ as next) ->
-          count (digit (n mod 10) one five ten k) (n / 10, next)
+        count (digit (n mod 10) one five ten k) (n / 10, next)
       | _ -> assert false
     in
     count (size - 1) (n, numerals);
     Bytes.to_string x
+  ;;
 end
 
 (******************************************************************************)
@@ -106,12 +112,21 @@ open Roman
 type t = int
 
 let of_roman s =
-  try Ok (arabic (String.uppercase s))
-  with BadNumeral c -> error "invalid char in Roman numeral" c sexp_of_char
+  try Ok (arabic (String.uppercase s)) with
+  | BadNumeral c -> error "invalid char in Roman numeral" c sexp_of_char
+;;
 
 let of_arabic i =
-  if i > 0 then Ok i
-  else error "invalid non-positive Roman numeral" i sexp_of_int
+  if i > 0 then Ok i else error "invalid non-positive Roman numeral" i sexp_of_int
+;;
 
 let to_roman = roman
 let to_arabic = Fn.id
+
+module Test = struct
+  let%test _ =
+    List.init 5000 ~f:(fun x -> x + 1)
+    |> List.for_all ~f:(fun x ->
+         Int.( = ) x (of_arabic x |> ok_exn |> to_roman |> of_roman |> ok_exn |> to_arabic))
+  ;;
+end
