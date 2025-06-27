@@ -173,7 +173,8 @@ module Test = struct
     printf "\n<RSet Benchmarking>\n";
     test (f ()) (f ());
     printf "\n</RSet Benchmarking>\n";
-    [%expect "
+    [%expect
+      {|
       <RSet Benchmarking>
       making first IntSet: 0.000000 seconds
       making second IntSet: 0.000000 seconds
@@ -189,6 +190,7 @@ module Test = struct
       efficient diff: 0.000000 seconds
       diff: true
 
-      </RSet Benchmarking>"]
+      </RSet Benchmarking>
+      |}]
   ;;
 end
