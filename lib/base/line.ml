@@ -48,3 +48,12 @@ let lstrip = String.lstrip
 let rstrip = String.rstrip
 let strip = String.strip
 let for_all = String.for_all
+
+module Test = struct
+  let%test _ =
+    let f input answer =
+      List.equal String.equal answer (parse_string input :> string list)
+    in
+    f "\naa\n\n\nbb" [ ""; "aa"; ""; ""; "bb" ] && f "aa\n\n" [ "aa"; ""; "" ]
+  ;;
+end
