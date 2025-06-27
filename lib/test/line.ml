@@ -10,5 +10,6 @@ let test_parse_string () =
   in
   f "\naa\n\n\nbb" [ ""; "aa"; ""; ""; "bb" ];
   f "aa\n\n" [ "aa"; ""; "" ]
+;;
 
 let tests = "Line" >::: [ "Base.Line.parse_string" >:: test_parse_string ]

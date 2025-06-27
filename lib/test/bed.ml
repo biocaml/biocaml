@@ -3,12 +3,12 @@ module Bed = Biocaml_unix.Bed
 module Tfxm = Biocaml_unix.Tfxm
 open OUnit
 
-let make_stream ?more_columns file :
-    (Bed.item, Bed.Error.parsing) Result.t Stream.t =
+let make_stream ?more_columns file : (Bed.item, Bed.Error.parsing) Result.t Stream.t =
   let filename = Utils.test_file file in
   let bed_parser = Bed.Transform.string_to_item ?more_columns () in
   let inp = In_channel.create filename in
   Tfxm.in_channel_strings_to_stream ~buffer_size:10 inp bed_parser
+;;
 
 let some_ok x = Some (Ok x)
 
@@ -18,45 +18,47 @@ let test_parser () =
   assert_bool "01 chrB" Poly.(Stream.next s = some_ok ("chrB", 100, 130, [||]));
   assert_bool "01 chrC" Poly.(Stream.next s = some_ok ("chrC", 200, 245, [||]));
   assert_bool "01 EOF" Poly.(Stream.next s = None);
-
   let s = make_stream "bed_02_incomplete_line.bed" in
   assert_bool "02 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, [||]));
-  assert_bool "02 chrB error "
-    (match Stream.next s with Some _ -> true | _ -> false);
-
+  assert_bool
+    "02 chrB error "
+    (match Stream.next s with
+     | Some _ -> true
+     | _ -> false);
   let s =
     make_stream
       ~more_columns:(`enforce [| `type_string; `type_int; `type_float |])
       "bed_03_more_cols.bed"
   in
   let the_expected_list = [| `string "some_string"; `int 42; `float 3.14 |] in
-  assert_bool "03 chrA"
-    Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
-  assert_bool "03 chrB"
+  assert_bool "03 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+  assert_bool
+    "03 chrB"
     Poly.(Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
-  assert_bool "03 chrC"
+  assert_bool
+    "03 chrC"
     Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
   assert_bool "03 EOF" Poly.(Stream.next s = None);
-
   let s =
     make_stream
       ~more_columns:(`enforce [| `type_string; `type_int; `type_float |])
       "bed_04_more_cols_error.bed"
   in
   let the_expected_list = [| `string "some_string"; `int 42; `float 3.14 |] in
-  assert_bool "04 chrA"
-    Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
-  assert_bool "04 chrB error "
+  assert_bool "04 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+  assert_bool
+    "04 chrB error "
     (match Stream.next s with
-    | Some (Error (`bed (`wrong_format (`int_of_string _, _, _)))) -> true
-    | _ -> false);
-  assert_bool "04 chrC error "
+     | Some (Error (`bed (`wrong_format (`int_of_string _, _, _)))) -> true
+     | _ -> false);
+  assert_bool
+    "04 chrC error "
     (match Stream.next s with
-    | Some (Error (`bed (`wrong_format (`column_number, _, _)))) -> true
-    | _ -> false);
+     | Some (Error (`bed (`wrong_format (`column_number, _, _)))) -> true
+     | _ -> false);
   assert_bool "04 EOF" Poly.(Stream.next s = None);
-
   ()
+;;
 
 let make_printer_stream ?more_columns file =
   let filename = Utils.test_file file in
@@ -65,6 +67,7 @@ let make_printer_stream ?more_columns file =
   let trans = Tfxm.compose_result_left bed_parser printer in
   let ic = In_channel.create filename in
   Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic trans
+;;
 
 let test_printer () =
   let s =
@@ -77,19 +80,15 @@ let test_printer () =
       ~error_to_exn:(fun _ -> failwith "Unexpected error in camlstream")
       s
   in
-
   let l = Stream.npeek camlstream Int.max_value in
   assert_equal
-    ~printer:(fun l ->
-      List.map ~f:(sprintf "Output: %S") l |> String.concat ~sep:", ")
+    ~printer:(fun l -> List.map ~f:(sprintf "Output: %S") l |> String.concat ~sep:", ")
     l
-    [
-      "chrA\t42\t45\tsome_string\t42\t3.14\n";
-      "chrB\t100\t130\tsome_string\t42\t3.14\n";
-      "chrC\t200\t245\tsome_string\t42\t3.14\n";
+    [ "chrA\t42\t45\tsome_string\t42\t3.14\n"
+    ; "chrB\t100\t130\tsome_string\t42\t3.14\n"
+    ; "chrC\t200\t245\tsome_string\t42\t3.14\n"
     ];
-
   ()
+;;
 
-let tests =
-  "BED" >::: [ "Parse BED" >:: test_parser; "Print BED" >:: test_printer ]
+let tests = "BED" >::: [ "Parse BED" >:: test_parser; "Print BED" >:: test_printer ]

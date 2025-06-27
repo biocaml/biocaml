@@ -47,6 +47,5 @@
   ppx_compare
   ppx_sexp_conv
   re
-  rresult
   uri)
  (depopts async lwt))

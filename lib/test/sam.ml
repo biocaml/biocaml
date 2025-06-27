@@ -5,15 +5,18 @@ let ( %> ) f g x = g (f x)
 
 let test_parse_optional_field s v =
   let f = Sam.parse_optional_field s in
-  assert_equal ~msg:"Optional field value (i type)"
-    ~printer:
-      (Or_error.sexp_of_t Sam.sexp_of_optional_field
-      %> Sexplib.Sexp.to_string_hum)
-    f v
+  assert_equal
+    ~msg:"Optional field value (i type)"
+    ~printer:(Or_error.sexp_of_t Sam.sexp_of_optional_field %> Sexplib.Sexp.to_string_hum)
+    f
+    v
+;;
 
 let test_parser () =
-  test_parse_optional_field "YS:i:-1"
+  test_parse_optional_field
+    "YS:i:-1"
     (Sam.optional_field "YS" (Sam.optional_field_value_i (-1L)))
+;;
 
 let tests = "SAM" >::: [ "Parse SAM" >:: test_parser ]
 
