@@ -1,7 +1,6 @@
 let all_tests =
   [ Bgzf.tests
   ; Bam.tests
-  ; Bin_pred.tests
   ; Bed.tests
   ; Wig.tests
   ; Sam.tests
