@@ -3,6 +3,6 @@
  (public_name biocaml.base)
  (libraries base uri)
  (inline_tests)
- (flags :standard -short-paths -open Base -open Printf)
+ (flags :standard -short-paths -open Base -open Base.Printf)
  (preprocess
-  (pps ppx_sexp_conv ppx_inline_test)))
+  (pps ppx_jane)))
