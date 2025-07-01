@@ -30,11 +30,6 @@ A `.merlin` is generated automatically during compilation. See
 for usage instructions on Merlin itself.
 
 
-## Tests
-To compile tests, install `oUnit` and run `make` again. Tests can then be run by doing
-
-    dune runtest
-
 ## Benchmarks
 
 To compile benchmarks, install `core_bench` and run `make`
