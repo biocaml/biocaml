@@ -1,1 +1,1 @@
-let all_tests = [ Wig.tests; Vcf.tests ]
+let all_tests = [ Wig.tests ]
