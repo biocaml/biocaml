@@ -1,4 +1,5 @@
 open CFStream
+open Biocaml.Fastq
 open Biocaml_unix.Fastq
 
 type nonrec item = item
