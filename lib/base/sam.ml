@@ -234,31 +234,32 @@ let ref_seq ~name ~length ?assembly ?md5 ?species ?uri () =
     | _ -> false
   in
   (if 1 <= length && length <= 2147483647
-  then Ok length
-  else Error (Error.create "invalid reference sequence length" length [%sexp_of: int]))
+   then Ok length
+   else Error (Error.create "invalid reference sequence length" length [%sexp_of: int]))
   >>= fun length ->
-  (if String.length name > 0
-      && String.foldi name ~init:true ~f:(fun i accum c ->
-           accum && if i = 0 then is_name_first_char_ok c else is_name_other_char_ok c)
-  then Ok name
-  else Error (Error.create "invalid ref seq name" name [%sexp_of: string]))
+  (if
+     String.length name > 0
+     && String.foldi name ~init:true ~f:(fun i accum c ->
+       accum && if i = 0 then is_name_first_char_ok c else is_name_other_char_ok c)
+   then Ok name
+   else Error (Error.create "invalid ref seq name" name [%sexp_of: string]))
   >>= fun name -> Ok { name; length; assembly; md5; species; uri }
 ;;
 
 let read_group
-  ~id
-  ?seq_center
-  ?description
-  ?run_date
-  ?flow_order
-  ?key_seq
-  ?library
-  ?program
-  ?predicted_median_insert_size
-  ?platform
-  ?platform_unit
-  ?sample
-  ()
+      ~id
+      ?seq_center
+      ?description
+      ?run_date
+      ?flow_order
+      ?key_seq
+      ?library
+      ?program
+      ?predicted_median_insert_size
+      ?platform
+      ?platform_unit
+      ?sample
+      ()
   =
   (match run_date with
    | None -> Ok None
@@ -273,23 +274,24 @@ let read_group
    | Some "" -> Or_error.error_string "invalid empty flow order"
    | Some "*" -> Ok flow_order
    | Some x ->
-     if String.for_all x ~f:(function
-          | 'A'
-          | 'C'
-          | 'M'
-          | 'G'
-          | 'R'
-          | 'S'
-          | 'V'
-          | 'T'
-          | 'W'
-          | 'Y'
-          | 'H'
-          | 'K'
-          | 'D'
-          | 'B'
-          | 'N' -> true
-          | _ -> false)
+     if
+       String.for_all x ~f:(function
+         | 'A'
+         | 'C'
+         | 'M'
+         | 'G'
+         | 'R'
+         | 'S'
+         | 'V'
+         | 'T'
+         | 'W'
+         | 'Y'
+         | 'H'
+         | 'K'
+         | 'D'
+         | 'B'
+         | 'N' -> true
+         | _ -> false)
      then Ok flow_order
      else Error (Error.create "invalid flow order" x sexp_of_string))
   >>| fun flow_order ->
@@ -309,15 +311,15 @@ let read_group
 ;;
 
 let header
-  ?version
-  ?sort_order
-  ?group_order
-  ?(ref_seqs = [])
-  ?(read_groups = [])
-  ?(programs = [])
-  ?(comments = [])
-  ?(others = [])
-  ()
+      ?version
+      ?sort_order
+      ?group_order
+      ?(ref_seqs = [])
+      ?(read_groups = [])
+      ?(programs = [])
+      ?(comments = [])
+      ?(others = [])
+      ()
   =
   [ (match version with
      | None -> None
@@ -326,17 +328,17 @@ let header
        | Error e -> Some e
        | Ok _ -> None))
   ; (if Option.is_some sort_order && Poly.(version = None)
-    then
-      Some
-        (Error.create
-           "sort order cannot be defined without version"
-           (sort_order, version)
-           [%sexp_of: sort_order option * string option])
-    else None)
+     then
+       Some
+         (Error.create
+            "sort order cannot be defined without version"
+            (sort_order, version)
+            [%sexp_of: sort_order option * string option])
+     else None)
   ; List.map ref_seqs ~f:(fun (x : ref_seq) -> x.name)
     |> List.find_a_dup ~compare:String.compare
     |> Option.map ~f:(fun name ->
-         Error.create "duplicate ref seq name" name sexp_of_string)
+      Error.create "duplicate ref seq name" name sexp_of_string)
   ]
   |> List.filter_map ~f:Fn.id
   |> function
@@ -374,22 +376,24 @@ let parse_header_item_tag s =
 
 let parse_tag_value s =
   let parse_tag s =
-    if String.length s = 2
-       && (match s.[0] with
-           | 'A' .. 'Z' | 'a' .. 'z' -> true
-           | _ -> false)
-       &&
-       match s.[1] with
-       | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
-       | _ -> false
+    if
+      String.length s = 2
+      && (match s.[0] with
+          | 'A' .. 'Z' | 'a' .. 'z' -> true
+          | _ -> false)
+      &&
+      match s.[1] with
+      | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
+      | _ -> false
     then Ok s
     else Error (Error.create "invalid tag" s sexp_of_string)
   in
   let parse_value tag s =
-    if String.(s <> "")
-       && String.for_all s ~f:(function
-            | ' ' .. '~' -> true
-            | _ -> false)
+    if
+      String.(s <> "")
+      && String.for_all s ~f:(function
+        | ' ' .. '~' -> true
+        | _ -> false)
     then Ok s
     else Error (Error.create "tag has invalid value" (tag, s) [%sexp_of: string * string])
   in
@@ -536,13 +540,13 @@ let parse_read_group tvl =
   >>= fun program ->
   find01 `RG tvl "PI"
   >>?~ (fun predicted_median_insert_size ->
-         try Ok (Int.of_string predicted_median_insert_size) with
-         | _ ->
-           Error
-             (Error.create
-                "invalid predicted median insert size"
-                predicted_median_insert_size
-                sexp_of_string))
+  try Ok (Int.of_string predicted_median_insert_size) with
+  | _ ->
+    Error
+      (Error.create
+         "invalid predicted median insert size"
+         predicted_median_insert_size
+         sexp_of_string))
   >>= fun predicted_median_insert_size ->
   find01 `RG tvl "PL"
   >>?~ parse_platform
@@ -617,20 +621,20 @@ let parse_header_item line =
 (* Alignment Parsers and Constructors                                         *)
 (******************************************************************************)
 let alignment
-  ?ref_seqs
-  ?qname
-  ~flags
-  ?rname
-  ?pos
-  ?mapq
-  ?(cigar = [])
-  ?rnext
-  ?pnext
-  ?tlen
-  ?seq
-  ?(qual = [])
-  ?(optional_fields = [])
-  ()
+      ?ref_seqs
+      ?qname
+      ~flags
+      ?rname
+      ?pos
+      ?mapq
+      ?(cigar = [])
+      ?rnext
+      ?pnext
+      ?tlen
+      ?seq
+      ?(qual = [])
+      ?(optional_fields = [])
+      ()
   =
   [ (match ref_seqs, rname with
      | None, _ | _, None -> None
@@ -658,7 +662,7 @@ let alignment
   ; List.map optional_fields ~f:(fun x -> x.tag)
     |> List.find_a_dup ~compare:String.compare
     |> Option.map ~f:(fun dup ->
-         Error.create "TAG occurs more than once" dup sexp_of_string)
+      Error.create "TAG occurs more than once" dup sexp_of_string)
   ]
   |> List.filter_map ~f:Fn.id
   |> function
@@ -1347,7 +1351,7 @@ module Test = struct
   (*   assert_bool "EOS" (Tfxm.next t = `end_of_stream); *)
 
   (*
-  check (`header ("HD", ["VN", "42.1"; "SO", "coordinate"]));
+     check (`header ("HD", ["VN", "42.1"; "SO", "coordinate"]));
   check (`header ("HD", ["VN", "42.1"; "SO", "wut?"]));
   check (`header ("HD", ["VN", "42.1"; "SO", "coordinate"; "HP", "some other"]));
   check (`header ("HD", []));
@@ -1366,7 +1370,7 @@ module Test = struct
             {qname = "chr0"; flag = 83; rname = "chr0"; pos = 37; mapq = 30;
              cigar = "9M"; rnext = "*"; pnext = 7; tlen = -39; seq = "CAGCGCCAT";
              qual = "*"; optional = [("NM", 'i', "0")]});
-   *)
+  *)
 
   (* let test_printer_deprecated () = *)
   (*   let transfo = Sam.Transform.raw_to_string () in *)

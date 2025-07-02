@@ -134,7 +134,7 @@ module Test = struct
       then accum
       else (
         let v = Range.make_unsafe lo hi in
-        Int.Set.union accum (Int.Set.of_list (Range.to_list v)))
+        Set.union accum (Int.Set.of_list (Range.to_list v)))
     in
     List.fold_left ~f ~init:Int.Set.empty l
   ;;
@@ -153,11 +153,11 @@ module Test = struct
     let is_good intset_op set_op op_name =
       let ans1 = timesf ("naive " ^ op_name) (intset_op intset1) intset2 in
       let ans2 = timesf ("efficient " ^ op_name) (set_op set1) set2 in
-      printf "%s: %b\n" op_name Poly.(Int.Set.to_list ans1 = to_list ans2)
+      printf "%s: %b\n" op_name Poly.(Set.to_list ans1 = to_list ans2)
     in
-    is_good Int.Set.inter inter "intersection";
-    is_good Int.Set.union union "union";
-    is_good Int.Set.diff diff "diff"
+    is_good Set.inter inter "intersection";
+    is_good Set.union union "union";
+    is_good Set.diff diff "diff"
   ;;
 
   (** This function generates random lists and uses them as arguments for [test].

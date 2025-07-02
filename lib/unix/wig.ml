@@ -132,9 +132,9 @@ module Transform = struct
         (List.map by_space ~f:(fun s ->
            match String.split ~on:'=' s with
            | [ key; value ] -> key, value
-           | _ -> raise Caml.Not_found))
+           | _ -> raise Stdlib.Not_found))
     with
-    | Caml.Not_found -> Error (`cannot_parse_key_values (loc, s))
+    | Stdlib.Not_found -> Error (`cannot_parse_key_values (loc, s))
   ;;
 
   let rec next ~tags p =
@@ -223,8 +223,7 @@ module Transform = struct
         try
           `output
             (Ok
-               (`bed_graph_value
-                 (chr, Int.of_string b, Int.of_string e, Float.of_string v)))
+               (`bed_graph_value (chr, Int.of_string b, Int.of_string e, Float.of_string v)))
         with
         | _ -> `output (Error (`wrong_bed_graph_value (current_position p, l))))
       | l -> `output (Error (`unrecognizable_line (current_position p, l))))
@@ -266,29 +265,27 @@ module Transform = struct
     Tfxm.make
       ~name:"wig_to_variable_step"
       ()
-      ~feed:
-        (function
-         | `comment _ -> ()
-         | `bed_graph_value already_done ->
-           Queue.enqueue queue (`output (Ok already_done))
-         | `variable_step_state_change (chrom, span) ->
-           current_state := Some (`variable (chrom, span))
-         | `variable_step_value (pos, v) -> (
-           match !current_state with
-           | Some (`variable (chrom, span)) ->
-             let stop = pos + Option.(value ~default:1 span) - 1 in
-             Queue.enqueue queue (`output (Ok (chrom, pos, stop, v)))
-           | _ -> Queue.enqueue queue (`output (Error `not_in_variable_step_state)))
-         | `fixed_step_state_change (chrom, start, step, span) ->
-           current_state := Some (`fixed (chrom, start, step, span, 0))
-         | `fixed_step_value v -> (
-           match !current_state with
-           | Some (`fixed (chrom, start, step, span, current)) ->
-             let pos = start + (step * current) in
-             let stop = pos + Option.(value ~default:1 span) - 1 in
-             Queue.enqueue queue (`output (Ok (chrom, pos, stop, v)));
-             current_state := Some (`fixed (chrom, start, step, span, current + 1))
-           | _ -> Queue.enqueue queue (`output (Error `not_in_fixed_step_state))))
+      ~feed:(function
+        | `comment _ -> ()
+        | `bed_graph_value already_done -> Queue.enqueue queue (`output (Ok already_done))
+        | `variable_step_state_change (chrom, span) ->
+          current_state := Some (`variable (chrom, span))
+        | `variable_step_value (pos, v) -> (
+          match !current_state with
+          | Some (`variable (chrom, span)) ->
+            let stop = pos + Option.(value ~default:1 span) - 1 in
+            Queue.enqueue queue (`output (Ok (chrom, pos, stop, v)))
+          | _ -> Queue.enqueue queue (`output (Error `not_in_variable_step_state)))
+        | `fixed_step_state_change (chrom, start, step, span) ->
+          current_state := Some (`fixed (chrom, start, step, span, 0))
+        | `fixed_step_value v -> (
+          match !current_state with
+          | Some (`fixed (chrom, start, step, span, current)) ->
+            let pos = start + (step * current) in
+            let stop = pos + Option.(value ~default:1 span) - 1 in
+            Queue.enqueue queue (`output (Ok (chrom, pos, stop, v)));
+            current_state := Some (`fixed (chrom, start, step, span, current + 1))
+          | _ -> Queue.enqueue queue (`output (Error `not_in_fixed_step_state))))
       ~next:(fun stopped ->
         match Queue.dequeue queue with
         | None -> if stopped then `end_of_stream else `not_ready

@@ -36,7 +36,7 @@ type in_channel =
   ; mutable in_block_offset : Int64.t (* Offset of the current block *)
   ; mutable in_pos : int (* Position in the current block *)
   ; mutable in_avail : int
-      (* Number of available characters in the current block, can be less than [max_block_size] *)
+    (* Number of available characters in the current block, can be less than [max_block_size] *)
   ; mutable in_eof : bool (* Flag indicating we reached the end of the file *)
   ; mutable in_stream : Zlib.stream
   }
@@ -65,7 +65,7 @@ let close_in iz =
   In_channel.close iz.ic
 ;;
 
-let input_byte t = Caml.input_byte t
+let input_byte t = Stdlib.input_byte t
 
 let input_u16 ic =
   let b1 = input_byte ic in
@@ -315,7 +315,7 @@ let write_block oc buf len ~isize ~crc32 =
   (* SLEN *)
   output_int16 oc (bsize - 1);
   (* BSIZE - 1*)
-  Caml.output oc buf 0 len;
+  Stdlib.output oc buf 0 len;
   (* DATA *)
   output_int32 oc crc32;
   (* CRC32 *)
@@ -369,8 +369,8 @@ let rec output ~length ~blit oz buf ~pos ~len =
   if remaining > 0 then output ~length ~blit oz buf ~pos:(pos + ncopy) ~len:remaining
 ;;
 
-let output_from_string = output ~length:String.length ~blit:Caml.Bytes.blit_string
-let output = output ~length:Bytes.length ~blit:Caml.Bytes.blit
+let output_from_string = output ~length:String.length ~blit:Stdlib.Bytes.blit_string
+let output = output ~length:Bytes.length ~blit:Stdlib.Bytes.blit
 
 let output_char =
   let buf = Bytes.make 1 ' ' in
@@ -468,7 +468,8 @@ module Test = struct
     test_parse_of_unparse 0x100;
     test_parse_of_unparse 0x10000;
     test_parse_of_unparse 0x1000000;
-    [%expect {|
+    [%expect
+      {|
       true
       true
       true
@@ -488,7 +489,8 @@ module Test = struct
   let%expect_test "test_parse_file_per_char" =
     test_parse_file_per_char "../../etc/test_data/bgzf_01.bgzf";
     test_parse_file_per_char "../../etc/test_data/bgzf_02.bgzf";
-    [%expect {|
+    [%expect
+      {|
       true
       true
     |}]

@@ -36,7 +36,7 @@ module BP = struct
 
   let unpack_signed_32_little_endian ~buf ~pos =
     let b1 =
-      Int32.shift_left (Int32.of_int_exn (Caml.Char.code (String.get buf (pos + 3)))) 24
+      Int32.shift_left (Int32.of_int_exn (Char.to_int (String.get buf (pos + 3)))) 24
     in
     let b2 = Char.to_int (String.get buf (pos + 2)) lsl 16 in
     let b3 = Char.to_int (String.get buf (pos + 1)) lsl 8 in
@@ -71,18 +71,18 @@ module BP = struct
          (Int64.shift_left
             (Int64.of_int_exn
                ((Char.to_int (String.get buf (pos + 7)) lsl 16)
-               lor (Char.to_int (String.get buf (pos + 6)) lsl 8)
-               lor Char.to_int (String.get buf (pos + 5))))
+                lor (Char.to_int (String.get buf (pos + 6)) lsl 8)
+                lor Char.to_int (String.get buf (pos + 5))))
             40)
          (Int64.shift_left
             (Int64.of_int_exn
                ((Char.to_int (String.get buf (pos + 4)) lsl 16)
-               lor (Char.to_int (String.get buf (pos + 3)) lsl 8)
-               lor Char.to_int (String.get buf (pos + 2))))
+                lor (Char.to_int (String.get buf (pos + 3)) lsl 8)
+                lor Char.to_int (String.get buf (pos + 2))))
             16))
       (Int64.of_int_exn
          ((Char.to_int (String.get buf (pos + 1)) lsl 8)
-         lor Char.to_int (String.get buf pos)))
+          lor Char.to_int (String.get buf pos)))
   ;;
 
   let unpack_float_little_endian ~buf ~pos =
@@ -829,11 +829,11 @@ let write h xs oc =
 
 module Test = struct
   let assert_equal
-    ?(msg : string option)
-    ?(printer : ('a -> Sexp.t) option)
-    ?(cmp : ('a -> 'a -> bool) option)
-    (x : 'a)
-    (y : 'a)
+        ?(msg : string option)
+        ?(printer : ('a -> Sexp.t) option)
+        ?(cmp : ('a -> 'a -> bool) option)
+        (x : 'a)
+        (y : 'a)
     =
     let printer : 'a -> string =
       match printer with
@@ -996,7 +996,8 @@ module Test = struct
       wrong n_cigar_ops: : 1 = 1: true
       wrong seq: : TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT = TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT: true
       Number of alignments: : 25 = 25: true
-    |}]
+    |}];
+    Ok () (* FIXME: No idea why this is needed. *)
   ;;
 
   let%expect_test "test_read_write_and_read" =
@@ -1277,6 +1278,7 @@ module Test = struct
       n_cigar_ops: : 1 = 1: true
       seq: : GCTGTCGTGAAGACCACAGTGTTCACCACCTTGCTG = GCTGTCGTGAAGACCACAGTGTTCACCACCTTGCTG: true
       true
-    |}]
+    |}];
+    Ok () (* FIXME: No idea why this is needed. *)
   ;;
 end

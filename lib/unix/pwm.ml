@@ -10,10 +10,10 @@ let int_of_char = function
   | _ -> 4
 ;;
 
-let flat_background () = Caml.Array.make 4 0.25
+let flat_background () = Stdlib.Array.make 4 0.25
 
 let background_of_sequence seq pc =
-  let counts = Caml.Array.make 4 0
+  let counts = Stdlib.Array.make 4 0
   and n = ref 0 in
   for i = 0 to String.length seq - 1 do
     let k = int_of_char seq.[i] in
@@ -51,7 +51,7 @@ let tandem ?(orientation = `direct) ~spacer mat1 mat2 bg =
   Array.concat
     [ (if Poly.(orientation = `everted) then reverse_complement else Fun.id)
         (make mat1 bg)
-    ; Array.init spacer ~f:(fun _ -> Caml.Array.make 5 0.)
+    ; Array.init spacer ~f:(fun _ -> Stdlib.Array.make 5 0.)
     ; (if Poly.(orientation = `inverted) then reverse_complement else Fun.id)
         (make mat2 bg)
     ]
