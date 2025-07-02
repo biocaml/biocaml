@@ -230,8 +230,6 @@ module Stream = struct
       | len -> Some (Bytes.To_string.sub buf ~pos:0 ~len))
   ;;
 
-  let to_set xs = fold xs ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
-
   module Result = struct
     let stream_map2_exn = map2_exn
     let stream_fold = fold

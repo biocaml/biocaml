@@ -110,7 +110,6 @@ module Stream : sig
 
   val of_list : 'a list -> 'a Stream.t
   val to_list : 'a Stream.t -> 'a list
-  val to_set : 'a Stream.t -> 'a Set.Poly.t
 
   (** {6 Result.t's} *)
 

@@ -532,9 +532,12 @@ module Test = struct
            and lo, hi, _ = random_interval ~ub:1000 () in
            let l =
              ListImpl.(find_intersecting_elem lo hi (L.of_list intervals))
-             |> CFStream.Stream.to_set
+             |> CFStream.Stream.fold ~init:Set.Poly.empty ~f:(fun accu e ->
+                  Set.Poly.add accu e)
            and t =
-             find_intersecting_elem lo hi (T.of_list intervals) |> CFStream.Stream.to_set
+             find_intersecting_elem lo hi (T.of_list intervals)
+             |> CFStream.Stream.fold ~init:Set.Poly.empty ~f:(fun accu e ->
+                  Set.Poly.add accu e)
            in
            Int.equal 0 (Set.length (Set.union (Set.diff l t) (Set.diff t l)))
            (* [assert_equal l t] is not a valid test because sets cannot be
