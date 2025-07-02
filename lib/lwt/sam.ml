@@ -1,2 +1,1 @@
-include Biocaml_unix.Sam
-include MakeIO (Future_lwt)
+include Biocaml_unix.Sam.MakeIO (Future_lwt)
