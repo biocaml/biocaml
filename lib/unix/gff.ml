@@ -50,15 +50,15 @@ end
 
 module Error = struct
   type parsing =
-    [ `cannot_parse_float of Pos.t * string
-    | `cannot_parse_int of Pos.t * string
-    | `cannot_parse_strand of Pos.t * string
-    | `cannot_parse_string of Pos.t * string
-    | `empty_line of Pos.t
-    | `incomplete_input of Pos.t * string list * string option
-    | `wrong_attributes of Pos.t * string
-    | `wrong_row of Pos.t * string
-    | `wrong_url_escaping of Pos.t * string
+    [ `cannot_parse_float of Biocaml.Pos.t * string
+    | `cannot_parse_int of Biocaml.Pos.t * string
+    | `cannot_parse_strand of Biocaml.Pos.t * string
+    | `cannot_parse_string of Biocaml.Pos.t * string
+    | `empty_line of Biocaml.Pos.t
+    | `incomplete_input of Biocaml.Pos.t * string list * string option
+    | `wrong_attributes of Biocaml.Pos.t * string
+    | `wrong_row of Biocaml.Pos.t * string
+    | `wrong_url_escaping of Biocaml.Pos.t * string
     ]
   [@@deriving sexp]
 

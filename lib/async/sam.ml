@@ -1,2 +1,1 @@
-include Biocaml_unix.Sam
-include MakeIO (Future_async)
+include Biocaml_unix.Sam.MakeIO (Future_async)

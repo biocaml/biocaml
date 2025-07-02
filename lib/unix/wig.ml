@@ -46,30 +46,30 @@ end
 
 module Error = struct
   type parsing =
-    [ `cannot_parse_key_values of Pos.t * string
-    | `empty_line of Pos.t
-    | `incomplete_input of Pos.t * string list * string option
-    | `missing_chrom_value of Pos.t * string
-    | `missing_start_value of Pos.t * string
-    | `missing_step_value of Pos.t * string
-    | `wrong_start_value of Pos.t * string
-    | `wrong_step_value of Pos.t * string
-    | `unrecognizable_line of Pos.t * string list
-    | `wrong_bed_graph_value of Pos.t * string
-    | `wrong_fixed_step_value of Pos.t * string
-    | `wrong_span_value of Pos.t * string
-    | `wrong_variable_step_value of Pos.t * string
+    [ `cannot_parse_key_values of Biocaml.Pos.t * string
+    | `empty_line of Biocaml.Pos.t
+    | `incomplete_input of Biocaml.Pos.t * string list * string option
+    | `missing_chrom_value of Biocaml.Pos.t * string
+    | `missing_start_value of Biocaml.Pos.t * string
+    | `missing_step_value of Biocaml.Pos.t * string
+    | `wrong_start_value of Biocaml.Pos.t * string
+    | `wrong_step_value of Biocaml.Pos.t * string
+    | `unrecognizable_line of Biocaml.Pos.t * string list
+    | `wrong_bed_graph_value of Biocaml.Pos.t * string
+    | `wrong_fixed_step_value of Biocaml.Pos.t * string
+    | `wrong_span_value of Biocaml.Pos.t * string
+    | `wrong_variable_step_value of Biocaml.Pos.t * string
     ]
   [@@deriving sexp]
 
   let parsing_error_to_string =
-    let pos () a = Pos.to_string a in
+    let pos () a = Biocaml.Pos.to_string a in
     function
     | `cannot_parse_key_values (p, s) ->
       sprintf "cannot_parse_key_values (%a, %S)" pos p s
     | `empty_line p -> sprintf "empty_line (%a)" pos p
     | `incomplete_input (p, vs, vo) ->
-      (* Pos.t * string list *string option *)
+      (* Biocaml.Pos.t * string list *string option *)
       sprintf
         "incomplete_input (%a, %s, %S)"
         pos
@@ -77,34 +77,34 @@ module Error = struct
         (String.concat ~sep:"; " vs)
         (Option.value ~default:"" vo)
     | `missing_chrom_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "missing_chrom_value (%a, %s)" pos p v
     | `missing_start_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "missing_start_value (%a, %s)" pos p v
     | `missing_step_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "missing_step_value (%a, %s)" pos p v
     | `wrong_start_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "wrong_start_value (%a, %s)" pos p v
     | `wrong_step_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "wrong_step_value (%a, %s)" pos p v
     | `unrecognizable_line (p, v) ->
-      (* Pos.t * string list *)
+      (* Biocaml.Pos.t * string list *)
       sprintf "unrecognizable_line (%a, %s)" pos p (String.concat ~sep:" " v)
     | `wrong_bed_graph_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "wrong_bed_graph_value (%a, %s)" pos p v
     | `wrong_fixed_step_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "wrong_fixed_step_value (%a, %s)" pos p v
     | `wrong_span_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "wrong_span_value (%a, %s)" pos p v
     | `wrong_variable_step_value (p, v) ->
-      (* Pos.t * string *)
+      (* Biocaml.Pos.t * string *)
       sprintf "wrong_variable_step_value (%a, %s)" pos p v
   ;;
 
@@ -425,7 +425,8 @@ module Test = struct
       | _ -> false);
     check_output s "fixed_step_value" (`fixed_step_value 800.);
     check_end s;
-    [%expect {|
+    [%expect
+      {|
       check_output: comment line: true
       check_output: variableStep: true
       check_output: variable_step_value : true
@@ -482,7 +483,8 @@ module Test = struct
       | _ -> false);
     check_output s "800" "800\n";
     check_end s;
-    [%expect {|
+    [%expect
+      {|
       check_output: comment: true
       check_output: variableStep=150: true
       check_output: 49304701 10: true
@@ -530,7 +532,8 @@ module Test = struct
     check_error s "incomplete_line" (function
       | `left (`incomplete_input _) -> true
       | _ -> false);
-    [%expect {|
+    [%expect
+      {|
       check_output: : true
       check_output: : true
       check_output: : true

@@ -86,34 +86,32 @@
     given string. None means any character is allowed. Default: None.
 *)
 
-type header = private string list
 (** A header is a list of comment lines. *)
+type header = private string list
 
-type item = private { description : string; sequence : string }
+type item = private
+  { description : string
+  ; sequence : string
+  }
 
-type fmt = {
-  allow_sharp_comments : bool;
-  allow_semicolon_comments : bool;
-  allow_empty_lines : bool;
-  comments_only_at_top : bool;
-  max_line_length : int option;
-  alphabet : string option;
-}
+type fmt =
+  { allow_sharp_comments : bool
+  ; allow_semicolon_comments : bool
+  ; allow_empty_lines : bool
+  ; comments_only_at_top : bool
+  ; max_line_length : int option
+  ; alphabet : string option
+  }
 
 val default_fmt : fmt
 
-val sequence_to_int_list : string -> int list Or_error.t
 (** Parse a space separated list of integers. *)
+val sequence_to_int_list : string -> int list Or_error.t
 
 (******************************************************************************)
 (** {2 Low-level Parsing} *)
 (******************************************************************************)
 
-type item0 = private
-  [< `Comment of string
-  | `Empty_line
-  | `Description of string
-  | `Partial_sequence of string ]
 (** An [item0] is more raw than [item]. It is useful for parsing files
     with large sequences because you get the sequence in smaller
     pieces.
@@ -130,38 +128,45 @@ type item0 = private
     - [`Partial_sequence _] - Multiple sequential partial sequences
     comprise the sequence of a single [item].
 *)
+type item0 = private
+  [< `Comment of string
+  | `Empty_line
+  | `Description of string
+  | `Partial_sequence of string
+  ]
 
-val parse_item0 :
-  ?allow_sharp_comments:bool ->
-  ?allow_semicolon_comments:bool ->
-  ?allow_empty_lines:bool ->
-  ?max_line_length:int ->
-  ?alphabet:string ->
-  Line.t ->
-  item0 Or_error.t
+val parse_item0
+  :  ?allow_sharp_comments:bool
+  -> ?allow_semicolon_comments:bool
+  -> ?allow_empty_lines:bool
+  -> ?max_line_length:int
+  -> ?alphabet:string
+  -> Biocaml.Line.t
+  -> item0 Or_error.t
 
 (******************************************************************************)
 
 (******************************************************************************)
-val read0 :
-  ?start:Pos.t ->
-  ?allow_sharp_comments:bool ->
-  ?allow_semicolon_comments:bool ->
-  ?allow_empty_lines:bool ->
-  ?max_line_length:int ->
-  ?alphabet:string ->
-  In_channel.t ->
-  item0 Or_error.t Stream.t
+
 (** {2 Input/Output } *)
+val read0
+  :  ?start:Biocaml.Pos.t
+  -> ?allow_sharp_comments:bool
+  -> ?allow_semicolon_comments:bool
+  -> ?allow_empty_lines:bool
+  -> ?max_line_length:int
+  -> ?alphabet:string
+  -> In_channel.t
+  -> item0 Or_error.t Stream.t
 
-val read :
-  ?start:Pos.t ->
-  ?fmt:fmt ->
-  In_channel.t ->
-  (header * item Or_error.t Stream.t) Or_error.t
+val read
+  :  ?start:Biocaml.Pos.t
+  -> ?fmt:fmt
+  -> In_channel.t
+  -> (header * item Or_error.t Stream.t) Or_error.t
 
-val with_file :
-  ?fmt:fmt ->
-  string ->
-  f:(header -> item Or_error.t Stream.t -> 'a Or_error.t) ->
-  'a Or_error.t
+val with_file
+  :  ?fmt:fmt
+  -> string
+  -> f:(header -> item Or_error.t Stream.t -> 'a Or_error.t)
+  -> 'a Or_error.t
