@@ -21,5 +21,5 @@ module Parser : sig
   (** [step st i] parses an input. If [i = None], the caller indicates
       that there is no more input; in that case the returned state is
       terminal: all inputs read from this state will be ignored. *)
-  val step : state -> string option -> state * Biocaml.Line.t list
+  val step : state -> string option -> state * Line.t list
 end

@@ -1,4 +1,4 @@
-open Biocaml_base
+open Biocaml
 
 exception Parse_error of string
 

@@ -55,6 +55,6 @@ val record
   -> int
   -> record
 
-val gff3_item_of_line : Biocaml.Line.t -> (item, [> `Msg of string ]) Result.t
-val gtf_item_of_line : Biocaml.Line.t -> (item, [> `Msg of string ]) Result.t
-val line_of_item : [ `two | `three ] -> item -> Biocaml.Line.t
+val gff3_item_of_line : Line.t -> (item, [> `Msg of string ]) Result.t
+val gtf_item_of_line : Line.t -> (item, [> `Msg of string ]) Result.t
+val line_of_item : [ `two | `three ] -> item -> Line.t

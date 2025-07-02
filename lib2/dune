@@ -1,8 +1,0 @@
-(library
- (name biocaml)
- (public_name biocaml)
- (libraries base re uri)
- (inline_tests)
- (flags :standard -open Base -open Base.Printf)
- (preprocess
-  (pps ppx_jane)))

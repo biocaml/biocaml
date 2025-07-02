@@ -6,7 +6,6 @@
  (libraries
   base64
   biocaml
-  biocaml.base
   zip
   camlp-streams
   cfstream

@@ -21,7 +21,7 @@ module Xls : sig
     ; name : string
     }
 
-  val parse : Biocaml.Line.t -> (item, [> `Msg of string ]) Result.t
+  val parse : Line.t -> (item, [> `Msg of string ]) Result.t
 end
 
 module Broad_peaks : sig
@@ -37,5 +37,5 @@ module Broad_peaks : sig
     ; log10qvalue : float
     }
 
-  val parse : Biocaml.Line.t -> (item, [> `Msg of string ]) Result.t
+  val parse : Line.t -> (item, [> `Msg of string ]) Result.t
 end
