@@ -18,7 +18,7 @@ include MakeIO (Future_unix)
 
 let of_char_stream cstr =
   let f _ =
-    match CFStream.Stream.peek cstr with
+    match Stream.peek cstr with
     | None -> None
     | Some _ ->
       let ans = Buffer.create 100 in
@@ -34,12 +34,12 @@ let of_char_stream cstr =
       loop ();
       Some (Buffer.contents ans |> Biocaml.Line.of_string_unsafe)
   in
-  CFStream.Stream.from f
+  Stream.from f
 ;;
 
 let of_channel cin =
   let f _ = In_channel.input_line cin |> Option.map ~f:Biocaml.Line.of_string_unsafe in
-  CFStream.Stream.from f
+  Stream.from f
 ;;
 
 let of_string s =

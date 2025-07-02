@@ -222,12 +222,12 @@ let stream_backwards_next l _ =
 
 let to_stream t =
   let l = ref (cons_iter t E) in
-  CFStream.Stream.from (stream_next l)
+  Stream.from (stream_next l)
 ;;
 
 let to_backwards_stream t =
   let l = ref (rev_cons_iter t E) in
-  CFStream.Stream.from (stream_backwards_next l)
+  Stream.from (stream_backwards_next l)
 ;;
 
 let rec find_closest_aux lo hi = function

@@ -157,7 +157,8 @@ module Transform = struct
     in
     let inch = Scanf.Scanning.from_string whole_thing in
     let tokens =
-      CFStream.Stream.(from (fun _ -> parse_string inch) |> Fn.flip npeek Int.max_value)
+      Stream.from (fun _ -> parse_string inch)
+      |> Fn.flip CFStream.Stream.npeek Int.max_value
     in
     let rec go_3_by_3 acc = function
       | [ k; v ] -> Ok (List.rev ((k, [ v ]) :: acc))

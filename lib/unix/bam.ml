@@ -709,7 +709,7 @@ let read_alignment iz =
   | End_of_file -> None
 ;;
 
-let read_alignment_stream iz = CFStream.Stream.from (fun _ -> read_alignment iz)
+let read_alignment_stream iz = Stream.from (fun _ -> read_alignment iz)
 
 let read_header iz =
   read_sam_header iz

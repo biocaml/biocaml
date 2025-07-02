@@ -6,18 +6,6 @@
 open Core
 
 module Stream : sig
-  (** Raised when asking for an element of an empty stream, and by
-    {!Genlex} parsers when none of the first components of the stream
-    patterns is accepted.
-*)
-  exception Failure
-
-  (** Raised by {!Genlex} parsers when the first component of a stream
-    pattern is accepted, but one of the following components is
-    rejected.
-*)
-  exception Error of string
-
   (** Raised by operations working on more than one stream where all
     streams are expected to be of the same length. *)
   exception Expected_streams_of_equal_length
@@ -31,38 +19,15 @@ module Stream : sig
     @raise Stream.Failure if the stream is empty. *)
   val next_exn : 'a Stream.t -> 'a
 
-  (** Return first element of given stream without removing it from the
-    stream, or [None] if the stream is empty. *)
-  val peek : 'a Stream.t -> 'a option
-
   (** [npeek s n] returns a list of the first [n] elements in stream
     [s], or all of its remaining elements if less than [n] elements
     are available. The elements are not removed from the stream. *)
   val npeek : 'a Stream.t -> int -> 'a list
 
-  (** Discard first element of given stream or do nothing if the stream
-    is empty. *)
-  val junk : 'a Stream.t -> unit
-
-  (** Return number of elements discarded from given stream. *)
-  val count : 'a Stream.t -> int
-
   (** True if the stream is empty, else false. *)
   val is_empty : 'a Stream.t -> bool
 
   (** {6 Constructors} *)
-
-  (** [from f] returns a stream whose [n]th element is determined by
-    calling [f n], which should return [Some x] to indicate value [x]
-    or [None] to indicate the end of the stream. The stream is
-    infinite if [f] never returns None. *)
-  val from : (int -> 'a option) -> 'a Stream.t
-
-  (** Return a stream of characters by reading from the input
-    channel. WARNING: Semantics unclear if the channel is closed
-    before the stream reads all of its input. For example, the stream
-    appears to return values although the channel has been closed. *)
-  val of_channel : In_channel.t -> char Stream.t
 
   (** Return a stream of strings from the input. Each string has length
     at most [buffer_size]. *)
@@ -152,7 +117,6 @@ module Stream : sig
   val to_list : 'a Stream.t -> 'a list
   val of_hashtbl : ('a, 'b) Hashtbl.t -> ('a * 'b) Stream.t
   val to_set : 'a Stream.t -> 'a Set.Poly.t
-  val of_string : string -> char Stream.t
 
   (** {6 Result.t's} *)
 

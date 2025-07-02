@@ -103,10 +103,10 @@ module Pipe = struct
     | None -> `Eof
   ;;
 
-  let junk = CFStream.Stream.junk
+  let junk = Stream.junk
 
   let peek_deferred r =
-    match CFStream.Stream.peek r with
+    match Stream.peek r with
     | Some x -> `Ok x
     | None -> `Eof
   ;;
@@ -141,7 +141,7 @@ module Reader = struct
   ;;
 
   let read_all ic read_one =
-    CFStream.Stream.from (fun _ ->
+    Stream.from (fun _ ->
       match read_one ic with
       | `Ok x -> Some x
       | `Eof ->

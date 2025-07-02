@@ -131,10 +131,10 @@ module Parser = struct
       upon return lines will point to first blank line after data rows  *)
   let intensity_section lines =
     assert (
-      match CFStream.Stream.peek lines with
+      match Stream.peek lines with
       | None -> false
       | Some l -> line_is_section isection_name l);
-    CFStream.Stream.junk lines;
+    Stream.junk lines;
     let sl = String.split (CFStream.Stream.next_exn lines) ~on:'=' in
     let num_cells = int_of_string (String.strip (List.nth_exn sl 1)) in
     let sl = String.split (CFStream.Stream.next_exn lines) ~on:'=' in
@@ -160,9 +160,7 @@ module Parser = struct
     let of_channel cin =
       let lines = Lines.of_channel cin in
       let err msg =
-        Msg.err
-          ~pos:(Biocaml.Pos.make ~source:file ~line:(CFStream.Stream.count lines) ())
-          msg
+        Msg.err ~pos:(Biocaml.Pos.make ~source:file ~line:(Stream.count lines) ()) msg
       in
       try
         CFStream.Stream.drop_while

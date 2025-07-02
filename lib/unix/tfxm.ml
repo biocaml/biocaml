@@ -73,7 +73,7 @@ let to_stream_fun tr en =
         feed tr s;
         loop_until_ready tr en)
   in
-  CFStream.Stream.from (fun _ -> loop_until_ready tr en)
+  Stream.from (fun _ -> loop_until_ready tr en)
 ;;
 
 let in_channel_strings_to_stream ?(buffer_size = 65536) ic tr =

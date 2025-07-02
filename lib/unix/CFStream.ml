@@ -1,7 +1,7 @@
 open Core
 
 module Stream = struct
-  include Stream
+  open Stream
 
   let next_exn = next
 

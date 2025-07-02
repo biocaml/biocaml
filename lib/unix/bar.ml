@@ -105,9 +105,7 @@ module Parser = struct
           (Lines.of_channel cin)
       in
       let err msg =
-        Msg.err
-          ~pos:(Biocaml.Pos.make ~source:file ~line:(CFStream.Stream.count lines) ())
-          msg
+        Msg.err ~pos:(Biocaml.Pos.make ~source:file ~line:(Stream.count lines) ()) msg
       in
       try
         let hdr = header lines in
