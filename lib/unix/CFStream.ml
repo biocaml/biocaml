@@ -21,7 +21,6 @@ module Stream = struct
   let empty () = from (const None)
 
   exception Expected_streams_of_equal_length
-  exception Premature_end_of_input
 
   let of_list l =
     let lr = ref l in

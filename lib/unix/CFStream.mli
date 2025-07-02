@@ -22,10 +22,6 @@ module Stream : sig
     streams are expected to be of the same length. *)
   exception Expected_streams_of_equal_length
 
-  (** Raised when an operation needs more elements from a stream than
-    available. *)
-  exception Premature_end_of_input
-
   (** Return first element in given stream if any and remove it from the
     stream. *)
   val next : 'a Stream.t -> 'a option
