@@ -1,4 +1,4 @@
-open CFStream
+open Biocaml_unix.CFStream
 include Biocaml_unix.Fasta
 
 let sequence_to_int_list s = ok_exn (sequence_to_int_list s)

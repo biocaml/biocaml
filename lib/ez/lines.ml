@@ -1,4 +1,4 @@
-open CFStream
+open Biocaml_unix.CFStream
 include Biocaml_unix.Lines
 
 let file_mapper inbed outbed ~f =

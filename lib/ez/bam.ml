@@ -1,4 +1,4 @@
-open CFStream
+open Biocaml_unix.CFStream
 include Biocaml_unix.Bam
 
 let with_file fn ~f =

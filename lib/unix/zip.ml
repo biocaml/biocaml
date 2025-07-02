@@ -354,7 +354,8 @@ module Test = struct
       Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
     printf "%s: %b\n" "03 EOF" Poly.(Stream.next s = None);
     clean_up ();
-    [%expect {|
+    [%expect
+      {|
       03 chrA: true
       03 chrB: true
       03 chrC: true
@@ -409,7 +410,8 @@ module Test = struct
       ~f:(fun (zlib_buffer_size, buffer_size) ->
         printf "Gunzip|cat(%d,%d)\n" zlib_buffer_size buffer_size;
         test_gunzip_multiple ~zlib_buffer_size ~buffer_size ());
-    [%expect {|
+    [%expect
+      {|
       Gunzip|cat(10,1)
       isomorphismish: ABCDEFGHIJKLMNOPQ
       abcdefghijklmnopqrstuvwxyz
