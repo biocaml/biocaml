@@ -414,36 +414,4 @@ module Stream : sig
     (** Same as [fold], but for total functions. *)
     val fold' : ('a, 'e) t -> init:'b -> f:('b -> 'a -> 'b) -> ('b, 'e) Result.t
   end
-
-  (** Specialisation of {! CFStream_stream.Result } for ['a
-    Or_error.t] *)
-  module Or_error : sig
-    type 'a t = 'a Or_error.t Stream.t
-
-    val all : 'a t -> f:('a Stream.t -> 'b Or_error.t) -> 'b Or_error.t
-    val all' : 'a t -> f:('a Stream.t -> 'b) -> 'b Or_error.t
-    val to_exn : 'a t -> error_to_exn:(Error.t -> exn) -> 'a Stream.t
-
-    (** [map' rs ~f] maps [Ok] results with a partial function [f] *)
-    val map : 'a t -> f:('a -> 'b Or_error.t) -> 'b t
-
-    (** [map rs ~f] maps [Ok] results with a total function [f] *)
-    val map' : 'a t -> f:('a -> 'b) -> 'b t
-
-    (** Generalization of [map] with two streams of results. If the two
-      streams fail simultaneously, one of the two errors is propagated. *)
-    val map2_exn : 'a t -> 'b t -> f:('a -> 'b -> 'c Or_error.t) -> 'c t
-
-    (** Analoguous of [map2_exn] for total functions *)
-    val map2_exn' : 'a t -> 'b t -> f:('a -> 'b -> 'c) -> 'c t
-
-    (** [fold rs ~init ~f] computes a value by iterating [f] on each
-      [Ok] element of [rs] starting from [init]. The computation stops
-      with an [Error] case as soon as one is met on the stream, or
-      when [f] returns one. *)
-    val fold : 'a t -> init:'b -> f:('b -> 'a -> 'b Or_error.t) -> 'b Or_error.t
-
-    (** Same as [fold], but for total functions. *)
-    val fold' : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b Or_error.t
-  end
 end

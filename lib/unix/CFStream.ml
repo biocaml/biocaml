@@ -630,93 +630,83 @@ module Stream = struct
 
     type ('a, 'b) t = ('a, 'b) Result.t Stream.t
 
-    module Impl = struct
-      let all_gen (type e) g (xs : ('a, e) t) ~f =
-        let module M = struct
-          exception E of e
-        end
-        in
-        let error_to_exn e = M.E e in
-        try g (f (result_to_exn xs ~error_to_exn)) with
-        | M.E e -> Result.Error e
-      ;;
+    let all_gen (type e) g (xs : ('a, e) t) ~f =
+      let module M = struct
+        exception E of e
+      end
+      in
+      let error_to_exn e = M.E e in
+      try g (f (result_to_exn xs ~error_to_exn)) with
+      | M.E e -> Result.Error e
+    ;;
 
-      let all xs ~f = all_gen Fn.id xs ~f
-      let all' xs ~f = all_gen (fun x -> Ok x) xs ~f
-      let to_exn = result_to_exn
+    let all xs ~f = all_gen Fn.id xs ~f
+    let all' xs ~f = all_gen (fun x -> Ok x) xs ~f
+    let to_exn = result_to_exn
 
-      let map' rs ~f =
-        let f = function
-          | Ok x -> Ok (f x)
-          | Error _ as e -> e
-        in
-        stream_map rs ~f
-      ;;
+    let map' rs ~f =
+      let f = function
+        | Ok x -> Ok (f x)
+        | Error _ as e -> e
+      in
+      stream_map rs ~f
+    ;;
 
-      let map rs ~f =
-        let f = function
-          | Ok x -> f x
-          | Error _ as e -> e
-        in
-        stream_map rs ~f
-      ;;
+    let map rs ~f =
+      let f = function
+        | Ok x -> f x
+        | Error _ as e -> e
+      in
+      stream_map rs ~f
+    ;;
 
-      let map2_exn xs ys ~f =
-        let f x y =
-          match x, y with
-          | Ok x, Ok y -> f x y
-          | (Error _ as ex), _ -> ex
-          | _, (Error _ as ey) -> ey
-        in
-        stream_map2_exn xs ys ~f
-      ;;
+    let map2_exn xs ys ~f =
+      let f x y =
+        match x, y with
+        | Ok x, Ok y -> f x y
+        | (Error _ as ex), _ -> ex
+        | _, (Error _ as ey) -> ey
+      in
+      stream_map2_exn xs ys ~f
+    ;;
 
-      let map2_exn' xs ys ~f =
-        let f x y =
-          match x, y with
-          | Ok x, Ok y -> Ok (f x y)
-          | (Error _ as ex), _ -> ex
-          | _, (Error _ as ey) -> ey
-        in
-        stream_map2_exn xs ys ~f
-      ;;
+    let map2_exn' xs ys ~f =
+      let f x y =
+        match x, y with
+        | Ok x, Ok y -> Ok (f x y)
+        | (Error _ as ex), _ -> ex
+        | _, (Error _ as ey) -> ey
+      in
+      stream_map2_exn xs ys ~f
+    ;;
 
-      let fold' (type e) rs ~init ~f =
-        let module M = struct
-          exception E of e
-        end
-        in
-        let f accu = function
-          | Ok x -> f accu x
-          | Error e -> raise (M.E e)
-        in
-        try Ok (stream_fold rs ~init ~f) with
-        | M.E e -> Error e
-      ;;
+    let fold' (type e) rs ~init ~f =
+      let module M = struct
+        exception E of e
+      end
+      in
+      let f accu = function
+        | Ok x -> f accu x
+        | Error e -> raise (M.E e)
+      in
+      try Ok (stream_fold rs ~init ~f) with
+      | M.E e -> Error e
+    ;;
 
-      let fold (type e) rs ~init ~f =
-        let module M = struct
-          exception E of e
-        end
-        in
-        let f accu = function
-          | Ok x -> (
-            match f accu x with
-            | Ok r -> r
-            | Error e -> raise (M.E e))
-          | Error e -> raise (M.E e)
-        in
-        try Ok (stream_fold rs ~init ~f) with
-        | M.E e -> Error e
-      ;;
-    end
-
-    include Impl
-  end
-
-  module Or_error = struct
-    type 'a t = 'a Or_error.t Stream.t
-
-    include Result.Impl
+    let fold (type e) rs ~init ~f =
+      let module M = struct
+        exception E of e
+      end
+      in
+      let f accu = function
+        | Ok x -> (
+          match f accu x with
+          | Ok r -> r
+          | Error e -> raise (M.E e))
+        | Error e -> raise (M.E e)
+      in
+      try Ok (stream_fold rs ~init ~f) with
+      | M.E e -> Error e
+    ;;
   end
 end
