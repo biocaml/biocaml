@@ -19,11 +19,6 @@ module Stream : sig
     @raise Stream.Failure if the stream is empty. *)
   val next_exn : 'a Stream.t -> 'a
 
-  (** [npeek s n] returns a list of the first [n] elements in stream
-    [s], or all of its remaining elements if less than [n] elements
-    are available. The elements are not removed from the stream. *)
-  val npeek : 'a Stream.t -> int -> 'a list
-
   (** True if the stream is empty, else false. *)
   val is_empty : 'a Stream.t -> bool
 

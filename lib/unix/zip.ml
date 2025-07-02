@@ -384,7 +384,7 @@ module Test = struct
     let t = Transform.unzip ~format:`gzip ~zlib_buffer_size () in
     let ic = In_channel.create (sprintf "%s.gz" tmp3) in
     let s = Tfxm.in_channel_strings_to_stream ~buffer_size ic t in
-    let l = CFStream.Stream.npeek s 300 in
+    let l = Stream.npeek 300 s in
     let expected = sprintf "%s\n%s\n" first second in
     let obtained =
       String.concat

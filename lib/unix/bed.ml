@@ -204,7 +204,7 @@ module Test = struct
         ~error_to_exn:(fun _ -> failwith "Unexpected error in camlstream")
         s
     in
-    let l = CFStream.Stream.npeek camlstream Int.max_value in
+    let l = Stream.npeek Int.max_value camlstream in
     printf
       "%b\n"
       (List.equal

@@ -10,8 +10,6 @@ module Stream = struct
     | Stream.Failure -> None
   ;;
 
-  let npeek s n = npeek n s
-
   let is_empty s =
     match peek s with
     | None -> true
