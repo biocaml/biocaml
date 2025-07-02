@@ -446,41 +446,4 @@ module Stream : sig
     (** Same as [fold], but for total functions. *)
     val fold' : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b Or_error.t
   end
-
-  module Infix : sig
-    (** As [range], without the label.
-
-        [5 -- 10] is the enumeration 5,6,7,8,9,10.
-        [10 -- 5] is the empty enumeration*)
-    val ( -- ) : int -> int -> int t
-
-    (** As [(--)] but without the right endpoint
-
-        [5 --^ 10] is the enumeration 5,6,7,8,9.
-    *)
-    val ( --^ ) : int -> int -> int t
-
-    (** [(a, step) --. b)] creates a float enumeration from [a] to [b] with an
-        increment of [step] between elements.
-
-        [(5.0, 1.0) --. 10.0] is the enumeration 5.0,6.0,7.0,8.0,9.0,10.0.
-        [(10.0, -1.0) --. 5.0] is the enumeration 10.0,9.0,8.0,7.0,6.0,5.0.
-        [(10.0, 1.0) --. 1.0] is the empty enumeration. *)
-    val ( --. ) : float * float -> float -> float t
-
-    (** As [--], but accepts enumerations in reverse order.
-
-        [5 --- 10] is the enumeration 5,6,7,8,9,10.
-        [10 --- 5] is the enumeration 10,9,8,7,6,5.*)
-    val ( --- ) : int -> int -> int t
-
-    (** [s /@ f] is equivalent to [map f s] *)
-    val ( /@ ) : 'a t -> ('a -> 'b) -> 'b t
-
-    (** [s // f] is equivalent to [filter f s] *)
-    val ( // ) : 'a t -> ('a -> bool) -> 'a t
-
-    (** [s //@ f] is equivalent to [filter_map f s] *)
-    val ( //@ ) : 'a t -> ('a -> 'b option) -> 'b t
-  end
 end

@@ -623,27 +623,6 @@ module Stream = struct
   let of_set t = of_list (Set.to_list t)
   let to_set xs = fold xs ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
 
-  module Infix = struct
-    let ( -- ) x y = range x ~until:y
-
-    let ( --. ) (a, step) b =
-      let n = Int.of_float ((b -. a) /. step) + 1 in
-      if n < 0 then empty () else init n ~f:(fun i -> (Float.of_int i *. step) +. a)
-    ;;
-
-    let ( --^ ) x y = range x ~until:(y - 1)
-
-    let ( --- ) x y =
-      if x <= y
-      then x -- y
-      else unfold x ~f:(fun prev -> if prev >= y then Some (prev, prev - 1) else None)
-    ;;
-
-    let ( /@ ) x f = map x ~f
-    let ( // ) x f = filter x ~f
-    let ( //@ ) x f = filter_map x ~f
-  end
-
   module Result = struct
     let stream_map = map
     let stream_map2_exn = map2_exn

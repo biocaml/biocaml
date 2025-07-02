@@ -402,7 +402,8 @@ module Test = struct
   ;;
 
   let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n =
-    CFStream.Stream.Infix.((1 -- n) /@ random_interval ~lb ~ub ~minw ~maxw)
+    CFStream.Stream.range 1 ~until:n
+    |> CFStream.Stream.map ~f:(random_interval ~lb ~ub ~minw ~maxw)
   ;;
 
   module TestAdditions (I : sig
