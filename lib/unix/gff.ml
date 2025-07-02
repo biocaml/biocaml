@@ -284,9 +284,7 @@ let in_channel_to_item_stream ?(buffer_size = 65536) ?filename ?(tags = Tags.def
 ;;
 
 let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
-  CFStream.Stream.result_to_exn
-    ~error_to_exn
-    (in_channel_to_item_stream ?buffer_size ?tags inp)
+  CFStream.result_to_exn ~error_to_exn (in_channel_to_item_stream ?buffer_size ?tags inp)
 ;;
 
 let item_to_string ?(tags = Tags.default) item =

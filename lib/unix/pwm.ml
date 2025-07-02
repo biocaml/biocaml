@@ -41,8 +41,8 @@ let make mat bg =
     let n = fold ~f:( + ) ~init:0 p in
     let r = mapi p ~f:(fun i x -> log ((float x +. bg.(i)) /. float n /. bg.(i))) in
     let n_case =
-      CFStream.Stream.range 0 ~until:(Array.length p - 1)
-      |> CFStream.Stream.fold ~f:(fun accu i -> accu +. (bg.(i) *. r.(i))) ~init:0.
+      CFStream.range 0 ~until:(Array.length p - 1)
+      |> CFStream.fold ~f:(fun accu i -> accu +. (bg.(i) *. r.(i))) ~init:0.
     in
     append r [| n_case |])
 ;;

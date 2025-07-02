@@ -305,7 +305,7 @@ exception Error of Error.unzip
 let error_to_exn e = Error e
 
 let unzip_in_channel_exn ?format ?zlib_buffer_size ?buffer_size inp =
-  CFStream.Stream.result_to_exn
+  CFStream.result_to_exn
     ~error_to_exn
     (unzip_in_channel ?format ?zlib_buffer_size ?buffer_size inp)
 ;;
@@ -341,16 +341,16 @@ module Test = struct
     printf
       "%s: %b\n"
       "03 chrA"
-      Poly.(CFStream.Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+      Poly.(CFStream.next s = some_ok ("chrA", 42, 45, the_expected_list));
     printf
       "%s: %b\n"
       "03 chrB"
-      Poly.(CFStream.Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
+      Poly.(CFStream.next s = some_ok ("chrB", 100, 130, the_expected_list));
     printf
       "%s: %b\n"
       "03 chrC"
-      Poly.(CFStream.Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
-    printf "%s: %b\n" "03 EOF" Poly.(CFStream.Stream.next s = None);
+      Poly.(CFStream.next s = some_ok ("chrC", 200, 245, the_expected_list));
+    printf "%s: %b\n" "03 EOF" Poly.(CFStream.next s = None);
     clean_up ();
     [%expect
       {|

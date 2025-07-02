@@ -215,7 +215,7 @@ exception Error of Error.t
 let error_to_exn err = Error err
 
 let in_channel_to_item_stream_exn ?(buffer_size = 65536) ?filename inp =
-  CFStream.Stream.result_to_exn
+  CFStream.result_to_exn
     ~error_to_exn
     (in_channel_to_item_stream ~buffer_size ?filename inp)
 ;;

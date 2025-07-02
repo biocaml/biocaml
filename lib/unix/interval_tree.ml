@@ -303,7 +303,7 @@ let find_intersecting_elem lo hi t =
           if interval_overlap lo hi n.lo n.hi then Some (node_contents n, t) else loop t)
         else loop t)
   in
-  CFStream.Stream.unfold [ t ] ~f:loop
+  CFStream.unfold [ t ] ~f:loop
 ;;
 
 let filter_overlapping t ~low ~high =
@@ -343,10 +343,10 @@ module Test = struct
 
     (* let cardinal = List.length *)
     (* let elements x = x *)
-    let to_stream x = List.sort ~compare:Poly.compare x |> CFStream.Stream.of_list
+    let to_stream x = List.sort ~compare:Poly.compare x |> CFStream.of_list
 
     (* let to_backwards_stream x =
-      List.sort ~compare:(Fn.flip Poly.compare) x |> CFStream.Stream.of_list
+      List.sort ~compare:(Fn.flip Poly.compare) x |> CFStream.of_list
     ;; *)
 
     (* let pos x = if x < 0 then 0 else x *)
@@ -381,9 +381,7 @@ module Test = struct
     ;;
 
     let find_intersecting_elem lo hi t =
-      CFStream.Stream.filter
-        ~f:(fun (x, y, _) -> interval_overlap lo hi x y)
-        (to_stream t)
+      CFStream.filter ~f:(fun (x, y, _) -> interval_overlap lo hi x y) (to_stream t)
     ;;
 
     (* let filter_overlapping t ~low ~high =
@@ -402,8 +400,7 @@ module Test = struct
   ;;
 
   let random_intervals ?(lb = 0) ?(ub = 100) ?(minw = 1) ?(maxw = 30) n =
-    CFStream.Stream.range 1 ~until:n
-    |> CFStream.Stream.map ~f:(random_interval ~lb ~ub ~minw ~maxw)
+    CFStream.range 1 ~until:n |> CFStream.map ~f:(random_interval ~lb ~ub ~minw ~maxw)
   ;;
 
   module TestAdditions (I : sig
@@ -430,7 +427,7 @@ module Test = struct
 
   let%expect_test "test_add" =
     for _ = 1 to 100 do
-      let intervals = random_intervals 100 |> CFStream.Stream.to_list in
+      let intervals = random_intervals 100 |> CFStream.to_list in
       ignore
         (List.fold_left intervals ~init:empty ~f:(fun accu (lo, hi, _) ->
            let r = add accu ~low:lo ~high:hi ~data:() in
@@ -446,10 +443,9 @@ module Test = struct
     let all_good =
       List.init 100 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals 100 |> CFStream.Stream.to_list in
-           let lres =
-             ListImpl.(intervals |> L.of_list |> to_stream |> CFStream.Stream.to_list)
-           and tres = intervals |> T.of_list |> to_stream |> CFStream.Stream.to_list in
+           let intervals = random_intervals 100 |> CFStream.to_list in
+           let lres = ListImpl.(intervals |> L.of_list |> to_stream |> CFStream.to_list)
+           and tres = intervals |> T.of_list |> to_stream |> CFStream.to_list in
            Int.equal 100 (List.length lres)
            && Int.equal 100 (List.length tres)
            && Poly.equal lres tres)
@@ -464,7 +460,7 @@ module Test = struct
     let all_good =
       List.init 1000 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals ~ub:1000 1000 |> CFStream.Stream.to_list
+           let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
            and low, high, _ = random_interval ~ub:1000 () in
            let l = ListImpl.(intersects (L.of_list intervals) ~low ~high)
            and t = intersects (T.of_list intervals) ~low ~high in
@@ -480,7 +476,7 @@ module Test = struct
     let all_good =
       List.init 1000 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals ~ub:1000 1000 |> CFStream.Stream.to_list
+           let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
            and lo, hi, _ = random_interval ~ub:1000 () in
            let llo, lhi, _, dl = ListImpl.(find_closest lo hi (L.of_list intervals))
            and tlo, thi, _, dt = find_closest lo hi (T.of_list intervals)
@@ -512,12 +508,12 @@ module Test = struct
       "%b\n"
       (Int.equal
          1
-         (find_intersecting_elem 70163 70163 u |> CFStream.Stream.to_list |> List.length));
+         (find_intersecting_elem 70163 70163 u |> CFStream.to_list |> List.length));
     printf
       "%b\n"
       (Int.equal
          3
-         (find_intersecting_elem 65163 75163 u |> CFStream.Stream.to_list |> List.length));
+         (find_intersecting_elem 65163 75163 u |> CFStream.to_list |> List.length));
     [%expect {|
       true
       true
@@ -528,16 +524,14 @@ module Test = struct
     let all_good =
       List.init 1000 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals ~ub:1000 1000 |> CFStream.Stream.to_list
+           let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
            and lo, hi, _ = random_interval ~ub:1000 () in
            let l =
              ListImpl.(find_intersecting_elem lo hi (L.of_list intervals))
-             |> CFStream.Stream.fold ~init:Set.Poly.empty ~f:(fun accu e ->
-                  Set.Poly.add accu e)
+             |> CFStream.fold ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
            and t =
              find_intersecting_elem lo hi (T.of_list intervals)
-             |> CFStream.Stream.fold ~init:Set.Poly.empty ~f:(fun accu e ->
-                  Set.Poly.add accu e)
+             |> CFStream.fold ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
            in
            Int.equal 0 (Set.length (Set.union (Set.diff l t) (Set.diff t l)))
            (* [assert_equal l t] is not a valid test because sets cannot be

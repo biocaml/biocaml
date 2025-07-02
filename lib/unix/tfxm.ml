@@ -65,7 +65,7 @@ let to_stream_fun tr en =
     | `output o -> Some o
     | `end_of_stream -> None
     | `not_ready -> (
-      match CFStream.Stream.next en with
+      match CFStream.next en with
       | None ->
         stop tr;
         loop_until_ready tr en
@@ -77,11 +77,11 @@ let to_stream_fun tr en =
 ;;
 
 let in_channel_strings_to_stream ?(buffer_size = 65536) ic tr =
-  to_stream_fun tr (CFStream.Stream.strings_of_channel ~buffer_size ic)
+  to_stream_fun tr (CFStream.strings_of_channel ~buffer_size ic)
 ;;
 
 let stream_to_out_channel xs tr oc =
-  CFStream.Stream.iter (to_stream_fun tr xs) ~f:(Out_channel.output_string oc)
+  CFStream.iter (to_stream_fun tr xs) ~f:(Out_channel.output_string oc)
 ;;
 
 let on_input t ~f = { t with feed = (fun x -> t.feed (f x)) }

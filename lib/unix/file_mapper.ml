@@ -8,7 +8,7 @@ let lines inbed outbed ~f =
   In_channel.with_file inbed ~f:(fun ic ->
     Out_channel.with_file outbed ~f:(fun oc ->
       Lines.read ic
-      |> CFStream.Stream.concat_map ~f:(fun x -> CFStream.Stream.of_list (f x))
+      |> CFStream.concat_map ~f:(fun x -> CFStream.of_list (f x))
       |> Lines.write oc))
 ;;
 

@@ -143,13 +143,11 @@ module BatAvlTree = struct
 
   (* FIXME: this is nlog n because of the left nesting of appends *)
   let rec to_stream = function
-    | Empty -> CFStream.Stream.empty ()
+    | Empty -> CFStream.empty ()
     | Node (l, v, r, _) ->
-      CFStream.Stream.append
-        (CFStream.Stream.append
-           (CFStream.Stream.of_lazy (lazy (to_stream l)))
-           (CFStream.Stream.singleton v))
-        (CFStream.Stream.of_lazy (lazy (to_stream r)))
+      CFStream.append
+        (CFStream.append (CFStream.of_lazy (lazy (to_stream l))) (CFStream.singleton v))
+        (CFStream.of_lazy (lazy (to_stream r)))
   ;;
 end
 
@@ -554,7 +552,4 @@ let max_elt s =
 
 let choose s = fst (root s)
 let of_list l = List.fold_left ~f:(fun s (lo, hi) -> add_range s lo hi) ~init:empty l
-
-let of_stream e =
-  CFStream.Stream.fold ~f:(fun s (lo, hi) -> add_range s lo hi) ~init:empty e
-;;
+let of_stream e = CFStream.fold ~f:(fun s (lo, hi) -> add_range s lo hi) ~init:empty e

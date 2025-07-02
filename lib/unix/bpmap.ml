@@ -64,12 +64,9 @@ module Parser = struct
         Msg.err ~pos:(Biocaml.Pos.make ~source:file ~line:(Stream.count lines) ()) msg
       in
       try
-        ignore
-          (header (CFStream.Stream.next_exn lines : Lines.item :> string) : string list);
-        CFStream.Stream.to_list
-          (CFStream.Stream.map
-             ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string))
-             lines)
+        ignore (header (CFStream.next_exn lines : Lines.item :> string) : string list);
+        CFStream.to_list
+          (CFStream.map ~f:(fun (x : Lines.item) -> row ~chr_map (x :> string)) lines)
       with
       | Failure msg | Bad msg -> raise_bad (err msg)
     in

@@ -103,7 +103,7 @@ let read0
   r
   =
   let pos = ref start in
-  CFStream.Stream.map (Lines.read r) ~f:(fun line ->
+  CFStream.map (Lines.read r) ~f:(fun line ->
     let current_pos = !pos in
     pos := Biocaml.Pos.incr_line !pos;
     parse_item0

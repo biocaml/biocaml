@@ -23,7 +23,7 @@ let of_char_stream cstr =
     | Some _ ->
       let ans = Buffer.create 100 in
       let rec loop () =
-        match CFStream.Stream.next cstr with
+        match CFStream.next cstr with
         | Some c ->
           if Char.(c <> '\n')
           then (
@@ -57,11 +57,11 @@ let of_string s =
       in
       Some (Biocaml.Line.of_string_unsafe sub, new_pos))
   in
-  CFStream.Stream.unfold 0 ~f
+  CFStream.unfold 0 ~f
 ;;
 
 let to_channel xs oc =
-  CFStream.Stream.iter xs ~f:(fun l ->
+  CFStream.iter xs ~f:(fun l ->
     Out_channel.output_string oc (l : item :> string);
     Out_channel.newline oc)
 ;;
@@ -236,7 +236,7 @@ module Test = struct
       List.equal
         String.equal
         answer
-        (of_string input |> CFStream.Stream.to_list |> List.map ~f:Biocaml.Line.to_string)
+        (of_string input |> CFStream.to_list |> List.map ~f:Biocaml.Line.to_string)
     in
     f "\naa\n\n\nbb" [ ""; "aa"; ""; ""; "bb" ]
   ;;

@@ -306,7 +306,7 @@ let in_channel_to_item_stream ?(buffer_size = 65536) ?filename ?tags inp =
 ;;
 
 let in_channel_to_item_stream_exn ?buffer_size ?filename ?tags inp =
-  CFStream.Stream.result_to_exn
+  CFStream.result_to_exn
     ~error_to_exn
     (in_channel_to_item_stream ?filename ?buffer_size ?tags inp)
 ;;
@@ -322,7 +322,7 @@ let in_channel_to_bed_graph ?(buffer_size = 65536) ?filename ?tags inp =
 ;;
 
 let in_channel_to_bed_graph_exn ?buffer_size ?filename ?tags inp =
-  CFStream.Stream.result_to_exn
+  CFStream.result_to_exn
     ~error_to_exn
     (in_channel_to_bed_graph ?filename ?buffer_size ?tags inp)
 ;;
@@ -364,22 +364,22 @@ module Test = struct
   ;;
 
   let check_output (s : ('a, 'err) result Stream.t) (m : string) (v : 'a) : unit =
-    printf "check_output: %s: %b\n" m Poly.(CFStream.Stream.next s = Some (Ok v))
+    printf "check_output: %s: %b\n" m Poly.(CFStream.next s = Some (Ok v))
   ;;
 
   let check_error (s : ('a, 'err) result Stream.t) (m : string) (f : 'err -> bool) : unit =
     printf
       "check_error: %s: %b\n"
       m
-      (match CFStream.Stream.next s with
+      (match CFStream.next s with
        | Some (Error e) -> f e
        | _ -> false)
   ;;
 
   let check_end s =
-    printf "%s: %b\n" "check_end 1" Poly.(CFStream.Stream.next s = None);
-    printf "%s: %b\n" "check_end 2" Poly.(CFStream.Stream.next s = None);
-    printf "%s: %b\n" "check_end 3" Poly.(CFStream.Stream.next s = None);
+    printf "%s: %b\n" "check_end 1" Poly.(CFStream.next s = None);
+    printf "%s: %b\n" "check_end 2" Poly.(CFStream.next s = None);
+    printf "%s: %b\n" "check_end 3" Poly.(CFStream.next s = None);
     ()
   ;;
 

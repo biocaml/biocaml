@@ -45,7 +45,7 @@ let to_list (_, sections) =
 
 module Parser = struct
   let junk_blank_lines lines =
-    CFStream.Stream.drop_while ~f:(String.for_all ~f:Char.is_whitespace) lines
+    CFStream.drop_while ~f:(String.for_all ~f:Char.is_whitespace) lines
   ;;
 
   let tag_value (s' : string) : string * string =
@@ -59,12 +59,10 @@ module Parser = struct
      to start of first section *)
   let header lines =
     let lines' =
-      CFStream.Stream.take_while
-        ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s))
-        lines
+      CFStream.take_while ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines
     in
     let f accum l = tag_value l :: accum in
-    let ans = List.rev (CFStream.Stream.fold ~f ~init:[] lines') in
+    let ans = List.rev (CFStream.fold ~f ~init:[] lines') in
     junk_blank_lines lines;
     ans
   ;;
@@ -72,22 +70,20 @@ module Parser = struct
   (* lines should point to start of a section, upon return will point
      to start of next section or end of file *)
   let section lines =
-    let tv lines = snd (tag_value (CFStream.Stream.next_exn lines)) in
+    let tv lines = snd (tag_value (CFStream.next_exn lines)) in
     let seq_num = int_of_string (tv lines) in
     let seq_name = tv lines in
     let num_hits = int_of_string (tv lines) in
     junk_blank_lines lines;
     let lines' =
-      CFStream.Stream.take_while
-        ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s))
-        lines
+      CFStream.take_while ~f:(fun s -> not (String.for_all ~f:Char.is_whitespace s)) lines
     in
     let parse_line s =
       match String.split s ~on:'\t' with
       | [ i; f ] -> Int.of_string i, Float.of_string f
       | _ -> raise_bad "data row must contain exactly two fields"
     in
-    let data = CFStream.Stream.to_list (CFStream.Stream.map ~f:parse_line lines') in
+    let data = CFStream.to_list (CFStream.map ~f:parse_line lines') in
     let data = List.sort ~compare:(fun (p1, _) (p2, _) -> Stdlib.compare p1 p2) data in
     let sec = { sec_num = seq_num; sec_name = seq_name; sec_data = data } in
     if List.length data = num_hits
@@ -100,7 +96,7 @@ module Parser = struct
   let of_file file =
     let of_channel cin =
       let lines =
-        CFStream.Stream.map
+        CFStream.map
           ~f:(fun (x : Lines.item) -> String.rstrip (x :> string))
           (Lines.of_channel cin)
       in
@@ -111,7 +107,7 @@ module Parser = struct
         let hdr = header lines in
         let secs = ref [] in
         let () =
-          while not (CFStream.Stream.is_empty lines) do
+          while not (CFStream.is_empty lines) do
             secs := section lines :: !secs
           done
         in

@@ -16,10 +16,10 @@ module Make (Chromosome : Chromosome) = struct
       let t_of_sexp _ = assert false
     end)
 
-    let to_stream t = CFStream.Stream.of_list (to_alist t)
+    let to_stream t = CFStream.of_list (to_alist t)
 
     let of_stream xs =
-      CFStream.Stream.fold xs ~init:empty ~f:(fun accu (key, data) -> set accu ~key ~data)
+      CFStream.fold xs ~init:empty ~f:(fun accu (key, data) -> set accu ~key ~data)
     ;;
   end
 
@@ -87,10 +87,10 @@ module Make (Chromosome : Chromosome) = struct
 
     let to_stream sel =
       Map.to_stream sel
-      |> CFStream.Stream.map ~f:(fun (k, s) ->
-           CFStream.Stream.map (Iset.to_stream s) ~f:(fun (lo, hi) ->
+      |> CFStream.map ~f:(fun (k, s) ->
+           CFStream.map (Iset.to_stream s) ~f:(fun (lo, hi) ->
              k, ok_exn (Range.make lo hi)))
-      |> CFStream.Stream.concat
+      |> CFStream.concat
     ;;
 
     let of_stream e =
@@ -101,7 +101,7 @@ module Make (Chromosome : Chromosome) = struct
           ~add:(fun (_, r) -> Range.(fun x -> Iset.add_range x r.lo r.hi))
           ()
       in
-      CFStream.Stream.iter ~f:(fun loc -> Accu.add accu loc loc) e;
+      CFStream.iter ~f:(fun loc -> Accu.add accu loc loc) e;
       Map.of_stream (Accu.stream accu)
     ;;
   end
@@ -149,17 +149,17 @@ module Make (Chromosome : Chromosome) = struct
       match Map.find lmap k with
       | Some x ->
         T.find_intersecting_elem lo hi x
-        |> CFStream.Stream.map ~f:(fun (lo, hi, x) -> (k, ok_exn (Range.make lo hi)), x)
-      | None -> CFStream.Stream.empty ()
+        |> CFStream.map ~f:(fun (lo, hi, x) -> (k, ok_exn (Range.make lo hi)), x)
+      | None -> CFStream.empty ()
     ;;
 
     let to_stream lmap =
       Map.to_stream lmap
-      |> CFStream.Stream.map ~f:(fun (k, t) ->
-           CFStream.Stream.map
+      |> CFStream.map ~f:(fun (k, t) ->
+           CFStream.map
              ~f:(fun (lo, hi, x) -> (k, ok_exn (Range.make lo hi)), x)
              (T.to_stream t))
-      |> CFStream.Stream.concat
+      |> CFStream.concat
     ;;
 
     let of_stream e =
@@ -170,7 +170,7 @@ module Make (Chromosome : Chromosome) = struct
           ~add:(fun ((_, r), v) -> Range.(T.add ~data:v ~low:r.lo ~high:r.hi))
           ()
       in
-      CFStream.Stream.iter ~f:(fun loc -> Accu.add accu loc loc) e;
+      CFStream.iter ~f:(fun loc -> Accu.add accu loc loc) e;
       Map.of_stream (Accu.stream accu)
     ;;
   end
@@ -187,10 +187,10 @@ module Make (Chromosome : Chromosome) = struct
     ;;
 
     let intersecting_elems lset loc =
-      LMap.intersecting_elems lset loc |> CFStream.Stream.map ~f:fst
+      LMap.intersecting_elems lset loc |> CFStream.map ~f:fst
     ;;
 
-    let to_stream lset = LMap.to_stream lset |> CFStream.Stream.map ~f:fst
-    let of_stream e = e |> CFStream.Stream.map ~f:(fun x -> x, ()) |> LMap.of_stream
+    let to_stream lset = LMap.to_stream lset |> CFStream.map ~f:fst
+    let of_stream e = e |> CFStream.map ~f:(fun x -> x, ()) |> LMap.of_stream
   end
 end

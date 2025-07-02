@@ -15,7 +15,7 @@ let add (t : ('a, 'b, 'c, 'd) t) x y =
   Hashtbl.set t.table ~key:bin ~data:(t.add y accu)
 ;;
 
-let stream t = CFStream.Stream.of_list (Hashtbl.to_alist t.table)
+let stream t = CFStream.of_list (Hashtbl.to_alist t.table)
 let to_alist t = Hashtbl.to_alist t.table
 let get t = Hashtbl.find t.table
 
@@ -29,7 +29,7 @@ module Counter = struct
 
   let of_stream e =
     let c = create () in
-    CFStream.Stream.iter ~f:(tick c) e;
+    CFStream.iter ~f:(tick c) e;
     c
   ;;
 
@@ -59,7 +59,7 @@ module Relation = struct
 
   let of_stream xs =
     let r = create () in
-    CFStream.Stream.iter ~f:(fun (x, y) -> add r x y) xs;
+    CFStream.iter ~f:(fun (x, y) -> add r x y) xs;
     r
   ;;
 

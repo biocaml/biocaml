@@ -98,7 +98,7 @@ module Pipe = struct
   end
 
   let read r =
-    match CFStream.Stream.next r with
+    match CFStream.next r with
     | Some x -> `Ok x
     | None -> `Eof
   ;;
@@ -111,9 +111,9 @@ module Pipe = struct
     | None -> `Eof
   ;;
 
-  let map = CFStream.Stream.map
-  let fold = CFStream.Stream.fold
-  let iter = CFStream.Stream.iter
+  let map = CFStream.map
+  let fold = CFStream.fold
+  let iter = CFStream.iter
 end
 
 module Reader = struct
