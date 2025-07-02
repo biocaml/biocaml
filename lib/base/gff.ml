@@ -18,15 +18,15 @@ type item =
   ]
 
 let record
-  ?source
-  ?feature
-  ?score
-  ?(strand = `Unknown)
-  ?phase
-  ?(attributes = [])
-  seqname
-  start_pos
-  stop_pos
+      ?source
+      ?feature
+      ?score
+      ?(strand = `Unknown)
+      ?phase
+      ?(attributes = [])
+      seqname
+      start_pos
+      stop_pos
   =
   { seqname; source; feature; start_pos; stop_pos; score; strand; phase; attributes }
 ;;
@@ -68,7 +68,13 @@ let parse_tag pos buf =
   | Some k -> Ok (k + 1, String.sub buf ~pos ~len:(k - pos))
 ;;
 
-let%test "Gff.parse_tag" = Caml.(parse_tag 0 "gene_id=foo" = Ok (8, "gene_id"))
+let%test "Gff.parse_tag" =
+  match parse_tag 0 "gene_id=foo", Ok (8, "gene_id") with
+  | Ok (k, v), Ok (k', v') -> Int.equal k k' && String.equal v v'
+  | Error _, Ok _ -> false
+  | Ok _, Error _ -> false
+  | Error _, Error _ -> false
+;;
 
 let lfind_mapi ?(pos = 0) s ~f =
   let n = String.length s in
@@ -83,7 +89,7 @@ let lfind_mapi ?(pos = 0) s ~f =
   loop pos
 ;;
 
-let rec parse_value_list pos buf acc =
+let rec parse_value_list pos buf acc : int * string list =
   let comma_or_semi_colon i = function
     | ',' -> Some (i, `Comma)
     | ';' -> Some (i, `Semi_colon)
@@ -104,7 +110,8 @@ let rec parse_value_list pos buf acc =
 
 let test_parse_value buf y =
   let n, x = parse_value_list 0 buf [] in
-  Caml.((n, x) = (String.length buf, y))
+  let n' = String.length buf in
+  Int.equal n n' && List.equal String.equal x y
 ;;
 
 let%test "parse_value_list1" =
@@ -125,13 +132,26 @@ let rec parse_gff3_attributes pos buf acc =
     parse_gff3_attributes pos buf acc
 ;;
 
-let parse_gff3_attributes buf = parse_gff3_attributes 0 buf []
-
-let%test "Gff.parse_gff3_attributes" =
-  Caml.(parse_gff3_attributes "a=2,3;b=4" = Ok [ "a", [ "2"; "3" ]; "b", [ "4" ] ])
+let parse_gff3_attributes buf
+  : ((string * string list) list, [> `Msg of string ]) Result.t
+  =
+  parse_gff3_attributes 0 buf []
 ;;
 
-let parse_gtf_attributes buf =
+let%test "Gff.parse_gff3_attributes" =
+  match parse_gff3_attributes "a=2,3;b=4", Ok [ "a", [ "2"; "3" ]; "b", [ "4" ] ] with
+  | Ok x, Ok y ->
+    List.equal
+      (fun (x1, l1) (x2, l2) -> String.equal x1 x2 && List.equal String.equal l1 l2)
+      x
+      y
+  | Error _, Ok _ -> false
+  | Ok _, Error _ -> false
+  | Error _, Error _ -> false
+;;
+
+let parse_gtf_attributes buf : ((string * string list) list, [> `Msg of string ]) Result.t
+  =
   let open Result.Monad_infix in
   let rec tokenize acc p =
     if p >= String.length buf
@@ -177,20 +197,38 @@ let parse_gtf_attributes buf =
 ;;
 
 let%test "Gff.parse_gtf_attributes1" =
-  Caml.(
-    parse_gtf_attributes {|gene_id "FBgn0031081"|} = Ok [ "gene_id", [ "FBgn0031081" ] ])
+  match
+    parse_gtf_attributes {|gene_id "FBgn0031081"|}, Ok [ "gene_id", [ "FBgn0031081" ] ]
+  with
+  | Ok x, Ok y ->
+    List.equal
+      (fun (x1, l1) (x2, l2) -> String.equal x1 x2 && List.equal String.equal l1 l2)
+      x
+      y
+  | Error _, Ok _ -> false
+  | Ok _, Error _ -> false
+  | Error _, Error _ -> false
 ;;
 
 let%test "Gff.parse_gtf_attributes" =
-  Caml.(
-    parse_gtf_attributes
-      {|gene_id "FBgn0031081"; gene_symbol "Nep3"; transcript_id "FBtr0070000"; transcript_symbol "Nep3-RA";|}
-    = Ok
+  match
+    ( parse_gtf_attributes
+        {|gene_id "FBgn0031081"; gene_symbol "Nep3"; transcript_id "FBtr0070000"; transcript_symbol "Nep3-RA";|}
+    , Ok
         [ "gene_id", [ "FBgn0031081" ]
         ; "gene_symbol", [ "Nep3" ]
         ; "transcript_id", [ "FBtr0070000" ]
         ; "transcript_symbol", [ "Nep3-RA" ]
-        ])
+        ] )
+  with
+  | Ok x, Ok y ->
+    List.equal
+      (fun (x1, l1) (x2, l2) -> String.equal x1 x2 && List.equal String.equal l1 l2)
+      x
+      y
+  | Error _, Ok _ -> false
+  | Ok _, Error _ -> false
+  | Error _, Error _ -> false
 ;;
 
 let parse_fields parse_attributes = function

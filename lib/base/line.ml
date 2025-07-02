@@ -33,7 +33,7 @@ let append x y = x ^ y
 let to_string = Fn.id
 
 let concat ?sep xs =
-  if Caml.(sep = Some '\n')
+  if Option.equal Char.equal sep (Some '\n')
   then
     invalid_arg "Biocaml_base.Line.concat: newline character is not allowed as separator";
   let sep =
