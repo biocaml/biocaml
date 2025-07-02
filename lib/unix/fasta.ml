@@ -1,5 +1,4 @@
 module Result = Biocaml_result
-open CFStream
 
 type header = string list
 
@@ -104,7 +103,7 @@ let read0
   r
   =
   let pos = ref start in
-  Stream.map (Lines.read r) ~f:(fun line ->
+  CFStream.map (Lines.read r) ~f:(fun line ->
     let current_pos = !pos in
     pos := Biocaml.Pos.incr_line !pos;
     parse_item0

@@ -620,7 +620,7 @@ module Test = struct
   let test_parse_vcf_generic filename rows =
     let s = make_stream filename in
     List.iter rows ~f:(fun row ->
-      match CFStream.Stream.next s with
+      match CFStream.next s with
       | Some (Ok actual_row) -> printf "%b\n" (compare_rows row actual_row)
       | Some (Error err) ->
         let msg = parse_error_to_string err in
@@ -630,7 +630,7 @@ module Test = struct
 
   let%expect_test "test_parse_vcf_header" =
     let s = make_stream "vcf_01_header_only.vcf" in
-    (match CFStream.Stream.next s with
+    (match CFStream.next s with
      | None -> printf "No rows to return.\n"
      | Some (Ok _) -> assert false (* Impossible. *)
      | Some (Error err) ->

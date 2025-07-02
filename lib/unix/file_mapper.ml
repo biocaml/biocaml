@@ -1,4 +1,3 @@
-open CFStream
 module B = Biocaml
 
 type 'a t = string -> string -> f:('a -> 'a list) -> unit
@@ -9,7 +8,7 @@ let lines inbed outbed ~f =
   In_channel.with_file inbed ~f:(fun ic ->
     Out_channel.with_file outbed ~f:(fun oc ->
       Lines.read ic
-      |> Stream.concat_map ~f:(fun x -> Stream.of_list (f x))
+      |> CFStream.concat_map ~f:(fun x -> CFStream.of_list (f x))
       |> Lines.write oc))
 ;;
 

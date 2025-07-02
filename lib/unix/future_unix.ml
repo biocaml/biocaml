@@ -1,6 +1,8 @@
-open CFStream
-
-type how = [ `Parallel | `Sequential | `Max_concurrent_jobs of int ]
+type how =
+  [ `Parallel
+  | `Sequential
+  | `Max_concurrent_jobs of int
+  ]
 
 module Deferred = struct
   type 'a t = 'a
@@ -43,9 +45,15 @@ module Deferred = struct
 
           let helper () =
             List.map l ~f:(fun x ->
-                match f x with Ok x -> x | Error e -> raise (E e))
-        end in
-        try Ok (M.helper ()) with M.E e -> Error e
+              match f x with
+              | Ok x -> x
+              | Error e -> raise (E e))
+          ;;
+        end
+        in
+        try Ok (M.helper ()) with
+        | M.E e -> Error e
+      ;;
 
       let iter ?(how = `Sequential) l ~f =
         let () = ignore how in
@@ -54,9 +62,15 @@ module Deferred = struct
 
           let helper () =
             List.iter l ~f:(fun x ->
-                match f x with Ok () -> () | Error e -> raise (E e))
-        end in
-        try Ok (M.helper ()) with M.E e -> Error e
+              match f x with
+              | Ok () -> ()
+              | Error e -> raise (E e))
+          ;;
+        end
+        in
+        try Ok (M.helper ()) with
+        | M.E e -> Error e
+      ;;
     end
   end
 end
@@ -68,7 +82,11 @@ let ( >>=? ) = Deferred.Result.( >>= )
 let ( >>|? ) = Deferred.Result.( >>| )
 let fail = raise
 let raise = `Use_fail_instead
-let try_with f = try Ok (f ()) with exn -> Error exn
+
+let try_with f =
+  try Ok (f ()) with
+  | exn -> Error exn
+;;
 
 module In_thread = struct
   let run f = f ()
@@ -79,20 +97,31 @@ module Pipe = struct
     type 'a t = 'a Stream.t
   end
 
-  let read r = match Stream.next r with Some x -> `Ok x | None -> `Eof
+  let read r =
+    match CFStream.next r with
+    | Some x -> `Ok x
+    | None -> `Eof
+  ;;
+
   let junk = Stream.junk
 
   let peek_deferred r =
-    match Stream.peek r with Some x -> `Ok x | None -> `Eof
+    match Stream.peek r with
+    | Some x -> `Ok x
+    | None -> `Eof
+  ;;
 
-  let map = Stream.map
-  let fold = Stream.fold
-  let iter = Stream.iter
+  let map = CFStream.map
+  let fold = CFStream.fold
+  let iter = CFStream.iter
 end
 
 module Reader = struct
   module Read_result = struct
-    type 'a t = [ `Eof | `Ok of 'a ]
+    type 'a t =
+      [ `Eof
+      | `Ok of 'a
+      ]
   end
 
   type t = In_channel.t
@@ -101,20 +130,24 @@ module Reader = struct
   let close = In_channel.close
 
   let with_file ?buf_len file ~f =
-    match buf_len with None | Some _ -> In_channel.with_file file ~f
+    match buf_len with
+    | None | Some _ -> In_channel.with_file file ~f
+  ;;
 
   let read_line ic =
     match In_channel.input_line ~fix_win_eol:true ic with
     | Some x -> `Ok x
     | None -> `Eof
+  ;;
 
   let read_all ic read_one =
     Stream.from (fun _ ->
-        match read_one ic with
-        | `Ok x -> Some x
-        | `Eof ->
-            In_channel.close ic;
-            None)
+      match read_one ic with
+      | `Ok x -> Some x
+      | `Eof ->
+        In_channel.close ic;
+        None)
+  ;;
 
   let lines ic = read_all ic read_line
   let contents = In_channel.input_all
@@ -125,13 +158,12 @@ end
 module Writer = struct
   type t = Out_channel.t
 
-  let with_file ?perm ?append file ~f =
-    Out_channel.with_file ?perm ?append file ~f
-
+  let with_file ?perm ?append file ~f = Out_channel.with_file ?perm ?append file ~f
   let write = Out_channel.output_string
   let write_char = Out_channel.output_char
 
   let write_line t s =
     Out_channel.output_string t s;
     Out_channel.newline t
+  ;;
 end

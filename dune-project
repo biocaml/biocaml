@@ -43,7 +43,6 @@
   (camlzip
    (>= 1.05))
   xmlm
-  cfstream
   ppx_compare
   ppx_sexp_conv
   re

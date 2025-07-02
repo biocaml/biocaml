@@ -1,5 +1,3 @@
-open CFStream
-
 type item = Biocaml.Line.t [@@deriving sexp]
 
 module MakeIO (Future : Future.S) = struct
@@ -25,7 +23,7 @@ let of_char_stream cstr =
     | Some _ ->
       let ans = Buffer.create 100 in
       let rec loop () =
-        match Stream.next cstr with
+        match CFStream.next cstr with
         | Some c ->
           if Char.(c <> '\n')
           then (
@@ -59,11 +57,11 @@ let of_string s =
       in
       Some (Biocaml.Line.of_string_unsafe sub, new_pos))
   in
-  Stream.unfold 0 ~f
+  CFStream.unfold 0 ~f
 ;;
 
 let to_channel xs oc =
-  Stream.iter xs ~f:(fun l ->
+  CFStream.iter xs ~f:(fun l ->
     Out_channel.output_string oc (l : item :> string);
     Out_channel.newline oc)
 ;;
@@ -238,7 +236,7 @@ module Test = struct
       List.equal
         String.equal
         answer
-        (of_string input |> Stream.to_list |> List.map ~f:Biocaml.Line.to_string)
+        (of_string input |> CFStream.to_list |> List.map ~f:Biocaml.Line.to_string)
     in
     f "\naa\n\n\nbb" [ ""; "aa"; ""; ""; "bb" ]
   ;;

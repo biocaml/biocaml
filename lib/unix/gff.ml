@@ -1,5 +1,3 @@
-open CFStream
-
 (*
   Version 2:
   http://www.sanger.ac.uk/resources/software/gff/spec.html
@@ -158,9 +156,7 @@ module Transform = struct
         | s -> Some s)
     in
     let inch = Scanf.Scanning.from_string whole_thing in
-    let tokens =
-      Stream.(from (fun _ -> parse_string inch) |> Fn.flip npeek Int.max_value)
-    in
+    let tokens = Stream.from (fun _ -> parse_string inch) |> Stream.npeek Int.max_value in
     let rec go_3_by_3 acc = function
       | [ k; v ] -> Ok (List.rev ((k, [ v ]) :: acc))
       | k :: v :: ";" :: rest -> go_3_by_3 ((k, [ v ]) :: acc) rest
@@ -288,7 +284,7 @@ let in_channel_to_item_stream ?(buffer_size = 65536) ?filename ?(tags = Tags.def
 ;;
 
 let in_channel_to_item_stream_exn ?buffer_size ?tags inp =
-  Stream.result_to_exn ~error_to_exn (in_channel_to_item_stream ?buffer_size ?tags inp)
+  CFStream.result_to_exn ~error_to_exn (in_channel_to_item_stream ?buffer_size ?tags inp)
 ;;
 
 let item_to_string ?(tags = Tags.default) item =

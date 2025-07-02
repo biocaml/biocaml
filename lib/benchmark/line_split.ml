@@ -1,5 +1,4 @@
 open Core
-open CFStream
 open Biocaml_unix.Std
 open Core
 open Core_bench.Std
