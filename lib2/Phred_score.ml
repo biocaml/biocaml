@@ -21,7 +21,7 @@ let round_float_to_int x =
 ;;
 
 let to_int t = t
-let to_probability t = 10.0 ** (Float.of_int t /. -10.0)
+let to_probability t = Float.(10.0 ** (of_int t / -10.0))
 
 let to_char ?(offset = `Offset33) t =
   let offset' = int_of_offset offset in
@@ -29,13 +29,16 @@ let to_char ?(offset = `Offset33) t =
   if offset' <= x && x <= max_as_char
   then Ok (Char.of_int_exn x)
   else
-    error
-      "cannot convert PHRED score with requested offset to a visible ASCII character"
-      (t, offset)
-      [%sexp_of: t * offset]
+    Error
+      (Error.create
+         "cannot convert PHRED score with requested offset to a visible ASCII character"
+         (t, offset)
+         [%sexp_of: t * offset])
 ;;
 
-let of_int x = if x >= 0 then Ok x else error "invalid PHRED score" x sexp_of_int
+let of_int x =
+  if x >= 0 then Ok x else Error (Error.create "invalid PHRED score" x [%sexp_of: int])
+;;
 
 let of_char ?(offset = `Offset33) x =
   let offset' = int_of_offset offset in
@@ -43,24 +46,25 @@ let of_char ?(offset = `Offset33) x =
   if offset' <= c && c <= max_as_char
   then Ok (c - offset')
   else
-    error
-      "character with given offset is not a valid PHRED score"
-      (x, offset)
-      [%sexp_of: char * offset]
+    Error
+      (Error.create
+         "character with given offset is not a valid PHRED score"
+         (x, offset)
+         [%sexp_of: char * offset])
 ;;
 
 let of_probability ?(f = round_float_to_int) x =
   if Float.(0.0 < x && x <= 1.0)
-  then Ok (f (-10. *. Float.log10 x))
-  else error "invalid probability" x sexp_of_float
+  then Ok (f Float.(-10. * log10 x))
+  else Error (Error.create "invalid probability" x [%sexp_of: float])
 ;;
 
 let of_solexa_score ?(f = round_float_to_int) x =
-  f (10. *. Float.log10 ((10. ** (Float.of_int x /. 10.)) +. 1.))
+  f Float.(10. * log10 ((10. ** (of_int x / 10.)) +. 1.))
 ;;
 
 let to_solexa_score ?(f = round_float_to_int) t =
-  f (10. *. Float.log10 ((10. ** (Float.of_int t /. 10.)) -. 1.))
+  f Float.(10. * log10 ((10. ** (of_int t / 10.)) -. 1.))
 ;;
 
 module Test = struct
@@ -72,8 +76,9 @@ module Test = struct
       (* subtract default offset *)
       x
       |> (fun x ->
-           ok_exn (of_int x)
-           |> fun x -> ok_exn (to_char x) |> fun x -> ok_exn (of_char x) |> to_int)
+           Or_error.ok_exn (of_int x)
+           |> fun x ->
+           Or_error.ok_exn (to_char x) |> fun x -> Or_error.ok_exn (of_char x) |> to_int)
       = x)
   ;;
 end
