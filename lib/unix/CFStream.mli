@@ -380,16 +380,6 @@ module Stream : sig
   module Result : sig
     type ('a, 'e) t = ('a, 'e) Result.t Stream.t
 
-    val all : ('a, 'e) t -> f:('a Stream.t -> ('b, 'e) Result.t) -> ('b, 'e) Result.t
-    val all' : ('a, 'e) t -> f:('a Stream.t -> 'b) -> ('b, 'e) Result.t
-    val to_exn : ('a, 'e) t -> error_to_exn:('e -> exn) -> 'a Stream.t
-
-    (** [map' rs ~f] maps [Ok] results with a partial function [f] *)
-    val map : ('a, 'e) t -> f:('a -> ('b, 'e) Result.t) -> ('b, 'e) t
-
-    (** [map rs ~f] maps [Ok] results with a total function [f] *)
-    val map' : ('a, 'e) t -> f:('a -> 'b) -> ('b, 'e) t
-
     (** Generalization of [map] with two streams of results. If the two
       streams fail simultaneously, one of the two errors is propagated. *)
     val map2_exn

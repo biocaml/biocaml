@@ -624,41 +624,10 @@ module Stream = struct
   let to_set xs = fold xs ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
 
   module Result = struct
-    let stream_map = map
     let stream_map2_exn = map2_exn
     let stream_fold = fold
 
     type ('a, 'b) t = ('a, 'b) Result.t Stream.t
-
-    let all_gen (type e) g (xs : ('a, e) t) ~f =
-      let module M = struct
-        exception E of e
-      end
-      in
-      let error_to_exn e = M.E e in
-      try g (f (result_to_exn xs ~error_to_exn)) with
-      | M.E e -> Result.Error e
-    ;;
-
-    let all xs ~f = all_gen Fn.id xs ~f
-    let all' xs ~f = all_gen (fun x -> Ok x) xs ~f
-    let to_exn = result_to_exn
-
-    let map' rs ~f =
-      let f = function
-        | Ok x -> Ok (f x)
-        | Error _ as e -> e
-      in
-      stream_map rs ~f
-    ;;
-
-    let map rs ~f =
-      let f = function
-        | Ok x -> f x
-        | Error _ as e -> e
-      in
-      stream_map rs ~f
-    ;;
 
     let map2_exn xs ys ~f =
       let f x y =
