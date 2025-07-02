@@ -1,5 +1,3 @@
-open CFStream
-
 module Default = struct
   let zlib_buffer_size = 4096
   let level = 3
@@ -307,7 +305,7 @@ exception Error of Error.unzip
 let error_to_exn e = Error e
 
 let unzip_in_channel_exn ?format ?zlib_buffer_size ?buffer_size inp =
-  Stream.result_to_exn
+  CFStream.Stream.result_to_exn
     ~error_to_exn
     (unzip_in_channel ?format ?zlib_buffer_size ?buffer_size inp)
 ;;
@@ -320,7 +318,7 @@ module Test = struct
 
   let some_ok x = Some (Ok x)
 
-  let make_stream () : (Bed.item, error) Result.t Stream.t * (unit -> unit) =
+  let make_stream () : (Bed.item, error) Result.t CFStream.Stream.t * (unit -> unit) =
     let file = "../../etc/test_data/bed_03_more_cols.bed" in
     let tmp = Filename_unix.temp_file "biocaml_test_zip" ".gz" in
     ignore
@@ -343,16 +341,16 @@ module Test = struct
     printf
       "%s: %b\n"
       "03 chrA"
-      Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+      Poly.(CFStream.Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
     printf
       "%s: %b\n"
       "03 chrB"
-      Poly.(Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
+      Poly.(CFStream.Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
     printf
       "%s: %b\n"
       "03 chrC"
-      Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
-    printf "%s: %b\n" "03 EOF" Poly.(Stream.next s = None);
+      Poly.(CFStream.Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
+    printf "%s: %b\n" "03 EOF" Poly.(CFStream.Stream.next s = None);
     clean_up ();
     [%expect
       {|
@@ -386,7 +384,7 @@ module Test = struct
     let t = Transform.unzip ~format:`gzip ~zlib_buffer_size () in
     let ic = In_channel.create (sprintf "%s.gz" tmp3) in
     let s = Tfxm.in_channel_strings_to_stream ~buffer_size ic t in
-    let l = Stream.npeek s 300 in
+    let l = CFStream.Stream.npeek s 300 in
     let expected = sprintf "%s\n%s\n" first second in
     let obtained =
       String.concat

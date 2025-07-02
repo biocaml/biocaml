@@ -43,17 +43,17 @@ module Make (Chromosome : Chromosome) : sig
     val diff : t -> t -> t
     val size : t -> int
 
-    val intersects : t -> location -> bool
     (** [intersects loc sel] returns [true] if [loc] has a non-empty
         intersection with [sel], and [false] otherwise. *)
+    val intersects : t -> location -> bool
 
     val overlap : t -> location -> int
-    val to_stream : t -> location Stream.t
+    val to_stream : t -> location CFStream.Stream.t
 
-    val of_stream : location Stream.t -> t
     (** [of_stream e] computes a selection (i.e. a set of non
         overlapping locations) as the union of the locations contained
         in [e] *)
+    val of_stream : location CFStream.Stream.t -> t
   end
 
   (** Partial function over the genome (e.g. conservation signal)
@@ -65,68 +65,68 @@ module Make (Chromosome : Chromosome) : sig
   module type Signal = sig
     type 'a t
 
-    val eval : 'a t -> default:'a -> Chromosome.t -> int -> 'a
     (** function evaluation at some point in the genome *)
+    val eval : 'a t -> default:'a -> Chromosome.t -> int -> 'a
 
-    val fold : 'a t -> init:'c -> f:('c -> location -> 'b -> 'c) -> 'c
     (** folds on constant intervals of the function, in increasing order *)
+    val fold : 'a t -> init:'c -> f:('c -> location -> 'b -> 'c) -> 'c
 
-    val to_stream : 'a t -> (location * 'a) Stream.t
     (** stream over all constant intervals of the function, in
         increasing order *)
+    val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
 
-    val of_stream : ('a -> 'a -> 'a) -> (location * 'a) Stream.t -> 'a t
     (** [of_stream f ls] builds a signal from a collection of
     annotated locations. [f] is used when two locations intersect, to
     compute the annotation on their intersection. *Beware*, [f]
     should be associative and commutative since when many locations
     in [ls] intersect, there is no guarantee on the order followed to
     aggregate them and their annotation. *)
+    val of_stream : ('a -> 'a -> 'a) -> (location * 'a) CFStream.Stream.t -> 'a t
   end
 
   (** A set of locations (e.g. a set of gene loci) *)
   module LSet : sig
     type t
 
-    val to_stream : t -> location Stream.t
-    val of_stream : location Stream.t -> t
+    val to_stream : t -> location CFStream.Stream.t
+    val of_stream : location CFStream.Stream.t -> t
 
-    val intersects : t -> location -> bool
     (** [intersects lset loc] returns [true] if [loc] has a non-empty
         intersection with one of the locations in [lset], and returns
         [false] otherwise *)
+    val intersects : t -> location -> bool
 
-    val closest : t -> location -> (location * int) option
     (** [closest lset loc] returns the location in [lset] that is the
         closest to [loc], along with the actual (minimal)
         distance. Returns [None] if there is no location in [lset]
         that comes from the same chromosome than [loc]. *)
+    val closest : t -> location -> (location * int) option
 
-    val intersecting_elems : t -> location -> location Stream.t
     (** [intersecting_elems lset loc] returns a stream of all
         locations in [lset] that intersect [loc]. *)
+    val intersecting_elems : t -> location -> location CFStream.Stream.t
   end
 
   (** A set of locations with an attached value on each of them *)
   module LMap : sig
     type 'a t
 
-    val to_stream : 'a t -> (location * 'a) Stream.t
-    val of_stream : (location * 'a) Stream.t -> 'a t
+    val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
+    val of_stream : (location * 'a) CFStream.Stream.t -> 'a t
 
-    val intersects : 'a t -> location -> bool
     (** [intersects lmap loc] returns [true] if [loc] has a non-empty
         intersection with one of the locations in [lmap], and returns
         [false] otherwise *)
+    val intersects : 'a t -> location -> bool
 
-    val closest : 'a t -> location -> (location * 'a * int) option
     (** [closest lmap loc] returns the location in [lmap] that is the
         closest to [loc], along with its annotation and the actual (minimal)
         distance. Returns [None] if there is no location in [lmap]
         that comes from the same chromosome than [loc]. *)
+    val closest : 'a t -> location -> (location * 'a * int) option
 
-    val intersecting_elems : 'a t -> location -> (location * 'a) Stream.t
     (** [intersecting_elems lmap loc] returns a stream of elements
         in [lmap] whose location intersects with [loc]. *)
+    val intersecting_elems : 'a t -> location -> (location * 'a) CFStream.Stream.t
   end
 end

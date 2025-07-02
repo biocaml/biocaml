@@ -1,5 +1,3 @@
-open CFStream
-
 type comment = [ `comment of string ] [@@deriving sexp]
 
 type variable_step =
@@ -308,7 +306,7 @@ let in_channel_to_item_stream ?(buffer_size = 65536) ?filename ?tags inp =
 ;;
 
 let in_channel_to_item_stream_exn ?buffer_size ?filename ?tags inp =
-  Stream.result_to_exn
+  CFStream.Stream.result_to_exn
     ~error_to_exn
     (in_channel_to_item_stream ?filename ?buffer_size ?tags inp)
 ;;
@@ -324,7 +322,7 @@ let in_channel_to_bed_graph ?(buffer_size = 65536) ?filename ?tags inp =
 ;;
 
 let in_channel_to_bed_graph_exn ?buffer_size ?filename ?tags inp =
-  Stream.result_to_exn
+  CFStream.Stream.result_to_exn
     ~error_to_exn
     (in_channel_to_bed_graph ?filename ?buffer_size ?tags inp)
 ;;

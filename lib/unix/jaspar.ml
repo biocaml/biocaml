@@ -1,5 +1,3 @@
-open CFStream
-
 let ( / ) = Filename.concat
 
 type collection =
@@ -44,7 +42,7 @@ let fold_data_file name ~init ~f =
     f accu fields
   in
   In_channel.with_file name ~f:(fun ic ->
-    Stream.fold (Lines.of_channel ic) ~init ~f:add_item)
+    CFStream.Stream.fold (Lines.of_channel ic) ~init ~f:add_item)
 ;;
 
 let load_matrix fn =
@@ -92,9 +90,9 @@ let load_matrix_data fn =
   let data =
     In_channel.with_file (fn / "MATRIX_DATA.txt") ~f:(fun ic ->
       Lines.of_channel ic
-      |> Stream.skip ~n:1
-      |> Stream.map ~f:(Biocaml.Line.split ~on:'\t')
-      |> Stream.to_list
+      |> CFStream.Stream.skip ~n:1
+      |> CFStream.Stream.map ~f:(Biocaml.Line.split ~on:'\t')
+      |> CFStream.Stream.to_list
       |> List.sort ~compare:(fun x y -> Poly.compare (List.hd x) (List.hd y))
       |> List.group ~break:Poly.(fun x y -> List.hd x <> List.hd y)
       |> List.map ~f:(List.map ~f:parse)

@@ -1,5 +1,4 @@
 module Result = Biocaml_result
-open CFStream
 
 type header = string list
 
@@ -104,7 +103,7 @@ let read0
   r
   =
   let pos = ref start in
-  Stream.map (Lines.read r) ~f:(fun line ->
+  CFStream.Stream.map (Lines.read r) ~f:(fun line ->
     let current_pos = !pos in
     pos := Biocaml.Pos.incr_line !pos;
     parse_item0
@@ -120,13 +119,13 @@ let read0
 (** Return the initial comment lines. Upon return, [item0s] will point
     to first item0 that is not a `Comment, but there may still be
     additional `Comment items later. *)
-let read_header ?(allow_empty_lines = false) (item0s : item0 Or_error.t Stream.t)
+let read_header ?(allow_empty_lines = false) (item0s : item0 Or_error.t CFStream.Stream.t)
   : header Or_error.t
   =
   let rec loop accum : header Or_error.t =
-    match Stream.peek item0s with
+    match CFStream.Stream.peek item0s with
     | Some (Ok (`Comment x)) ->
-      Stream.junk item0s;
+      CFStream.Stream.junk item0s;
       loop (x :: accum)
     | Some (Ok `Empty_line) ->
       if allow_empty_lines
@@ -165,23 +164,23 @@ let read ?start ?(fmt = default_fmt) r =
   | Error _ as e -> e
   | Ok header ->
     let rec f description partial_seqs : item Or_error.t option =
-      match Stream.peek item0s with
+      match CFStream.Stream.peek item0s with
       | Some (Ok (`Comment _)) ->
         if comments_only_at_top
         then error_string "comments_only_at_top = true but got comment later"
         else (
-          Stream.junk item0s;
+          CFStream.Stream.junk item0s;
           f description partial_seqs)
       | Some (Ok `Empty_line) ->
         if allow_empty_lines
         then (
-          Stream.junk item0s;
+          CFStream.Stream.junk item0s;
           f description partial_seqs)
         else error_string "allow_empty_lines = false but got empty line"
       | Some (Ok (`Description x)) -> (
         match description, partial_seqs with
         | None, [] ->
-          Stream.junk item0s;
+          CFStream.Stream.junk item0s;
           f (Some x) []
         | None, _ :: _ ->
           (* `Partial_sequence branch assures this doesn't happen*)
@@ -197,10 +196,10 @@ let read ?start ?(fmt = default_fmt) r =
         match description, partial_seqs with
         | None, _ -> error_string "sequence not preceded by description line"
         | Some _, partial_seqs ->
-          Stream.junk item0s;
+          CFStream.Stream.junk item0s;
           f description (x :: partial_seqs))
       | Some (Error _ as e) ->
-        Stream.junk item0s;
+        CFStream.Stream.junk item0s;
         Some e
       | None -> (
         match description, partial_seqs with
@@ -217,7 +216,7 @@ let read ?start ?(fmt = default_fmt) r =
                ; sequence = partial_seqs |> List.rev |> String.concat ~sep:""
                }))
     in
-    Ok (header, Stream.from (fun _ -> f None []))
+    Ok (header, CFStream.Stream.from (fun _ -> f None []))
 ;;
 
 let with_file ?fmt file ~f =

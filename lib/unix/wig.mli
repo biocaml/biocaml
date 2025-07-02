@@ -137,7 +137,7 @@ val in_channel_to_item_stream
   -> ?filename:string
   -> ?tags:Tags.t
   -> In_channel.t
-  -> (item, Error.t) result Stream.t
+  -> (item, Error.t) result CFStream.Stream.t
 
 (** Do like [in_channel_to_item_stream] but each call to [Stream.next]
     may throw an exception. *)
@@ -146,7 +146,7 @@ val in_channel_to_item_stream_exn
   -> ?filename:string
   -> ?tags:Tags.t
   -> In_channel.t
-  -> item Stream.t
+  -> item CFStream.Stream.t
 
 (** Get a stream of [bed_graph_value] values out of a WIG-file input-channel. *)
 val in_channel_to_bed_graph
@@ -154,7 +154,7 @@ val in_channel_to_bed_graph
   -> ?filename:string
   -> ?tags:Tags.t
   -> In_channel.t
-  -> (bed_graph_value, Error.t) result Stream.t
+  -> (bed_graph_value, Error.t) result CFStream.Stream.t
 
 (** Do like [in_channel_to_bed_graph] but each call to [Stream.next]
     may throw an exception. *)
@@ -163,7 +163,7 @@ val in_channel_to_bed_graph_exn
   -> ?filename:string
   -> ?tags:Tags.t
   -> In_channel.t
-  -> bed_graph_value Stream.t
+  -> bed_graph_value CFStream.Stream.t
 
 (** {2 [To_string] Functions} *)
 

@@ -1,5 +1,4 @@
 module Result = Biocaml_result
-open CFStream
 open Or_error
 
 let check b msg = if b then Ok () else error_string msg
@@ -710,7 +709,7 @@ let read_alignment iz =
   | End_of_file -> None
 ;;
 
-let read_alignment_stream iz = Stream.from (fun _ -> read_alignment iz)
+let read_alignment_stream iz = CFStream.Stream.from (fun _ -> read_alignment iz)
 
 let read_header iz =
   read_sam_header iz
@@ -793,7 +792,7 @@ let write_alignment oz al =
 let write0 header alignments oc =
   let oz = Bgzf.of_out_channel oc in
   write_header header oz;
-  Stream.iter alignments ~f:(write_alignment oz);
+  CFStream.Stream.iter alignments ~f:(write_alignment oz);
   Bgzf.dispose_out oz
 ;;
 
@@ -802,12 +801,12 @@ let bind f x = Or_error.bind x ~f
 let read ic =
   read0 ic
   >>= fun (header, xs) ->
-  Ok (header, Stream.map xs ~f:(bind (fun r -> Alignment0.decode r header)))
+  Ok (header, CFStream.Stream.map xs ~f:(bind (fun r -> Alignment0.decode r header)))
 ;;
 
 let with_file fn ~f =
   with_file0 fn ~f:(fun header xs ->
-    f header (Stream.map xs ~f:(bind (fun r -> Alignment0.decode r header))))
+    f header (CFStream.Stream.map xs ~f:(bind (fun r -> Alignment0.decode r header))))
 ;;
 
 let write h xs oc =
@@ -816,7 +815,7 @@ let write h xs oc =
   end
   in
   let xs =
-    Stream.map xs ~f:(fun al ->
+    CFStream.Stream.map xs ~f:(fun al ->
       match Alignment0.encode al h with
       | Ok r -> r
       | Error e -> raise (M.E e))
@@ -829,8 +828,6 @@ let write h xs oc =
 ;;
 
 module Test = struct
-  open CFStream
-
   let assert_equal
     ?(msg : string option)
     ?(printer : ('a -> Sexp.t) option)
@@ -970,7 +967,7 @@ module Test = struct
         ~printer:Int.sexp_of_t
         22
         (List.length sh.Biocaml.Sam.ref_seqs);
-      let al0 = Stream.next_exn alignments |> ok_exn in
+      let al0 = CFStream.Stream.next_exn alignments |> ok_exn in
       assert_alignment
         ~qname:(Some "ILLUMINA-D118D2_0040_FC:7:20:2683:16044#0/1")
         ~rname:(Some "chr1")
@@ -979,7 +976,7 @@ module Test = struct
         ~seq:"TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT"
         header
         al0;
-      let remaining_alignments = Stream.to_list alignments in
+      let remaining_alignments = CFStream.Stream.to_list alignments in
       assert_equal
         ~msg:"Number of alignments"
         ~printer:Int.sexp_of_t
@@ -1006,7 +1003,9 @@ module Test = struct
     let bamfile = "../../etc/test_data/bam_01.bam" in
     Utils.with_temp_file "biocaml" ".bam" ~f:(fun fn ->
       with_file0 bamfile ~f:(fun header alignments ->
-        Out_channel.with_file fn ~f:(write0 header (Stream.map alignments ~f:ok_exn));
+        Out_channel.with_file
+          fn
+          ~f:(write0 header (CFStream.Stream.map alignments ~f:ok_exn));
         Ok ())
       |> ok_exn;
       with_file0 bamfile ~f:(fun ref_header ref_alignments ->
@@ -1014,16 +1013,16 @@ module Test = struct
           assert_headers ref_header header;
           try
             let x =
-              Stream.Result.map2_exn'
+              CFStream.Stream.Result.map2_exn'
                 ref_alignments
                 alignments
                 ~f:(assert_alignments ref_header)
-              |> Stream.Result.fold' ~init:() ~f:(fun () () -> ())
+              |> CFStream.Stream.Result.fold' ~init:() ~f:(fun () () -> ())
             in
             printf "%b\n" true;
             x
           with
-          | Stream.Expected_streams_of_equal_length ->
+          | CFStream.Stream.Expected_streams_of_equal_length ->
             failwith "Original and written files don't have the same number of alignments")))
     |> ok_exn;
     [%expect

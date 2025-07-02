@@ -1,5 +1,3 @@
-open CFStream
-
 type item = string * int * int * Table.Row.t [@@deriving sexp]
 
 type parsing_spec =
@@ -84,13 +82,13 @@ let in_channel_to_item_stream ?(buffer_size = 65536) ?more_columns inp =
 ;;
 
 let in_channel_to_item_stream_exn ?buffer_size ?more_columns inp =
-  Stream.result_to_exn
+  CFStream.Stream.result_to_exn
     ~error_to_exn
     (in_channel_to_item_stream ?buffer_size ?more_columns inp)
 ;;
 
 module Test = struct
-  let make_stream ?more_columns file : (item, Error.parsing) Result.t Stream.t =
+  let make_stream ?more_columns file : (item, Error.parsing) Result.t CFStream.Stream.t =
     let filename = Filename.concat "../../etc/test_data" file in
     let bed_parser = Transform.string_to_item ?more_columns () in
     let inp = In_channel.create filename in
@@ -101,16 +99,28 @@ module Test = struct
 
   let%expect_test "test_parser" =
     let s = make_stream "bed_01.bed" in
-    printf "%s: %b\n" "01 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, [||]));
-    printf "%s: %b\n" "01 chrB" Poly.(Stream.next s = some_ok ("chrB", 100, 130, [||]));
-    printf "%s: %b\n" "01 chrC" Poly.(Stream.next s = some_ok ("chrC", 200, 245, [||]));
-    printf "%s: %b\n" "01 EOF" Poly.(Stream.next s = None);
+    printf
+      "%s: %b\n"
+      "01 chrA"
+      Poly.(CFStream.Stream.next s = some_ok ("chrA", 42, 45, [||]));
+    printf
+      "%s: %b\n"
+      "01 chrB"
+      Poly.(CFStream.Stream.next s = some_ok ("chrB", 100, 130, [||]));
+    printf
+      "%s: %b\n"
+      "01 chrC"
+      Poly.(CFStream.Stream.next s = some_ok ("chrC", 200, 245, [||]));
+    printf "%s: %b\n" "01 EOF" Poly.(CFStream.Stream.next s = None);
     let s = make_stream "bed_02_incomplete_line.bed" in
-    printf "%s: %b\n" "02 chrA" Poly.(Stream.next s = some_ok ("chrA", 42, 45, [||]));
+    printf
+      "%s: %b\n"
+      "02 chrA"
+      Poly.(CFStream.Stream.next s = some_ok ("chrA", 42, 45, [||]));
     printf
       "%s: %b\n"
       "02 chrB error "
-      (match Stream.next s with
+      (match CFStream.Stream.next s with
        | Some _ -> true
        | _ -> false);
     let s =
@@ -122,16 +132,16 @@ module Test = struct
     printf
       "%s: %b\n"
       "03 chrA"
-      Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+      Poly.(CFStream.Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
     printf
       "%s: %b\n"
       "03 chrB"
-      Poly.(Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
+      Poly.(CFStream.Stream.next s = some_ok ("chrB", 100, 130, the_expected_list));
     printf
       "%s: %b\n"
       "03 chrC"
-      Poly.(Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
-    printf "%s: %b\n" "03 EOF" Poly.(Stream.next s = None);
+      Poly.(CFStream.Stream.next s = some_ok ("chrC", 200, 245, the_expected_list));
+    printf "%s: %b\n" "03 EOF" Poly.(CFStream.Stream.next s = None);
     let s =
       make_stream
         ~more_columns:(`enforce [| `type_string; `type_int; `type_float |])
@@ -141,21 +151,22 @@ module Test = struct
     printf
       "%s: %b\n"
       "04 chrA"
-      Poly.(Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
+      Poly.(CFStream.Stream.next s = some_ok ("chrA", 42, 45, the_expected_list));
     printf
       "%s: %b\n"
       "04 chrB error "
-      (match Stream.next s with
+      (match CFStream.Stream.next s with
        | Some (Error (`bed (`wrong_format (`int_of_string _, _, _)))) -> true
        | _ -> false);
     printf
       "%s: %b\n"
       "04 chrC error "
-      (match Stream.next s with
+      (match CFStream.Stream.next s with
        | Some (Error (`bed (`wrong_format (`column_number, _, _)))) -> true
        | _ -> false);
-    printf "%s: %b\n" "04 EOF" Poly.(Stream.next s = None);
-    [%expect {|
+    printf "%s: %b\n" "04 EOF" Poly.(CFStream.Stream.next s = None);
+    [%expect
+      {|
       01 chrA: true
       01 chrB: true
       01 chrC: true
@@ -189,11 +200,11 @@ module Test = struct
         "bed_03_more_cols.bed"
     in
     let camlstream =
-      Stream.result_to_exn
+      CFStream.Stream.result_to_exn
         ~error_to_exn:(fun _ -> failwith "Unexpected error in camlstream")
         s
     in
-    let l = Stream.npeek camlstream Int.max_value in
+    let l = CFStream.Stream.npeek camlstream Int.max_value in
     printf
       "%b\n"
       (List.equal

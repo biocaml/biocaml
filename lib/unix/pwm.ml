@@ -1,5 +1,3 @@
-open CFStream
-
 type count_matrix = int array array
 type background = float array
 type t = float array array
@@ -43,8 +41,8 @@ let make mat bg =
     let n = fold ~f:( + ) ~init:0 p in
     let r = mapi p ~f:(fun i x -> log ((float x +. bg.(i)) /. float n /. bg.(i))) in
     let n_case =
-      Stream.Infix.(0 --^ Array.length p)
-      |> Stream.fold ~f:(fun accu i -> accu +. (bg.(i) *. r.(i))) ~init:0.
+      CFStream.Stream.Infix.(0 --^ Array.length p)
+      |> CFStream.Stream.fold ~f:(fun accu i -> accu +. (bg.(i) *. r.(i))) ~init:0.
     in
     append r [| n_case |])
 ;;

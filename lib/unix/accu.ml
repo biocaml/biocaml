@@ -1,21 +1,21 @@
-open CFStream
-
-type ('a, 'b, 'c, 'd) t = {
-  table : ('b, 'd) Hashtbl.t;
-  zero : 'd;
-  proj : 'a -> 'b;
-  add : 'c -> 'd -> 'd;
-}
+type ('a, 'b, 'c, 'd) t =
+  { table : ('b, 'd) Hashtbl.t
+  ; zero : 'd
+  ; proj : 'a -> 'b
+  ; add : 'c -> 'd -> 'd
+  }
 
 let create ?(n = 251) ~bin:proj ~zero ~add () =
   { table = Hashtbl.Poly.create ~size:n (); zero; proj; add }
+;;
 
 let add (t : ('a, 'b, 'c, 'd) t) x y =
   let bin = t.proj x in
   let accu = Option.value (Hashtbl.find t.table bin) ~default:t.zero in
   Hashtbl.set t.table ~key:bin ~data:(t.add y accu)
+;;
 
-let stream t = Stream.of_hashtbl t.table
+let stream t = CFStream.Stream.of_hashtbl t.table
 let to_alist t = Hashtbl.to_alist t.table
 let get t = Hashtbl.find t.table
 
@@ -29,8 +29,9 @@ module Counter = struct
 
   let of_stream e =
     let c = create () in
-    Stream.iter ~f:(tick c) e;
+    CFStream.Stream.iter ~f:(tick c) e;
     c
+  ;;
 
   let to_alist = to_alist
 end
@@ -47,20 +48,20 @@ let product ?filter f l1 l2 =
     in
     List.iter ~f:(fun e1 -> List.iter ~f:(tick e1) l2) l1;
     stream c)
+;;
 
 module Relation = struct
   type nonrec ('a, 'b) t = ('a, 'a, 'b, 'b list) t
 
-  let create ?n () =
-    create ?n ~zero:[] ~bin:Fun.id ~add:(fun x xs -> x :: xs) ()
-
+  let create ?n () = create ?n ~zero:[] ~bin:Fun.id ~add:(fun x xs -> x :: xs) ()
   let add = add
   let stream = stream
 
   let of_stream xs =
     let r = create () in
-    Stream.iter ~f:(fun (x, y) -> add r x y) xs;
+    CFStream.Stream.iter ~f:(fun (x, y) -> add r x y) xs;
     r
+  ;;
 
   let to_alist = to_alist
 end
@@ -74,4 +75,5 @@ module Bins = struct
     let accu = create ~bin:f ~zero:[] ~add:(fun h t -> h :: t) () in
     List.iter xs ~f:(fun x -> add accu x x);
     accu
+  ;;
 end

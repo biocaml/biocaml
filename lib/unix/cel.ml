@@ -1,5 +1,3 @@
-open CFStream
-
 type idata =
   { mean : float
   ; stdv : float
@@ -133,23 +131,25 @@ module Parser = struct
       upon return lines will point to first blank line after data rows  *)
   let intensity_section lines =
     assert (
-      match Stream.peek lines with
+      match CFStream.Stream.peek lines with
       | None -> false
       | Some l -> line_is_section isection_name l);
-    Stream.junk lines;
-    let sl = String.split (Stream.next_exn lines) ~on:'=' in
+    CFStream.Stream.junk lines;
+    let sl = String.split (CFStream.Stream.next_exn lines) ~on:'=' in
     let num_cells = int_of_string (String.strip (List.nth_exn sl 1)) in
-    let sl = String.split (Stream.next_exn lines) ~on:'=' in
+    let sl = String.split (CFStream.Stream.next_exn lines) ~on:'=' in
     let sl = String.split (List.nth_exn sl 1) ~on:'\t' in
     let sl = List.map ~f:String.strip sl in
     let () =
       if Poly.(sl <> icolumns) then raise_bad "intensity section column names incorrect"
     in
     let lines =
-      Stream.take_while ~f:(fun s -> not (String.for_all s ~f:Char.is_whitespace)) lines
+      CFStream.Stream.take_while
+        ~f:(fun s -> not (String.for_all s ~f:Char.is_whitespace))
+        lines
     in
-    let lines = Stream.map ~f:intensity_row lines in
-    let ans = Stream.to_list lines in
+    let lines = CFStream.Stream.map ~f:intensity_row lines in
+    let ans = CFStream.Stream.to_list lines in
     let count = List.length ans in
     if count = num_cells
     then ans
@@ -160,14 +160,18 @@ module Parser = struct
     let of_channel cin =
       let lines = Lines.of_channel cin in
       let err msg =
-        Msg.err ~pos:(Biocaml.Pos.make ~source:file ~line:(Stream.count lines) ()) msg
+        Msg.err
+          ~pos:(Biocaml.Pos.make ~source:file ~line:(CFStream.Stream.count lines) ())
+          msg
       in
       try
-        Stream.drop_while
+        CFStream.Stream.drop_while
           ~f:(fun (s : Lines.item) -> not (line_is_section isection_name (s :> string)))
           lines;
-        if Stream.is_empty lines then failwith (isection_name ^ " section not found");
-        intensity_section (Stream.map lines ~f:(fun (x : Lines.item) -> (x :> string)))
+        if CFStream.Stream.is_empty lines
+        then failwith (isection_name ^ " section not found");
+        intensity_section
+          (CFStream.Stream.map lines ~f:(fun (x : Lines.item) -> (x :> string)))
       with
       | Failure msg | Bad msg -> raise_bad (err msg)
     in

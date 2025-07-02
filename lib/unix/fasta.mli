@@ -157,16 +157,16 @@ val read0
   -> ?max_line_length:int
   -> ?alphabet:string
   -> In_channel.t
-  -> item0 Or_error.t Stream.t
+  -> item0 Or_error.t CFStream.Stream.t
 
 val read
   :  ?start:Biocaml.Pos.t
   -> ?fmt:fmt
   -> In_channel.t
-  -> (header * item Or_error.t Stream.t) Or_error.t
+  -> (header * item Or_error.t CFStream.Stream.t) Or_error.t
 
 val with_file
   :  ?fmt:fmt
   -> string
-  -> f:(header -> item Or_error.t Stream.t -> 'a Or_error.t)
+  -> f:(header -> item Or_error.t CFStream.Stream.t -> 'a Or_error.t)
   -> 'a Or_error.t
