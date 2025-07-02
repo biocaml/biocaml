@@ -119,7 +119,7 @@ module Make (Chromosome : Chromosome) = struct
         increasing order *)
     val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
 
-    val of_stream : ('a -> 'a -> 'a) -> (location * 'a) CFStream.Stream.t -> 'a t
+    val of_stream : ('a -> 'a -> 'a) -> (location * 'a) Stream.t -> 'a t
   end
 
   module LMap = struct

@@ -19,7 +19,7 @@ end
 include module type of MakeIO (Future_unix)
 
 (** Parse a stream of characters into a stream of lines. *)
-val of_char_stream : char CFStream.Stream.t -> item CFStream.Stream.t
+val of_char_stream : char Stream.t -> item CFStream.Stream.t
 
 (** Get a stream of lines out of an input-channel. *)
 val of_channel : In_channel.t -> item CFStream.Stream.t
@@ -28,9 +28,9 @@ val of_channel : In_channel.t -> item CFStream.Stream.t
 val of_string : string -> item CFStream.Stream.t
 
 (** Write a stream of lines to an output-channel. *)
-val to_channel : item CFStream.Stream.t -> Out_channel.t -> unit
+val to_channel : item Stream.t -> Out_channel.t -> unit
 
-val with_file : string -> f:(Biocaml.Line.t CFStream.Stream.t -> 'a) -> 'a
+val with_file : string -> f:(Biocaml.Line.t Stream.t -> 'a) -> 'a
 
 module Buffer : sig
   (** Buffer used to parse strings into lines. *)

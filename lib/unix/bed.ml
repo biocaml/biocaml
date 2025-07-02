@@ -88,7 +88,7 @@ let in_channel_to_item_stream_exn ?buffer_size ?more_columns inp =
 ;;
 
 module Test = struct
-  let make_stream ?more_columns file : (item, Error.parsing) Result.t CFStream.Stream.t =
+  let make_stream ?more_columns file : (item, Error.parsing) Result.t Stream.t =
     let filename = Filename.concat "../../etc/test_data" file in
     let bed_parser = Transform.string_to_item ?more_columns () in
     let inp = In_channel.create filename in

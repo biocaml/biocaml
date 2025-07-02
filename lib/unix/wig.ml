@@ -347,14 +347,14 @@ let item_to_string ?(tags = Tags.default) = function
 ;;
 
 module Test = struct
-  let file_parser_stream file : (item, Error.parsing) result CFStream.Stream.t =
+  let file_parser_stream file : (item, Error.parsing) result Stream.t =
     let filename = Filename.concat "../../etc/test_data" file in
     let t = Transform.string_to_item ~filename () in
     let ic = In_channel.create filename in
     Tfxm.in_channel_strings_to_stream ~buffer_size:10 ic t
   ;;
 
-  let file_reprinter_stream file : (string, Error.parsing) result CFStream.Stream.t =
+  let file_reprinter_stream file : (string, Error.parsing) result Stream.t =
     let filename = Filename.concat "../../etc/test_data" file in
     let t = Transform.string_to_item ~filename () in
     let printer = Transform.item_to_string () in
@@ -363,16 +363,11 @@ module Test = struct
     Tfxm.in_channel_strings_to_stream ~buffer_size:4 ic transfo
   ;;
 
-  let check_output (s : ('a, 'err) result CFStream.Stream.t) (m : string) (v : 'a) : unit =
+  let check_output (s : ('a, 'err) result Stream.t) (m : string) (v : 'a) : unit =
     printf "check_output: %s: %b\n" m Poly.(CFStream.Stream.next s = Some (Ok v))
   ;;
 
-  let check_error
-    (s : ('a, 'err) result CFStream.Stream.t)
-    (m : string)
-    (f : 'err -> bool)
-    : unit
-    =
+  let check_error (s : ('a, 'err) result Stream.t) (m : string) (f : 'err -> bool) : unit =
     printf
       "check_error: %s: %b\n"
       m
@@ -389,9 +384,7 @@ module Test = struct
   ;;
 
   let%expect_test "test_parser" =
-    let s : (item, Error.parsing) result CFStream.Stream.t =
-      file_parser_stream "wig_01.wig"
-    in
+    let s : (item, Error.parsing) result Stream.t = file_parser_stream "wig_01.wig" in
     check_output s "comment line" (`comment " one comment");
     check_output s "variableStep" (`variable_step_state_change ("chr19", Some 150));
     check_output s "variable_step_value " (`variable_step_value (49304701, 10.));

@@ -52,9 +52,7 @@ end
 (** [read0 ic] returns an error if a valid header cannot be read from
     [ic] or a pair containing a header and a stream of possibly
     errored (partially parsed) alignments. The stream stops after the first error. *)
-val read0
-  :  In_channel.t
-  -> (Header.t * Alignment0.t Or_error.t CFStream.Stream.t) Or_error.t
+val read0 : In_channel.t -> (Header.t * Alignment0.t Or_error.t Stream.t) Or_error.t
 
 (** [with_file fn ~f] opens a BAM file for reading, applies [f] and
     closes the file after that, even if [f] raises an exception. {b
@@ -63,17 +61,17 @@ val read0
     [with_file] the underlying channel is closed. *)
 val with_file0
   :  string
-  -> f:(Header.t -> Alignment0.t Or_error.t CFStream.Stream.t -> 'a Or_error.t)
+  -> f:(Header.t -> Alignment0.t Or_error.t Stream.t -> 'a Or_error.t)
   -> 'a Or_error.t
 
 (** [write0 h xs oc] writes the header [h] and (partially parsed)
     alignments [xs] to [oc]. *)
-val write0 : Header.t -> Alignment0.t CFStream.Stream.t -> Out_channel.t -> unit
+val write0 : Header.t -> Alignment0.t Stream.t -> Out_channel.t -> unit
 
 (** [read ic] returns an error if a valid header cannot be read from
     [ic] or a pair containing a header and a stream of possibly
     errored alignments. The stream stops after the first error. *)
-val read : In_channel.t -> (Header.t * alignment Or_error.t CFStream.Stream.t) Or_error.t
+val read : In_channel.t -> (Header.t * alignment Or_error.t Stream.t) Or_error.t
 
 (** [with_file fn ~f] opens a BAM file for reading, applies [f] and
     closes the file after that, even if [f] raises an exception. {b
@@ -82,12 +80,12 @@ val read : In_channel.t -> (Header.t * alignment Or_error.t CFStream.Stream.t) O
     [with_file] the underlying channel is closed. *)
 val with_file
   :  string
-  -> f:(Header.t -> alignment Or_error.t CFStream.Stream.t -> 'a Or_error.t)
+  -> f:(Header.t -> alignment Or_error.t Stream.t -> 'a Or_error.t)
   -> 'a Or_error.t
 
 (** [write h xs oc] writes the header [h] and the alignments [xs] to
     [oc]. *)
-val write : Header.t -> alignment CFStream.Stream.t -> Out_channel.t -> unit Or_error.t
+val write : Header.t -> alignment Stream.t -> Out_channel.t -> unit Or_error.t
 
 (** {2 Low-level access} *)
 

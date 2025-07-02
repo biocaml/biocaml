@@ -582,7 +582,7 @@ module Transform = struct
 end
 
 module Test = struct
-  let make_stream name : (vcf_row, vcf_parse_error) result CFStream.Stream.t =
+  let make_stream name : (vcf_row, vcf_parse_error) result Stream.t =
     let filename = Filename.concat "../../etc/test_data" name in
     let t = Transform.string_to_item ~filename () in
     let ic = In_channel.create filename in

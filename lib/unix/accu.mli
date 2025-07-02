@@ -45,11 +45,11 @@ module Counter : sig
   val add : 'a t -> 'a -> int -> unit
   val tick : 'a t -> 'a -> unit
   val stream : 'a t -> ('a * int) CFStream.Stream.t
-  val of_stream : 'a CFStream.Stream.t -> 'a t
+  val of_stream : 'a Stream.t -> 'a t
   val to_alist : 'a t -> ('a * int) list
 end
 
-val counts : 'a CFStream.Stream.t -> ('a * int) CFStream.Stream.t
+val counts : 'a Stream.t -> ('a * int) CFStream.Stream.t
 
 (** [product filter f l1 l2] computes an histogram of values returned by f
     when it is applied for all combinations of elements in [l1] and
@@ -69,11 +69,11 @@ module Relation : sig
   val create : ?n:int -> unit -> ('a, 'b) t
   val add : ('a, 'b) t -> 'a -> 'b -> unit
   val stream : ('a, 'b) t -> ('a * 'b list) CFStream.Stream.t
-  val of_stream : ('a * 'b) CFStream.Stream.t -> ('a, 'b) t
+  val of_stream : ('a * 'b) Stream.t -> ('a, 'b) t
   val to_alist : ('a, 'b) t -> ('a * 'b list) list
 end
 
-val relation : ('a * 'b) CFStream.Stream.t -> ('a * 'b list) CFStream.Stream.t
+val relation : ('a * 'b) Stream.t -> ('a * 'b list) CFStream.Stream.t
 
 module Bins : sig
   type nonrec ('a, 'b) t = ('a, 'b, 'a, 'a list) t

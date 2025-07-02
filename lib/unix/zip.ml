@@ -318,7 +318,7 @@ module Test = struct
 
   let some_ok x = Some (Ok x)
 
-  let make_stream () : (Bed.item, error) Result.t CFStream.Stream.t * (unit -> unit) =
+  let make_stream () : (Bed.item, error) Result.t Stream.t * (unit -> unit) =
     let file = "../../etc/test_data/bed_03_more_cols.bed" in
     let tmp = Filename_unix.temp_file "biocaml_test_zip" ".gz" in
     ignore

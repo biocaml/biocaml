@@ -119,7 +119,7 @@ let read0
 (** Return the initial comment lines. Upon return, [item0s] will point
     to first item0 that is not a `Comment, but there may still be
     additional `Comment items later. *)
-let read_header ?(allow_empty_lines = false) (item0s : item0 Or_error.t CFStream.Stream.t)
+let read_header ?(allow_empty_lines = false) (item0s : item0 Or_error.t Stream.t)
   : header Or_error.t
   =
   let rec loop accum : header Or_error.t =

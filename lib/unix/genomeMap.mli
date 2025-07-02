@@ -53,7 +53,7 @@ module Make (Chromosome : Chromosome) : sig
     (** [of_stream e] computes a selection (i.e. a set of non
         overlapping locations) as the union of the locations contained
         in [e] *)
-    val of_stream : location CFStream.Stream.t -> t
+    val of_stream : location Stream.t -> t
   end
 
   (** Partial function over the genome (e.g. conservation signal)
@@ -81,7 +81,7 @@ module Make (Chromosome : Chromosome) : sig
     should be associative and commutative since when many locations
     in [ls] intersect, there is no guarantee on the order followed to
     aggregate them and their annotation. *)
-    val of_stream : ('a -> 'a -> 'a) -> (location * 'a) CFStream.Stream.t -> 'a t
+    val of_stream : ('a -> 'a -> 'a) -> (location * 'a) Stream.t -> 'a t
   end
 
   (** A set of locations (e.g. a set of gene loci) *)
@@ -89,7 +89,7 @@ module Make (Chromosome : Chromosome) : sig
     type t
 
     val to_stream : t -> location CFStream.Stream.t
-    val of_stream : location CFStream.Stream.t -> t
+    val of_stream : location Stream.t -> t
 
     (** [intersects lset loc] returns [true] if [loc] has a non-empty
         intersection with one of the locations in [lset], and returns
@@ -112,7 +112,7 @@ module Make (Chromosome : Chromosome) : sig
     type 'a t
 
     val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
-    val of_stream : (location * 'a) CFStream.Stream.t -> 'a t
+    val of_stream : (location * 'a) Stream.t -> 'a t
 
     (** [intersects lmap loc] returns [true] if [loc] has a non-empty
         intersection with one of the locations in [lmap], and returns
