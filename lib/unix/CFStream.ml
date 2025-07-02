@@ -230,7 +230,6 @@ module Stream = struct
       | len -> Some (Bytes.To_string.sub buf ~pos:0 ~len))
   ;;
 
-  let of_hashtbl t = of_list (Hashtbl.to_alist t)
   let to_set xs = fold xs ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
 
   module Result = struct

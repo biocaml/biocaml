@@ -15,7 +15,7 @@ let add (t : ('a, 'b, 'c, 'd) t) x y =
   Hashtbl.set t.table ~key:bin ~data:(t.add y accu)
 ;;
 
-let stream t = CFStream.Stream.of_hashtbl t.table
+let stream t = CFStream.Stream.of_list (Hashtbl.to_alist t.table)
 let to_alist t = Hashtbl.to_alist t.table
 let get t = Hashtbl.find t.table
 
