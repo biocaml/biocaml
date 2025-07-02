@@ -6,20 +6,6 @@
 open Core
 
 module Stream : sig
-  (** Type of streams holding values of type ['a]. *)
-  type 'a t = 'a Stream.t
-
-  (** Return a stream containing all elements of given data
-      structure. Exact semantics depend on implementation. For
-      example, elements in stream may or may not be ordered. *)
-  val to_stream : 'a t -> 'a Stream.t
-
-  (** Return a data structure containing all elements in given stream,
-          fully consuming the stream. Exact semantics depend on
-          implementation. For example, duplicate elements in input may be
-          ignored if the data structure is a set. *)
-  val of_stream : 'a Stream.t -> 'a t
-
   (** Raised when asking for an element of an empty stream, and by
     {!Genlex} parsers when none of the first components of the stream
     patterns is accepted.
@@ -42,31 +28,31 @@ module Stream : sig
 
   (** Return first element in given stream if any and remove it from the
     stream. *)
-  val next : 'a t -> 'a option
+  val next : 'a Stream.t -> 'a option
 
   (** Return first element in given stream and remove it from the
     stream.
     @raise Stream.Failure if the stream is empty. *)
-  val next_exn : 'a t -> 'a
+  val next_exn : 'a Stream.t -> 'a
 
   (** Return first element of given stream without removing it from the
     stream, or [None] if the stream is empty. *)
-  val peek : 'a t -> 'a option
+  val peek : 'a Stream.t -> 'a option
 
   (** [npeek s n] returns a list of the first [n] elements in stream
     [s], or all of its remaining elements if less than [n] elements
     are available. The elements are not removed from the stream. *)
-  val npeek : 'a t -> int -> 'a list
+  val npeek : 'a Stream.t -> int -> 'a list
 
   (** Discard first element of given stream or do nothing if the stream
     is empty. *)
-  val junk : 'a t -> unit
+  val junk : 'a Stream.t -> unit
 
   (** Return number of elements discarded from given stream. *)
-  val count : 'a t -> int
+  val count : 'a Stream.t -> int
 
   (** True if the stream is empty, else false. *)
-  val is_empty : 'a t -> bool
+  val is_empty : 'a Stream.t -> bool
 
   (** {6 Constructors} *)
 
@@ -74,28 +60,28 @@ module Stream : sig
     calling [f n], which should return [Some x] to indicate value [x]
     or [None] to indicate the end of the stream. The stream is
     infinite if [f] never returns None. *)
-  val from : (int -> 'a option) -> 'a t
+  val from : (int -> 'a option) -> 'a Stream.t
 
   (** Return a stream of characters by reading from the input
     channel. WARNING: Semantics unclear if the channel is closed
     before the stream reads all of its input. For example, the stream
     appears to return values although the channel has been closed. *)
-  val of_channel : In_channel.t -> char t
+  val of_channel : In_channel.t -> char Stream.t
 
   (** Return a stream of strings from the input. Each string has length
     at most [buffer_size]. *)
-  val strings_of_channel : ?buffer_size:int -> In_channel.t -> string t
+  val strings_of_channel : ?buffer_size:int -> In_channel.t -> string Stream.t
 
   (** [range p until:q] creates a stream of integers [[p, p+1, ..., q]].
     If [until] is omitted, the enumeration is not bounded. Behaviour
     is not-specified once [max_int] has been reached.*)
-  val range : ?until:int -> int -> int t
+  val range : ?until:int -> int -> int Stream.t
 
   (** The empty stream. *)
-  val empty : unit -> 'a t
+  val empty : unit -> 'a Stream.t
 
   (** [singleton x] returns a stream containing the single value [x]. *)
-  val singleton : 'a -> 'a t
+  val singleton : 'a -> 'a Stream.t
 
   (** [unfold a0 f] returns the stream [b0; b1; ...; bn], where
 
@@ -106,9 +92,9 @@ module Stream : sig
     - [None = f a(n+1)]
 
     The stream is infinite if [f] never returns None. *)
-  val unfold : 'a -> f:('a -> ('b * 'a) option) -> 'b t
+  val unfold : 'a -> f:('a -> ('b * 'a) option) -> 'b Stream.t
 
-  val of_lazy : 'a t lazy_t -> 'a t
+  val of_lazy : 'a Stream.t lazy_t -> 'a Stream.t
 
   (** {6 Iterators}
     Unless otherwise stated, functions in this section normally
@@ -118,7 +104,7 @@ module Stream : sig
 *)
 
   (** [iter xs ~f] calls in turn [f x0], [f x1], ... *)
-  val iter : 'a t -> f:('a -> unit) -> unit
+  val iter : 'a Stream.t -> f:('a -> unit) -> unit
 
   (** [fold xs ~init ~f] returns [f (...(f (f init x0) x1)...) xn], that
     is for the stream [a0; a1; ...; an] does the following calculations:
@@ -130,7 +116,7 @@ module Stream : sig
 
     and returns [bn]
 *)
-  val fold : 'a t -> init:'b -> f:('b -> 'a -> 'b) -> 'b
+  val fold : 'a Stream.t -> init:'b -> f:('b -> 'a -> 'b) -> 'b
 
   (** {6 Converters}
     Extract a subset of a stream or map a stream into another type of
@@ -144,42 +130,42 @@ module Stream : sig
 
     Same as [take] but takes elements from the input enum as long as
     [f] evaluates to [true]. *)
-  val take_while : 'a t -> f:('a -> bool) -> 'a t
+  val take_while : 'a Stream.t -> f:('a -> bool) -> 'a Stream.t
 
   (** [drop xs ~n] is equivalent to calling [n] times [junk] on [xs].
 
   Similar to [drop]: [drop_while xs ~f] removes elements from [xs]
     and stops when [f] evals to false on the head element. *)
-  val drop_while : 'a t -> f:('a -> bool) -> unit
+  val drop_while : 'a Stream.t -> f:('a -> bool) -> unit
 
   (** Similar to [drop] but returns the stream in input (useful in
     chained composition). *)
-  val skip : 'a t -> n:int -> 'a t
+  val skip : 'a Stream.t -> n:int -> 'a Stream.t
 
-  val map : 'a t -> f:('a -> 'b) -> 'b t
-  val filter : 'a t -> f:('a -> bool) -> 'a t
-  val append : 'a t -> 'a t -> 'a t
-  val concat : 'a t t -> 'a t
-  val concat_map : 'a t -> f:('a -> 'b t) -> 'b t
+  val map : 'a Stream.t -> f:('a -> 'b) -> 'b Stream.t
+  val filter : 'a Stream.t -> f:('a -> bool) -> 'a Stream.t
+  val append : 'a Stream.t -> 'a Stream.t -> 'a Stream.t
+  val concat : 'a Stream.t Stream.t -> 'a Stream.t
+  val concat_map : 'a Stream.t -> f:('a -> 'b Stream.t) -> 'b Stream.t
 
   (** {6 Data Interchange}
     Convert/create a stream to/from another data structure.
 *)
 
-  val of_list : 'a list -> 'a t
-  val to_list : 'a t -> 'a list
-  val of_hashtbl : ('a, 'b) Hashtbl.t -> ('a * 'b) t
-  val to_set : 'a t -> 'a Set.Poly.t
-  val of_string : string -> char t
+  val of_list : 'a list -> 'a Stream.t
+  val to_list : 'a Stream.t -> 'a list
+  val of_hashtbl : ('a, 'b) Hashtbl.t -> ('a * 'b) Stream.t
+  val to_set : 'a Stream.t -> 'a Set.Poly.t
+  val of_string : string -> char Stream.t
 
   (** {6 Result.t's} *)
 
   (** Convert exception-less stream to exception-ful stream. Resulting
     stream raises exception at first error seen. *)
   val result_to_exn
-    :  ('output, 'error) Result.t t
+    :  ('output, 'error) Result.t Stream.t
     -> error_to_exn:('error -> exn)
-    -> 'output t
+    -> 'output Stream.t
 
   (** Higher-order functions for streams of results
 

@@ -104,7 +104,7 @@ val in_channel_to_item_stream
   -> ?filename:string
   -> ?tags:Tags.t
   -> In_channel.t
-  -> (item, [> Error.parsing ]) result CFStream.Stream.t
+  -> (item, [> Error.parsing ]) result Stream.t
 
 (** Like [in_channel_to_item_stream] but use exceptions for errors
     (raised within [Stream.next]). *)
@@ -112,7 +112,7 @@ val in_channel_to_item_stream_exn
   :  ?buffer_size:int
   -> ?tags:Tags.t
   -> In_channel.t
-  -> item CFStream.Stream.t
+  -> item Stream.t
 
 (** {2 [To_string] Function } *)
 

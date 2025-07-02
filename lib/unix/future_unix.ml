@@ -94,7 +94,7 @@ end
 
 module Pipe = struct
   module Reader = struct
-    type 'a t = 'a CFStream.Stream.t
+    type 'a t = 'a Stream.t
   end
 
   let read r =

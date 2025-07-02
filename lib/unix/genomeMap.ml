@@ -117,7 +117,7 @@ module Make (Chromosome : Chromosome) = struct
 
     (** enumeration over all constant intervals of the function, in
         increasing order *)
-    val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
+    val to_stream : 'a t -> (location * 'a) Stream.t
 
     val of_stream : ('a -> 'a -> 'a) -> (location * 'a) Stream.t -> 'a t
   end

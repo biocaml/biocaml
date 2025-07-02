@@ -90,10 +90,7 @@ val of_function : ?name:string -> ('a -> 'b) -> ('a, 'b) t
 
 (** [to_stream_fun t] returns a function [f] that behaves like
     [t] but the inputs and outputs are on standard OCaml streams. *)
-val to_stream_fun
-  :  ('input, 'output) t
-  -> 'input CFStream.Stream.t
-  -> 'output CFStream.Stream.t
+val to_stream_fun : ('input, 'output) t -> 'input Stream.t -> 'output Stream.t
 
 (** [in_channel_strings_to_stream ic t] returns a stream of ['output]s
     given a transform [t] that knows how to produce ['output]s from
@@ -102,16 +99,12 @@ val in_channel_strings_to_stream
   :  ?buffer_size:int
   -> In_channel.t
   -> (string, 'output) t
-  -> 'output CFStream.Stream.t
+  -> 'output Stream.t
 
 (** [stream_to_out_channel xs t oc] consumes a stream of ['input]s
     using [t] to transform them into strings, which are then written
     on the out_channel [oc]. *)
-val stream_to_out_channel
-  :  'input CFStream.Stream.t
-  -> ('input, string) t
-  -> Out_channel.t
-  -> unit
+val stream_to_out_channel : 'input Stream.t -> ('input, string) t -> Out_channel.t -> unit
 
 (** {2 Compose}
 

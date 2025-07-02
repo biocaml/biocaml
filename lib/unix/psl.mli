@@ -40,13 +40,13 @@ val in_channel_to_item_stream
   :  ?buffer_size:int
   -> ?filename:string
   -> In_channel.t
-  -> (item, [> Error.t ]) result CFStream.Stream.t
+  -> (item, [> Error.t ]) result Stream.t
 
 val in_channel_to_item_stream_exn
   :  ?buffer_size:int
   -> ?filename:string
   -> In_channel.t
-  -> item CFStream.Stream.t
+  -> item Stream.t
 
 module Transform : sig
   val string_to_item

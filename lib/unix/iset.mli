@@ -131,7 +131,7 @@ val max_elt : t -> int
 val choose : t -> int
 
 (** Enumerates all contiguous ranges in the set *)
-val to_stream : t -> (int * int) CFStream.Stream.t
+val to_stream : t -> (int * int) Stream.t
 
 val of_stream : (int * int) Stream.t -> t
 

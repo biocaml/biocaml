@@ -19,13 +19,13 @@ end
 include module type of MakeIO (Future_unix)
 
 (** Parse a stream of characters into a stream of lines. *)
-val of_char_stream : char Stream.t -> item CFStream.Stream.t
+val of_char_stream : char Stream.t -> item Stream.t
 
 (** Get a stream of lines out of an input-channel. *)
-val of_channel : In_channel.t -> item CFStream.Stream.t
+val of_channel : In_channel.t -> item Stream.t
 
 (** Get a stream of lines out a string *)
-val of_string : string -> item CFStream.Stream.t
+val of_string : string -> item Stream.t
 
 (** Write a stream of lines to an output-channel. *)
 val to_channel : item Stream.t -> Out_channel.t -> unit

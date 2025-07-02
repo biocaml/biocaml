@@ -157,7 +157,7 @@ val read0
   -> ?max_line_length:int
   -> ?alphabet:string
   -> In_channel.t
-  -> item0 Or_error.t CFStream.Stream.t
+  -> item0 Or_error.t Stream.t
 
 val read
   :  ?start:Biocaml.Pos.t

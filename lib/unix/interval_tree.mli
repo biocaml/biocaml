@@ -35,8 +35,8 @@ val add : 'a t -> low:int -> high:int -> data:'a -> 'a t
 (** {6 Conversion} *)
 
 val elements : 'a t -> (int * int * 'a) list
-val to_stream : 'a t -> (int * int * 'a) CFStream.Stream.t
-val to_backwards_stream : 'a t -> (int * int * 'a) CFStream.Stream.t
+val to_stream : 'a t -> (int * int * 'a) Stream.t
+val to_backwards_stream : 'a t -> (int * int * 'a) Stream.t
 
 (** {6 Searching and filtering} *)
 
@@ -52,7 +52,7 @@ val find_closest : int -> int -> 'a t -> int * int * 'a * int
 
 (** [find_intersecting_elem a b t] is equivalent to [Stream.filter ~f:(fun
     (x,y,_) -> intersects x y t) (stream t)] but is more efficient. *)
-val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) CFStream.Stream.t
+val find_intersecting_elem : int -> int -> 'a t -> (int * int * 'a) Stream.t
 
 (** Create an interval tree with the elements which overlap with
     [[low, high]]. *)

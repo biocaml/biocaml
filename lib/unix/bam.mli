@@ -91,4 +91,4 @@ val write : Header.t -> alignment Stream.t -> Out_channel.t -> unit Or_error.t
 
 val read_header : Bgzf.in_channel -> Header.t Or_error.t
 val read_alignment : Bgzf.in_channel -> Alignment0.t Or_error.t option
-val read_alignment_stream : Bgzf.in_channel -> Alignment0.t Or_error.t CFStream.Stream.t
+val read_alignment_stream : Bgzf.in_channel -> Alignment0.t Or_error.t Stream.t

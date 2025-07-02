@@ -48,7 +48,7 @@ module Make (Chromosome : Chromosome) : sig
     val intersects : t -> location -> bool
 
     val overlap : t -> location -> int
-    val to_stream : t -> location CFStream.Stream.t
+    val to_stream : t -> location Stream.t
 
     (** [of_stream e] computes a selection (i.e. a set of non
         overlapping locations) as the union of the locations contained
@@ -73,7 +73,7 @@ module Make (Chromosome : Chromosome) : sig
 
     (** stream over all constant intervals of the function, in
         increasing order *)
-    val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
+    val to_stream : 'a t -> (location * 'a) Stream.t
 
     (** [of_stream f ls] builds a signal from a collection of
     annotated locations. [f] is used when two locations intersect, to
@@ -88,7 +88,7 @@ module Make (Chromosome : Chromosome) : sig
   module LSet : sig
     type t
 
-    val to_stream : t -> location CFStream.Stream.t
+    val to_stream : t -> location Stream.t
     val of_stream : location Stream.t -> t
 
     (** [intersects lset loc] returns [true] if [loc] has a non-empty
@@ -104,14 +104,14 @@ module Make (Chromosome : Chromosome) : sig
 
     (** [intersecting_elems lset loc] returns a stream of all
         locations in [lset] that intersect [loc]. *)
-    val intersecting_elems : t -> location -> location CFStream.Stream.t
+    val intersecting_elems : t -> location -> location Stream.t
   end
 
   (** A set of locations with an attached value on each of them *)
   module LMap : sig
     type 'a t
 
-    val to_stream : 'a t -> (location * 'a) CFStream.Stream.t
+    val to_stream : 'a t -> (location * 'a) Stream.t
     val of_stream : (location * 'a) Stream.t -> 'a t
 
     (** [intersects lmap loc] returns [true] if [loc] has a non-empty
@@ -127,6 +127,6 @@ module Make (Chromosome : Chromosome) : sig
 
     (** [intersecting_elems lmap loc] returns a stream of elements
         in [lmap] whose location intersects with [loc]. *)
-    val intersecting_elems : 'a t -> location -> (location * 'a) CFStream.Stream.t
+    val intersecting_elems : 'a t -> location -> (location * 'a) Stream.t
   end
 end

@@ -55,7 +55,7 @@ val unzip_in_channel
   -> ?zlib_buffer_size:int
   -> ?buffer_size:int
   -> In_channel.t
-  -> (string, [> Error.t ]) result CFStream.Stream.t
+  -> (string, [> Error.t ]) result Stream.t
 
 (** Compress an Input Channel. *)
 val zip_in_channel
@@ -64,7 +64,7 @@ val zip_in_channel
   -> ?level:int
   -> ?buffer_size:int
   -> In_channel.t
-  -> string CFStream.Stream.t
+  -> string Stream.t
 
 (** The exception raise by the [*_exn] functions of this module. *)
 exception Error of Error.unzip
@@ -76,7 +76,7 @@ val unzip_in_channel_exn
   -> ?zlib_buffer_size:int
   -> ?buffer_size:int
   -> In_channel.t
-  -> string CFStream.Stream.t
+  -> string Stream.t
 
 (** {2 [Transform.t] Implementations} *)
 

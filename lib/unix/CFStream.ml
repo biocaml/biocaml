@@ -19,8 +19,6 @@ module Stream = struct
   ;;
 
   let empty () = from (const None)
-  let to_stream x = x
-  let of_stream x = x
 
   exception Expected_streams_of_equal_length
   exception Premature_end_of_input
