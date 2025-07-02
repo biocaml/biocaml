@@ -1,11 +1,11 @@
 open CFStream
 
-type item = Line.t [@@deriving sexp]
+type item = Biocaml.Line.t [@@deriving sexp]
 
 module MakeIO (Future : Future.S) = struct
   open Future
 
-  let read r = Reader.lines r |> Pipe.map ~f:Line.of_string_unsafe
+  let read r = Reader.lines r |> Pipe.map ~f:Biocaml.Line.of_string_unsafe
 
   let write w pipe_r =
     Pipe.iter pipe_r ~f:(fun item -> Writer.write_line w (item : item :> string))
@@ -34,13 +34,13 @@ let of_char_stream cstr =
         | None -> ()
       in
       loop ();
-      Some (Buffer.contents ans |> Line.of_string_unsafe)
+      Some (Buffer.contents ans |> Biocaml.Line.of_string_unsafe)
   in
   Stream.from f
 ;;
 
 let of_channel cin =
-  let f _ = In_channel.input_line cin |> Option.map ~f:Line.of_string_unsafe in
+  let f _ = In_channel.input_line cin |> Option.map ~f:Biocaml.Line.of_string_unsafe in
   Stream.from f
 ;;
 
@@ -50,14 +50,14 @@ let of_string s =
     if pos >= n
     then None
     else if Char.equal s.[pos] '\n'
-    then Some (Line.of_string_unsafe "", pos + 1)
+    then Some (Biocaml.Line.of_string_unsafe "", pos + 1)
     else (
       let sub, new_pos =
         match String.lfindi ~pos s ~f:Char.(fun _ c -> c = '\n') with
         | Some pos' -> String.sub s ~pos ~len:(pos' - pos), pos' + 1
         | None -> String.suffix s (n - pos), n
       in
-      Some (Line.of_string_unsafe sub, new_pos))
+      Some (Biocaml.Line.of_string_unsafe sub, new_pos))
   in
   Stream.unfold 0 ~f
 ;;
@@ -93,7 +93,7 @@ module Buffer = struct
         (* there is a partial line at the end *)
         p.unfinished_line <- Some s
       | h :: t ->
-        Queue.enqueue p.lines (Line.of_string_unsafe h);
+        Queue.enqueue p.lines (Biocaml.Line.of_string_unsafe h);
         faux t
     in
     match p.unfinished_line, lines with
@@ -122,7 +122,7 @@ module Buffer = struct
     | None -> raise No_next_line
   ;;
 
-  let current_position p = Pos.make ?source:p.filename ~line:p.parsed_lines ()
+  let current_position p = Biocaml.Pos.make ?source:p.filename ~line:p.parsed_lines ()
   let is_empty p = Queue.is_empty p.lines && Poly.(p.unfinished_line = None)
   let contents p = Queue.to_list p.lines, p.unfinished_line
 
@@ -148,7 +148,7 @@ module Transform = struct
              | [], None -> `end_of_stream
              | [], Some unfinished_line ->
                Buffer.empty buf;
-               `output (Line.of_string_unsafe unfinished_line)
+               `output (Biocaml.Line.of_string_unsafe unfinished_line)
              | _ -> assert false))
          | false -> (
            match Buffer.next_line buf with
@@ -168,7 +168,7 @@ module Transform = struct
       ~name:"lines_to_string"
       ()
       ~feed:(fun l ->
-        Buffer.add_string buffer (l : Line.t :> string);
+        Buffer.add_string buffer (l : Biocaml.Line.t :> string);
         Buffer.add_char buffer '\n')
       ~next:(fun stopped ->
         match Buffer.contents buffer with
@@ -238,7 +238,7 @@ module Test = struct
       List.equal
         String.equal
         answer
-        (of_string input |> Stream.to_list |> List.map ~f:Line.to_string)
+        (of_string input |> Stream.to_list |> List.map ~f:Biocaml.Line.to_string)
     in
     f "\naa\n\n\nbb" [ ""; "aa"; ""; ""; "bb" ]
   ;;

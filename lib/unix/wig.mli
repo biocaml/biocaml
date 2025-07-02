@@ -32,56 +32,69 @@
 
 type comment = [ `comment of string ]
 
+(** variable_step_state_change of name x span *)
 type variable_step =
   [ `variable_step_state_change of string * int option
-  | `variable_step_value of int * float ]
-(** variable_step_state_change of name x span *)
+  | `variable_step_value of int * float
+  ]
 
+(** fixed_step_state_change of name, start, step, span *)
 type fixed_step =
   [ `fixed_step_state_change of string * int * int * int option
-  | `fixed_step_value of float ]
-(** fixed_step_state_change of name, start, step, span *)
+  | `fixed_step_value of float
+  ]
 
 type bed_graph_value = string * int * int * float
 
-type item =
-  [ comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
 (** The most general type that the default parser outputs.
     {[
     type t = [comment | variable_step | fixed_step | `bed_graph_value of bed_graph_value ]
     ]}
 *)
+type item =
+  [ comment
+  | variable_step
+  | fixed_step
+  | `bed_graph_value of bed_graph_value
+  ]
 
 (** {2 Error Types} *)
 
 module Error : sig
   (** The errors of the [Wig] module. *)
 
-  type parsing =
-    [ `cannot_parse_key_values of Pos.t * string
-    | `empty_line of Pos.t
-    | `incomplete_input of Pos.t * string list * string option
-    | `missing_chrom_value of Pos.t * string
-    | `missing_start_value of Pos.t * string
-    | `missing_step_value of Pos.t * string
-    | `wrong_start_value of Pos.t * string
-    | `wrong_step_value of Pos.t * string
-    | `unrecognizable_line of Pos.t * string list
-    | `wrong_bed_graph_value of Pos.t * string
-    | `wrong_fixed_step_value of Pos.t * string
-    | `wrong_span_value of Pos.t * string
-    | `wrong_variable_step_value of Pos.t * string ]
   (** The parsing errors. *)
+  type parsing =
+    [ `cannot_parse_key_values of Biocaml.Pos.t * string
+    | `empty_line of Biocaml.Pos.t
+    | `incomplete_input of Biocaml.Pos.t * string list * string option
+    | `missing_chrom_value of Biocaml.Pos.t * string
+    | `missing_start_value of Biocaml.Pos.t * string
+    | `missing_step_value of Biocaml.Pos.t * string
+    | `wrong_start_value of Biocaml.Pos.t * string
+    | `wrong_step_value of Biocaml.Pos.t * string
+    | `unrecognizable_line of Biocaml.Pos.t * string list
+    | `wrong_bed_graph_value of Biocaml.Pos.t * string
+    | `wrong_fixed_step_value of Biocaml.Pos.t * string
+    | `wrong_span_value of Biocaml.Pos.t * string
+    | `wrong_variable_step_value of Biocaml.Pos.t * string
+    ]
 
-  val parsing_error_to_string : parsing -> string
   (** Convert a [parsing] error to a string. *)
+  val parsing_error_to_string : parsing -> string
 
-  type to_bed_graph = [ `not_in_variable_step_state | `not_in_fixed_step_state ]
   (** The errors encountered while transforming [item] values to
   bed-graph-only values. *)
+  type to_bed_graph =
+    [ `not_in_variable_step_state
+    | `not_in_fixed_step_state
+    ]
 
-  type t = [ parsing | to_bed_graph ]
   (** The union of all errors. *)
+  type t =
+    [ parsing
+    | to_bed_graph
+    ]
 
   val parsing_of_sexp : Sexplib.Sexp.t -> parsing
   val sexp_of_parsing : parsing -> Sexplib.Sexp.t
@@ -94,17 +107,20 @@ end
 (** {2  Tags} *)
 
 module Tags : sig
-  type t = { allow_empty_lines : bool; sharp_comments : bool }
   (** Additional tags (c.f. {!Tags}). *)
+  type t =
+    { allow_empty_lines : bool
+    ; sharp_comments : bool
+    }
 
-  val default : t
   (** Default tags ([{allow_empty_lines = false; sharp_comments = true}]). *)
+  val default : t
 
-  val of_string : string -> (t, [> `wig of [> `tags_of_string of exn ] ]) result
   (** Parse tags (for now S-Expressions). *)
+  val of_string : string -> (t, [> `wig of [> `tags_of_string of exn ] ]) result
 
-  val to_string : t -> string
   (** Serialize tags (for now S-Expressions). *)
+  val to_string : t -> string
 
   val t_of_sexp : Sexplib.Sexp.t -> t
   val sexp_of_t : t -> Sexplib.Sexp.t
@@ -112,77 +128,78 @@ end
 
 (** {2 [In_channel] Functions} *)
 
-exception Error of Error.t
 (** The exceptions raised by the [Wig] module's [*_exn] functions. *)
+exception Error of Error.t
 
-val in_channel_to_item_stream :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  In_channel.t ->
-  (item, Error.t) result Stream.t
 (** Get a stream of [item] values out of an input-channel. *)
+val in_channel_to_item_stream
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> In_channel.t
+  -> (item, Error.t) result Stream.t
 
-val in_channel_to_item_stream_exn :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  In_channel.t ->
-  item Stream.t
 (** Do like [in_channel_to_item_stream] but each call to [Stream.next]
     may throw an exception. *)
+val in_channel_to_item_stream_exn
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> In_channel.t
+  -> item Stream.t
 
-val in_channel_to_bed_graph :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  In_channel.t ->
-  (bed_graph_value, Error.t) result Stream.t
 (** Get a stream of [bed_graph_value] values out of a WIG-file input-channel. *)
+val in_channel_to_bed_graph
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> In_channel.t
+  -> (bed_graph_value, Error.t) result Stream.t
 
-val in_channel_to_bed_graph_exn :
-  ?buffer_size:int ->
-  ?filename:string ->
-  ?tags:Tags.t ->
-  In_channel.t ->
-  bed_graph_value Stream.t
 (** Do like [in_channel_to_bed_graph] but each call to [Stream.next]
     may throw an exception. *)
+val in_channel_to_bed_graph_exn
+  :  ?buffer_size:int
+  -> ?filename:string
+  -> ?tags:Tags.t
+  -> In_channel.t
+  -> bed_graph_value Stream.t
 
 (** {2 [To_string] Functions} *)
 
-val item_to_string : ?tags:Tags.t -> item -> string
 (** Convert an [item] to a string (including new line characters).
 
     Note: the parsing of the [Tags.t] is staged, so storing [let
     to_string = item_to_string ~tags] only once could be slightly more
     efficient than calling [item_to_string ~tags item] many times.
 *)
+val item_to_string : ?tags:Tags.t -> item -> string
 
 (** {2 Transform Creations} *)
 
 module Transform : sig
   (** Low-level {!Tfxm.t}. *)
 
-  val string_to_item :
-    ?filename:string ->
-    ?tags:Tags.t ->
-    unit ->
-    (string, (item, [> Error.parsing ]) result) Tfxm.t
   (** Create the parsing [Tfxm.t]. The parser is
       "best-effort" and stateless (i.e. a line containing ["1000 42."]
       will parsed successfully as a [`variable_step_value (1000, 42.)]
       even if no ["variableStep"] was line present before). *)
+  val string_to_item
+    :  ?filename:string
+    -> ?tags:Tags.t
+    -> unit
+    -> (string, (item, [> Error.parsing ]) result) Tfxm.t
 
-  val item_to_string : ?tags:Tags.t -> unit -> (item, string) Tfxm.t
   (** Create the transform that prints [item] values to strings. *)
+  val item_to_string : ?tags:Tags.t -> unit -> (item, string) Tfxm.t
 
-  val item_to_bed_graph :
-    unit -> (item, (bed_graph_value, [> Error.to_bed_graph ]) result) Tfxm.t
   (** Create a transform which converts [`variable_step_value _] and
       [`fixed_step_value _] values to [`bed_graph_value _] values, using the
       current state. The [`bed_graph_value _] items stay untouched
       and [`comment _] values are ignored. *)
+  val item_to_bed_graph
+    :  unit
+    -> (item, (bed_graph_value, [> Error.to_bed_graph ]) result) Tfxm.t
 end
 
 (** {2 S-Expressions} *)

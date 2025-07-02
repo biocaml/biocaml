@@ -88,7 +88,7 @@ module Row = struct
     ?format
     line
     =
-    let l = (line : Line.t :> string) in
+    let l = (line : Biocaml.Line.t :> string) in
     let module With_exns = struct
       exception Int_of_string of string
       exception Float_of_string of string
@@ -148,7 +148,8 @@ module Row = struct
       | `float f -> sprintf "%g" f
       | `string s -> s
     in
-    Line.of_string_unsafe (String.concat_array ~sep (Array.map t ~f:item_to_string))
+    Biocaml.Line.of_string_unsafe
+      (String.concat_array ~sep (Array.map t ~f:item_to_string))
   ;;
 
   module Transform = struct
@@ -189,7 +190,7 @@ module Test = struct
         Row.of_line
           ~separators:[ '-' ]
           ~format:[| `type_int; `type_float; `type_string |]
-          (Line.of_string_unsafe s)
+          (Biocaml.Line.of_string_unsafe s)
       in
       printf "%s: %b\n" (sprintf "%s: of_line" s) (Poly.( = ) r row_result);
       Result.iter row_result ~f:(fun row ->
@@ -198,13 +199,13 @@ module Test = struct
           printf
             "%s: %b\n"
             (sprintf "%s: to_line" s)
-            (String.equal (Row.to_line ~sep:"-" row : Line.t :> string) str)
+            (String.equal (Row.to_line ~sep:"-" row : Biocaml.Line.t :> string) str)
         | None ->
           printf
             "%s: %b\n"
             (sprintf "%s: to_line" s)
-            (String.equal (Row.to_line ~sep:"-" row : Line.t :> string) s)
-        (* row = Line.of_string_unsafe s) *))
+            (String.equal (Row.to_line ~sep:"-" row : Biocaml.Line.t :> string) s)
+        (* row = Biocaml.Line.of_string_unsafe s) *))
     in
     tdash "42-42-42" (Ok [| `int 42; `float 42.; `string "42" |]);
     tdash "42-42.-42" (Ok [| `int 42; `float 42.; `string "42" |]) ~to_line:"42-42-42";
@@ -221,7 +222,7 @@ module Test = struct
       ~to_line:"42-42-42-any-string-42";
     let fail_test fmt = ksprintf (fun s -> printf "%s: %b\n" s false) fmt in
     let test_tol = Row.of_line ~separators:[ ' ' ] ~format:[| `type_int; `type_float |] in
-    let line = Line.of_string_unsafe in
+    let line = Biocaml.Line.of_string_unsafe in
     (test_tol (line "42 42")
     >>< function
     | Ok [| `int 42; `float 42. |] -> ()

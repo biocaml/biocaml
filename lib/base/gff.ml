@@ -223,7 +223,7 @@ let parse_fields parse_attributes = function
 ;;
 
 let item_of_line parse_attributes line =
-  match (line : Line.t :> string) with
+  match (line : Biocaml.Line.t :> string) with
   | "" -> fail "Empty line"
   | line ->
     if Char.(line.[0] = '#')
@@ -238,7 +238,7 @@ let gff3_item_of_line line = item_of_line parse_gff3_attributes line
 let gtf_item_of_line line = item_of_line parse_gtf_attributes line
 
 let line_of_item version = function
-  | `Comment c -> Line.of_string_unsafe ("#" ^ c)
+  | `Comment c -> Biocaml.Line.of_string_unsafe ("#" ^ c)
   | `Record t ->
     let escape =
       match version with
@@ -271,5 +271,5 @@ let line_of_item version = function
                  (List.map v ~f:Uri.pct_encode |> String.concat ~sep:",")
              | `two -> sprintf "%s %s" k (List.map v ~f:escape |> String.concat ~sep:",")))
       ]
-    |> Line.of_string_unsafe
+    |> Biocaml.Line.of_string_unsafe
 ;;

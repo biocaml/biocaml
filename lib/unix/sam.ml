@@ -589,8 +589,8 @@ let parse_header_item line =
     | `Other tag -> Ok (`Other (tag, tvl))
     | `CO -> assert false
   in
-  match String.lsplit2 ~on:'\t' (line : Line.t :> string) with
-  | None -> error "header line contains no tabs" line Line.sexp_of_t
+  match String.lsplit2 ~on:'\t' (line : Biocaml.Line.t :> string) with
+  | None -> error "header line contains no tabs" line Biocaml.Line.sexp_of_t
   | Some (tag, data) -> (
     parse_header_item_tag tag
     >>= function
@@ -901,7 +901,7 @@ let parse_optional_field s =
 ;;
 
 let parse_alignment ?ref_seqs line =
-  match String.split ~on:'\t' (line : Line.t :> string) with
+  match String.split ~on:'\t' (line : Biocaml.Line.t :> string) with
   | qname
     :: flags
     :: rname
@@ -1194,9 +1194,9 @@ module MakeIO (Future : Future.S) = struct
       >>= function
       | `Eof -> return (Ok hdr)
       | `Ok line -> (
-        if String.length (line : Line.t :> string) = 0
+        if String.length (line : Biocaml.Line.t :> string) = 0
         then return (Or_error.error_string "invalid empty line")
-        else if Char.((line : Line.t :> string).[0] <> '@')
+        else if Char.((line : Biocaml.Line.t :> string).[0] <> '@')
         then return (Ok hdr)
         else
           Pipe.junk lines
@@ -1235,20 +1235,20 @@ module MakeIO (Future : Future.S) = struct
         ()
   ;;
 
-  let read ?(start = Pos.(incr_line unknown)) r =
+  let read ?(start = Biocaml.Pos.(incr_line unknown)) r =
     let pos = ref start in
     let lines =
       Pipe.map (Lines.read r) ~f:(fun line ->
-        pos := Pos.incr_line !pos;
+        pos := Biocaml.Pos.incr_line !pos;
         line)
     in
     read_header lines
     >>| function
-    | Error _ as e -> Or_error.tag_arg e "position" !pos Pos.sexp_of_t
+    | Error _ as e -> Or_error.tag_arg e "position" !pos Biocaml.Pos.sexp_of_t
     | Ok hdr ->
       let alignments =
         Pipe.map lines ~f:(fun line ->
-          Or_error.tag_arg (parse_alignment line) "position" !pos Pos.sexp_of_t)
+          Or_error.tag_arg (parse_alignment line) "position" !pos Biocaml.Pos.sexp_of_t)
       in
       Ok (hdr, alignments)
   ;;
@@ -1303,7 +1303,8 @@ module Test = struct
     test_parse_optional_field
       "YS:i:-1"
       (optional_field "YS" (optional_field_value_i (-1L)));
-    [%expect {| Optional field value (i type): (Ok ((tag YS) (value (i -1)))) = (Ok ((tag YS) (value (i -1)))): true |}]
+    [%expect
+      {| Optional field value (i type): (Ok ((tag YS) (value (i -1)))) = (Ok ((tag YS) (value (i -1)))): true |}]
   ;;
 
   (* module Sam = Biocaml_unix.Sam_deprecated *)

@@ -50,29 +50,30 @@
 
 (** {2 Item Types} *)
 
+(** The type of the parser "track" lines. *)
 type t =
   [ `track of (string * string) list
   | `comment of string
   | `browser of
     [ `position of string * int * int | `hide of [ `all ] | `unknown of string ]
   ]
-(** The type of the parser "track" lines. *)
 
-type 'a content = [ `content of 'a ]
 (** The "content" lines of the files. *)
+type 'a content = [ `content of 'a ]
 
 (** {2 Error Types} *)
 
 module Error : sig
-  type parsing =
-    [ `incomplete_input of Pos.t * string list * string option
-    | `wrong_browser_position of Pos.t * string
-    | `wrong_key_value_format of (string * string) list * string * string ]
   (** The parsing errors that can happen while parsing Track-specific
       content. *)
+  type parsing =
+    [ `incomplete_input of Biocaml.Pos.t * string list * string option
+    | `wrong_browser_position of Biocaml.Pos.t * string
+    | `wrong_key_value_format of (string * string) list * string * string
+    ]
 
-  type t = parsing
   (** The union of all the errors. *)
+  type t = parsing
 
   val parsing_of_sexp : Sexplib.Sexp.t -> parsing
   val sexp_of_parsing : parsing -> Sexplib.Sexp.t
@@ -85,54 +86,51 @@ end
 module Transform : sig
   (** Low-level transforms. *)
 
-  val string_to_string_content :
-    ?filename:string ->
-    unit ->
-    (string, ([ t | string content ], [> Error.parsing ]) Result.t) Tfxm.t
   (** Create a parser that gets the "track", comment, and "browser"
       lines and puts the  other lines in [`content _]. *)
+  val string_to_string_content
+    :  ?filename:string
+    -> unit
+    -> (string, ([ t | string content ], [> Error.parsing ]) Result.t) Tfxm.t
 
-  val string_content_to_string :
-    ?add_content_new_line:bool ->
-    unit ->
-    ([ t | string content ], string) Tfxm.t
   (** Create a printer for track files containing [`content line] lines. *)
+  val string_content_to_string
+    :  ?add_content_new_line:bool
+    -> unit
+    -> ([ t | string content ], string) Tfxm.t
 
-  val string_to_wig :
-    ?filename:string ->
-    unit ->
-    ( string,
-      ([ t | Wig.item ], [> Error.parsing | Wig.Error.parsing ]) Result.t )
-    Tfxm.t
   (** Create a composite parser for UCSC WIG files.  *)
+  val string_to_wig
+    :  ?filename:string
+    -> unit
+    -> ( string
+       , ([ t | Wig.item ], [> Error.parsing | Wig.Error.parsing ]) Result.t )
+       Tfxm.t
 
-  val wig_to_string : unit -> ([ t | Wig.item ], string) Tfxm.t
   (** Create a printer for track files containing WIG lines. *)
+  val wig_to_string : unit -> ([ t | Wig.item ], string) Tfxm.t
 
-  val string_to_gff :
-    ?filename:string ->
-    tags:Gff.Tags.t ->
-    unit ->
-    ( string,
-      ([ t | Gff.item ], [> Error.parsing | Gff.Error.parsing ]) Result.t )
-    Tfxm.t
   (** Create a composite parser for UCSC GFF files.  *)
+  val string_to_gff
+    :  ?filename:string
+    -> tags:Gff.Tags.t
+    -> unit
+    -> ( string
+       , ([ t | Gff.item ], [> Error.parsing | Gff.Error.parsing ]) Result.t )
+       Tfxm.t
 
-  val gff_to_string :
-    tags:Gff.Tags.t -> unit -> ([ t | Gff.item ], string) Tfxm.t
   (** Create a printer for track files containing GFF lines. *)
+  val gff_to_string : tags:Gff.Tags.t -> unit -> ([ t | Gff.item ], string) Tfxm.t
 
-  val string_to_bed :
-    ?filename:string ->
-    ?more_columns:Bed.parsing_spec ->
-    unit ->
-    ( string,
-      ( [ t | Bed.item content ],
-        [> Error.parsing | Bed.Error.parsing ] )
-      Result.t )
-    Tfxm.t
   (** Create a composite parser for UCSC Bed(Graph) files.  *)
+  val string_to_bed
+    :  ?filename:string
+    -> ?more_columns:Bed.parsing_spec
+    -> unit
+    -> ( string
+       , ([ t | Bed.item content ], [> Error.parsing | Bed.Error.parsing ]) Result.t )
+       Tfxm.t
 
-  val bed_to_string : unit -> ([ t | Bed.item content ], string) Tfxm.t
   (** Create a printer for track files containing Bed(Graph) lines. *)
+  val bed_to_string : unit -> ([ t | Bed.item content ], string) Tfxm.t
 end

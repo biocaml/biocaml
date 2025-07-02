@@ -6,7 +6,7 @@ type item = string * int * int * string list
 
 let item_of_line l =
   let open Result in
-  match Line.split l ~on:'\t' with
+  match Biocaml.Line.split l ~on:'\t' with
   | chrom :: chrom_start :: chrom_end :: others ->
     Field.(parse ~ctx:"chrom_start" int) chrom_start
     >>= fun chrom_start ->
@@ -19,7 +19,7 @@ let line_of_item (chr, start_pos, stop_pos, others) =
   String.concat
     ~sep:"\t"
     (chr :: Int.to_string start_pos :: Int.to_string stop_pos :: others)
-  |> Line.of_string_unsafe
+  |> Biocaml.Line.of_string_unsafe
 ;;
 
 module Bed3 = struct
@@ -68,7 +68,7 @@ module Bed5_raw = struct
 
   let item_of_line l =
     let open Result in
-    match Line.split l ~on:'\t' with
+    match Biocaml.Line.split l ~on:'\t' with
     | chrom :: chrom_start :: chrom_end :: name :: score :: others ->
       Field.(parse ~ctx:"chrom_start" int) chrom_start
       >>= fun chrom_start ->
@@ -89,7 +89,7 @@ module Bed5_raw = struct
     :: Int.to_string it.score
     :: it.others
     |> String.concat ~sep:"\t"
-    |> Line.of_string_unsafe
+    |> Biocaml.Line.of_string_unsafe
   ;;
 end
 
@@ -108,7 +108,7 @@ module Bed5 = struct
 
   let item_of_line l =
     let open Result in
-    match Line.split l ~on:'\t' with
+    match Biocaml.Line.split l ~on:'\t' with
     | chrom :: chrom_start :: chrom_end :: name :: score :: others ->
       Field.(parse ~ctx:"chrom_start" positive_int) chrom_start
       >>= fun chrom_start ->

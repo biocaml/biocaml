@@ -100,10 +100,10 @@ type vcf_parse_row_error =
   ]
 
 type vcf_parse_error =
-  [ `malformed_meta of Pos.t * string
-  | `malformed_row of Pos.t * vcf_parse_row_error * string
-  | `malformed_header of Pos.t * string
-  | `incomplete_input of Pos.t * string list * string option
+  [ `malformed_meta of Biocaml.Pos.t * string
+  | `malformed_row of Biocaml.Pos.t * vcf_parse_row_error * string
+  | `malformed_header of Biocaml.Pos.t * string
+  | `incomplete_input of Biocaml.Pos.t * string list * string option
   | `not_ready
   ]
 
@@ -212,7 +212,7 @@ let parse_row_error_to_string = function
 ;;
 
 let parse_error_to_string =
-  let pos () a = Pos.to_string a in
+  let pos () a = Biocaml.Pos.to_string a in
   function
   | `malformed_meta (p, s) -> sprintf "malformed_meta (%a, %S)" pos p s
   | `malformed_row (p, err, s) ->

@@ -5,6 +5,7 @@
  (flags :standard -short-paths -open Core)
  (libraries
   base64
+  biocaml
   biocaml.base
   zip
   camlp-streams

@@ -1,8 +1,8 @@
 type parser_error = [ `Bed_parser_error of int * string ] [@@deriving sexp]
 type item = string * int * int * string list
 
-val item_of_line : Line.t -> (item, string) Result.t
-val line_of_item : item -> Line.t
+val item_of_line : Biocaml.Line.t -> (item, string) Result.t
+val line_of_item : item -> Biocaml.Line.t
 
 module Bed3 : sig
   type item = private
@@ -47,8 +47,8 @@ module Bed5_raw : sig
     -> (item, string) Result.t
 
   val set_score : item -> int -> item
-  val item_of_line : Line.t -> (item, string) Result.t
-  val line_of_item : item -> Line.t
+  val item_of_line : Biocaml.Line.t -> (item, string) Result.t
+  val line_of_item : item -> Biocaml.Line.t
 end
 
 module Bed5 : sig
@@ -64,6 +64,6 @@ module Bed5 : sig
     -> unit
     -> (item, string) Result.t
 
-  val item_of_line : Line.t -> (item, string) Result.t
-  val line_of_item : item -> Line.t
+  val item_of_line : Biocaml.Line.t -> (item, string) Result.t
+  val line_of_item : item -> Biocaml.Line.t
 end

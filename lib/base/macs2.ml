@@ -31,7 +31,7 @@ module Xls = struct
   ;;
 
   let parse line =
-    match (line : Line.t :> string) with
+    match (line : Biocaml.Line.t :> string) with
     | "" -> Ok (`Comment "")
     | line when String.(line = header) -> Ok `Header
     | line ->
@@ -97,7 +97,7 @@ module Broad_peaks = struct
     }
 
   let parse line =
-    match Line.split ~on:'\t' line with
+    match Biocaml.Line.split ~on:'\t' line with
     | [ chr
       ; chr_start
       ; chr_end
