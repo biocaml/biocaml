@@ -26,7 +26,7 @@ let raise_bad msg = raise (Bad msg)
 
 (* Hashtbl representation of intensity data. *)
 module Tbl = struct
-  module HT = Caml.Hashtbl
+  module HT = Stdlib.Hashtbl
 
   (* hash table of (mean,stdv,npixels) data *)
   let of_cel1 (cel : t) : (int * int, idata) HT.t =
@@ -47,7 +47,7 @@ module Tbl = struct
   (* like HT.find but throws more informative exception *)
   let find tbl (x, y) =
     try HT.find tbl (x, y) with
-    | Caml.Not_found ->
+    | Stdlib.Not_found ->
       failwith
         (Msg.err
            (sprintf

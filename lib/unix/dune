@@ -13,8 +13,7 @@
   core_unix.filename_unix
   core_kernel.binary_packing
   re.perl
-  xmlm
-  ppx_expect.evaluator)
+  xmlm)
  (inline_tests)
  (preprocess
-  (pps ppx_jane ppx_inline_test)))
+  (pps ppx_jane)))

@@ -48,7 +48,7 @@ let fold_data_file name ~init ~f =
 let load_matrix fn =
   fold_data_file (fn / "MATRIX.txt") ~init:String.Map.empty ~f:(fun accu -> function
     | [ db_id; collection; jaspar_id; _; factor_name ] ->
-      String.Map.set
+      Map.set
         accu
         ~key:db_id
         ~data:
@@ -110,7 +110,7 @@ module SSM = Map.Make (SS)
 
 let load_annotation fn =
   fold_data_file (fn / "MATRIX_ANNOTATION.txt") ~init:SSM.empty ~f:(fun accu -> function
-    | id :: field :: data :: _ -> SSM.set accu ~key:(id, field) ~data
+    | id :: field :: data :: _ -> Map.set accu ~key:(id, field) ~data
     | _ -> assert false)
 ;;
 
@@ -119,20 +119,20 @@ let load fn =
   let matrix_data = load_matrix_data fn in
   let annotations = load_annotation fn in
   let res =
-    String.Map.mapi matrix ~f:(fun ~key ~data ->
+    Map.mapi matrix ~f:(fun ~key ~data ->
       { id = key
       ; jaspar_id = data#jaspar_id
       ; collection = data#collection
       ; factor_name = data#factor_name
-      ; factor_class = SSM.find_exn annotations (key, "class")
+      ; factor_class = Map.find_exn annotations (key, "class")
       ; comment =
-          (match SSM.find annotations (key, "comment") with
+          (match Map.find annotations (key, "comment") with
            | Some "-" -> None
            | x -> x)
-      ; family = SSM.find annotations (key, "family")
-      ; medline = SSM.find_exn annotations (key, "medline")
-      ; matrix = String.Map.find_exn matrix_data key
+      ; family = Map.find annotations (key, "family")
+      ; medline = Map.find_exn annotations (key, "medline")
+      ; matrix = Map.find_exn matrix_data key
       })
   in
-  String.Map.data res
+  Map.data res
 ;;

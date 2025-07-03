@@ -136,27 +136,26 @@ module Transform = struct
     Tfxm.make
       ~name:"string_to_lines"
       ~feed:(Buffer.feed_string buf)
-      ~next:
-        (function
-         | true -> (
-           match Buffer.next_line buf with
-           | Some line -> `output line
-           | None -> (
-             match Buffer.contents buf with
-             | [], None -> `end_of_stream
-             | [], Some unfinished_line ->
-               Buffer.empty buf;
-               `output (Biocaml.Line.of_string_unsafe unfinished_line)
-             | _ -> assert false))
-         | false -> (
-           match Buffer.next_line buf with
-           | None -> `not_ready
-           | Some line -> `output line))
+      ~next:(function
+        | true -> (
+          match Buffer.next_line buf with
+          | Some line -> `output line
+          | None -> (
+            match Buffer.contents buf with
+            | [], None -> `end_of_stream
+            | [], Some unfinished_line ->
+              Buffer.empty buf;
+              `output (Biocaml.Line.of_string_unsafe unfinished_line)
+            | _ -> assert false))
+        | false -> (
+          match Buffer.next_line buf with
+          | None -> `not_ready
+          | Some line -> `output line))
       ()
   ;;
 
   let item_to_string ?(buffer : [ `clear of int | `reset of int ] = `reset 1024) () =
-    let module Buffer = Caml.Buffer in
+    let module Buffer = Stdlib.Buffer in
     let buffer, clear_buffer =
       match buffer with
       | `clear s -> Buffer.create s, Buffer.clear
@@ -181,14 +180,13 @@ module Transform = struct
     let item1 = ref None in
     Tfxm.make
       ~name:"group2"
-      ~feed:
-        (function
-         | item -> (
-           match !item1 with
-           | Some item1' ->
-             Queue.enqueue queue (item1', item);
-             item1 := None
-           | None -> item1 := Some item))
+      ~feed:(function
+        | item -> (
+          match !item1 with
+          | Some item1' ->
+            Queue.enqueue queue (item1', item);
+            item1 := None
+          | None -> item1 := Some item))
       ~next:(fun stopped ->
         match Queue.dequeue queue with
         | Some ij -> `output (Ok ij)
@@ -219,7 +217,7 @@ module Transform = struct
               (Error
                  (on_error
                     (`incomplete_input
-                      (Buffer.current_position lo_parser, (l :> string list), o)))))
+                        (Buffer.current_position lo_parser, (l :> string list), o)))))
         else `not_ready)
   ;;
 

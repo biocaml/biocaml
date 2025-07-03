@@ -22,17 +22,17 @@ module BatAvlTree = struct
   let singleton_tree x = Node (Empty, x, Empty, 1)
 
   let left_branch = function
-    | Empty -> raise Caml.Not_found
+    | Empty -> raise Stdlib.Not_found
     | Node (l, _, _, _) -> l
   ;;
 
   let right_branch = function
-    | Empty -> raise Caml.Not_found
+    | Empty -> raise Stdlib.Not_found
     | Node (_, _, r, _) -> r
   ;;
 
   let root = function
-    | Empty -> raise Caml.Not_found
+    | Empty -> raise Stdlib.Not_found
     | Node (_, v, _, _) -> v
   ;;
 
@@ -101,7 +101,7 @@ module BatAvlTree = struct
 
   (* Utilities *)
   let rec split_leftmost = function
-    | Empty -> raise Caml.Not_found
+    | Empty -> raise Stdlib.Not_found
     | Node (Empty, v, r, _) -> v, r
     | Node (l, v, r, _) ->
       let v0, l' = split_leftmost l in
@@ -109,7 +109,7 @@ module BatAvlTree = struct
   ;;
 
   let rec split_rightmost = function
-    | Empty -> raise Caml.Not_found
+    | Empty -> raise Stdlib.Not_found
     | Node (l, v, Empty, _) -> v, l
     | Node (l, v, r, _) ->
       let v0, r' = split_rightmost r in

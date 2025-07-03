@@ -8,12 +8,12 @@ module Deferred = struct
   type 'a t = 'a Lwt.t
 
   include Monad.Make (struct
-    type 'a t = 'a Lwt.t
+      type 'a t = 'a Lwt.t
 
-    let return = Lwt.return
-    let bind x ~f = Lwt.bind x f
-    let map = `Custom (fun m ~f -> Lwt.map f m)
-  end)
+      let return = Lwt.return
+      let bind x ~f = Lwt.bind x f
+      let map = `Custom (fun m ~f -> Lwt.map f m)
+    end)
 
   let unit = Lwt.return_unit
 
@@ -21,44 +21,44 @@ module Deferred = struct
     type ('a, 'b) t = ('a, 'b) Result.t Lwt.t
 
     include Monad.Make2 (struct
-      type ('a, 'b) t = ('a, 'b) Result.t Lwt.t
+        type ('a, 'b) t = ('a, 'b) Result.t Lwt.t
 
-      let return x = Lwt.return (Ok x)
+        let return x = Lwt.return (Ok x)
 
-      let bind m ~f =
-        Lwt.bind m (function
-          | Ok x -> f x
-          | Error _ as x -> Lwt.return x)
-      ;;
+        let bind m ~f =
+          Lwt.bind m (function
+            | Ok x -> f x
+            | Error _ as x -> Lwt.return x)
+        ;;
 
-      let map =
-        `Custom
-          (fun m ~f ->
-            Lwt.map
-              (function
-               | Ok x -> Ok (f x)
-               | Error _ as x -> x)
-              m)
-      ;;
-    end)
+        let map =
+          `Custom
+            (fun m ~f ->
+              Lwt.map
+                (function
+                  | Ok x -> Ok (f x)
+                  | Error _ as x -> x)
+                m)
+        ;;
+      end)
   end
 
   module List = struct
     let fold l ~init ~f = Lwt_list.fold_left_s f init l
 
-    let iter ?(how = `Sequential) l ~f =
+    let iter ~how l ~f =
       match how with
       | `Sequential -> Lwt_list.iter_s f l
       | `Max_concurrent_jobs _ | `Parallel -> Lwt_list.iter_p f l
     ;;
 
-    let map ?(how = `Sequential) l ~f =
+    let map ~how l ~f =
       match how with
       | `Sequential -> Lwt_list.map_s f l
       | `Max_concurrent_jobs _ | `Parallel -> Lwt_list.map_p f l
     ;;
 
-    let filter ?(how = `Sequential) l ~f =
+    let filter ~how l ~f =
       match how with
       | `Sequential -> Lwt_list.filter_s f l
       | `Max_concurrent_jobs _ | `Parallel -> Lwt_list.filter_p f l
@@ -67,7 +67,7 @@ module Deferred = struct
 
   module Or_error = struct
     module List = struct
-      let map ?(how = `Sequential) l ~f =
+      let map ~how l ~f =
         let map =
           match how with
           | `Sequential -> Lwt_list.map_s
@@ -79,10 +79,10 @@ module Deferred = struct
           let helper () =
             map
               (fun x ->
-                f x
-                >>| function
-                | Ok x -> x
-                | Error e -> raise (E e))
+                 f x
+                 >>| function
+                 | Ok x -> x
+                 | Error e -> raise (E e))
               l
           ;;
         end
@@ -91,7 +91,7 @@ module Deferred = struct
         | M.E e -> return (Error e)
       ;;
 
-      let iter ?(how = `Sequential) l ~f =
+      let iter ~how l ~f =
         let iter =
           match how with
           | `Sequential -> Lwt_list.iter_s
@@ -103,10 +103,10 @@ module Deferred = struct
           let helper () =
             iter
               (fun x ->
-                f x
-                >>| function
-                | Ok () -> ()
-                | Error e -> raise (E e))
+                 f x
+                 >>| function
+                 | Ok () -> ()
+                 | Error e -> raise (E e))
               l
           ;;
         end

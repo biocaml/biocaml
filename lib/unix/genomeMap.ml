@@ -10,16 +10,16 @@ module Make (Chromosome : Chromosome) = struct
 
   module Map = struct
     include Map.Make (struct
-      include Chromosome
+        include Chromosome
 
-      let sexp_of_t _ = assert false
-      let t_of_sexp _ = assert false
-    end)
+        let sexp_of_t _ = assert false
+        let t_of_sexp _ = assert false
+      end)
 
-    let to_stream t = CFStream.of_list (to_alist t)
+    let to_stream t = CFStream.of_list (Map.to_alist t)
 
     let of_stream xs =
-      CFStream.fold xs ~init:empty ~f:(fun accu (key, data) -> set accu ~key ~data)
+      CFStream.fold xs ~init:empty ~f:(fun accu (key, data) -> Map.set accu ~key ~data)
     ;;
   end
 
@@ -30,66 +30,65 @@ module Make (Chromosome : Chromosome) = struct
 
     let add sel (chr, { Range.lo; hi }) =
       let set_chr =
-        match Map.find sel chr with
+        match Base.Map.find sel chr with
         | None -> Iset.empty
         | Some s -> s
       in
       let set_chr = Iset.add_range set_chr lo hi in
-      Map.set sel ~key:chr ~data:set_chr
+      Base.Map.set sel ~key:chr ~data:set_chr
     ;;
 
     let inter u v =
-      Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
-        match Map.find v k with
-        | Some set_v -> Map.set accu ~key:k ~data:(Iset.inter set_u set_v)
+      Base.Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
+        match Base.Map.find v k with
+        | Some set_v -> Base.Map.set accu ~key:k ~data:(Iset.inter set_u set_v)
         | None -> accu)
     ;;
 
     let union u v =
       let keys =
-        List.dedup_and_sort ~compare:Chromosome.compare (Map.keys u @ Map.keys v)
+        List.dedup_and_sort ~compare:Chromosome.compare (Base.Map.keys u @ Base.Map.keys v)
       in
       List.fold keys ~init:Map.empty ~f:(fun accu k ->
-        Map.set
+        Base.Map.set
           accu
           ~key:k
           ~data:
             (Iset.union
-               (Option.value (Map.find u k) ~default:Iset.empty)
-               (Option.value (Map.find v k) ~default:Iset.empty)))
+               (Option.value (Base.Map.find u k) ~default:Iset.empty)
+               (Option.value (Base.Map.find v k) ~default:Iset.empty)))
     ;;
 
     let diff u v =
-      Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
+      Base.Map.fold u ~init:Map.empty ~f:(fun ~key:k ~data:set_u accu ->
         let set_u' =
-          match Map.find v k with
+          match Base.Map.find v k with
           | Some set_v -> Iset.diff set_u set_v
           | None -> set_u
         in
-        Map.set ~key:k ~data:set_u' accu)
+        Base.Map.set ~key:k ~data:set_u' accu)
     ;;
 
     let size x =
-      Map.fold x ~init:0 ~f:(fun ~key:_ ~data:set accu -> Iset.cardinal set + accu)
+      Base.Map.fold x ~init:0 ~f:(fun ~key:_ ~data:set accu -> Iset.cardinal set + accu)
     ;;
 
     let overlap sel (k, r) =
       Iset.(
-        match Map.find sel k with
+        match Base.Map.find sel k with
         | Some x -> inter Range.(add_range empty r.lo r.hi) x |> cardinal
         | None -> 0)
     ;;
 
     let intersects sel (k, r) =
-      Option.value_map (Map.find sel k) ~default:false ~f:(fun x ->
+      Option.value_map (Base.Map.find sel k) ~default:false ~f:(fun x ->
         Range.(Iset.intersects_range x r.lo r.hi))
     ;;
 
     let to_stream sel =
       Map.to_stream sel
       |> CFStream.map ~f:(fun (k, s) ->
-           CFStream.map (Iset.to_stream s) ~f:(fun (lo, hi) ->
-             k, ok_exn (Range.make lo hi)))
+        CFStream.map (Iset.to_stream s) ~f:(fun (lo, hi) -> k, ok_exn (Range.make lo hi)))
       |> CFStream.concat
     ;;
 
@@ -128,13 +127,13 @@ module Make (Chromosome : Chromosome) = struct
     type 'a t = 'a T.t Map.t
 
     let intersects lmap (k, r) =
-      Option.value_map (Map.find lmap k) ~default:false ~f:(fun x ->
+      Option.value_map (Base.Map.find lmap k) ~default:false ~f:(fun x ->
         Range.(T.intersects x ~low:r.lo ~high:r.hi))
     ;;
 
     let closest lmap (k, r) =
       Option.bind
-        (Map.find lmap k)
+        (Base.Map.find lmap k)
         ~f:
           Range.(
             fun x ->
@@ -146,7 +145,7 @@ module Make (Chromosome : Chromosome) = struct
     ;;
 
     let intersecting_elems lmap (k, { Range.lo; hi }) =
-      match Map.find lmap k with
+      match Base.Map.find lmap k with
       | Some x ->
         T.find_intersecting_elem lo hi x
         |> CFStream.map ~f:(fun (lo, hi, x) -> (k, ok_exn (Range.make lo hi)), x)
@@ -156,9 +155,9 @@ module Make (Chromosome : Chromosome) = struct
     let to_stream lmap =
       Map.to_stream lmap
       |> CFStream.map ~f:(fun (k, t) ->
-           CFStream.map
-             ~f:(fun (lo, hi, x) -> (k, ok_exn (Range.make lo hi)), x)
-             (T.to_stream t))
+        CFStream.map
+          ~f:(fun (lo, hi, x) -> (k, ok_exn (Range.make lo hi)), x)
+          (T.to_stream t))
       |> CFStream.concat
     ;;
 

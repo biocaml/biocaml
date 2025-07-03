@@ -1,8 +1,8 @@
 (*
- * This implementation is largely inspired from the Set implementation of the
+   * This implementation is largely inspired from the Set implementation of the
  * standard library and the BatSet module (from Batteries) for enum-related
  * functions
- *)
+*)
 
 type 'a t =
   | Empty
@@ -373,9 +373,9 @@ module Test = struct
             t
             ~init:h
             ~f:(fun ((lo', hi', _) as interval') ((lo'', hi'', _) as interval'') ->
-            if interval_dist lo hi lo' hi' <= interval_dist lo hi lo'' hi''
-            then interval'
-            else interval'')
+              if interval_dist lo hi lo' hi' <= interval_dist lo hi lo'' hi''
+              then interval'
+              else interval'')
         in
         lo', hi', x, interval_dist lo hi lo' hi'
     ;;
@@ -404,11 +404,11 @@ module Test = struct
   ;;
 
   module TestAdditions (I : sig
-    type 'a t
+      type 'a t
 
-    val empty : 'a t
-    val add : 'a t -> low:int -> high:int -> data:'a -> 'a t
-  end) =
+      val empty : 'a t
+      val add : 'a t -> low:int -> high:int -> data:'a -> 'a t
+    end) =
   struct
     let of_list l =
       List.fold_left l ~init:I.empty ~f:(fun accu (low, high, data) ->
@@ -417,11 +417,11 @@ module Test = struct
   end
 
   module T = TestAdditions (struct
-    type nonrec 'a t = 'a t
+      type nonrec 'a t = 'a t
 
-    let empty = empty
-    let add = add
-  end)
+      let empty = empty
+      let add = add
+    end)
 
   module L = TestAdditions (ListImpl)
 
@@ -433,9 +433,10 @@ module Test = struct
            let r = add accu ~low:lo ~high:hi ~data:() in
            check_integrity r;
            r)
-          : unit t)
+         : unit t)
     done;
-    [%expect {|
+    [%expect
+      {|
     |}]
   ;;
 
@@ -443,15 +444,16 @@ module Test = struct
     let all_good =
       List.init 100 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals 100 |> CFStream.to_list in
-           let lres = ListImpl.(intervals |> L.of_list |> to_stream |> CFStream.to_list)
-           and tres = intervals |> T.of_list |> to_stream |> CFStream.to_list in
-           Int.equal 100 (List.length lres)
-           && Int.equal 100 (List.length tres)
-           && Poly.equal lres tres)
+        let intervals = random_intervals 100 |> CFStream.to_list in
+        let lres = ListImpl.(intervals |> L.of_list |> to_stream |> CFStream.to_list)
+        and tres = intervals |> T.of_list |> to_stream |> CFStream.to_list in
+        Int.equal 100 (List.length lres)
+        && Int.equal 100 (List.length tres)
+        && Poly.equal lres tres)
     in
     printf "%b\n" all_good;
-    [%expect {|
+    [%expect
+      {|
       true
     |}]
   ;;
@@ -460,14 +462,15 @@ module Test = struct
     let all_good =
       List.init 1000 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
-           and low, high, _ = random_interval ~ub:1000 () in
-           let l = ListImpl.(intersects (L.of_list intervals) ~low ~high)
-           and t = intersects (T.of_list intervals) ~low ~high in
-           Bool.equal l t)
+        let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
+        and low, high, _ = random_interval ~ub:1000 () in
+        let l = ListImpl.(intersects (L.of_list intervals) ~low ~high)
+        and t = intersects (T.of_list intervals) ~low ~high in
+        Bool.equal l t)
     in
     printf "%b\n" all_good;
-    [%expect {|
+    [%expect
+      {|
       true
     |}]
   ;;
@@ -476,22 +479,23 @@ module Test = struct
     let all_good =
       List.init 1000 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
-           and lo, hi, _ = random_interval ~ub:1000 () in
-           let llo, lhi, _, dl = ListImpl.(find_closest lo hi (L.of_list intervals))
-           and tlo, thi, _, dt = find_closest lo hi (T.of_list intervals)
-           and dist (x, y) = ListImpl.interval_dist lo hi x y in
-           let cmp x y = dist x = dist y in
-           (* let printer (lo', hi') =
+        let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
+        and lo, hi, _ = random_interval ~ub:1000 () in
+        let llo, lhi, _, dl = ListImpl.(find_closest lo hi (L.of_list intervals))
+        and tlo, thi, _, dt = find_closest lo hi (T.of_list intervals)
+        and dist (x, y) = ListImpl.interval_dist lo hi x y in
+        let cmp x y = dist x = dist y in
+        (* let printer (lo', hi') =
              sprintf "[%d,%d](%d to [%d,%d])" lo' hi' (dist (lo', hi')) lo hi
            in *)
-           let x = llo, lhi in
-           let y = tlo, thi in
-           (* let () = printf "%s\n%s\n" (printer x) (printer y) in *)
-           cmp x y && Poly.equal dl dt && Poly.equal dl (dist (llo, lhi)))
+        let x = llo, lhi in
+        let y = tlo, thi in
+        (* let () = printf "%s\n%s\n" (printer x) (printer y) in *)
+        cmp x y && Poly.equal dl dt && Poly.equal dl (dist (llo, lhi)))
     in
     printf "%b\n" all_good;
-    [%expect {|
+    [%expect
+      {|
       true
     |}]
   ;;
@@ -514,7 +518,8 @@ module Test = struct
       (Int.equal
          3
          (find_intersecting_elem 65163 75163 u |> CFStream.to_list |> List.length));
-    [%expect {|
+    [%expect
+      {|
       true
       true
     |}]
@@ -524,24 +529,25 @@ module Test = struct
     let all_good =
       List.init 1000 ~f:Fn.id
       |> List.for_all ~f:(fun _ ->
-           let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
-           and lo, hi, _ = random_interval ~ub:1000 () in
-           let l =
-             ListImpl.(find_intersecting_elem lo hi (L.of_list intervals))
-             |> CFStream.fold ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
-           and t =
-             find_intersecting_elem lo hi (T.of_list intervals)
-             |> CFStream.fold ~init:Set.Poly.empty ~f:(fun accu e -> Set.Poly.add accu e)
-           in
-           Int.equal 0 (Set.length (Set.union (Set.diff l t) (Set.diff t l)))
-           (* [assert_equal l t] is not a valid test because sets cannot be
+        let intervals = random_intervals ~ub:1000 1000 |> CFStream.to_list
+        and lo, hi, _ = random_interval ~ub:1000 () in
+        let l =
+          ListImpl.(find_intersecting_elem lo hi (L.of_list intervals))
+          |> CFStream.fold ~init:Set.Poly.empty ~f:(fun accu e -> Set.add accu e)
+        and t =
+          find_intersecting_elem lo hi (T.of_list intervals)
+          |> CFStream.fold ~init:Set.Poly.empty ~f:(fun accu e -> Set.add accu e)
+        in
+        Int.equal 0 (Set.length (Set.union (Set.diff l t) (Set.diff t l)))
+        (* [assert_equal l t] is not a valid test because sets cannot be
          compared with ( = ). Indeed, a set is an AVL tree whose structure
          may depend on the order its elements were added: ( = ) compare
          the structure directly and may for this reason fail to see two
          sets have the same elements *))
     in
     printf "%b\n" all_good;
-    [%expect {|
+    [%expect
+      {|
       true
     |}]
   ;;

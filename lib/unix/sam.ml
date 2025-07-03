@@ -29,8 +29,8 @@ module MakeIO (Future : Future.S) = struct
           | Error _ as e -> return e
           | Ok
               (`HD
-                ({ Biocaml.Sam.version; sort_order; group_order } :
-                  Biocaml.Sam.header_line)) -> (
+                 ({ Biocaml.Sam.version; sort_order; group_order } :
+                   Biocaml.Sam.header_line)) -> (
             match hdr.Biocaml.Sam.version with
             | Some _ -> return (Or_error.error_string "multiple @HD lines not allowed")
             | None -> loop { hdr with version = Some version; sort_order; group_order })
@@ -96,17 +96,20 @@ module MakeIO (Future : Future.S) = struct
             ; group_order = h.group_order
             }))
     >>= fun () ->
-    Deferred.List.iter h.ref_seqs ~f:(fun x -> write_line w (Biocaml.Sam.print_ref_seq x))
+    Deferred.List.iter ~how:`Sequential h.ref_seqs ~f:(fun x ->
+      write_line w (Biocaml.Sam.print_ref_seq x))
     >>= fun () ->
-    Deferred.List.iter h.read_groups ~f:(fun x ->
+    Deferred.List.iter ~how:`Sequential h.read_groups ~f:(fun x ->
       write_line w (Biocaml.Sam.print_read_group x))
     >>= fun () ->
-    Deferred.List.iter h.programs ~f:(fun x -> write_line w (Biocaml.Sam.print_program x))
+    Deferred.List.iter ~how:`Sequential h.programs ~f:(fun x ->
+      write_line w (Biocaml.Sam.print_program x))
     >>= fun () ->
-    Deferred.List.iter h.comments ~f:(fun x ->
+    Deferred.List.iter ~how:`Sequential h.comments ~f:(fun x ->
       write w "@CO\t" >>= fun () -> write_line w x)
     >>= fun () ->
-    Deferred.List.iter h.others ~f:(fun x -> write_line w (Biocaml.Sam.print_other x))
+    Deferred.List.iter ~how:`Sequential h.others ~f:(fun x ->
+      write_line w (Biocaml.Sam.print_other x))
   ;;
 
   let write w ?(header = Biocaml.Sam.empty_header) alignments =
