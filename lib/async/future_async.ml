@@ -50,6 +50,7 @@ module Reader = struct
 
   let open_file ?buf_len file = open_file ?buf_len file
   let with_file ?buf_len file ~f = with_file ?buf_len file ~f
+  let read_all x f = read_all ?close_when_finished:None x f
 end
 
 module Writer = struct

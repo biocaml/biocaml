@@ -8,12 +8,12 @@ module Deferred = struct
   type 'a t = 'a
 
   include Monad.Make (struct
-    type 'a t = 'a
+      type 'a t = 'a
 
-    let return x = x
-    let bind m ~f = f m
-    let map = `Custom (fun m ~f -> f m)
-  end)
+      let return x = x
+      let bind m ~f = f m
+      let map = `Custom (fun m ~f -> f m)
+    end)
 
   let unit = ()
 
@@ -21,30 +21,30 @@ module Deferred = struct
     type ('a, 'b) t = ('a, 'b) Result.t
 
     include Monad.Make2 (struct
-      type ('a, 'b) t = ('a, 'b) Result.t
+        type ('a, 'b) t = ('a, 'b) Result.t
 
-      let return = Result.return
-      let bind = Result.bind
-      let map = `Custom Result.map
-    end)
+        let return = Result.return
+        let bind = Result.bind
+        let map = `Custom Result.map
+      end)
   end
 
   module List = struct
     let fold = List.fold
-    let iter ?how:_ l ~f = List.iter l ~f
-    let map ?how:_ l ~f = List.map l ~f
-    let filter ?how:_ l ~f = List.filter l ~f
+    let iter ~how:_ l ~f = List.iter l ~f
+    let map ~how:_ l ~f = List.map l ~f
+    let filter ~how:_ l ~f = List.filter l ~f
   end
 
   module Or_error = struct
     module List = struct
-      let map ?(how = `Sequential) l ~f =
+      let map ~how l ~f =
         let () = ignore how in
         let module M = struct
           exception E of Error.t
 
           let helper () =
-            List.map l ~f:(fun x ->
+            List.map ~how l ~f:(fun x ->
               match f x with
               | Ok x -> x
               | Error e -> raise (E e))
@@ -55,13 +55,13 @@ module Deferred = struct
         | M.E e -> Error e
       ;;
 
-      let iter ?(how = `Sequential) l ~f =
+      let iter ~how l ~f =
         let () = ignore how in
         let module M = struct
           exception E of Error.t
 
           let helper () =
-            List.iter l ~f:(fun x ->
+            List.iter ~how l ~f:(fun x ->
               match f x with
               | Ok () -> ()
               | Error e -> raise (E e))
