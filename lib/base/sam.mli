@@ -7,18 +7,23 @@ open! Import
 
 (** {3 Header Types} *)
 
-(** Header item tags define the different types of header lines. The
+module Header_item_tag : sig
+  (** Header item tags define the different types of header lines. The
     term "tag" in this context should not be confused with its use in
     "tag-value" pairs, which comprise the content of header items. *)
-type header_item_tag = private
-  [< `HD
-  | `SQ
-  | `RG
-  | `PG
-  | `CO
-  | `Other of string
-  ]
-[@@deriving sexp]
+  type t =
+    private
+    [< `HD
+    | `SQ
+    | `RG
+    | `PG
+    | `CO
+    | `Other of string
+    ]
+  [@@deriving sexp]
+
+  val print_header_item_tag : t -> string
+end
 
 (** A tag-value pair comprising the content of header items. Tag-value
       pairs occur in other places too, but this type is specifically for
@@ -102,7 +107,8 @@ type program = private
   }
 [@@deriving sexp]
 
-type header_item = private
+type header_item =
+  private
   [< `HD of header_line
   | `SQ of ref_seq
   | `RG of read_group
@@ -161,7 +167,8 @@ module Flags : sig
 end
 
 (** CIGAR operations. *)
-type cigar_op = private
+type cigar_op =
+  private
   [< `Alignment_match of int
   | `Insertion of int
   | `Deletion of int
@@ -176,7 +183,8 @@ type cigar_op = private
 
 (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
-type optional_field_value = private
+type optional_field_value =
+  private
   [< `A of char
   | `i of Int64.t
   | `f of float
@@ -192,7 +200,8 @@ type optional_field = private
   }
 [@@deriving sexp]
 
-type rnext = private
+type rnext =
+  private
   [< `Value of string
   | `Equal_to_RNAME
   ]
@@ -341,7 +350,6 @@ val parse_alignment
 
 (** {3 Low-level Header Printers} *)
 
-val print_header_item_tag : header_item_tag -> string
 val print_tag_value : tag_value -> string
 val print_header_version : string -> string
 val print_sort_order : sort_order -> string

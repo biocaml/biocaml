@@ -13,15 +13,26 @@ let ( >>?~ ) (x : 'a option Or_error.t) (f : 'a -> 'b Or_error.t) : 'b option Or
 (* Header Types                                                               *)
 (******************************************************************************)
 
-type header_item_tag =
-  [ `HD
-  | `SQ
-  | `RG
-  | `PG
-  | `CO
-  | `Other of string
-  ]
-[@@deriving sexp]
+module Header_item_tag = struct
+  type t =
+    [ `HD
+    | `SQ
+    | `RG
+    | `PG
+    | `CO
+    | `Other of string
+    ]
+  [@@deriving sexp]
+
+  let print_header_item_tag = function
+    | `HD -> "@HD"
+    | `SQ -> "@SQ"
+    | `RG -> "@RG"
+    | `PG -> "@PG"
+    | `CO -> "@CO"
+    | `Other x -> sprintf "@%s" x
+  ;;
+end
 
 type tag_value = string * string [@@deriving sexp]
 
@@ -210,7 +221,7 @@ type alignment =
 (******************************************************************************)
 let parse_header_version s =
   let err =
-    Error (Error.create "invalid version" (`HD, s) [%sexp_of: header_item_tag * string])
+    Error (Error.create "invalid version" (`HD, s) [%sexp_of: Header_item_tag.t * string])
   in
   match String.lsplit2 ~on:'.' s with
   | None -> err
@@ -423,14 +434,14 @@ let find1 header_item_tag l x =
       (Error.create
          "required tag not found"
          (header_item_tag, x)
-         [%sexp_of: header_item_tag * string])
+         [%sexp_of: Header_item_tag.t * string])
   | y :: [] -> Ok y
   | ys ->
     Error
       (Error.create
          "tag found multiple times"
          (header_item_tag, x, ys)
-         [%sexp_of: header_item_tag * string * string list])
+         [%sexp_of: Header_item_tag.t * string * string list])
 ;;
 
 (** Find 0 or 1 occurrence [x] in association list [l]. Return
@@ -444,7 +455,7 @@ let find01 header_item_tag l x =
       (Error.create
          "tag found multiple times"
          (header_item_tag, x, ys)
-         [%sexp_of: header_item_tag * string * string list])
+         [%sexp_of: Header_item_tag.t * string * string list])
 ;;
 
 (** Assert that [tvl] contains at most the given [tags]. *)
@@ -459,7 +470,7 @@ let assert_tags header_item_tag tvl tags =
       (Error.create
          "unexpected tag for given header item type"
          (header_item_tag, unexpected_tags)
-         [%sexp_of: header_item_tag * Set.M(String).t])
+         [%sexp_of: Header_item_tag.t * Set.M(String).t])
 ;;
 
 let parse_sort_order = function
@@ -613,7 +624,7 @@ let parse_header_item line =
       match String.split ~on:'\t' data with
       | [] -> assert false
       | "" :: [] ->
-        Error (Error.create "header contains no data" tag sexp_of_header_item_tag)
+        Error (Error.create "header contains no data" tag Header_item_tag.sexp_of_t)
       | tvl -> Result_list.map tvl ~f:parse_tag_value >>= fun tvl -> parse_data tag tvl))
 ;;
 
@@ -979,14 +990,6 @@ let parse_alignment ?ref_seqs line =
 (******************************************************************************)
 (* Header Printers                                                            *)
 (******************************************************************************)
-let print_header_item_tag = function
-  | `HD -> "@HD"
-  | `SQ -> "@SQ"
-  | `RG -> "@RG"
-  | `PG -> "@PG"
-  | `CO -> "@CO"
-  | `Other x -> sprintf "@%s" x
-;;
 
 let print_tag_value (tag, value) = sprintf "%s:%s" tag value
 let print_tag_value' = sprintf "%s:%s"
