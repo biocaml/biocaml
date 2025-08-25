@@ -34,13 +34,18 @@ module Tag_value : sig
   val print_tag_value : t -> string
 end
 
-type sort_order =
-  [ `Unknown
-  | `Unsorted
-  | `Query_name
-  | `Coordinate
-  ]
-[@@deriving sexp]
+module Sort_order : sig
+  type t =
+    [ `Unknown
+    | `Unsorted
+    | `Query_name
+    | `Coordinate
+    ]
+  [@@deriving sexp]
+
+  val parse_sort_order : string -> t Or_error.t
+  val print_sort_order : t -> string
+end
 
 type group_order =
   [ `None
@@ -55,7 +60,7 @@ type group_order =
       header. *)
 type header_line =
   { version : string (** VN *)
-  ; sort_order : sort_order option (** SO *)
+  ; sort_order : Sort_order.t option (** SO *)
   ; group_order : group_order option (** GO *)
   }
 [@@deriving sexp]
@@ -137,7 +142,7 @@ type header_item =
   *)
 type header =
   { version : string option
-  ; sort_order : sort_order option
+  ; sort_order : Sort_order.t option
   ; group_order : group_order option
   ; ref_seqs : ref_seq list
   ; read_groups : read_group list
@@ -235,7 +240,7 @@ type alignment = private
 
 val header_line
   :  version:string
-  -> ?sort_order:sort_order
+  -> ?sort_order:Sort_order.t
   -> ?group_order:group_order
   -> unit
   -> header_line Or_error.t
@@ -271,7 +276,7 @@ val read_group
 
 val header
   :  ?version:string
-  -> ?sort_order:sort_order
+  -> ?sort_order:Sort_order.t
   -> ?group_order:group_order
   -> ?ref_seqs:ref_seq list
   -> ?read_groups:read_group list
@@ -282,7 +287,6 @@ val header
   -> header Or_error.t
 
 val parse_header_version : string -> string Or_error.t
-val parse_sort_order : string -> sort_order Or_error.t
 val parse_header_line : Tag_value.t list -> header_line Or_error.t
 val parse_ref_seq : Tag_value.t list -> ref_seq Or_error.t
 val parse_platform : string -> platform Or_error.t
@@ -355,7 +359,6 @@ val parse_alignment
 (** {3 Low-level Header Printers} *)
 
 val print_header_version : string -> string
-val print_sort_order : sort_order -> string
 val print_header_line : header_line -> string
 val print_ref_seq : ref_seq -> string
 val print_platform : platform -> string

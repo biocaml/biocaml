@@ -41,13 +41,33 @@ module Tag_value = struct
   let print_tag_value' = sprintf "%s:%s"
 end
 
-type sort_order =
-  [ `Unknown
-  | `Unsorted
-  | `Query_name
-  | `Coordinate
-  ]
-[@@deriving sexp]
+module Sort_order = struct
+  type t =
+    [ `Unknown
+    | `Unsorted
+    | `Query_name
+    | `Coordinate
+    ]
+  [@@deriving sexp]
+
+  let parse_sort_order = function
+    | "unknown" -> Ok `Unknown
+    | "unsorted" -> Ok `Unsorted
+    | "queryname" -> Ok `Query_name
+    | "coordinate" -> Ok `Coordinate
+    | x -> Error (Error.create "invalid sort order" x sexp_of_string)
+  ;;
+
+  let print_sort_order x =
+    Tag_value.print_tag_value'
+      "SO"
+      (match x with
+       | `Unknown -> "unknown"
+       | `Unsorted -> "unsorted"
+       | `Query_name -> "queryname"
+       | `Coordinate -> "coordinate")
+  ;;
+end
 
 type group_order =
   [ `None
@@ -58,7 +78,7 @@ type group_order =
 
 type header_line =
   { version : string
-  ; sort_order : sort_order option
+  ; sort_order : Sort_order.t option
   ; group_order : group_order option
   }
 [@@deriving sexp]
@@ -122,7 +142,7 @@ type header_item =
 
 type header =
   { version : string option
-  ; sort_order : sort_order option
+  ; sort_order : Sort_order.t option
   ; group_order : group_order option
   ; ref_seqs : ref_seq list
   ; read_groups : read_group list
@@ -349,7 +369,7 @@ let header
          (Error.create
             "sort order cannot be defined without version"
             (sort_order, version)
-            [%sexp_of: sort_order option * string option])
+            [%sexp_of: Sort_order.t option * string option])
      else None)
   ; List.map ref_seqs ~f:(fun (x : ref_seq) -> x.name)
     |> List.find_a_dup ~compare:String.compare
@@ -478,14 +498,6 @@ let assert_tags header_item_tag tvl tags =
          [%sexp_of: Header_item_tag.t * Set.M(String).t])
 ;;
 
-let parse_sort_order = function
-  | "unknown" -> Ok `Unknown
-  | "unsorted" -> Ok `Unsorted
-  | "queryname" -> Ok `Query_name
-  | "coordinate" -> Ok `Coordinate
-  | x -> Error (Error.create "invalid sort order" x sexp_of_string)
-;;
-
 let parse_group_order = function
   | "none" -> Ok `None
   | "query" -> Ok `Query
@@ -497,7 +509,7 @@ let parse_header_line tvl =
   find1 `HD tvl "VN"
   >>= fun version ->
   find01 `HD tvl "SO"
-  >>?~ parse_sort_order
+  >>?~ Sort_order.parse_sort_order
   >>= fun sort_order ->
   find01 `HD tvl "GO"
   >>?~ parse_group_order
@@ -998,16 +1010,6 @@ let parse_alignment ?ref_seqs line =
 
 let print_header_version x = Tag_value.print_tag_value' "VN" x
 
-let print_sort_order x =
-  Tag_value.print_tag_value'
-    "SO"
-    (match x with
-     | `Unknown -> "unknown"
-     | `Unsorted -> "unsorted"
-     | `Query_name -> "queryname"
-     | `Coordinate -> "coordinate")
-;;
-
 let print_group_order x =
   Tag_value.print_tag_value'
     "GO"
@@ -1023,7 +1025,7 @@ let print_header_line ({ version; sort_order; group_order } : header_line) =
     version
     (match sort_order with
      | None -> ""
-     | Some x -> sprintf "\t%s" (print_sort_order x))
+     | Some x -> sprintf "\t%s" (Sort_order.print_sort_order x))
     (match group_order with
      | None -> ""
      | Some x -> sprintf "\t%s" (print_group_order x))
