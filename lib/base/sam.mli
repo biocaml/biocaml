@@ -25,10 +25,14 @@ module Header_item_tag : sig
   val print_header_item_tag : t -> string
 end
 
-(** A tag-value pair comprising the content of header items. Tag-value
+module Tag_value : sig
+  (** A tag-value pair comprising the content of header items. Tag-value
       pairs occur in other places too, but this type is specifically for
       those in the header. *)
-type tag_value = private string * string [@@deriving sexp]
+  type t = private string * string [@@deriving sexp]
+
+  val print_tag_value : t -> string
+end
 
 type sort_order =
   [ `Unknown
@@ -114,7 +118,7 @@ type header_item =
   | `RG of read_group
   | `PG of program
   | `CO of string
-  | `Other of string * tag_value list
+  | `Other of string * Tag_value.t list
   ]
 [@@deriving sexp]
 
@@ -139,7 +143,7 @@ type header =
   ; read_groups : read_group list
   ; programs : program list
   ; comments : string list
-  ; others : (string * tag_value list) list
+  ; others : (string * Tag_value.t list) list
   }
 (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
@@ -273,17 +277,17 @@ val header
   -> ?read_groups:read_group list
   -> ?programs:program list
   -> ?comments:string list
-  -> ?others:(string * tag_value list) list
+  -> ?others:(string * Tag_value.t list) list
   -> unit
   -> header Or_error.t
 
 val parse_header_version : string -> string Or_error.t
 val parse_sort_order : string -> sort_order Or_error.t
-val parse_header_line : tag_value list -> header_line Or_error.t
-val parse_ref_seq : tag_value list -> ref_seq Or_error.t
+val parse_header_line : Tag_value.t list -> header_line Or_error.t
+val parse_ref_seq : Tag_value.t list -> ref_seq Or_error.t
 val parse_platform : string -> platform Or_error.t
-val parse_read_group : tag_value list -> read_group Or_error.t
-val parse_program : tag_value list -> program Or_error.t
+val parse_read_group : Tag_value.t list -> read_group Or_error.t
+val parse_program : Tag_value.t list -> program Or_error.t
 val parse_header_item : Line.t -> header_item Or_error.t
 
 (** {3 Low-level Optional field Parsers and Constructors} *)
@@ -350,7 +354,6 @@ val parse_alignment
 
 (** {3 Low-level Header Printers} *)
 
-val print_tag_value : tag_value -> string
 val print_header_version : string -> string
 val print_sort_order : sort_order -> string
 val print_header_line : header_line -> string
@@ -358,7 +361,7 @@ val print_ref_seq : ref_seq -> string
 val print_platform : platform -> string
 val print_read_group : read_group -> string
 val print_program : program -> string
-val print_other : string * tag_value list -> string
+val print_other : string * Tag_value.t list -> string
 
 (** {3 Low-level Alignment Printers} *)
 

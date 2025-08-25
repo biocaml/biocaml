@@ -34,7 +34,12 @@ module Header_item_tag = struct
   ;;
 end
 
-type tag_value = string * string [@@deriving sexp]
+module Tag_value = struct
+  type t = string * string [@@deriving sexp]
+
+  let print_tag_value (tag, value) = sprintf "%s:%s" tag value
+  let print_tag_value' = sprintf "%s:%s"
+end
 
 type sort_order =
   [ `Unknown
@@ -111,7 +116,7 @@ type header_item =
   | `RG of read_group
   | `PG of program
   | `CO of string
-  | `Other of string * tag_value list
+  | `Other of string * Tag_value.t list
   ]
 [@@deriving sexp]
 
@@ -123,7 +128,7 @@ type header =
   ; read_groups : read_group list
   ; programs : program list
   ; comments : string list
-  ; others : (string * tag_value list) list
+  ; others : (string * Tag_value.t list) list
   }
 
 let empty_header =
@@ -991,12 +996,10 @@ let parse_alignment ?ref_seqs line =
 (* Header Printers                                                            *)
 (******************************************************************************)
 
-let print_tag_value (tag, value) = sprintf "%s:%s" tag value
-let print_tag_value' = sprintf "%s:%s"
-let print_header_version x = print_tag_value' "VN" x
+let print_header_version x = Tag_value.print_tag_value' "VN" x
 
 let print_sort_order x =
-  print_tag_value'
+  Tag_value.print_tag_value'
     "SO"
     (match x with
      | `Unknown -> "unknown"
@@ -1006,7 +1009,7 @@ let print_sort_order x =
 ;;
 
 let print_group_order x =
-  print_tag_value'
+  Tag_value.print_tag_value'
     "GO"
     (match x with
      | `None -> "none"
@@ -1093,7 +1096,7 @@ let print_program (x : program) =
     (s "VN" x.version)
 ;;
 
-let print_other ((tag, l) : string * tag_value list) =
+let print_other ((tag, l) : string * Tag_value.t list) =
   sprintf
     "@%s%s"
     tag
