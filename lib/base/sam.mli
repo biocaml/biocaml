@@ -19,7 +19,7 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val print_header_item_tag : t -> string
+    val print : t -> string
   end
 
   module Tag_value : sig
@@ -28,7 +28,7 @@ module Header : sig
       those in the header. *)
     type t = private string * string [@@deriving sexp]
 
-    val print_tag_value : t -> string
+    val print : t -> string
   end
 
   module Sort_order : sig
@@ -40,8 +40,8 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val parse_sort_order : string -> t Or_error.t
-    val print_sort_order : t -> string
+    val parse : string -> t Or_error.t
+    val print : t -> string
   end
 
   module Group_order : sig
@@ -51,6 +51,9 @@ module Header : sig
       | `Reference
       ]
     [@@deriving sexp]
+
+    val parse : string -> t Or_error.t
+    val print : t -> string
   end
 
   val parse_header_version : string -> string Or_error.t
@@ -76,8 +79,8 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val parse_header_line : Tag_value.t list -> t Or_error.t
-    val print_header_line : t -> string
+    val parse : Tag_value.t list -> t Or_error.t
+    val print : t -> string
   end
 
   module Ref_seq : sig
@@ -102,8 +105,8 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val parse_ref_seq : Tag_value.t list -> t Or_error.t
-    val print_ref_seq : t -> string
+    val parse : Tag_value.t list -> t Or_error.t
+    val print : t -> string
   end
 
   module Platform : sig
@@ -118,8 +121,8 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val parse_platform : string -> t Or_error.t
-    val print_platform : t -> string
+    val parse : string -> t Or_error.t
+    val print : t -> string
   end
 
   module Read_group : sig
@@ -159,8 +162,8 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val parse_read_group : Tag_value.t list -> t Or_error.t
-    val print_read_group : t -> string
+    val parse : Tag_value.t list -> t Or_error.t
+    val print : t -> string
   end
 
   module Program : sig
@@ -175,8 +178,8 @@ module Header : sig
       }
     [@@deriving sexp]
 
-    val parse_program : Tag_value.t list -> t Or_error.t
-    val print_program : t -> string
+    val parse : Tag_value.t list -> t Or_error.t
+    val print : t -> string
   end
 
   module Header_item : sig
@@ -191,7 +194,7 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val parse_header_item : Line.t -> t Or_error.t
+    val parse : Line.t -> t Or_error.t
   end
 
   val print_other : string * Tag_value.t list -> string
@@ -272,7 +275,7 @@ module Cigar_op : sig
   [@@deriving sexp]
 
   val parse_cigar : string -> t list Or_error.t
-  val print_cigar_op : t -> string
+  val print : t -> string
   val print_cigar : t list -> string
 
   (** {3 Low-level Optional field Parsers and Constructors} *)
@@ -310,7 +313,7 @@ module Optional_field_value : sig
   val optional_field_value_Z : string -> t Or_error.t
   val optional_field_value_H : string -> t Or_error.t
   val optional_field_value_B : char -> string list -> t Or_error.t
-  val parse_optional_field_value : string -> t Or_error.t
+  val parse : string -> t Or_error.t
 end
 
 module Optional_field : sig
@@ -321,8 +324,8 @@ module Optional_field : sig
   [@@deriving sexp]
 
   val optional_field : string -> Optional_field_value.t -> t Or_error.t
-  val parse_optional_field : string -> t Or_error.t
-  val print_optional_field : t -> string
+  val parse : string -> t Or_error.t
+  val print : t -> string
 end
 
 module Rnext : sig
@@ -333,8 +336,8 @@ module Rnext : sig
     ]
   [@@deriving sexp]
 
-  val parse_rnext : string -> t option Or_error.t
-  val print_rnext : t option -> string
+  val parse : string -> t option Or_error.t
+  val print : t option -> string
 end
 
 module Alignment : sig
@@ -383,7 +386,7 @@ module Alignment : sig
   val parse_seq : string -> string option Or_error.t
   val parse_qual : string -> Phred_score.t list Or_error.t
 
-  val parse_alignment
+  val parse
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> Line.t
     -> t Or_error.t
@@ -397,5 +400,5 @@ module Alignment : sig
   val print_tlen : int option -> string
   val print_seq : string option -> string
   val print_qual : Phred_score.t list -> string
-  val print_alignment : t -> string
+  val print : t -> string
 end
