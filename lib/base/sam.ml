@@ -205,15 +205,78 @@ module Header_line = struct
   ;;
 end
 
-type ref_seq =
-  { name : string
-  ; length : int
-  ; assembly : string option
-  ; md5 : string option
-  ; species : string option
-  ; uri : string option
-  }
-[@@deriving sexp]
+module Ref_seq = struct
+  type t =
+    { name : string
+    ; length : int
+    ; assembly : string option
+    ; md5 : string option
+    ; species : string option
+    ; uri : string option
+    }
+  [@@deriving sexp]
+
+  let ref_seq ~name ~length ?assembly ?md5 ?species ?uri () =
+    let is_name_first_char_ok = function
+      | '!' .. ')' | '+' .. '<' | '>' .. '~' -> true
+      | _ -> false
+    in
+    let is_name_other_char_ok = function
+      | '!' .. '~' -> true
+      | _ -> false
+    in
+    (if 1 <= length && length <= 2147483647
+     then Ok length
+     else Error (Error.create "invalid reference sequence length" length [%sexp_of: int]))
+    >>= fun length ->
+    (if
+       String.length name > 0
+       && String.foldi name ~init:true ~f:(fun i accum c ->
+         accum && if i = 0 then is_name_first_char_ok c else is_name_other_char_ok c)
+     then Ok name
+     else Error (Error.create "invalid ref seq name" name [%sexp_of: string]))
+    >>= fun name -> Ok { name; length; assembly; md5; species; uri }
+  ;;
+
+  let parse_ref_seq tvl =
+    find1 `SQ tvl "SN"
+    >>= fun name ->
+    find1 `SQ tvl "LN"
+    >>= fun length ->
+    (try Ok (Int.of_string length) with
+     | _ -> Error (Error.create "invalid ref seq length" length sexp_of_string))
+    >>= fun length ->
+    find01 `SQ tvl "AS"
+    >>= fun assembly ->
+    find01 `SQ tvl "M5"
+    >>= fun md5 ->
+    find01 `SQ tvl "SP"
+    >>= fun species ->
+    find01 `SQ tvl "UR"
+    >>= fun uri ->
+    assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
+    >>= fun () -> ref_seq ~name ~length ?assembly ?md5 ?species ?uri ()
+  ;;
+
+  let print_ref_seq (x : t) =
+    sprintf
+      "@SQ\tSN:%s\tLN:%d%s%s%s%s"
+      x.name
+      x.length
+      (match x.assembly with
+       | None -> ""
+       | Some x -> sprintf "\tAS:%s" x)
+      (match x.md5 with
+       | None -> ""
+       | Some x -> sprintf "\tM5:%s" x)
+      (match x.species with
+       | None -> ""
+       | Some x -> sprintf "\tSP:%s" x)
+      (match x.uri with
+       | None -> ""
+       | Some x -> sprintf "\tUR:%s" x)
+  ;;
+end
 
 type platform =
   [ `Capillary
@@ -254,7 +317,7 @@ type program =
 
 type header_item =
   [ `HD of Header_line.t
-  | `SQ of ref_seq
+  | `SQ of Ref_seq.t
   | `RG of read_group
   | `PG of program
   | `CO of string
@@ -266,7 +329,7 @@ type header =
   { version : string option
   ; sort_order : Sort_order.t option
   ; group_order : Group_order.t option
-  ; ref_seqs : ref_seq list
+  ; ref_seqs : Ref_seq.t list
   ; read_groups : read_group list
   ; programs : program list
   ; comments : string list
@@ -367,28 +430,6 @@ type alignment =
 (* Header Parsers and Constructors                                            *)
 (******************************************************************************)
 
-let ref_seq ~name ~length ?assembly ?md5 ?species ?uri () =
-  let is_name_first_char_ok = function
-    | '!' .. ')' | '+' .. '<' | '>' .. '~' -> true
-    | _ -> false
-  in
-  let is_name_other_char_ok = function
-    | '!' .. '~' -> true
-    | _ -> false
-  in
-  (if 1 <= length && length <= 2147483647
-   then Ok length
-   else Error (Error.create "invalid reference sequence length" length [%sexp_of: int]))
-  >>= fun length ->
-  (if
-     String.length name > 0
-     && String.foldi name ~init:true ~f:(fun i accum c ->
-       accum && if i = 0 then is_name_first_char_ok c else is_name_other_char_ok c)
-   then Ok name
-   else Error (Error.create "invalid ref seq name" name [%sexp_of: string]))
-  >>= fun name -> Ok { name; length; assembly; md5; species; uri }
-;;
-
 let read_group
       ~id
       ?seq_center
@@ -478,7 +519,7 @@ let header
             (sort_order, version)
             [%sexp_of: Sort_order.t option * string option])
      else None)
-  ; List.map ref_seqs ~f:(fun (x : ref_seq) -> x.name)
+  ; List.map ref_seqs ~f:(fun (x : Ref_seq.t) -> x.name)
     |> List.find_a_dup ~compare:String.compare
     |> Option.map ~f:(fun name ->
       Error.create "duplicate ref seq name" name sexp_of_string)
@@ -544,26 +585,6 @@ let parse_tag_value s =
   | None -> Error (Error.create "tag-value not colon separated" s sexp_of_string)
   | Some (tag, value) ->
     parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
-;;
-
-let parse_ref_seq tvl =
-  find1 `SQ tvl "SN"
-  >>= fun name ->
-  find1 `SQ tvl "LN"
-  >>= fun length ->
-  (try Ok (Int.of_string length) with
-   | _ -> Error (Error.create "invalid ref seq length" length sexp_of_string))
-  >>= fun length ->
-  find01 `SQ tvl "AS"
-  >>= fun assembly ->
-  find01 `SQ tvl "M5"
-  >>= fun md5 ->
-  find01 `SQ tvl "SP"
-  >>= fun species ->
-  find01 `SQ tvl "UR"
-  >>= fun uri ->
-  assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
-  >>= fun () -> ref_seq ~name ~length ?assembly ?md5 ?species ?uri ()
 ;;
 
 let parse_platform = function
@@ -653,7 +674,7 @@ let parse_header_item line =
   let parse_data tag tvl =
     match tag with
     | `HD -> Header_line.parse_header_line tvl >>| fun x -> `HD x
-    | `SQ -> parse_ref_seq tvl >>| fun x -> `SQ x
+    | `SQ -> Ref_seq.parse_ref_seq tvl >>| fun x -> `SQ x
     | `RG -> parse_read_group tvl >>| fun x -> `RG x
     | `PG -> parse_program tvl >>| fun x -> `PG x
     | `Other tag -> Ok (`Other (tag, tvl))
@@ -1035,25 +1056,6 @@ let parse_alignment ?ref_seqs line =
 (******************************************************************************)
 (* Header Printers                                                            *)
 (******************************************************************************)
-
-let print_ref_seq (x : ref_seq) =
-  sprintf
-    "@SQ\tSN:%s\tLN:%d%s%s%s%s"
-    x.name
-    x.length
-    (match x.assembly with
-     | None -> ""
-     | Some x -> sprintf "\tAS:%s" x)
-    (match x.md5 with
-     | None -> ""
-     | Some x -> sprintf "\tM5:%s" x)
-    (match x.species with
-     | None -> ""
-     | Some x -> sprintf "\tSP:%s" x)
-    (match x.uri with
-     | None -> ""
-     | Some x -> sprintf "\tUR:%s" x)
-;;
 
 let print_platform = function
   | `Capillary -> "CAPILLARY"

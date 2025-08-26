@@ -80,16 +80,31 @@ module Header_line : sig
   val print_header_line : t -> string
 end
 
-(** @SQ. Reference sequence. *)
-type ref_seq = private
-  { name : string (** SN *)
-  ; length : int (** LN *)
-  ; assembly : string option (** AS *)
-  ; md5 : string option (** M5 *)
-  ; species : string option (** SP *)
-  ; uri : string option (** UR *)
-  }
-[@@deriving sexp]
+module Ref_seq : sig
+  (** @SQ. Reference sequence. *)
+  type t = private
+    { name : string (** SN *)
+    ; length : int (** LN *)
+    ; assembly : string option (** AS *)
+    ; md5 : string option (** M5 *)
+    ; species : string option (** SP *)
+    ; uri : string option (** UR *)
+    }
+  [@@deriving sexp]
+
+  val ref_seq
+    :  name:string
+    -> length:int
+    -> ?assembly:string
+    -> ?md5:string
+    -> ?species:string
+    -> ?uri:string
+    -> unit
+    -> t Or_error.t
+
+  val parse_ref_seq : Tag_value.t list -> t Or_error.t
+  val print_ref_seq : t -> string
+end
 
 type platform =
   [ `Capillary
@@ -133,7 +148,7 @@ type program = private
 type header_item =
   private
   [< `HD of Header_line.t
-  | `SQ of ref_seq
+  | `SQ of Ref_seq.t
   | `RG of read_group
   | `PG of program
   | `CO of string
@@ -158,7 +173,7 @@ type header =
   { version : string option
   ; sort_order : Sort_order.t option
   ; group_order : Group_order.t option
-  ; ref_seqs : ref_seq list
+  ; ref_seqs : Ref_seq.t list
   ; read_groups : read_group list
   ; programs : program list
   ; comments : string list
@@ -252,16 +267,6 @@ type alignment = private
 
 (** {3 Low-level Header Parsers and Constructors} *)
 
-val ref_seq
-  :  name:string
-  -> length:int
-  -> ?assembly:string
-  -> ?md5:string
-  -> ?species:string
-  -> ?uri:string
-  -> unit
-  -> ref_seq Or_error.t
-
 (** The [run_date] string will be parsed as a Date.t or Time.t,
     whichever is possible. If it is a time without a timezone, local
     timezone will be assumed. *)
@@ -285,7 +290,7 @@ val header
   :  ?version:string
   -> ?sort_order:Sort_order.t
   -> ?group_order:Group_order.t
-  -> ?ref_seqs:ref_seq list
+  -> ?ref_seqs:Ref_seq.t list
   -> ?read_groups:read_group list
   -> ?programs:program list
   -> ?comments:string list
@@ -294,7 +299,6 @@ val header
   -> header Or_error.t
 
 val parse_header_version : string -> string Or_error.t
-val parse_ref_seq : Tag_value.t list -> ref_seq Or_error.t
 val parse_platform : string -> platform Or_error.t
 val parse_read_group : Tag_value.t list -> read_group Or_error.t
 val parse_program : Tag_value.t list -> program Or_error.t
@@ -365,7 +369,6 @@ val parse_alignment
 (** {3 Low-level Header Printers} *)
 
 val print_header_version : string -> string
-val print_ref_seq : ref_seq -> string
 val print_platform : platform -> string
 val print_read_group : read_group -> string
 val print_program : program -> string
