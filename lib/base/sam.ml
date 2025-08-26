@@ -10,7 +10,7 @@ let ( >>?~ ) (x : 'a option Or_error.t) (f : 'a -> 'b Or_error.t) : 'b option Or
 ;;
 
 module Header = struct
-  module Header_item_tag = struct
+  module Type = struct
     type t =
       [ `HD
       | `SQ
@@ -69,14 +69,14 @@ module Header = struct
         (Error.create
            "required tag not found"
            (header_item_tag, x)
-           [%sexp_of: Header_item_tag.t * string])
+           [%sexp_of: Type.t * string])
     | y :: [] -> Ok y
     | ys ->
       Error
         (Error.create
            "tag found multiple times"
            (header_item_tag, x, ys)
-           [%sexp_of: Header_item_tag.t * string * string list])
+           [%sexp_of: Type.t * string * string list])
   ;;
 
   (** Find 0 or 1 occurrence [x] in association list [l]. Return
@@ -90,7 +90,7 @@ module Header = struct
         (Error.create
            "tag found multiple times"
            (header_item_tag, x, ys)
-           [%sexp_of: Header_item_tag.t * string * string list])
+           [%sexp_of: Type.t * string * string list])
   ;;
 
   (** Assert that [tvl] contains at most the given [tags]. *)
@@ -105,7 +105,7 @@ module Header = struct
         (Error.create
            "unexpected tag for given header item type"
            (header_item_tag, unexpected_tags)
-           [%sexp_of: Header_item_tag.t * Set.M(String).t])
+           [%sexp_of: Type.t * Set.M(String).t])
   ;;
 
   module Tag_value = struct
@@ -201,8 +201,7 @@ module Header = struct
 
   let parse_header_version s =
     let err =
-      Error
-        (Error.create "invalid version" (`HD, s) [%sexp_of: Header_item_tag.t * string])
+      Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
     in
     match String.lsplit2 ~on:'.' s with
     | None -> err
@@ -588,14 +587,13 @@ module Header = struct
       match String.lsplit2 ~on:'\t' (line : Line.t :> string) with
       | None -> Error (Error.create "header line contains no tabs" line Line.sexp_of_t)
       | Some (tag, data) -> (
-        Header_item_tag.parse tag
+        Type.parse tag
         >>= function
         | `CO -> Ok (`CO data)
         | tag -> (
           match String.split ~on:'\t' data with
           | [] -> assert false
-          | "" :: [] ->
-            Error (Error.create "header contains no data" tag Header_item_tag.sexp_of_t)
+          | "" :: [] -> Error (Error.create "header contains no data" tag Type.sexp_of_t)
           | tvl ->
             Result_list.map tvl ~f:Tag_value.parse >>= fun tvl -> parse_data tag tvl))
     ;;

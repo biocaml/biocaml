@@ -4,7 +4,7 @@
 open! Import
 
 module Header : sig
-  module Header_item_tag : sig
+  module Type : sig
     (** Header item tags define the different types of header lines. The
     term "tag" in this context should not be confused with its use in
     "tag-value" pairs, which comprise the content of header items. *)
