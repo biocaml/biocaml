@@ -242,6 +242,8 @@ module Flags : sig
   type t = private int [@@deriving sexp]
 
   val of_int : int -> t Or_error.t
+  val parse : string -> t Or_error.t
+  val print : t -> string
   val has_multiple_segments : t -> bool
   val each_segment_properly_aligned : t -> bool
   val segment_unmapped : t -> bool
@@ -375,7 +377,6 @@ module Alignment : sig
     -> t Or_error.t
 
   val parse_qname : string -> string option Or_error.t
-  val parse_flags : string -> Flags.t Or_error.t
   val parse_rname : string -> string option Or_error.t
   val parse_pos : string -> int option Or_error.t
   val parse_mapq : string -> int option Or_error.t
@@ -390,7 +391,6 @@ module Alignment : sig
     -> t Or_error.t
 
   val print_qname : string option -> string
-  val print_flags : Flags.t -> string
   val print_rname : string option -> string
   val print_pos : int option -> string
   val print_mapq : int option -> string

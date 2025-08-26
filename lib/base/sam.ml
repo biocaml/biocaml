@@ -693,6 +693,12 @@ module Flags = struct
     else Error (Error.create "flag out of range" x sexp_of_int)
   ;;
 
+  let parse s =
+    try of_int (Int.of_string s) with
+    | _ -> Error (Error.create "invalid FLAG" s sexp_of_string)
+  ;;
+
+  let print = Int.to_string
   let flag_is_set s f = f land s <> 0
   let has_multiple_segments = flag_is_set 0x1
   let each_segment_properly_aligned = flag_is_set 0x2
@@ -1078,12 +1084,6 @@ module Alignment = struct
   ;;
 
   let parse_qname s = parse_opt_string "QNAME" qname_re s
-
-  let parse_flags s =
-    try Flags.of_int (Int.of_string s) with
-    | _ -> Error (Error.create "invalid FLAG" s sexp_of_string)
-  ;;
-
   let rname_re = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
   let parse_rname s = parse_opt_string "RNAME" rname_re s
 
@@ -1141,7 +1141,7 @@ module Alignment = struct
       :: optional_fields ->
       parse_qname qname
       >>= fun qname ->
-      parse_flags flags
+      Flags.parse flags
       >>= fun flags ->
       parse_rname rname
       >>= fun rname ->
@@ -1186,8 +1186,6 @@ module Alignment = struct
     | None -> "*"
   ;;
 
-  let print_flags = Int.to_string
-
   let print_rname = function
     | Some x -> x
     | None -> "*"
@@ -1230,7 +1228,7 @@ module Alignment = struct
     sprintf
       "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
       (print_qname a.qname)
-      (print_flags a.flags)
+      (Flags.print a.flags)
       (print_rname a.rname)
       (print_pos a.pos)
       (print_mapq a.mapq)
