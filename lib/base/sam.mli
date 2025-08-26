@@ -5,9 +5,6 @@ open! Import
 
 module Header : sig
   module Type : sig
-    (** Header item tags define the different types of header lines. The
-    term "tag" in this context should not be confused with its use in
-    "tag-value" pairs, which comprise the content of header items. *)
     type t =
       private
       [< `HD
@@ -64,10 +61,6 @@ module Header : sig
       val print : string -> string
     end
 
-    (** @HD. A header consists of different types of lines. Confusingly, one of
-      these types is called {i the} "header line", which is what this
-      type refers to. It does not refer generically to any line within a
-      header. *)
     type t =
       { version : VN.t
       ; sort_order : SO.t option
@@ -88,7 +81,6 @@ module Header : sig
   end
 
   module SQ : sig
-    (** @SQ. Reference sequence. *)
     type t = private
       { name : string (** SN *)
       ; length : int (** LN *)
@@ -130,7 +122,6 @@ module Header : sig
   end
 
   module RG : sig
-    (** @RG. *)
     type t = private
       { id : string (** ID *)
       ; seq_center : string option (** CN *)
@@ -171,7 +162,6 @@ module Header : sig
   end
 
   module PG : sig
-    (** @PG. *)
     type t = private
       { id : string (** ID *)
       ; name : string option (** PN *)
