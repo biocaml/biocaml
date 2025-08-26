@@ -179,18 +179,23 @@ module Program : sig
   val print_program : t -> string
 end
 
-type header_item =
-  private
-  [< `HD of Header_line.t
-  | `SQ of Ref_seq.t
-  | `RG of Read_group.t
-  | `PG of Program.t
-  | `CO of string
-  | `Other of string * Tag_value.t list
-  ]
-[@@deriving sexp]
+module Header_item : sig
+  type t =
+    private
+    [< `HD of Header_line.t
+    | `SQ of Ref_seq.t
+    | `RG of Read_group.t
+    | `PG of Program.t
+    | `CO of string
+    | `Other of string * Tag_value.t list
+    ]
+  [@@deriving sexp]
 
-(**
+  val parse_header_item : Line.t -> t Or_error.t
+end
+
+module Header : sig
+  (**
      - [sort_order]: Guaranteed to be [None] if [version = None].
 
      - [ref_seqs]: List of @SQ items. Order matters; it dictates
@@ -203,19 +208,32 @@ type header_item =
 
      - [comments]: Unordered list of @CO lines.
   *)
-type header =
-  { version : string option
-  ; sort_order : Sort_order.t option
-  ; group_order : Group_order.t option
-  ; ref_seqs : Ref_seq.t list
-  ; read_groups : Read_group.t list
-  ; programs : Program.t list
-  ; comments : string list
-  ; others : (string * Tag_value.t list) list
-  }
-(* FIXME: Make the type private. Removed temporarily to fix build. *)
+  type t =
+    { version : string option
+    ; sort_order : Sort_order.t option
+    ; group_order : Group_order.t option
+    ; ref_seqs : Ref_seq.t list
+    ; read_groups : Read_group.t list
+    ; programs : Program.t list
+    ; comments : string list
+    ; others : (string * Tag_value.t list) list
+    }
+  (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
-val empty_header : header
+  val empty_header : t
+
+  val header
+    :  ?version:string
+    -> ?sort_order:Sort_order.t
+    -> ?group_order:Group_order.t
+    -> ?ref_seqs:Ref_seq.t list
+    -> ?read_groups:Read_group.t list
+    -> ?programs:Program.t list
+    -> ?comments:string list
+    -> ?others:(string * Tag_value.t list) list
+    -> unit
+    -> t Or_error.t
+end
 
 (** {3 Alignment Types} *)
 
@@ -301,20 +319,7 @@ type alignment = private
 
 (** {3 Low-level Header Parsers and Constructors} *)
 
-val header
-  :  ?version:string
-  -> ?sort_order:Sort_order.t
-  -> ?group_order:Group_order.t
-  -> ?ref_seqs:Ref_seq.t list
-  -> ?read_groups:Read_group.t list
-  -> ?programs:Program.t list
-  -> ?comments:string list
-  -> ?others:(string * Tag_value.t list) list
-  -> unit
-  -> header Or_error.t
-
 val parse_header_version : string -> string Or_error.t
-val parse_header_item : Line.t -> header_item Or_error.t
 
 (** {3 Low-level Optional field Parsers and Constructors} *)
 

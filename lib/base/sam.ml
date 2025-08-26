@@ -32,6 +32,24 @@ module Header_item_tag = struct
     | `CO -> "@CO"
     | `Other x -> sprintf "@%s" x
   ;;
+
+  let parse_header_item_tag s =
+    let is_letter = function
+      | 'A' .. 'Z' | 'a' .. 'z' -> true
+      | _ -> false
+    in
+    match String.chop_prefix s ~prefix:"@" with
+    | None -> Error (Error.create "header item tag must begin with @" s sexp_of_string)
+    | Some "HD" -> Ok `HD
+    | Some "SQ" -> Ok `SQ
+    | Some "RG" -> Ok `RG
+    | Some "PG" -> Ok `PG
+    | Some "CO" -> Ok `CO
+    | Some x ->
+      if String.length x = 2 && String.for_all x ~f:is_letter
+      then Ok (`Other x)
+      else Error (Error.create "invalid header item tag" s sexp_of_string)
+  ;;
 end
 
 (** Find all occurrences of [x'] in the association list [l]. *)
@@ -95,6 +113,36 @@ let assert_tags header_item_tag tvl tags =
 
 module Tag_value = struct
   type t = string * string [@@deriving sexp]
+
+  let parse_tag_value s =
+    let parse_tag s =
+      if
+        String.length s = 2
+        && (match s.[0] with
+            | 'A' .. 'Z' | 'a' .. 'z' -> true
+            | _ -> false)
+        &&
+        match s.[1] with
+        | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
+        | _ -> false
+      then Ok s
+      else Error (Error.create "invalid tag" s sexp_of_string)
+    in
+    let parse_value tag s =
+      if
+        String.(s <> "")
+        && String.for_all s ~f:(function
+          | ' ' .. '~' -> true
+          | _ -> false)
+      then Ok s
+      else
+        Error (Error.create "tag has invalid value" (tag, s) [%sexp_of: string * string])
+    in
+    match String.lsplit2 s ~on:':' with
+    | None -> Error (Error.create "tag-value not colon separated" s sexp_of_string)
+    | Some (tag, value) ->
+      parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
+  ;;
 
   let print_tag_value (tag, value) = sprintf "%s:%s" tag value
   let print_tag_value' = sprintf "%s:%s"
@@ -516,38 +564,114 @@ module Program = struct
   ;;
 end
 
-type header_item =
-  [ `HD of Header_line.t
-  | `SQ of Ref_seq.t
-  | `RG of Read_group.t
-  | `PG of Program.t
-  | `CO of string
-  | `Other of string * Tag_value.t list
-  ]
-[@@deriving sexp]
+module Header_item = struct
+  type t =
+    [ `HD of Header_line.t
+    | `SQ of Ref_seq.t
+    | `RG of Read_group.t
+    | `PG of Program.t
+    | `CO of string
+    | `Other of string * Tag_value.t list
+    ]
+  [@@deriving sexp]
 
-type header =
-  { version : string option
-  ; sort_order : Sort_order.t option
-  ; group_order : Group_order.t option
-  ; ref_seqs : Ref_seq.t list
-  ; read_groups : Read_group.t list
-  ; programs : Program.t list
-  ; comments : string list
-  ; others : (string * Tag_value.t list) list
-  }
+  let parse_header_item line =
+    let parse_data tag tvl =
+      match tag with
+      | `HD -> Header_line.parse_header_line tvl >>| fun x -> `HD x
+      | `SQ -> Ref_seq.parse_ref_seq tvl >>| fun x -> `SQ x
+      | `RG -> Read_group.parse_read_group tvl >>| fun x -> `RG x
+      | `PG -> Program.parse_program tvl >>| fun x -> `PG x
+      | `Other tag -> Ok (`Other (tag, tvl))
+      | `CO -> assert false
+    in
+    match String.lsplit2 ~on:'\t' (line : Line.t :> string) with
+    | None -> Error (Error.create "header line contains no tabs" line Line.sexp_of_t)
+    | Some (tag, data) -> (
+      Header_item_tag.parse_header_item_tag tag
+      >>= function
+      | `CO -> Ok (`CO data)
+      | tag -> (
+        match String.split ~on:'\t' data with
+        | [] -> assert false
+        | "" :: [] ->
+          Error (Error.create "header contains no data" tag Header_item_tag.sexp_of_t)
+        | tvl ->
+          Result_list.map tvl ~f:Tag_value.parse_tag_value
+          >>= fun tvl -> parse_data tag tvl))
+  ;;
+end
 
-let empty_header =
-  { version = None
-  ; sort_order = None
-  ; group_order = None
-  ; ref_seqs = []
-  ; read_groups = []
-  ; programs = []
-  ; comments = []
-  ; others = []
-  }
-;;
+module Header = struct
+  type t =
+    { version : string option
+    ; sort_order : Sort_order.t option
+    ; group_order : Group_order.t option
+    ; ref_seqs : Ref_seq.t list
+    ; read_groups : Read_group.t list
+    ; programs : Program.t list
+    ; comments : string list
+    ; others : (string * Tag_value.t list) list
+    }
+
+  let empty_header =
+    { version = None
+    ; sort_order = None
+    ; group_order = None
+    ; ref_seqs = []
+    ; read_groups = []
+    ; programs = []
+    ; comments = []
+    ; others = []
+    }
+  ;;
+
+  let header
+        ?version
+        ?sort_order
+        ?group_order
+        ?(ref_seqs = [])
+        ?(read_groups = [])
+        ?(programs = [])
+        ?(comments = [])
+        ?(others = [])
+        ()
+    =
+    [ (match version with
+       | None -> None
+       | Some x -> (
+         match parse_header_version x with
+         | Error e -> Some e
+         | Ok _ -> None))
+    ; (if Option.is_some sort_order && Poly.(version = None)
+       then
+         Some
+           (Error.create
+              "sort order cannot be defined without version"
+              (sort_order, version)
+              [%sexp_of: Sort_order.t option * string option])
+       else None)
+    ; List.map ref_seqs ~f:(fun (x : Ref_seq.t) -> x.name)
+      |> List.find_a_dup ~compare:String.compare
+      |> Option.map ~f:(fun name ->
+        Error.create "duplicate ref seq name" name sexp_of_string)
+    ]
+    |> List.filter_map ~f:Fn.id
+    |> function
+    | [] ->
+      Ok
+        { version
+        ; sort_order
+        ; group_order
+        ; ref_seqs
+        ; read_groups
+        ; programs
+        ; comments
+        ; others
+        }
+    | errs -> Error (Error.of_list errs)
+  ;;
+end
 
 (******************************************************************************)
 (* Alignment Types                                                            *)
@@ -626,127 +750,6 @@ type alignment =
   ; optional_fields : optional_field list
   }
 [@@deriving sexp]
-
-(******************************************************************************)
-(* Header Parsers and Constructors                                            *)
-(******************************************************************************)
-
-let header
-      ?version
-      ?sort_order
-      ?group_order
-      ?(ref_seqs = [])
-      ?(read_groups = [])
-      ?(programs = [])
-      ?(comments = [])
-      ?(others = [])
-      ()
-  =
-  [ (match version with
-     | None -> None
-     | Some x -> (
-       match parse_header_version x with
-       | Error e -> Some e
-       | Ok _ -> None))
-  ; (if Option.is_some sort_order && Poly.(version = None)
-     then
-       Some
-         (Error.create
-            "sort order cannot be defined without version"
-            (sort_order, version)
-            [%sexp_of: Sort_order.t option * string option])
-     else None)
-  ; List.map ref_seqs ~f:(fun (x : Ref_seq.t) -> x.name)
-    |> List.find_a_dup ~compare:String.compare
-    |> Option.map ~f:(fun name ->
-      Error.create "duplicate ref seq name" name sexp_of_string)
-  ]
-  |> List.filter_map ~f:Fn.id
-  |> function
-  | [] ->
-    Ok
-      { version
-      ; sort_order
-      ; group_order
-      ; ref_seqs
-      ; read_groups
-      ; programs
-      ; comments
-      ; others
-      }
-  | errs -> Error (Error.of_list errs)
-;;
-
-let parse_header_item_tag s =
-  let is_letter = function
-    | 'A' .. 'Z' | 'a' .. 'z' -> true
-    | _ -> false
-  in
-  match String.chop_prefix s ~prefix:"@" with
-  | None -> Error (Error.create "header item tag must begin with @" s sexp_of_string)
-  | Some "HD" -> Ok `HD
-  | Some "SQ" -> Ok `SQ
-  | Some "RG" -> Ok `RG
-  | Some "PG" -> Ok `PG
-  | Some "CO" -> Ok `CO
-  | Some x ->
-    if String.length x = 2 && String.for_all x ~f:is_letter
-    then Ok (`Other x)
-    else Error (Error.create "invalid header item tag" s sexp_of_string)
-;;
-
-let parse_tag_value s =
-  let parse_tag s =
-    if
-      String.length s = 2
-      && (match s.[0] with
-          | 'A' .. 'Z' | 'a' .. 'z' -> true
-          | _ -> false)
-      &&
-      match s.[1] with
-      | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
-      | _ -> false
-    then Ok s
-    else Error (Error.create "invalid tag" s sexp_of_string)
-  in
-  let parse_value tag s =
-    if
-      String.(s <> "")
-      && String.for_all s ~f:(function
-        | ' ' .. '~' -> true
-        | _ -> false)
-    then Ok s
-    else Error (Error.create "tag has invalid value" (tag, s) [%sexp_of: string * string])
-  in
-  match String.lsplit2 s ~on:':' with
-  | None -> Error (Error.create "tag-value not colon separated" s sexp_of_string)
-  | Some (tag, value) ->
-    parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
-;;
-
-let parse_header_item line =
-  let parse_data tag tvl =
-    match tag with
-    | `HD -> Header_line.parse_header_line tvl >>| fun x -> `HD x
-    | `SQ -> Ref_seq.parse_ref_seq tvl >>| fun x -> `SQ x
-    | `RG -> Read_group.parse_read_group tvl >>| fun x -> `RG x
-    | `PG -> Program.parse_program tvl >>| fun x -> `PG x
-    | `Other tag -> Ok (`Other (tag, tvl))
-    | `CO -> assert false
-  in
-  match String.lsplit2 ~on:'\t' (line : Line.t :> string) with
-  | None -> Error (Error.create "header line contains no tabs" line Line.sexp_of_t)
-  | Some (tag, data) -> (
-    parse_header_item_tag tag
-    >>= function
-    | `CO -> Ok (`CO data)
-    | tag -> (
-      match String.split ~on:'\t' data with
-      | [] -> assert false
-      | "" :: [] ->
-        Error (Error.create "header contains no data" tag Header_item_tag.sexp_of_t)
-      | tvl -> Result_list.map tvl ~f:parse_tag_value >>= fun tvl -> parse_data tag tvl))
-;;
 
 (******************************************************************************)
 (* Alignment Parsers and Constructors                                         *)
