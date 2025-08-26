@@ -331,12 +331,17 @@ module Optional_field : sig
   val print_optional_field : t -> string
 end
 
-type rnext =
-  private
-  [< `Value of string
-  | `Equal_to_RNAME
-  ]
-[@@deriving sexp]
+module Rnext : sig
+  type t =
+    private
+    [< `Value of string
+    | `Equal_to_RNAME
+    ]
+  [@@deriving sexp]
+
+  val parse_rnext : string -> t option Or_error.t
+  val print_rnext : t option -> string
+end
 
 (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
     was given. *)
@@ -347,7 +352,7 @@ type alignment = private
   ; pos : int option (** POS *)
   ; mapq : int option (** MAPQ *)
   ; cigar : Cigar_op.t list (** CIGAR *)
-  ; rnext : rnext option (** RNEXT *)
+  ; rnext : Rnext.t option (** RNEXT *)
   ; pnext : int option (** PNEXT *)
   ; tlen : int option (** TLEN *)
   ; seq : string option (** SEQ *)
@@ -368,7 +373,7 @@ val alignment
   -> ?pos:int
   -> ?mapq:int
   -> ?cigar:Cigar_op.t list
-  -> ?rnext:rnext
+  -> ?rnext:Rnext.t
   -> ?pnext:int
   -> ?tlen:int
   -> ?seq:string
@@ -382,7 +387,6 @@ val parse_flags : string -> Flags.t Or_error.t
 val parse_rname : string -> string option Or_error.t
 val parse_pos : string -> int option Or_error.t
 val parse_mapq : string -> int option Or_error.t
-val parse_rnext : string -> rnext option Or_error.t
 val parse_pnext : string -> int option Or_error.t
 val parse_tlen : string -> int option Or_error.t
 val parse_seq : string -> string option Or_error.t
@@ -402,7 +406,6 @@ val print_flags : Flags.t -> string
 val print_rname : string option -> string
 val print_pos : int option -> string
 val print_mapq : int option -> string
-val print_rnext : rnext option -> string
 val print_pnext : int option -> string
 val print_tlen : int option -> string
 val print_seq : string option -> string

@@ -945,11 +945,31 @@ module Optional_field = struct
   end
 end
 
-type rnext =
-  [ `Value of string
-  | `Equal_to_RNAME
-  ]
-[@@deriving sexp]
+module Rnext = struct
+  type t =
+    [ `Value of string
+    | `Equal_to_RNAME
+    ]
+  [@@deriving sexp]
+
+  let rnext_re = Re.Perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
+
+  let parse_rnext s =
+    if not (Re.execp rnext_re s)
+    then Error (Error.create "invalid RNEXT" s sexp_of_string)
+    else (
+      match s with
+      | "*" -> Ok None
+      | "=" -> Ok (Some `Equal_to_RNAME)
+      | _ -> Ok (Some (`Value s)))
+  ;;
+
+  let print_rnext = function
+    | None -> "*"
+    | Some `Equal_to_RNAME -> "="
+    | Some (`Value x) -> x
+  ;;
+end
 
 type alignment =
   { qname : string option
@@ -958,7 +978,7 @@ type alignment =
   ; pos : int option
   ; mapq : int option
   ; cigar : Cigar_op.t list
-  ; rnext : rnext option
+  ; rnext : Rnext.t option
   ; pnext : int option
   ; tlen : int option
   ; seq : string option
@@ -1087,18 +1107,6 @@ let parse_mapq s =
   | x -> Some x
 ;;
 
-let rnext_re = Re.Perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
-
-let parse_rnext s =
-  if not (Re.execp rnext_re s)
-  then Error (Error.create "invalid RNEXT" s sexp_of_string)
-  else (
-    match s with
-    | "*" -> Ok None
-    | "=" -> Ok (Some `Equal_to_RNAME)
-    | _ -> Ok (Some (`Value s)))
-;;
-
 let parse_pnext s =
   parse_int_range "PNEXT" 0 2147483647 s
   >>| function
@@ -1149,7 +1157,7 @@ let parse_alignment ?ref_seqs line =
     >>= fun mapq ->
     Cigar_op.parse_cigar cigar
     >>= fun cigar ->
-    parse_rnext rnext
+    Rnext.parse_rnext rnext
     >>= fun rnext ->
     parse_pnext pnext
     >>= fun pnext ->
@@ -1204,12 +1212,6 @@ let print_mapq = function
   | None -> "255"
 ;;
 
-let print_rnext = function
-  | None -> "*"
-  | Some `Equal_to_RNAME -> "="
-  | Some (`Value x) -> x
-;;
-
 let print_pnext = function
   | Some x -> Int.to_string x
   | None -> "0"
@@ -1241,7 +1243,7 @@ let print_alignment a =
     (print_pos a.pos)
     (print_mapq a.mapq)
     (Cigar_op.print_cigar a.cigar)
-    (print_rnext a.rnext)
+    (Rnext.print_rnext a.rnext)
     (print_pnext a.pnext)
     (print_tlen a.tlen)
     (print_seq a.seq)
