@@ -971,286 +971,284 @@ module Rnext = struct
   ;;
 end
 
-type alignment =
-  { qname : string option
-  ; flags : Flags.t
-  ; rname : string option
-  ; pos : int option
-  ; mapq : int option
-  ; cigar : Cigar_op.t list
-  ; rnext : Rnext.t option
-  ; pnext : int option
-  ; tlen : int option
-  ; seq : string option
-  ; qual : Phred_score.t list
-  ; optional_fields : Optional_field.t list
-  }
-[@@deriving sexp]
+module Alignment = struct
+  type t =
+    { qname : string option
+    ; flags : Flags.t
+    ; rname : string option
+    ; pos : int option
+    ; mapq : int option
+    ; cigar : Cigar_op.t list
+    ; rnext : Rnext.t option
+    ; pnext : int option
+    ; tlen : int option
+    ; seq : string option
+    ; qual : Phred_score.t list
+    ; optional_fields : Optional_field.t list
+    }
+  [@@deriving sexp]
 
-(******************************************************************************)
-(* Alignment Parsers and Constructors                                         *)
-(******************************************************************************)
-let alignment
-      ?ref_seqs
-      ?qname
-      ~flags
-      ?rname
-      ?pos
-      ?mapq
-      ?(cigar = [])
-      ?rnext
-      ?pnext
-      ?tlen
-      ?seq
-      ?(qual = [])
-      ?(optional_fields = [])
-      ()
-  =
-  [ (match ref_seqs, rname with
-     | None, _ | _, None -> None
-     | Some ref_seqs, Some rname ->
-       if Set.mem ref_seqs rname
-       then None
-       else Some (Error.create "RNAME not defined in any SQ line" rname sexp_of_string))
-  ; (match ref_seqs, rnext with
-     | None, _ | _, None -> None
-     | Some _, Some `Equal_to_RNAME ->
-       None (* error will already be detected in RNAME check above *)
-     | Some ref_seqs, Some (`Value rnext) ->
-       if Set.mem ref_seqs rnext
-       then None
-       else Some (Error.create "RNEXT not defined in any SQ line" rnext sexp_of_string))
-  ; (match seq, qual with
-     | _, [] -> None
-     | None, _ -> Some (Error.of_string "QUAL provided without SEQ")
-     | Some seq, _ ->
-       let s = String.length seq in
-       let q = List.length qual in
-       if s = q
-       then None
-       else Some (Error.create "SEQ and QUAL lengths differ" (s, q) [%sexp_of: int * int]))
-  ; List.map optional_fields ~f:(fun x -> x.tag)
-    |> List.find_a_dup ~compare:String.compare
-    |> Option.map ~f:(fun dup ->
-      Error.create "TAG occurs more than once" dup sexp_of_string)
-  ]
-  |> List.filter_map ~f:Fn.id
-  |> function
-  | [] ->
-    Ok
-      { qname
-      ; flags
-      ; rname
-      ; pos
-      ; mapq
-      ; cigar
-      ; rnext
-      ; pnext
-      ; tlen
-      ; seq
-      ; qual
-      ; optional_fields
-      }
-  | errs -> Error (Error.of_list errs)
-;;
+  let alignment
+        ?ref_seqs
+        ?qname
+        ~flags
+        ?rname
+        ?pos
+        ?mapq
+        ?(cigar = [])
+        ?rnext
+        ?pnext
+        ?tlen
+        ?seq
+        ?(qual = [])
+        ?(optional_fields = [])
+        ()
+    =
+    [ (match ref_seqs, rname with
+       | None, _ | _, None -> None
+       | Some ref_seqs, Some rname ->
+         if Set.mem ref_seqs rname
+         then None
+         else Some (Error.create "RNAME not defined in any SQ line" rname sexp_of_string))
+    ; (match ref_seqs, rnext with
+       | None, _ | _, None -> None
+       | Some _, Some `Equal_to_RNAME ->
+         None (* error will already be detected in RNAME check above *)
+       | Some ref_seqs, Some (`Value rnext) ->
+         if Set.mem ref_seqs rnext
+         then None
+         else Some (Error.create "RNEXT not defined in any SQ line" rnext sexp_of_string))
+    ; (match seq, qual with
+       | _, [] -> None
+       | None, _ -> Some (Error.of_string "QUAL provided without SEQ")
+       | Some seq, _ ->
+         let s = String.length seq in
+         let q = List.length qual in
+         if s = q
+         then None
+         else
+           Some (Error.create "SEQ and QUAL lengths differ" (s, q) [%sexp_of: int * int]))
+    ; List.map optional_fields ~f:(fun x -> x.tag)
+      |> List.find_a_dup ~compare:String.compare
+      |> Option.map ~f:(fun dup ->
+        Error.create "TAG occurs more than once" dup sexp_of_string)
+    ]
+    |> List.filter_map ~f:Fn.id
+    |> function
+    | [] ->
+      Ok
+        { qname
+        ; flags
+        ; rname
+        ; pos
+        ; mapq
+        ; cigar
+        ; rnext
+        ; pnext
+        ; tlen
+        ; seq
+        ; qual
+        ; optional_fields
+        }
+    | errs -> Error (Error.of_list errs)
+  ;;
 
-let parse_int_range field lo hi s =
-  let out_of_range = sprintf "%s out of range" field in
-  let not_an_int = sprintf "%s not an int" field in
-  try
-    let n = Int.of_string s in
-    if lo <= n && n <= hi
-    then Ok n
-    else Error (Error.create out_of_range (n, lo, hi) [%sexp_of: int * int * int])
-  with
-  | _ -> Error (Error.create not_an_int s sexp_of_string)
-;;
+  let parse_int_range field lo hi s =
+    let out_of_range = sprintf "%s out of range" field in
+    let not_an_int = sprintf "%s not an int" field in
+    try
+      let n = Int.of_string s in
+      if lo <= n && n <= hi
+      then Ok n
+      else Error (Error.create out_of_range (n, lo, hi) [%sexp_of: int * int * int])
+    with
+    | _ -> Error (Error.create not_an_int s sexp_of_string)
+  ;;
 
-(** Parse a string that can either by "*" or some other regexp, with
+  (** Parse a string that can either by "*" or some other regexp, with
     "*" denoting [None]. The given regexp [re] should include "*" as
     one of the alternatives. *)
-let parse_opt_string field re s =
-  if not (Re.execp re s)
-  then Error (Error.create (sprintf "invalid %s" field) s sexp_of_string)
-  else (
+  let parse_opt_string field re s =
+    if not (Re.execp re s)
+    then Error (Error.create (sprintf "invalid %s" field) s sexp_of_string)
+    else (
+      match s with
+      | "*" -> Ok None
+      | _ -> Ok (Some s))
+  ;;
+
+  let qname_re =
+    let open Re in
+    alt [ char '*'; repn (alt [ rg '!' '?'; rg 'A' '~' ]) 1 (Some 255) ] |> compile
+  ;;
+
+  let parse_qname s = parse_opt_string "QNAME" qname_re s
+
+  let parse_flags s =
+    try Flags.of_int (Int.of_string s) with
+    | _ -> Error (Error.create "invalid FLAG" s sexp_of_string)
+  ;;
+
+  let rname_re = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
+  let parse_rname s = parse_opt_string "RNAME" rname_re s
+
+  let parse_pos s =
+    parse_int_range "POS" 0 2147483647 s
+    >>| function
+    | 0 -> None
+    | x -> Some x
+  ;;
+
+  let parse_mapq s =
+    parse_int_range "MAPQ" 0 255 s
+    >>| function
+    | 255 -> None
+    | x -> Some x
+  ;;
+
+  let parse_pnext s =
+    parse_int_range "PNEXT" 0 2147483647 s
+    >>| function
+    | 0 -> None
+    | x -> Some x
+  ;;
+
+  let parse_tlen s =
+    parse_int_range "TLEN" ~-2147483647 2147483647 s
+    >>| function
+    | 0 -> None
+    | x -> Some x
+  ;;
+
+  let seq_re = Re.Perl.compile_pat "^\\*|[A-Za-z=.]+$"
+  let parse_seq s = parse_opt_string "SEQ" seq_re s
+
+  let parse_qual s =
     match s with
-    | "*" -> Ok None
-    | _ -> Ok (Some s))
-;;
+    | "" -> Or_error.error_string "invalid empty QUAL"
+    | "*" -> Ok []
+    | _ -> String.to_list s |> Result_list.map ~f:(Phred_score.of_char ~offset:`Offset33)
+  ;;
 
-let qname_re =
-  let open Re in
-  alt [ char '*'; repn (alt [ rg '!' '?'; rg 'A' '~' ]) 1 (Some 255) ] |> compile
-;;
+  let parse_alignment ?ref_seqs line =
+    match String.split ~on:'\t' (line : Line.t :> string) with
+    | qname
+      :: flags
+      :: rname
+      :: pos
+      :: mapq
+      :: cigar
+      :: rnext
+      :: pnext
+      :: tlen
+      :: seq
+      :: qual
+      :: optional_fields ->
+      parse_qname qname
+      >>= fun qname ->
+      parse_flags flags
+      >>= fun flags ->
+      parse_rname rname
+      >>= fun rname ->
+      parse_pos pos
+      >>= fun pos ->
+      parse_mapq mapq
+      >>= fun mapq ->
+      Cigar_op.parse_cigar cigar
+      >>= fun cigar ->
+      Rnext.parse_rnext rnext
+      >>= fun rnext ->
+      parse_pnext pnext
+      >>= fun pnext ->
+      parse_tlen tlen
+      >>= fun tlen ->
+      parse_seq seq
+      >>= fun seq ->
+      parse_qual qual
+      >>= fun qual ->
+      Result_list.map optional_fields ~f:Optional_field.parse_optional_field
+      >>= fun optional_fields ->
+      alignment
+        ?ref_seqs
+        ?qname
+        ~flags
+        ?rname
+        ?pos
+        ?mapq
+        ~cigar
+        ?rnext
+        ?pnext
+        ?tlen
+        ?seq
+        ~qual
+        ~optional_fields
+        ()
+    | _ -> Or_error.error_string "alignment line contains < 12 fields"
+  ;;
 
-let parse_qname s = parse_opt_string "QNAME" qname_re s
+  let print_qname = function
+    | Some x -> x
+    | None -> "*"
+  ;;
 
-let parse_flags s =
-  try Flags.of_int (Int.of_string s) with
-  | _ -> Error (Error.create "invalid FLAG" s sexp_of_string)
-;;
+  let print_flags = Int.to_string
 
-let rname_re = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
-let parse_rname s = parse_opt_string "RNAME" rname_re s
+  let print_rname = function
+    | Some x -> x
+    | None -> "*"
+  ;;
 
-let parse_pos s =
-  parse_int_range "POS" 0 2147483647 s
-  >>| function
-  | 0 -> None
-  | x -> Some x
-;;
+  let print_pos = function
+    | Some x -> Int.to_string x
+    | None -> "0"
+  ;;
 
-let parse_mapq s =
-  parse_int_range "MAPQ" 0 255 s
-  >>| function
-  | 255 -> None
-  | x -> Some x
-;;
+  let print_mapq = function
+    | Some x -> Int.to_string x
+    | None -> "255"
+  ;;
 
-let parse_pnext s =
-  parse_int_range "PNEXT" 0 2147483647 s
-  >>| function
-  | 0 -> None
-  | x -> Some x
-;;
+  let print_pnext = function
+    | Some x -> Int.to_string x
+    | None -> "0"
+  ;;
 
-let parse_tlen s =
-  parse_int_range "TLEN" ~-2147483647 2147483647 s
-  >>| function
-  | 0 -> None
-  | x -> Some x
-;;
+  let print_tlen = function
+    | Some x -> Int.to_string x
+    | None -> "0"
+  ;;
 
-let seq_re = Re.Perl.compile_pat "^\\*|[A-Za-z=.]+$"
-let parse_seq s = parse_opt_string "SEQ" seq_re s
+  let print_seq = function
+    | Some x -> x
+    | None -> "*"
+  ;;
 
-let parse_qual s =
-  match s with
-  | "" -> Or_error.error_string "invalid empty QUAL"
-  | "*" -> Ok []
-  | _ -> String.to_list s |> Result_list.map ~f:(Phred_score.of_char ~offset:`Offset33)
-;;
+  let print_qual = function
+    | [] -> "*"
+    | quals ->
+      List.map quals ~f:(fun x ->
+        Or_error.ok_exn (Phred_score.to_char ~offset:`Offset33 x))
+      |> String.of_char_list
+  ;;
 
-let parse_alignment ?ref_seqs line =
-  match String.split ~on:'\t' (line : Line.t :> string) with
-  | qname
-    :: flags
-    :: rname
-    :: pos
-    :: mapq
-    :: cigar
-    :: rnext
-    :: pnext
-    :: tlen
-    :: seq
-    :: qual
-    :: optional_fields ->
-    parse_qname qname
-    >>= fun qname ->
-    parse_flags flags
-    >>= fun flags ->
-    parse_rname rname
-    >>= fun rname ->
-    parse_pos pos
-    >>= fun pos ->
-    parse_mapq mapq
-    >>= fun mapq ->
-    Cigar_op.parse_cigar cigar
-    >>= fun cigar ->
-    Rnext.parse_rnext rnext
-    >>= fun rnext ->
-    parse_pnext pnext
-    >>= fun pnext ->
-    parse_tlen tlen
-    >>= fun tlen ->
-    parse_seq seq
-    >>= fun seq ->
-    parse_qual qual
-    >>= fun qual ->
-    Result_list.map optional_fields ~f:Optional_field.parse_optional_field
-    >>= fun optional_fields ->
-    alignment
-      ?ref_seqs
-      ?qname
-      ~flags
-      ?rname
-      ?pos
-      ?mapq
-      ~cigar
-      ?rnext
-      ?pnext
-      ?tlen
-      ?seq
-      ~qual
-      ~optional_fields
-      ()
-  | _ -> Or_error.error_string "alignment line contains < 12 fields"
-;;
-
-(******************************************************************************)
-(* Alignment Printers                                                         *)
-(******************************************************************************)
-let print_qname = function
-  | Some x -> x
-  | None -> "*"
-;;
-
-let print_flags = Int.to_string
-
-let print_rname = function
-  | Some x -> x
-  | None -> "*"
-;;
-
-let print_pos = function
-  | Some x -> Int.to_string x
-  | None -> "0"
-;;
-
-let print_mapq = function
-  | Some x -> Int.to_string x
-  | None -> "255"
-;;
-
-let print_pnext = function
-  | Some x -> Int.to_string x
-  | None -> "0"
-;;
-
-let print_tlen = function
-  | Some x -> Int.to_string x
-  | None -> "0"
-;;
-
-let print_seq = function
-  | Some x -> x
-  | None -> "*"
-;;
-
-let print_qual = function
-  | [] -> "*"
-  | quals ->
-    List.map quals ~f:(fun x -> Or_error.ok_exn (Phred_score.to_char ~offset:`Offset33 x))
-    |> String.of_char_list
-;;
-
-let print_alignment a =
-  sprintf
-    "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
-    (print_qname a.qname)
-    (print_flags a.flags)
-    (print_rname a.rname)
-    (print_pos a.pos)
-    (print_mapq a.mapq)
-    (Cigar_op.print_cigar a.cigar)
-    (Rnext.print_rnext a.rnext)
-    (print_pnext a.pnext)
-    (print_tlen a.tlen)
-    (print_seq a.seq)
-    (print_qual a.qual)
-    (List.map a.optional_fields ~f:Optional_field.print_optional_field
-     |> String.concat ~sep:"\t")
-;;
+  let print_alignment a =
+    sprintf
+      "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
+      (print_qname a.qname)
+      (print_flags a.flags)
+      (print_rname a.rname)
+      (print_pos a.pos)
+      (print_mapq a.mapq)
+      (Cigar_op.print_cigar a.cigar)
+      (Rnext.print_rnext a.rnext)
+      (print_pnext a.pnext)
+      (print_tlen a.tlen)
+      (print_seq a.seq)
+      (print_qual a.qual)
+      (List.map a.optional_fields ~f:Optional_field.print_optional_field
+       |> String.concat ~sep:"\t")
+  ;;
+end
 
 module Test = struct
   (* module Sam = Biocaml_unix.Sam_deprecated *)

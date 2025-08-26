@@ -343,71 +343,65 @@ module Rnext : sig
   val print_rnext : t option -> string
 end
 
-(** For [cigar] and [qual], empty list indicates no value, i.e. '*',
+module Alignment : sig
+  (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
     was given. *)
-type alignment = private
-  { qname : string option (** QNAME *)
-  ; flags : Flags.t (** FLAG *)
-  ; rname : string option (** RNAME *)
-  ; pos : int option (** POS *)
-  ; mapq : int option (** MAPQ *)
-  ; cigar : Cigar_op.t list (** CIGAR *)
-  ; rnext : Rnext.t option (** RNEXT *)
-  ; pnext : int option (** PNEXT *)
-  ; tlen : int option (** TLEN *)
-  ; seq : string option (** SEQ *)
-  ; qual : Phred_score.t list (** QUAL *)
-  ; optional_fields : Optional_field.t list
-  }
-[@@deriving sexp]
+  type t = private
+    { qname : string option (** QNAME *)
+    ; flags : Flags.t (** FLAG *)
+    ; rname : string option (** RNAME *)
+    ; pos : int option (** POS *)
+    ; mapq : int option (** MAPQ *)
+    ; cigar : Cigar_op.t list (** CIGAR *)
+    ; rnext : Rnext.t option (** RNEXT *)
+    ; pnext : int option (** PNEXT *)
+    ; tlen : int option (** TLEN *)
+    ; seq : string option (** SEQ *)
+    ; qual : Phred_score.t list (** QUAL *)
+    ; optional_fields : Optional_field.t list
+    }
+  [@@deriving sexp]
 
-(** {2 Low-level Parsers and Constructors} *)
+  val alignment
+    :  ?ref_seqs:(string, String.comparator_witness) Set.t
+    -> ?qname:string
+    -> flags:Flags.t
+    -> ?rname:string
+    -> ?pos:int
+    -> ?mapq:int
+    -> ?cigar:Cigar_op.t list
+    -> ?rnext:Rnext.t
+    -> ?pnext:int
+    -> ?tlen:int
+    -> ?seq:string
+    -> ?qual:Phred_score.t list
+    -> ?optional_fields:Optional_field.t list
+    -> unit
+    -> t Or_error.t
 
-(** {3 Low-level Alignment Parsers and Constructors} *)
+  val parse_qname : string -> string option Or_error.t
+  val parse_flags : string -> Flags.t Or_error.t
+  val parse_rname : string -> string option Or_error.t
+  val parse_pos : string -> int option Or_error.t
+  val parse_mapq : string -> int option Or_error.t
+  val parse_pnext : string -> int option Or_error.t
+  val parse_tlen : string -> int option Or_error.t
+  val parse_seq : string -> string option Or_error.t
+  val parse_qual : string -> Phred_score.t list Or_error.t
 
-val alignment
-  :  ?ref_seqs:(string, String.comparator_witness) Set.t
-  -> ?qname:string
-  -> flags:Flags.t
-  -> ?rname:string
-  -> ?pos:int
-  -> ?mapq:int
-  -> ?cigar:Cigar_op.t list
-  -> ?rnext:Rnext.t
-  -> ?pnext:int
-  -> ?tlen:int
-  -> ?seq:string
-  -> ?qual:Phred_score.t list
-  -> ?optional_fields:Optional_field.t list
-  -> unit
-  -> alignment Or_error.t
+  val parse_alignment
+    :  ?ref_seqs:(string, String.comparator_witness) Set.t
+    -> Line.t
+    -> t Or_error.t
 
-val parse_qname : string -> string option Or_error.t
-val parse_flags : string -> Flags.t Or_error.t
-val parse_rname : string -> string option Or_error.t
-val parse_pos : string -> int option Or_error.t
-val parse_mapq : string -> int option Or_error.t
-val parse_pnext : string -> int option Or_error.t
-val parse_tlen : string -> int option Or_error.t
-val parse_seq : string -> string option Or_error.t
-val parse_qual : string -> Phred_score.t list Or_error.t
-
-val parse_alignment
-  :  ?ref_seqs:(string, String.comparator_witness) Set.t
-  -> Line.t
-  -> alignment Or_error.t
-
-(** {2 Low-level Printers} *)
-
-(** {3 Low-level Alignment Printers} *)
-
-val print_qname : string option -> string
-val print_flags : Flags.t -> string
-val print_rname : string option -> string
-val print_pos : int option -> string
-val print_mapq : int option -> string
-val print_pnext : int option -> string
-val print_tlen : int option -> string
-val print_seq : string option -> string
-val print_qual : Phred_score.t list -> string
-val print_alignment : alignment -> string
+  val print_qname : string option -> string
+  val print_flags : Flags.t -> string
+  val print_rname : string option -> string
+  val print_pos : int option -> string
+  val print_mapq : int option -> string
+  val print_pnext : int option -> string
+  val print_tlen : int option -> string
+  val print_seq : string option -> string
+  val print_qual : Phred_score.t list -> string
+  val print_alignment : t -> string
+end
