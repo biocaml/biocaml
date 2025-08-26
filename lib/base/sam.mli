@@ -106,51 +106,85 @@ module Ref_seq : sig
   val print_ref_seq : t -> string
 end
 
-type platform =
-  [ `Capillary
-  | `LS454
-  | `Illumina
-  | `Solid
-  | `Helicos
-  | `Ion_Torrent
-  | `Pac_Bio
-  ]
-[@@deriving sexp]
+module Platform : sig
+  type t =
+    [ `Capillary
+    | `LS454
+    | `Illumina
+    | `Solid
+    | `Helicos
+    | `Ion_Torrent
+    | `Pac_Bio
+    ]
+  [@@deriving sexp]
 
-(** @RG. *)
-type read_group = private
-  { id : string (** ID *)
-  ; seq_center : string option (** CN *)
-  ; description : string option (** DS *)
-  ; run_date : [ `Date of string | `Time of string ] option (** DT *)
-  ; flow_order : string option (** FO *)
-  ; key_seq : string option (** KS *)
-  ; library : string option (** LB *)
-  ; program : string option (** PG *)
-  ; predicted_median_insert_size : int option (** PI *)
-  ; platform : platform option (** PL *)
-  ; platform_unit : string option (** PU *)
-  ; sample : string option (** SM *)
-  }
-[@@deriving sexp]
+  val parse_platform : string -> t Or_error.t
+  val print_platform : t -> string
+end
 
-(** @PG. *)
-type program = private
-  { id : string (** ID *)
-  ; name : string option (** PN *)
-  ; command_line : string option (** CL *)
-  ; previous_id : string option (** PP *)
-  ; description : string option (** DS *)
-  ; version : string option (** VN *)
-  }
-[@@deriving sexp]
+module Read_group : sig
+  (** @RG. *)
+  type t = private
+    { id : string (** ID *)
+    ; seq_center : string option (** CN *)
+    ; description : string option (** DS *)
+    ; run_date : [ `Date of string | `Time of string ] option (** DT *)
+    ; flow_order : string option (** FO *)
+    ; key_seq : string option (** KS *)
+    ; library : string option (** LB *)
+    ; program : string option (** PG *)
+    ; predicted_median_insert_size : int option (** PI *)
+    ; platform : Platform.t option (** PL *)
+    ; platform_unit : string option (** PU *)
+    ; sample : string option (** SM *)
+    }
+  [@@deriving sexp]
+
+  (** The [run_date] string will be parsed as a Date.t or Time.t,
+    whichever is possible. If it is a time without a timezone, local
+    timezone will be assumed. *)
+  val read_group
+    :  id:string
+    -> ?seq_center:string
+    -> ?description:string
+    -> ?run_date:string
+    -> ?flow_order:string
+    -> ?key_seq:string
+    -> ?library:string
+    -> ?program:string
+    -> ?predicted_median_insert_size:int
+    -> ?platform:Platform.t
+    -> ?platform_unit:string
+    -> ?sample:string
+    -> unit
+    -> t Or_error.t
+
+  val parse_read_group : Tag_value.t list -> t Or_error.t
+  val print_read_group : t -> string
+end
+
+module Program : sig
+  (** @PG. *)
+  type t = private
+    { id : string (** ID *)
+    ; name : string option (** PN *)
+    ; command_line : string option (** CL *)
+    ; previous_id : string option (** PP *)
+    ; description : string option (** DS *)
+    ; version : string option (** VN *)
+    }
+  [@@deriving sexp]
+
+  val parse_program : Tag_value.t list -> t Or_error.t
+  val print_program : t -> string
+end
 
 type header_item =
   private
   [< `HD of Header_line.t
   | `SQ of Ref_seq.t
-  | `RG of read_group
-  | `PG of program
+  | `RG of Read_group.t
+  | `PG of Program.t
   | `CO of string
   | `Other of string * Tag_value.t list
   ]
@@ -174,8 +208,8 @@ type header =
   ; sort_order : Sort_order.t option
   ; group_order : Group_order.t option
   ; ref_seqs : Ref_seq.t list
-  ; read_groups : read_group list
-  ; programs : program list
+  ; read_groups : Read_group.t list
+  ; programs : Program.t list
   ; comments : string list
   ; others : (string * Tag_value.t list) list
   }
@@ -267,41 +301,19 @@ type alignment = private
 
 (** {3 Low-level Header Parsers and Constructors} *)
 
-(** The [run_date] string will be parsed as a Date.t or Time.t,
-    whichever is possible. If it is a time without a timezone, local
-    timezone will be assumed. *)
-val read_group
-  :  id:string
-  -> ?seq_center:string
-  -> ?description:string
-  -> ?run_date:string
-  -> ?flow_order:string
-  -> ?key_seq:string
-  -> ?library:string
-  -> ?program:string
-  -> ?predicted_median_insert_size:int
-  -> ?platform:platform
-  -> ?platform_unit:string
-  -> ?sample:string
-  -> unit
-  -> read_group Or_error.t
-
 val header
   :  ?version:string
   -> ?sort_order:Sort_order.t
   -> ?group_order:Group_order.t
   -> ?ref_seqs:Ref_seq.t list
-  -> ?read_groups:read_group list
-  -> ?programs:program list
+  -> ?read_groups:Read_group.t list
+  -> ?programs:Program.t list
   -> ?comments:string list
   -> ?others:(string * Tag_value.t list) list
   -> unit
   -> header Or_error.t
 
 val parse_header_version : string -> string Or_error.t
-val parse_platform : string -> platform Or_error.t
-val parse_read_group : Tag_value.t list -> read_group Or_error.t
-val parse_program : Tag_value.t list -> program Or_error.t
 val parse_header_item : Line.t -> header_item Or_error.t
 
 (** {3 Low-level Optional field Parsers and Constructors} *)
@@ -369,9 +381,6 @@ val parse_alignment
 (** {3 Low-level Header Printers} *)
 
 val print_header_version : string -> string
-val print_platform : platform -> string
-val print_read_group : read_group -> string
-val print_program : program -> string
 val print_other : string * Tag_value.t list -> string
 
 (** {3 Low-level Alignment Printers} *)

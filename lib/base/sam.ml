@@ -278,48 +278,249 @@ module Ref_seq = struct
   ;;
 end
 
-type platform =
-  [ `Capillary
-  | `LS454
-  | `Illumina
-  | `Solid
-  | `Helicos
-  | `Ion_Torrent
-  | `Pac_Bio
-  ]
-[@@deriving sexp]
+module Platform = struct
+  type t =
+    [ `Capillary
+    | `LS454
+    | `Illumina
+    | `Solid
+    | `Helicos
+    | `Ion_Torrent
+    | `Pac_Bio
+    ]
+  [@@deriving sexp]
 
-type read_group =
-  { id : string
-  ; seq_center : string option
-  ; description : string option
-  ; run_date : [ `Date of string | `Time of string ] option
-  ; flow_order : string option
-  ; key_seq : string option
-  ; library : string option
-  ; program : string option
-  ; predicted_median_insert_size : int option
-  ; platform : platform option
-  ; platform_unit : string option
-  ; sample : string option
-  }
-[@@deriving sexp]
+  let parse_platform = function
+    | "CAPILLARY" -> Ok `Capillary
+    | "LS454" -> Ok `LS454
+    | "ILLUMINA" -> Ok `Illumina
+    | "SOLID" -> Ok `Solid
+    | "HELICOS" -> Ok `Helicos
+    | "IONTORRENT" -> Ok `Ion_Torrent
+    | "PACBIO" -> Ok `Pac_Bio
+    | x -> Error (Error.create "unknown platform" x sexp_of_string)
+  ;;
 
-type program =
-  { id : string
-  ; name : string option
-  ; command_line : string option
-  ; previous_id : string option
-  ; description : string option
-  ; version : string option
-  }
-[@@deriving sexp]
+  let print_platform = function
+    | `Capillary -> "CAPILLARY"
+    | `LS454 -> "LS454"
+    | `Illumina -> "ILLUMINA"
+    | `Solid -> "SOLID"
+    | `Helicos -> "HELICOS"
+    | `Ion_Torrent -> "IONTORRENT"
+    | `Pac_Bio -> "PACBIO"
+  ;;
+end
+
+module Read_group = struct
+  type t =
+    { id : string
+    ; seq_center : string option
+    ; description : string option
+    ; run_date : [ `Date of string | `Time of string ] option
+    ; flow_order : string option
+    ; key_seq : string option
+    ; library : string option
+    ; program : string option
+    ; predicted_median_insert_size : int option
+    ; platform : Platform.t option
+    ; platform_unit : string option
+    ; sample : string option
+    }
+  [@@deriving sexp]
+
+  let read_group
+        ~id
+        ?seq_center
+        ?description
+        ?run_date
+        ?flow_order
+        ?key_seq
+        ?library
+        ?program
+        ?predicted_median_insert_size
+        ?platform
+        ?platform_unit
+        ?sample
+        ()
+    =
+    (match run_date with
+     | None -> Ok None
+     | Some run_date -> (
+       try Ok (Some (`Date run_date)) with
+       | _ -> (
+         try Ok (Some (`Time run_date)) with
+         | _ -> Error (Error.create "invalid run date/time" run_date sexp_of_string))))
+    >>= fun run_date ->
+    (match flow_order with
+     | None -> Ok None
+     | Some "" -> Or_error.error_string "invalid empty flow order"
+     | Some "*" -> Ok flow_order
+     | Some x ->
+       if
+         String.for_all x ~f:(function
+           | 'A'
+           | 'C'
+           | 'M'
+           | 'G'
+           | 'R'
+           | 'S'
+           | 'V'
+           | 'T'
+           | 'W'
+           | 'Y'
+           | 'H'
+           | 'K'
+           | 'D'
+           | 'B'
+           | 'N' -> true
+           | _ -> false)
+       then Ok flow_order
+       else Error (Error.create "invalid flow order" x sexp_of_string))
+    >>| fun flow_order ->
+    { id
+    ; seq_center
+    ; description
+    ; run_date
+    ; flow_order
+    ; key_seq
+    ; library
+    ; program
+    ; predicted_median_insert_size
+    ; platform
+    ; platform_unit
+    ; sample
+    }
+  ;;
+
+  let parse_read_group tvl =
+    find1 `RG tvl "ID"
+    >>= fun id ->
+    find01 `RG tvl "CN"
+    >>= fun seq_center ->
+    find01 `RG tvl "DS"
+    >>= fun description ->
+    find01 `RG tvl "DT"
+    >>= fun run_date ->
+    find01 `RG tvl "FO"
+    >>= fun flow_order ->
+    find01 `RG tvl "KS"
+    >>= fun key_seq ->
+    find01 `RG tvl "LB"
+    >>= fun library ->
+    find01 `RG tvl "PG"
+    >>= fun program ->
+    find01 `RG tvl "PI"
+    >>?~ (fun predicted_median_insert_size ->
+    try Ok (Int.of_string predicted_median_insert_size) with
+    | _ ->
+      Error
+        (Error.create
+           "invalid predicted median insert size"
+           predicted_median_insert_size
+           sexp_of_string))
+    >>= fun predicted_median_insert_size ->
+    find01 `RG tvl "PL"
+    >>?~ Platform.parse_platform
+    >>= fun platform ->
+    find01 `RG tvl "PU"
+    >>= fun platform_unit ->
+    find01 `RG tvl "SM"
+    >>= fun sample ->
+    assert_tags
+      `RG
+      tvl
+      [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
+    >>= fun () ->
+    read_group
+      ~id
+      ?seq_center
+      ?description
+      ?run_date
+      ?flow_order
+      ?key_seq
+      ?library
+      ?program
+      ?predicted_median_insert_size
+      ?platform
+      ?platform_unit
+      ?sample
+      ()
+  ;;
+
+  let print_read_group (x : t) =
+    let s tag value =
+      match value with
+      | None -> ""
+      | Some x -> sprintf "\t%s:%s" tag x
+    in
+    sprintf
+      "@RG\tID:%s%s%s%s%s%s%s%s%s%s%s%s"
+      x.id
+      (s "CN" x.seq_center)
+      (s "DS" x.description)
+      (s "DT" (Option.map x.run_date ~f:(function `Date x | `Time x -> x)))
+      (s "FO" x.flow_order)
+      (s "KS" x.key_seq)
+      (s "LB" x.library)
+      (s "PG" x.program)
+      (s "PI" (Option.map x.predicted_median_insert_size ~f:Int.to_string))
+      (s "PL" (Option.map x.platform ~f:Platform.print_platform))
+      (s "PU" x.platform_unit)
+      (s "SM" x.sample)
+  ;;
+end
+
+module Program = struct
+  type t =
+    { id : string
+    ; name : string option
+    ; command_line : string option
+    ; previous_id : string option
+    ; description : string option
+    ; version : string option
+    }
+  [@@deriving sexp]
+
+  let parse_program tvl =
+    find1 `PG tvl "ID"
+    >>= fun id ->
+    find01 `PG tvl "PN"
+    >>= fun name ->
+    find01 `PG tvl "CL"
+    >>= fun command_line ->
+    find01 `PG tvl "PP"
+    >>= fun previous_id ->
+    find01 `PG tvl "DS"
+    >>= fun description ->
+    find01 `PG tvl "VN"
+    >>= fun version ->
+    assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
+    >>| fun () -> { id; name; command_line; previous_id; description; version }
+  ;;
+
+  let print_program (x : t) =
+    let s tag value =
+      match value with
+      | None -> ""
+      | Some x -> sprintf "\t%s:%s" tag x
+    in
+    sprintf
+      "@PG\tID:%s%s%s%s%s%s"
+      x.id
+      (s "PN" x.name)
+      (s "CL" x.command_line)
+      (s "PP" x.previous_id)
+      (s "DS" x.description)
+      (s "VN" x.version)
+  ;;
+end
 
 type header_item =
   [ `HD of Header_line.t
   | `SQ of Ref_seq.t
-  | `RG of read_group
-  | `PG of program
+  | `RG of Read_group.t
+  | `PG of Program.t
   | `CO of string
   | `Other of string * Tag_value.t list
   ]
@@ -330,8 +531,8 @@ type header =
   ; sort_order : Sort_order.t option
   ; group_order : Group_order.t option
   ; ref_seqs : Ref_seq.t list
-  ; read_groups : read_group list
-  ; programs : program list
+  ; read_groups : Read_group.t list
+  ; programs : Program.t list
   ; comments : string list
   ; others : (string * Tag_value.t list) list
   }
@@ -430,70 +631,6 @@ type alignment =
 (* Header Parsers and Constructors                                            *)
 (******************************************************************************)
 
-let read_group
-      ~id
-      ?seq_center
-      ?description
-      ?run_date
-      ?flow_order
-      ?key_seq
-      ?library
-      ?program
-      ?predicted_median_insert_size
-      ?platform
-      ?platform_unit
-      ?sample
-      ()
-  =
-  (match run_date with
-   | None -> Ok None
-   | Some run_date -> (
-     try Ok (Some (`Date run_date)) with
-     | _ -> (
-       try Ok (Some (`Time run_date)) with
-       | _ -> Error (Error.create "invalid run date/time" run_date sexp_of_string))))
-  >>= fun run_date ->
-  (match flow_order with
-   | None -> Ok None
-   | Some "" -> Or_error.error_string "invalid empty flow order"
-   | Some "*" -> Ok flow_order
-   | Some x ->
-     if
-       String.for_all x ~f:(function
-         | 'A'
-         | 'C'
-         | 'M'
-         | 'G'
-         | 'R'
-         | 'S'
-         | 'V'
-         | 'T'
-         | 'W'
-         | 'Y'
-         | 'H'
-         | 'K'
-         | 'D'
-         | 'B'
-         | 'N' -> true
-         | _ -> false)
-     then Ok flow_order
-     else Error (Error.create "invalid flow order" x sexp_of_string))
-  >>| fun flow_order ->
-  { id
-  ; seq_center
-  ; description
-  ; run_date
-  ; flow_order
-  ; key_seq
-  ; library
-  ; program
-  ; predicted_median_insert_size
-  ; platform
-  ; platform_unit
-  ; sample
-  }
-;;
-
 let header
       ?version
       ?sort_order
@@ -587,96 +724,13 @@ let parse_tag_value s =
     parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
 ;;
 
-let parse_platform = function
-  | "CAPILLARY" -> Ok `Capillary
-  | "LS454" -> Ok `LS454
-  | "ILLUMINA" -> Ok `Illumina
-  | "SOLID" -> Ok `Solid
-  | "HELICOS" -> Ok `Helicos
-  | "IONTORRENT" -> Ok `Ion_Torrent
-  | "PACBIO" -> Ok `Pac_Bio
-  | x -> Error (Error.create "unknown platform" x sexp_of_string)
-;;
-
-let parse_read_group tvl =
-  find1 `RG tvl "ID"
-  >>= fun id ->
-  find01 `RG tvl "CN"
-  >>= fun seq_center ->
-  find01 `RG tvl "DS"
-  >>= fun description ->
-  find01 `RG tvl "DT"
-  >>= fun run_date ->
-  find01 `RG tvl "FO"
-  >>= fun flow_order ->
-  find01 `RG tvl "KS"
-  >>= fun key_seq ->
-  find01 `RG tvl "LB"
-  >>= fun library ->
-  find01 `RG tvl "PG"
-  >>= fun program ->
-  find01 `RG tvl "PI"
-  >>?~ (fun predicted_median_insert_size ->
-  try Ok (Int.of_string predicted_median_insert_size) with
-  | _ ->
-    Error
-      (Error.create
-         "invalid predicted median insert size"
-         predicted_median_insert_size
-         sexp_of_string))
-  >>= fun predicted_median_insert_size ->
-  find01 `RG tvl "PL"
-  >>?~ parse_platform
-  >>= fun platform ->
-  find01 `RG tvl "PU"
-  >>= fun platform_unit ->
-  find01 `RG tvl "SM"
-  >>= fun sample ->
-  assert_tags
-    `RG
-    tvl
-    [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
-  >>= fun () ->
-  read_group
-    ~id
-    ?seq_center
-    ?description
-    ?run_date
-    ?flow_order
-    ?key_seq
-    ?library
-    ?program
-    ?predicted_median_insert_size
-    ?platform
-    ?platform_unit
-    ?sample
-    ()
-;;
-
-let parse_program tvl =
-  find1 `PG tvl "ID"
-  >>= fun id ->
-  find01 `PG tvl "PN"
-  >>= fun name ->
-  find01 `PG tvl "CL"
-  >>= fun command_line ->
-  find01 `PG tvl "PP"
-  >>= fun previous_id ->
-  find01 `PG tvl "DS"
-  >>= fun description ->
-  find01 `PG tvl "VN"
-  >>= fun version ->
-  assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
-  >>| fun () -> { id; name; command_line; previous_id; description; version }
-;;
-
 let parse_header_item line =
   let parse_data tag tvl =
     match tag with
     | `HD -> Header_line.parse_header_line tvl >>| fun x -> `HD x
     | `SQ -> Ref_seq.parse_ref_seq tvl >>| fun x -> `SQ x
-    | `RG -> parse_read_group tvl >>| fun x -> `RG x
-    | `PG -> parse_program tvl >>| fun x -> `PG x
+    | `RG -> Read_group.parse_read_group tvl >>| fun x -> `RG x
+    | `PG -> Program.parse_program tvl >>| fun x -> `PG x
     | `Other tag -> Ok (`Other (tag, tvl))
     | `CO -> assert false
   in
@@ -1056,54 +1110,6 @@ let parse_alignment ?ref_seqs line =
 (******************************************************************************)
 (* Header Printers                                                            *)
 (******************************************************************************)
-
-let print_platform = function
-  | `Capillary -> "CAPILLARY"
-  | `LS454 -> "LS454"
-  | `Illumina -> "ILLUMINA"
-  | `Solid -> "SOLID"
-  | `Helicos -> "HELICOS"
-  | `Ion_Torrent -> "IONTORRENT"
-  | `Pac_Bio -> "PACBIO"
-;;
-
-let print_read_group (x : read_group) =
-  let s tag value =
-    match value with
-    | None -> ""
-    | Some x -> sprintf "\t%s:%s" tag x
-  in
-  sprintf
-    "@RG\tID:%s%s%s%s%s%s%s%s%s%s%s%s"
-    x.id
-    (s "CN" x.seq_center)
-    (s "DS" x.description)
-    (s "DT" (Option.map x.run_date ~f:(function `Date x | `Time x -> x)))
-    (s "FO" x.flow_order)
-    (s "KS" x.key_seq)
-    (s "LB" x.library)
-    (s "PG" x.program)
-    (s "PI" (Option.map x.predicted_median_insert_size ~f:Int.to_string))
-    (s "PL" (Option.map x.platform ~f:print_platform))
-    (s "PU" x.platform_unit)
-    (s "SM" x.sample)
-;;
-
-let print_program (x : program) =
-  let s tag value =
-    match value with
-    | None -> ""
-    | Some x -> sprintf "\t%s:%s" tag x
-  in
-  sprintf
-    "@PG\tID:%s%s%s%s%s%s"
-    x.id
-    (s "PN" x.name)
-    (s "CL" x.command_line)
-    (s "PP" x.previous_id)
-    (s "DS" x.description)
-    (s "VN" x.version)
-;;
 
 let print_other ((tag, l) : string * Tag_value.t list) =
   sprintf
