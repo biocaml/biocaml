@@ -7,194 +7,199 @@ open! Import
 
 (** {3 Header Types} *)
 
-module Header_item_tag : sig
-  (** Header item tags define the different types of header lines. The
+module Header : sig
+  module Header_item_tag : sig
+    (** Header item tags define the different types of header lines. The
     term "tag" in this context should not be confused with its use in
     "tag-value" pairs, which comprise the content of header items. *)
-  type t =
-    private
-    [< `HD
-    | `SQ
-    | `RG
-    | `PG
-    | `CO
-    | `Other of string
-    ]
-  [@@deriving sexp]
+    type t =
+      private
+      [< `HD
+      | `SQ
+      | `RG
+      | `PG
+      | `CO
+      | `Other of string
+      ]
+    [@@deriving sexp]
 
-  val print_header_item_tag : t -> string
-end
+    val print_header_item_tag : t -> string
+  end
 
-module Tag_value : sig
-  (** A tag-value pair comprising the content of header items. Tag-value
+  module Tag_value : sig
+    (** A tag-value pair comprising the content of header items. Tag-value
       pairs occur in other places too, but this type is specifically for
       those in the header. *)
-  type t = private string * string [@@deriving sexp]
+    type t = private string * string [@@deriving sexp]
 
-  val print_tag_value : t -> string
-end
+    val print_tag_value : t -> string
+  end
 
-module Sort_order : sig
-  type t =
-    [ `Unknown
-    | `Unsorted
-    | `Query_name
-    | `Coordinate
-    ]
-  [@@deriving sexp]
+  module Sort_order : sig
+    type t =
+      [ `Unknown
+      | `Unsorted
+      | `Query_name
+      | `Coordinate
+      ]
+    [@@deriving sexp]
 
-  val parse_sort_order : string -> t Or_error.t
-  val print_sort_order : t -> string
-end
+    val parse_sort_order : string -> t Or_error.t
+    val print_sort_order : t -> string
+  end
 
-module Group_order : sig
-  type t =
-    [ `None
-    | `Query
-    | `Reference
-    ]
-  [@@deriving sexp]
-end
+  module Group_order : sig
+    type t =
+      [ `None
+      | `Query
+      | `Reference
+      ]
+    [@@deriving sexp]
+  end
 
-module Header_line : sig
-  (** @HD. A header consists of different types of lines. Confusingly, one of
+  val parse_header_version : string -> string Or_error.t
+  val print_header_version : string -> string
+
+  module Header_line : sig
+    (** @HD. A header consists of different types of lines. Confusingly, one of
       these types is called {i the} "header line", which is what this
       type refers to. It does not refer generically to any line within a
       header. *)
-  type t =
-    { version : string (** VN *)
-    ; sort_order : Sort_order.t option (** SO *)
-    ; group_order : Group_order.t option (** GO *)
-    }
-  [@@deriving sexp]
-  (* FIXME: Make the type private. Removed temporarily to fix build. *)
+    type t =
+      { version : string (** VN *)
+      ; sort_order : Sort_order.t option (** SO *)
+      ; group_order : Group_order.t option (** GO *)
+      }
+    [@@deriving sexp]
+    (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
-  val header_line
-    :  version:string
-    -> ?sort_order:Sort_order.t
-    -> ?group_order:Group_order.t
-    -> unit
-    -> t Or_error.t
+    val header_line
+      :  version:string
+      -> ?sort_order:Sort_order.t
+      -> ?group_order:Group_order.t
+      -> unit
+      -> t Or_error.t
 
-  val parse_header_line : Tag_value.t list -> t Or_error.t
-  val print_header_line : t -> string
-end
+    val parse_header_line : Tag_value.t list -> t Or_error.t
+    val print_header_line : t -> string
+  end
 
-module Ref_seq : sig
-  (** @SQ. Reference sequence. *)
-  type t = private
-    { name : string (** SN *)
-    ; length : int (** LN *)
-    ; assembly : string option (** AS *)
-    ; md5 : string option (** M5 *)
-    ; species : string option (** SP *)
-    ; uri : string option (** UR *)
-    }
-  [@@deriving sexp]
+  module Ref_seq : sig
+    (** @SQ. Reference sequence. *)
+    type t = private
+      { name : string (** SN *)
+      ; length : int (** LN *)
+      ; assembly : string option (** AS *)
+      ; md5 : string option (** M5 *)
+      ; species : string option (** SP *)
+      ; uri : string option (** UR *)
+      }
+    [@@deriving sexp]
 
-  val ref_seq
-    :  name:string
-    -> length:int
-    -> ?assembly:string
-    -> ?md5:string
-    -> ?species:string
-    -> ?uri:string
-    -> unit
-    -> t Or_error.t
+    val ref_seq
+      :  name:string
+      -> length:int
+      -> ?assembly:string
+      -> ?md5:string
+      -> ?species:string
+      -> ?uri:string
+      -> unit
+      -> t Or_error.t
 
-  val parse_ref_seq : Tag_value.t list -> t Or_error.t
-  val print_ref_seq : t -> string
-end
+    val parse_ref_seq : Tag_value.t list -> t Or_error.t
+    val print_ref_seq : t -> string
+  end
 
-module Platform : sig
-  type t =
-    [ `Capillary
-    | `LS454
-    | `Illumina
-    | `Solid
-    | `Helicos
-    | `Ion_Torrent
-    | `Pac_Bio
-    ]
-  [@@deriving sexp]
+  module Platform : sig
+    type t =
+      [ `Capillary
+      | `LS454
+      | `Illumina
+      | `Solid
+      | `Helicos
+      | `Ion_Torrent
+      | `Pac_Bio
+      ]
+    [@@deriving sexp]
 
-  val parse_platform : string -> t Or_error.t
-  val print_platform : t -> string
-end
+    val parse_platform : string -> t Or_error.t
+    val print_platform : t -> string
+  end
 
-module Read_group : sig
-  (** @RG. *)
-  type t = private
-    { id : string (** ID *)
-    ; seq_center : string option (** CN *)
-    ; description : string option (** DS *)
-    ; run_date : [ `Date of string | `Time of string ] option (** DT *)
-    ; flow_order : string option (** FO *)
-    ; key_seq : string option (** KS *)
-    ; library : string option (** LB *)
-    ; program : string option (** PG *)
-    ; predicted_median_insert_size : int option (** PI *)
-    ; platform : Platform.t option (** PL *)
-    ; platform_unit : string option (** PU *)
-    ; sample : string option (** SM *)
-    }
-  [@@deriving sexp]
+  module Read_group : sig
+    (** @RG. *)
+    type t = private
+      { id : string (** ID *)
+      ; seq_center : string option (** CN *)
+      ; description : string option (** DS *)
+      ; run_date : [ `Date of string | `Time of string ] option (** DT *)
+      ; flow_order : string option (** FO *)
+      ; key_seq : string option (** KS *)
+      ; library : string option (** LB *)
+      ; program : string option (** PG *)
+      ; predicted_median_insert_size : int option (** PI *)
+      ; platform : Platform.t option (** PL *)
+      ; platform_unit : string option (** PU *)
+      ; sample : string option (** SM *)
+      }
+    [@@deriving sexp]
 
-  (** The [run_date] string will be parsed as a Date.t or Time.t,
+    (** The [run_date] string will be parsed as a Date.t or Time.t,
     whichever is possible. If it is a time without a timezone, local
     timezone will be assumed. *)
-  val read_group
-    :  id:string
-    -> ?seq_center:string
-    -> ?description:string
-    -> ?run_date:string
-    -> ?flow_order:string
-    -> ?key_seq:string
-    -> ?library:string
-    -> ?program:string
-    -> ?predicted_median_insert_size:int
-    -> ?platform:Platform.t
-    -> ?platform_unit:string
-    -> ?sample:string
-    -> unit
-    -> t Or_error.t
+    val read_group
+      :  id:string
+      -> ?seq_center:string
+      -> ?description:string
+      -> ?run_date:string
+      -> ?flow_order:string
+      -> ?key_seq:string
+      -> ?library:string
+      -> ?program:string
+      -> ?predicted_median_insert_size:int
+      -> ?platform:Platform.t
+      -> ?platform_unit:string
+      -> ?sample:string
+      -> unit
+      -> t Or_error.t
 
-  val parse_read_group : Tag_value.t list -> t Or_error.t
-  val print_read_group : t -> string
-end
+    val parse_read_group : Tag_value.t list -> t Or_error.t
+    val print_read_group : t -> string
+  end
 
-module Program : sig
-  (** @PG. *)
-  type t = private
-    { id : string (** ID *)
-    ; name : string option (** PN *)
-    ; command_line : string option (** CL *)
-    ; previous_id : string option (** PP *)
-    ; description : string option (** DS *)
-    ; version : string option (** VN *)
-    }
-  [@@deriving sexp]
+  module Program : sig
+    (** @PG. *)
+    type t = private
+      { id : string (** ID *)
+      ; name : string option (** PN *)
+      ; command_line : string option (** CL *)
+      ; previous_id : string option (** PP *)
+      ; description : string option (** DS *)
+      ; version : string option (** VN *)
+      }
+    [@@deriving sexp]
 
-  val parse_program : Tag_value.t list -> t Or_error.t
-  val print_program : t -> string
-end
+    val parse_program : Tag_value.t list -> t Or_error.t
+    val print_program : t -> string
+  end
 
-module Header_item : sig
-  type t =
-    private
-    [< `HD of Header_line.t
-    | `SQ of Ref_seq.t
-    | `RG of Read_group.t
-    | `PG of Program.t
-    | `CO of string
-    | `Other of string * Tag_value.t list
-    ]
-  [@@deriving sexp]
+  module Header_item : sig
+    type t =
+      private
+      [< `HD of Header_line.t
+      | `SQ of Ref_seq.t
+      | `RG of Read_group.t
+      | `PG of Program.t
+      | `CO of string
+      | `Other of string * Tag_value.t list
+      ]
+    [@@deriving sexp]
 
-  val parse_header_item : Line.t -> t Or_error.t
-end
+    val parse_header_item : Line.t -> t Or_error.t
+  end
 
-module Header : sig
+  val print_other : string * Tag_value.t list -> string
+
   (**
      - [sort_order]: Guaranteed to be [None] if [version = None].
 
@@ -317,10 +322,6 @@ type alignment = private
 
 (** {2 Low-level Parsers and Constructors} *)
 
-(** {3 Low-level Header Parsers and Constructors} *)
-
-val parse_header_version : string -> string Or_error.t
-
 (** {3 Low-level Optional field Parsers and Constructors} *)
 
 val cigar_op_alignment_match : int -> cigar_op Or_error.t
@@ -382,11 +383,6 @@ val parse_alignment
   -> alignment Or_error.t
 
 (** {2 Low-level Printers} *)
-
-(** {3 Low-level Header Printers} *)
-
-val print_header_version : string -> string
-val print_other : string * Tag_value.t list -> string
 
 (** {3 Low-level Alignment Printers} *)
 
