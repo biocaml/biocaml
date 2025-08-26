@@ -294,24 +294,42 @@ module Cigar_op : sig
   val cigar_op_seq_mismatch : int -> t Or_error.t
 end
 
-(** The constructor encodes the TYPE and each carries its
+module Optional_field_value : sig
+  (** The constructor encodes the TYPE and each carries its
     corresponding VALUE. *)
-type optional_field_value =
-  private
-  [< `A of char
-  | `i of Int64.t
-  | `f of float
-  | `Z of string
-  | `H of string
-  | `B of char * string list
-  ]
-[@@deriving sexp]
+  type t =
+    private
+    [< `A of char
+    | `i of Int64.t
+    | `f of float
+    | `Z of string
+    | `H of string
+    | `B of char * string list
+    ]
+  [@@deriving sexp]
 
-type optional_field = private
-  { tag : string
-  ; value : optional_field_value
-  }
-[@@deriving sexp]
+  (** {3 Low-level Optional field Parsers and Constructors} *)
+
+  val optional_field_value_A : char -> t Or_error.t
+  val optional_field_value_i : Int64.t -> t
+  val optional_field_value_f : float -> t
+  val optional_field_value_Z : string -> t Or_error.t
+  val optional_field_value_H : string -> t Or_error.t
+  val optional_field_value_B : char -> string list -> t Or_error.t
+  val parse_optional_field_value : string -> t Or_error.t
+end
+
+module Optional_field : sig
+  type t = private
+    { tag : string
+    ; value : Optional_field_value.t
+    }
+  [@@deriving sexp]
+
+  val optional_field : string -> Optional_field_value.t -> t Or_error.t
+  val parse_optional_field : string -> t Or_error.t
+  val print_optional_field : t -> string
+end
 
 type rnext =
   private
@@ -334,23 +352,11 @@ type alignment = private
   ; tlen : int option (** TLEN *)
   ; seq : string option (** SEQ *)
   ; qual : Phred_score.t list (** QUAL *)
-  ; optional_fields : optional_field list
+  ; optional_fields : Optional_field.t list
   }
 [@@deriving sexp]
 
 (** {2 Low-level Parsers and Constructors} *)
-
-(** {3 Low-level Optional field Parsers and Constructors} *)
-
-val optional_field_value_A : char -> optional_field_value Or_error.t
-val optional_field_value_i : Int64.t -> optional_field_value
-val optional_field_value_f : float -> optional_field_value
-val optional_field_value_Z : string -> optional_field_value Or_error.t
-val optional_field_value_H : string -> optional_field_value Or_error.t
-val optional_field_value_B : char -> string list -> optional_field_value Or_error.t
-val optional_field : string -> optional_field_value -> optional_field Or_error.t
-val parse_optional_field_value : string -> optional_field_value Or_error.t
-val parse_optional_field : string -> optional_field Or_error.t
 
 (** {3 Low-level Alignment Parsers and Constructors} *)
 
@@ -367,7 +373,7 @@ val alignment
   -> ?tlen:int
   -> ?seq:string
   -> ?qual:Phred_score.t list
-  -> ?optional_fields:optional_field list
+  -> ?optional_fields:Optional_field.t list
   -> unit
   -> alignment Or_error.t
 
@@ -401,5 +407,4 @@ val print_pnext : int option -> string
 val print_tlen : int option -> string
 val print_seq : string option -> string
 val print_qual : Phred_score.t list -> string
-val print_optional_field : optional_field -> string
 val print_alignment : alignment -> string
