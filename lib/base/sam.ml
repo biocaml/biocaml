@@ -711,18 +711,89 @@ module Flags = struct
   let supplementary_alignment = flag_is_set 0x800
 end
 
-type cigar_op =
-  [ `Alignment_match of int
-  | `Insertion of int
-  | `Deletion of int
-  | `Skipped of int
-  | `Soft_clipping of int
-  | `Hard_clipping of int
-  | `Padding of int
-  | `Seq_match of int
-  | `Seq_mismatch of int
-  ]
-[@@deriving sexp]
+module Cigar_op = struct
+  type t =
+    [ `Alignment_match of int
+    | `Insertion of int
+    | `Deletion of int
+    | `Skipped of int
+    | `Soft_clipping of int
+    | `Hard_clipping of int
+    | `Padding of int
+    | `Seq_match of int
+    | `Seq_mismatch of int
+    ]
+  [@@deriving sexp]
+
+  let positive i =
+    let open Or_error in
+    if i > 0
+    then return i
+    else error_string "positive argument expected for cigar operation"
+  ;;
+
+  let cigar_op_alignment_match i = Or_error.(positive i >>| fun i -> `Alignment_match i)
+  let cigar_op_insertion i = Or_error.(positive i >>| fun i -> `Insertion i)
+  let cigar_op_deletion i = Or_error.(positive i >>| fun i -> `Deletion i)
+  let cigar_op_skipped i = Or_error.(positive i >>| fun i -> `Skipped i)
+  let cigar_op_soft_clipping i = Or_error.(positive i >>| fun i -> `Soft_clipping i)
+  let cigar_op_hard_clipping i = Or_error.(positive i >>| fun i -> `Hard_clipping i)
+  let cigar_op_padding i = Or_error.(positive i >>| fun i -> `Padding i)
+  let cigar_op_seq_match i = Or_error.(positive i >>| fun i -> `Seq_match i)
+  let cigar_op_seq_mismatch i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
+
+  let parse_cigar text =
+    match text with
+    | "*" -> Ok []
+    | "" -> Error (Error.create "invalid cigar string" text sexp_of_string)
+    | _ ->
+      let ch = Stdlib.Scanf.Scanning.from_string text in
+      let rec loop accum =
+        if Stdlib.Scanf.Scanning.end_of_input ch
+        then Ok accum
+        else (
+          try
+            let n = Stdlib.Scanf.bscanf ch "%d" Fn.id in
+            let c = Stdlib.Scanf.bscanf ch "%c" Fn.id in
+            let x =
+              match c with
+              | 'M' -> cigar_op_alignment_match n
+              | 'I' -> cigar_op_insertion n
+              | 'D' -> cigar_op_deletion n
+              | 'N' -> cigar_op_skipped n
+              | 'S' -> cigar_op_soft_clipping n
+              | 'H' -> cigar_op_hard_clipping n
+              | 'P' -> cigar_op_padding n
+              | '=' -> cigar_op_seq_match n
+              | 'X' -> cigar_op_seq_mismatch n
+              | other ->
+                Or_error.error "invalid cigar operation type" other Char.sexp_of_t
+            in
+            Or_error.tag x ~tag:"Sam.parse_cigar: invalid cigar string"
+            >>= fun x -> loop (x :: accum)
+          with
+          | _ -> Error (Error.create "invalid cigar string" text sexp_of_string))
+      in
+      loop [] >>| List.rev
+  ;;
+
+  let print_cigar_op = function
+    | `Alignment_match x -> sprintf "%dM" x
+    | `Insertion x -> sprintf "%dI" x
+    | `Deletion x -> sprintf "%dD" x
+    | `Skipped x -> sprintf "%dN" x
+    | `Soft_clipping x -> sprintf "%dS" x
+    | `Hard_clipping x -> sprintf "%dH" x
+    | `Padding x -> sprintf "%dP" x
+    | `Seq_match x -> sprintf "%d=" x
+    | `Seq_mismatch x -> sprintf "%dX" x
+  ;;
+
+  let print_cigar = function
+    | [] -> "*"
+    | cigar_ops -> List.map cigar_ops ~f:print_cigar_op |> String.concat ~sep:""
+  ;;
+end
 
 type optional_field_value =
   [ `A of char
@@ -752,7 +823,7 @@ type alignment =
   ; rname : string option
   ; pos : int option
   ; mapq : int option
-  ; cigar : cigar_op list
+  ; cigar : Cigar_op.t list
   ; rnext : rnext option
   ; pnext : int option
   ; tlen : int option
@@ -880,57 +951,6 @@ let parse_mapq s =
   >>| function
   | 255 -> None
   | x -> Some x
-;;
-
-let positive i =
-  let open Or_error in
-  if i > 0
-  then return i
-  else error_string "positive argument expected for cigar operation"
-;;
-
-let cigar_op_alignment_match i = Or_error.(positive i >>| fun i -> `Alignment_match i)
-let cigar_op_insertion i = Or_error.(positive i >>| fun i -> `Insertion i)
-let cigar_op_deletion i = Or_error.(positive i >>| fun i -> `Deletion i)
-let cigar_op_skipped i = Or_error.(positive i >>| fun i -> `Skipped i)
-let cigar_op_soft_clipping i = Or_error.(positive i >>| fun i -> `Soft_clipping i)
-let cigar_op_hard_clipping i = Or_error.(positive i >>| fun i -> `Hard_clipping i)
-let cigar_op_padding i = Or_error.(positive i >>| fun i -> `Padding i)
-let cigar_op_seq_match i = Or_error.(positive i >>| fun i -> `Seq_match i)
-let cigar_op_seq_mismatch i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
-
-let parse_cigar text =
-  match text with
-  | "*" -> Ok []
-  | "" -> Error (Error.create "invalid cigar string" text sexp_of_string)
-  | _ ->
-    let ch = Stdlib.Scanf.Scanning.from_string text in
-    let rec loop accum =
-      if Stdlib.Scanf.Scanning.end_of_input ch
-      then Ok accum
-      else (
-        try
-          let n = Stdlib.Scanf.bscanf ch "%d" Fn.id in
-          let c = Stdlib.Scanf.bscanf ch "%c" Fn.id in
-          let x =
-            match c with
-            | 'M' -> cigar_op_alignment_match n
-            | 'I' -> cigar_op_insertion n
-            | 'D' -> cigar_op_deletion n
-            | 'N' -> cigar_op_skipped n
-            | 'S' -> cigar_op_soft_clipping n
-            | 'H' -> cigar_op_hard_clipping n
-            | 'P' -> cigar_op_padding n
-            | '=' -> cigar_op_seq_match n
-            | 'X' -> cigar_op_seq_mismatch n
-            | other -> Or_error.error "invalid cigar operation type" other Char.sexp_of_t
-          in
-          Or_error.tag x ~tag:"Sam.parse_cigar: invalid cigar string"
-          >>= fun x -> loop (x :: accum)
-        with
-        | _ -> Error (Error.create "invalid cigar string" text sexp_of_string))
-    in
-    loop [] >>| List.rev
 ;;
 
 let rnext_re = Re.Perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
@@ -1089,7 +1109,7 @@ let parse_alignment ?ref_seqs line =
     >>= fun pos ->
     parse_mapq mapq
     >>= fun mapq ->
-    parse_cigar cigar
+    Cigar_op.parse_cigar cigar
     >>= fun cigar ->
     parse_rnext rnext
     >>= fun rnext ->
@@ -1146,23 +1166,6 @@ let print_mapq = function
   | None -> "255"
 ;;
 
-let print_cigar_op = function
-  | `Alignment_match x -> sprintf "%dM" x
-  | `Insertion x -> sprintf "%dI" x
-  | `Deletion x -> sprintf "%dD" x
-  | `Skipped x -> sprintf "%dN" x
-  | `Soft_clipping x -> sprintf "%dS" x
-  | `Hard_clipping x -> sprintf "%dH" x
-  | `Padding x -> sprintf "%dP" x
-  | `Seq_match x -> sprintf "%d=" x
-  | `Seq_mismatch x -> sprintf "%dX" x
-;;
-
-let print_cigar = function
-  | [] -> "*"
-  | cigar_ops -> List.map cigar_ops ~f:print_cigar_op |> String.concat ~sep:""
-;;
-
 let print_rnext = function
   | None -> "*"
   | Some `Equal_to_RNAME -> "="
@@ -1212,7 +1215,7 @@ let print_alignment a =
     (print_rname a.rname)
     (print_pos a.pos)
     (print_mapq a.mapq)
-    (print_cigar a.cigar)
+    (Cigar_op.print_cigar a.cigar)
     (print_rnext a.rnext)
     (print_pnext a.pnext)
     (print_tlen a.tlen)
