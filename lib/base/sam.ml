@@ -625,7 +625,7 @@ module Header = struct
     ; others : (string * Tag_value.t list) list
     }
 
-  let empty_header =
+  let empty =
     { version = None
     ; sort_order = None
     ; group_order = None

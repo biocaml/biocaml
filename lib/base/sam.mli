@@ -222,7 +222,7 @@ module Header : sig
     }
   (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
-  val empty_header : t
+  val empty : t
 
   val make
     :  ?version:string

@@ -42,7 +42,7 @@ module MakeIO (Future : Future.S) = struct
           | Ok (`Other x) -> loop { hdr with others = x :: hdr.Biocaml.Sam.Header.others }
         )
     in
-    loop Biocaml.Sam.Header.empty_header
+    loop Biocaml.Sam.Header.empty
     >>| function
     | Error _ as e -> e
     | Ok ({ version; sort_order; group_order; _ } as x) ->
@@ -114,7 +114,7 @@ module MakeIO (Future : Future.S) = struct
       write_line w (Biocaml.Sam.Header.Other.print x))
   ;;
 
-  let write w ?(header = Biocaml.Sam.Header.empty_header) alignments =
+  let write w ?(header = Biocaml.Sam.Header.empty) alignments =
     write_header w header
     >>= fun () ->
     Pipe.iter alignments ~f:(fun a -> Writer.write_line w (Biocaml.Sam.Alignment.print a))
