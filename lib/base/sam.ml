@@ -329,41 +329,41 @@ module Header = struct
     ;;
   end
 
-  module Platform = struct
-    type t =
-      [ `Capillary
-      | `LS454
-      | `Illumina
-      | `Solid
-      | `Helicos
-      | `Ion_Torrent
-      | `Pac_Bio
-      ]
-    [@@deriving sexp]
-
-    let parse = function
-      | "CAPILLARY" -> Ok `Capillary
-      | "LS454" -> Ok `LS454
-      | "ILLUMINA" -> Ok `Illumina
-      | "SOLID" -> Ok `Solid
-      | "HELICOS" -> Ok `Helicos
-      | "IONTORRENT" -> Ok `Ion_Torrent
-      | "PACBIO" -> Ok `Pac_Bio
-      | x -> Error (Error.create "unknown platform" x sexp_of_string)
-    ;;
-
-    let print = function
-      | `Capillary -> "CAPILLARY"
-      | `LS454 -> "LS454"
-      | `Illumina -> "ILLUMINA"
-      | `Solid -> "SOLID"
-      | `Helicos -> "HELICOS"
-      | `Ion_Torrent -> "IONTORRENT"
-      | `Pac_Bio -> "PACBIO"
-    ;;
-  end
-
   module RG = struct
+    module PL = struct
+      type t =
+        [ `Capillary
+        | `LS454
+        | `Illumina
+        | `Solid
+        | `Helicos
+        | `Ion_Torrent
+        | `Pac_Bio
+        ]
+      [@@deriving sexp]
+
+      let parse = function
+        | "CAPILLARY" -> Ok `Capillary
+        | "LS454" -> Ok `LS454
+        | "ILLUMINA" -> Ok `Illumina
+        | "SOLID" -> Ok `Solid
+        | "HELICOS" -> Ok `Helicos
+        | "IONTORRENT" -> Ok `Ion_Torrent
+        | "PACBIO" -> Ok `Pac_Bio
+        | x -> Error (Error.create "unknown platform" x sexp_of_string)
+      ;;
+
+      let print = function
+        | `Capillary -> "CAPILLARY"
+        | `LS454 -> "LS454"
+        | `Illumina -> "ILLUMINA"
+        | `Solid -> "SOLID"
+        | `Helicos -> "HELICOS"
+        | `Ion_Torrent -> "IONTORRENT"
+        | `Pac_Bio -> "PACBIO"
+      ;;
+    end
+
     type t =
       { id : string
       ; seq_center : string option
@@ -374,7 +374,7 @@ module Header = struct
       ; library : string option
       ; program : string option
       ; predicted_median_insert_size : int option
-      ; platform : Platform.t option
+      ; platform : PL.t option
       ; platform_unit : string option
       ; sample : string option
       }
@@ -472,7 +472,7 @@ module Header = struct
              sexp_of_string))
       >>= fun predicted_median_insert_size ->
       find01 `RG tvl "PL"
-      >>?~ Platform.parse
+      >>?~ PL.parse
       >>= fun platform ->
       find01 `RG tvl "PU"
       >>= fun platform_unit ->
@@ -516,7 +516,7 @@ module Header = struct
         (s "LB" x.library)
         (s "PG" x.program)
         (s "PI" (Option.map x.predicted_median_insert_size ~f:Int.to_string))
-        (s "PL" (Option.map x.platform ~f:Platform.print))
+        (s "PL" (Option.map x.platform ~f:PL.print))
         (s "PU" x.platform_unit)
         (s "SM" x.sample)
     ;;

@@ -105,23 +105,23 @@ module Header : sig
     val print : t -> string
   end
 
-  module Platform : sig
-    type t =
-      [ `Capillary
-      | `LS454
-      | `Illumina
-      | `Solid
-      | `Helicos
-      | `Ion_Torrent
-      | `Pac_Bio
-      ]
-    [@@deriving sexp]
-
-    val parse : string -> t Or_error.t
-    val print : t -> string
-  end
-
   module RG : sig
+    module PL : sig
+      type t =
+        [ `Capillary
+        | `LS454
+        | `Illumina
+        | `Solid
+        | `Helicos
+        | `Ion_Torrent
+        | `Pac_Bio
+        ]
+      [@@deriving sexp]
+
+      val parse : string -> t Or_error.t
+      val print : t -> string
+    end
+
     type t = private
       { id : string (** ID *)
       ; seq_center : string option (** CN *)
@@ -132,7 +132,7 @@ module Header : sig
       ; library : string option (** LB *)
       ; program : string option (** PG *)
       ; predicted_median_insert_size : int option (** PI *)
-      ; platform : Platform.t option (** PL *)
+      ; platform : PL.t option (** PL *)
       ; platform_unit : string option (** PU *)
       ; sample : string option (** SM *)
       }
@@ -151,7 +151,7 @@ module Header : sig
       -> ?library:string
       -> ?program:string
       -> ?predicted_median_insert_size:int
-      -> ?platform:Platform.t
+      -> ?platform:PL.t
       -> ?platform_unit:string
       -> ?sample:string
       -> unit
