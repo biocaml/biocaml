@@ -176,7 +176,7 @@ module Header : sig
     val print : t -> string
   end
 
-  module Header_item : sig
+  module Item : sig
     type t =
       private
       [< `HD of HD.t

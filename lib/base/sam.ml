@@ -567,7 +567,7 @@ module Header = struct
     ;;
   end
 
-  module Header_item = struct
+  module Item = struct
     type t =
       [ `HD of HD.t
       | `SQ of SQ.t

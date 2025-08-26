@@ -24,7 +24,7 @@ module MakeIO (Future : Future.S) = struct
         else
           Pipe.junk lines
           >>= fun () ->
-          Biocaml.Sam.Header.Header_item.parse line
+          Biocaml.Sam.Header.Item.parse line
           |> function
           | Error _ as e -> return e
           | Ok (`HD ({ version; sort_order; group_order } : Biocaml.Sam.Header.HD.t)) -> (
