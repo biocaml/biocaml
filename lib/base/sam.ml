@@ -9,10 +9,6 @@ let ( >>?~ ) (x : 'a option Or_error.t) (f : 'a -> 'b Or_error.t) : 'b option Or
   | Some x -> f x >>| Option.some
 ;;
 
-(******************************************************************************)
-(* Header Types                                                               *)
-(******************************************************************************)
-
 module Header = struct
   module Header_item_tag = struct
     type t =
@@ -684,9 +680,6 @@ module Header = struct
   ;;
 end
 
-(******************************************************************************)
-(* Alignment Types                                                            *)
-(******************************************************************************)
 module Flags = struct
   type t = int [@@deriving sexp]
 

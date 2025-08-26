@@ -3,10 +3,6 @@
     specification}. *)
 open! Import
 
-(** {2 Types} *)
-
-(** {3 Header Types} *)
-
 module Header : sig
   module Header_item_tag : sig
     (** Header item tags define the different types of header lines. The
@@ -239,8 +235,6 @@ module Header : sig
     -> unit
     -> t Or_error.t
 end
-
-(** {3 Alignment Types} *)
 
 module Flags : sig
   (** Flags are represented as a "bit map". *)
