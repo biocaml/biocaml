@@ -146,78 +146,78 @@ module Header = struct
     let print_tag_value' = sprintf "%s:%s"
   end
 
-  module Sort_order = struct
-    type t =
-      [ `Unknown
-      | `Unsorted
-      | `Query_name
-      | `Coordinate
-      ]
-    [@@deriving sexp]
-
-    let parse = function
-      | "unknown" -> Ok `Unknown
-      | "unsorted" -> Ok `Unsorted
-      | "queryname" -> Ok `Query_name
-      | "coordinate" -> Ok `Coordinate
-      | x -> Error (Error.create "invalid sort order" x sexp_of_string)
-    ;;
-
-    let print x =
-      Tag_value.print_tag_value'
-        "SO"
-        (match x with
-         | `Unknown -> "unknown"
-         | `Unsorted -> "unsorted"
-         | `Query_name -> "queryname"
-         | `Coordinate -> "coordinate")
-    ;;
-  end
-
-  module Group_order = struct
-    type t =
-      [ `None
-      | `Query
-      | `Reference
-      ]
-    [@@deriving sexp]
-
-    let parse = function
-      | "none" -> Ok `None
-      | "query" -> Ok `Query
-      | "reference" -> Ok `Reference
-      | x -> Error (Error.create "invalid group order" x sexp_of_string)
-    ;;
-
-    let print x =
-      Tag_value.print_tag_value'
-        "GO"
-        (match x with
-         | `None -> "none"
-         | `Query -> "query"
-         | `Reference -> "reference")
-    ;;
-  end
-
-  let parse_header_version s =
-    let err =
-      Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
-    in
-    match String.lsplit2 ~on:'.' s with
-    | None -> err
-    | Some (a, b) ->
-      if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
-      then Ok s
-      else err
-  ;;
-
-  let print_header_version x = Tag_value.print_tag_value' "VN" x
-
   module HD = struct
+    module SO = struct
+      type t =
+        [ `Unknown
+        | `Unsorted
+        | `Query_name
+        | `Coordinate
+        ]
+      [@@deriving sexp]
+
+      let parse = function
+        | "unknown" -> Ok `Unknown
+        | "unsorted" -> Ok `Unsorted
+        | "queryname" -> Ok `Query_name
+        | "coordinate" -> Ok `Coordinate
+        | x -> Error (Error.create "invalid sort order" x sexp_of_string)
+      ;;
+
+      let print x =
+        Tag_value.print_tag_value'
+          "SO"
+          (match x with
+           | `Unknown -> "unknown"
+           | `Unsorted -> "unsorted"
+           | `Query_name -> "queryname"
+           | `Coordinate -> "coordinate")
+      ;;
+    end
+
+    module GO = struct
+      type t =
+        [ `None
+        | `Query
+        | `Reference
+        ]
+      [@@deriving sexp]
+
+      let parse = function
+        | "none" -> Ok `None
+        | "query" -> Ok `Query
+        | "reference" -> Ok `Reference
+        | x -> Error (Error.create "invalid group order" x sexp_of_string)
+      ;;
+
+      let print x =
+        Tag_value.print_tag_value'
+          "GO"
+          (match x with
+           | `None -> "none"
+           | `Query -> "query"
+           | `Reference -> "reference")
+      ;;
+    end
+
+    let parse_header_version s =
+      let err =
+        Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
+      in
+      match String.lsplit2 ~on:'.' s with
+      | None -> err
+      | Some (a, b) ->
+        if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
+        then Ok s
+        else err
+    ;;
+
+    let print_header_version x = Tag_value.print_tag_value' "VN" x
+
     type t =
       { version : string
-      ; sort_order : Sort_order.t option
-      ; group_order : Group_order.t option
+      ; sort_order : SO.t option
+      ; group_order : GO.t option
       }
     [@@deriving sexp]
 
@@ -229,10 +229,10 @@ module Header = struct
       find1 `HD tvl "VN"
       >>= fun version ->
       find01 `HD tvl "SO"
-      >>?~ Sort_order.parse
+      >>?~ SO.parse
       >>= fun sort_order ->
       find01 `HD tvl "GO"
-      >>?~ Group_order.parse
+      >>?~ GO.parse
       >>= fun group_order ->
       assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
       >>= fun () -> header_line ~version ?sort_order ?group_order ()
@@ -244,10 +244,10 @@ module Header = struct
         version
         (match sort_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (Sort_order.print x))
+         | Some x -> sprintf "\t%s" (SO.print x))
         (match group_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (Group_order.print x))
+         | Some x -> sprintf "\t%s" (GO.print x))
     ;;
   end
 
@@ -609,8 +609,8 @@ module Header = struct
 
   type t =
     { version : string option
-    ; sort_order : Sort_order.t option
-    ; group_order : Group_order.t option
+    ; sort_order : HD.SO.t option
+    ; group_order : HD.GO.t option
     ; ref_seqs : SQ.t list
     ; read_groups : RG.t list
     ; programs : PG.t list
@@ -644,7 +644,7 @@ module Header = struct
     [ (match version with
        | None -> None
        | Some x -> (
-         match parse_header_version x with
+         match HD.parse_header_version x with
          | Error e -> Some e
          | Ok _ -> None))
     ; (if Option.is_some sort_order && Poly.(version = None)
@@ -653,7 +653,7 @@ module Header = struct
            (Error.create
               "sort order cannot be defined without version"
               (sort_order, version)
-              [%sexp_of: Sort_order.t option * string option])
+              [%sexp_of: HD.SO.t option * string option])
        else None)
     ; List.map ref_seqs ~f:(fun (x : SQ.t) -> x.name)
       |> List.find_a_dup ~compare:String.compare

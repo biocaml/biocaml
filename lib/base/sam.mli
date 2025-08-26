@@ -31,51 +31,51 @@ module Header : sig
     val print : t -> string
   end
 
-  module Sort_order : sig
-    type t =
-      [ `Unknown
-      | `Unsorted
-      | `Query_name
-      | `Coordinate
-      ]
-    [@@deriving sexp]
-
-    val parse : string -> t Or_error.t
-    val print : t -> string
-  end
-
-  module Group_order : sig
-    type t =
-      [ `None
-      | `Query
-      | `Reference
-      ]
-    [@@deriving sexp]
-
-    val parse : string -> t Or_error.t
-    val print : t -> string
-  end
-
-  val parse_header_version : string -> string Or_error.t
-  val print_header_version : string -> string
-
   module HD : sig
+    module SO : sig
+      type t =
+        [ `Unknown
+        | `Unsorted
+        | `Query_name
+        | `Coordinate
+        ]
+      [@@deriving sexp]
+
+      val parse : string -> t Or_error.t
+      val print : t -> string
+    end
+
+    module GO : sig
+      type t =
+        [ `None
+        | `Query
+        | `Reference
+        ]
+      [@@deriving sexp]
+
+      val parse : string -> t Or_error.t
+      val print : t -> string
+    end
+
+    val parse_header_version : string -> string Or_error.t
+    val print_header_version : string -> string
+
     (** @HD. A header consists of different types of lines. Confusingly, one of
       these types is called {i the} "header line", which is what this
       type refers to. It does not refer generically to any line within a
       header. *)
     type t =
       { version : string (** VN *)
-      ; sort_order : Sort_order.t option (** SO *)
-      ; group_order : Group_order.t option (** GO *)
+      ; sort_order : SO.t option (** SO *)
+      ; group_order : GO.t option (** GO *)
       }
     [@@deriving sexp]
     (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
     val header_line
       :  version:string
-      -> ?sort_order:Sort_order.t
-      -> ?group_order:Group_order.t
+      -> ?sort_order:SO.t
+      -> ?group_order:GO.t
       -> unit
       -> t Or_error.t
 
@@ -214,8 +214,8 @@ module Header : sig
   *)
   type t =
     { version : string option
-    ; sort_order : Sort_order.t option
-    ; group_order : Group_order.t option
+    ; sort_order : HD.SO.t option
+    ; group_order : HD.GO.t option
     ; ref_seqs : SQ.t list
     ; read_groups : RG.t list
     ; programs : PG.t list
@@ -228,8 +228,8 @@ module Header : sig
 
   val header
     :  ?version:string
-    -> ?sort_order:Sort_order.t
-    -> ?group_order:Group_order.t
+    -> ?sort_order:HD.SO.t
+    -> ?group_order:HD.GO.t
     -> ?ref_seqs:SQ.t list
     -> ?read_groups:RG.t list
     -> ?programs:PG.t list

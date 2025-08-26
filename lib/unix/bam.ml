@@ -868,7 +868,7 @@ module Test = struct
     assert_equal ~msg:"version" ~printer:[%sexp_of: string option] h1.version h2.version;
     assert_equal
       ~msg:"sort_order"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.Sort_order.t option]
+      ~printer:[%sexp_of: Biocaml.Sam.Header.HD.SO.t option]
       h1.sort_order
       h2.sort_order;
     assert_equal
