@@ -200,29 +200,33 @@ module Header = struct
       ;;
     end
 
-    let parse_header_version s =
-      let err =
-        Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
-      in
-      match String.lsplit2 ~on:'.' s with
-      | None -> err
-      | Some (a, b) ->
-        if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
-        then Ok s
-        else err
-    ;;
+    module VN = struct
+      type t = string [@@deriving sexp]
 
-    let print_header_version x = Tag_value.print_tag_value' "VN" x
+      let parse s =
+        let err =
+          Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
+        in
+        match String.lsplit2 ~on:'.' s with
+        | None -> err
+        | Some (a, b) ->
+          if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
+          then Ok s
+          else err
+      ;;
+
+      let print x = Tag_value.print_tag_value' "VN" x
+    end
 
     type t =
-      { version : string
+      { version : VN.t
       ; sort_order : SO.t option
       ; group_order : GO.t option
       }
     [@@deriving sexp]
 
     let header_line ~version ?sort_order ?group_order () =
-      parse_header_version version >>| fun version -> { version; sort_order; group_order }
+      VN.parse version >>| fun version -> { version; sort_order; group_order }
     ;;
 
     let parse tvl =
@@ -644,7 +648,7 @@ module Header = struct
     [ (match version with
        | None -> None
        | Some x -> (
-         match HD.parse_header_version x with
+         match HD.VN.parse x with
          | Error e -> Some e
          | Ok _ -> None))
     ; (if Option.is_some sort_order && Poly.(version = None)

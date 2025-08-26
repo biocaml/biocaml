@@ -57,17 +57,21 @@ module Header : sig
       val print : t -> string
     end
 
-    val parse_header_version : string -> string Or_error.t
-    val print_header_version : string -> string
+    module VN : sig
+      type t = string [@@deriving sexp]
+
+      val parse : string -> string Or_error.t
+      val print : string -> string
+    end
 
     (** @HD. A header consists of different types of lines. Confusingly, one of
       these types is called {i the} "header line", which is what this
       type refers to. It does not refer generically to any line within a
       header. *)
     type t =
-      { version : string (** VN *)
-      ; sort_order : SO.t option (** SO *)
-      ; group_order : GO.t option (** GO *)
+      { version : VN.t
+      ; sort_order : SO.t option
+      ; group_order : GO.t option
       }
     [@@deriving sexp]
     (* FIXME: Make the type private. Removed temporarily to fix build. *)
