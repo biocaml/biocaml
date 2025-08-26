@@ -34,6 +34,65 @@ module Header_item_tag = struct
   ;;
 end
 
+(** Find all occurrences of [x'] in the association list [l]. *)
+let find_all l x' =
+  let rec loop accum = function
+    | [] -> accum
+    | (x, y) :: l ->
+      let accum = if Poly.(x = x') then y :: accum else accum in
+      loop accum l
+  in
+  List.rev (loop [] l)
+;;
+
+(** Find exactly 1 occurrence [x] in association list [l]. Return
+    error if [x] is not defined exactly once. *)
+let find1 header_item_tag l x =
+  match find_all l x with
+  | [] ->
+    Error
+      (Error.create
+         "required tag not found"
+         (header_item_tag, x)
+         [%sexp_of: Header_item_tag.t * string])
+  | y :: [] -> Ok y
+  | ys ->
+    Error
+      (Error.create
+         "tag found multiple times"
+         (header_item_tag, x, ys)
+         [%sexp_of: Header_item_tag.t * string * string list])
+;;
+
+(** Find 0 or 1 occurrence [x] in association list [l]. Return
+    error if [x] is defined more than once. *)
+let find01 header_item_tag l x =
+  match find_all l x with
+  | [] -> Ok None
+  | y :: [] -> Ok (Some y)
+  | ys ->
+    Error
+      (Error.create
+         "tag found multiple times"
+         (header_item_tag, x, ys)
+         [%sexp_of: Header_item_tag.t * string * string list])
+;;
+
+(** Assert that [tvl] contains at most the given [tags]. *)
+let assert_tags header_item_tag tvl tags =
+  let expected_tags = Set.of_list (module String) tags in
+  let got_tags = List.map tvl ~f:fst |> Set.of_list (module String) in
+  let unexpected_tags = Set.diff got_tags expected_tags in
+  if Set.length unexpected_tags = 0
+  then Ok ()
+  else
+    Error
+      (Error.create
+         "unexpected tag for given header item type"
+         (header_item_tag, unexpected_tags)
+         [%sexp_of: Header_item_tag.t * Set.M(String).t])
+;;
+
 module Tag_value = struct
   type t = string * string [@@deriving sexp]
 
@@ -69,19 +128,82 @@ module Sort_order = struct
   ;;
 end
 
-type group_order =
-  [ `None
-  | `Query
-  | `Reference
-  ]
-[@@deriving sexp]
+module Group_order = struct
+  type t =
+    [ `None
+    | `Query
+    | `Reference
+    ]
+  [@@deriving sexp]
 
-type header_line =
-  { version : string
-  ; sort_order : Sort_order.t option
-  ; group_order : group_order option
-  }
-[@@deriving sexp]
+  let parse_group_order = function
+    | "none" -> Ok `None
+    | "query" -> Ok `Query
+    | "reference" -> Ok `Reference
+    | x -> Error (Error.create "invalid group order" x sexp_of_string)
+  ;;
+
+  let print_group_order x =
+    Tag_value.print_tag_value'
+      "GO"
+      (match x with
+       | `None -> "none"
+       | `Query -> "query"
+       | `Reference -> "reference")
+  ;;
+end
+
+let parse_header_version s =
+  let err =
+    Error (Error.create "invalid version" (`HD, s) [%sexp_of: Header_item_tag.t * string])
+  in
+  match String.lsplit2 ~on:'.' s with
+  | None -> err
+  | Some (a, b) ->
+    if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
+    then Ok s
+    else err
+;;
+
+let print_header_version x = Tag_value.print_tag_value' "VN" x
+
+module Header_line = struct
+  type t =
+    { version : string
+    ; sort_order : Sort_order.t option
+    ; group_order : Group_order.t option
+    }
+  [@@deriving sexp]
+
+  let header_line ~version ?sort_order ?group_order () =
+    parse_header_version version >>| fun version -> { version; sort_order; group_order }
+  ;;
+
+  let parse_header_line tvl =
+    find1 `HD tvl "VN"
+    >>= fun version ->
+    find01 `HD tvl "SO"
+    >>?~ Sort_order.parse_sort_order
+    >>= fun sort_order ->
+    find01 `HD tvl "GO"
+    >>?~ Group_order.parse_group_order
+    >>= fun group_order ->
+    assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
+    >>= fun () -> header_line ~version ?sort_order ?group_order ()
+  ;;
+
+  let print_header_line { version; sort_order; group_order } =
+    sprintf
+      "@HD\tVN:%s%s%s"
+      version
+      (match sort_order with
+       | None -> ""
+       | Some x -> sprintf "\t%s" (Sort_order.print_sort_order x))
+      (match group_order with
+       | None -> ""
+       | Some x -> sprintf "\t%s" (Group_order.print_group_order x))
+  ;;
+end
 
 type ref_seq =
   { name : string
@@ -131,7 +253,7 @@ type program =
 [@@deriving sexp]
 
 type header_item =
-  [ `HD of header_line
+  [ `HD of Header_line.t
   | `SQ of ref_seq
   | `RG of read_group
   | `PG of program
@@ -143,7 +265,7 @@ type header_item =
 type header =
   { version : string option
   ; sort_order : Sort_order.t option
-  ; group_order : group_order option
+  ; group_order : Group_order.t option
   ; ref_seqs : ref_seq list
   ; read_groups : read_group list
   ; programs : program list
@@ -244,21 +366,6 @@ type alignment =
 (******************************************************************************)
 (* Header Parsers and Constructors                                            *)
 (******************************************************************************)
-let parse_header_version s =
-  let err =
-    Error (Error.create "invalid version" (`HD, s) [%sexp_of: Header_item_tag.t * string])
-  in
-  match String.lsplit2 ~on:'.' s with
-  | None -> err
-  | Some (a, b) ->
-    if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
-    then Ok s
-    else err
-;;
-
-let header_line ~version ?sort_order ?group_order () =
-  parse_header_version version >>| fun version -> { version; sort_order; group_order }
-;;
 
 let ref_seq ~name ~length ?assembly ?md5 ?species ?uri () =
   let is_name_first_char_ok = function
@@ -439,85 +546,6 @@ let parse_tag_value s =
     parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
 ;;
 
-(** Find all occurrences of [x'] in the association list [l]. *)
-let find_all l x' =
-  let rec loop accum = function
-    | [] -> accum
-    | (x, y) :: l ->
-      let accum = if Poly.(x = x') then y :: accum else accum in
-      loop accum l
-  in
-  List.rev (loop [] l)
-;;
-
-(** Find exactly 1 occurrence [x] in association list [l]. Return
-    error if [x] is not defined exactly once. *)
-let find1 header_item_tag l x =
-  match find_all l x with
-  | [] ->
-    Error
-      (Error.create
-         "required tag not found"
-         (header_item_tag, x)
-         [%sexp_of: Header_item_tag.t * string])
-  | y :: [] -> Ok y
-  | ys ->
-    Error
-      (Error.create
-         "tag found multiple times"
-         (header_item_tag, x, ys)
-         [%sexp_of: Header_item_tag.t * string * string list])
-;;
-
-(** Find 0 or 1 occurrence [x] in association list [l]. Return
-    error if [x] is defined more than once. *)
-let find01 header_item_tag l x =
-  match find_all l x with
-  | [] -> Ok None
-  | y :: [] -> Ok (Some y)
-  | ys ->
-    Error
-      (Error.create
-         "tag found multiple times"
-         (header_item_tag, x, ys)
-         [%sexp_of: Header_item_tag.t * string * string list])
-;;
-
-(** Assert that [tvl] contains at most the given [tags]. *)
-let assert_tags header_item_tag tvl tags =
-  let expected_tags = Set.of_list (module String) tags in
-  let got_tags = List.map tvl ~f:fst |> Set.of_list (module String) in
-  let unexpected_tags = Set.diff got_tags expected_tags in
-  if Set.length unexpected_tags = 0
-  then Ok ()
-  else
-    Error
-      (Error.create
-         "unexpected tag for given header item type"
-         (header_item_tag, unexpected_tags)
-         [%sexp_of: Header_item_tag.t * Set.M(String).t])
-;;
-
-let parse_group_order = function
-  | "none" -> Ok `None
-  | "query" -> Ok `Query
-  | "reference" -> Ok `Reference
-  | x -> Error (Error.create "invalid group order" x sexp_of_string)
-;;
-
-let parse_header_line tvl =
-  find1 `HD tvl "VN"
-  >>= fun version ->
-  find01 `HD tvl "SO"
-  >>?~ Sort_order.parse_sort_order
-  >>= fun sort_order ->
-  find01 `HD tvl "GO"
-  >>?~ parse_group_order
-  >>= fun group_order ->
-  assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
-  >>= fun () -> header_line ~version ?sort_order ?group_order ()
-;;
-
 let parse_ref_seq tvl =
   find1 `SQ tvl "SN"
   >>= fun name ->
@@ -624,7 +652,7 @@ let parse_program tvl =
 let parse_header_item line =
   let parse_data tag tvl =
     match tag with
-    | `HD -> parse_header_line tvl >>| fun x -> `HD x
+    | `HD -> Header_line.parse_header_line tvl >>| fun x -> `HD x
     | `SQ -> parse_ref_seq tvl >>| fun x -> `SQ x
     | `RG -> parse_read_group tvl >>| fun x -> `RG x
     | `PG -> parse_program tvl >>| fun x -> `PG x
@@ -1007,29 +1035,6 @@ let parse_alignment ?ref_seqs line =
 (******************************************************************************)
 (* Header Printers                                                            *)
 (******************************************************************************)
-
-let print_header_version x = Tag_value.print_tag_value' "VN" x
-
-let print_group_order x =
-  Tag_value.print_tag_value'
-    "GO"
-    (match x with
-     | `None -> "none"
-     | `Query -> "query"
-     | `Reference -> "reference")
-;;
-
-let print_header_line ({ version; sort_order; group_order } : header_line) =
-  sprintf
-    "@HD\tVN:%s%s%s"
-    version
-    (match sort_order with
-     | None -> ""
-     | Some x -> sprintf "\t%s" (Sort_order.print_sort_order x))
-    (match group_order with
-     | None -> ""
-     | Some x -> sprintf "\t%s" (print_group_order x))
-;;
 
 let print_ref_seq (x : ref_seq) =
   sprintf

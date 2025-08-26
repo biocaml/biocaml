@@ -47,24 +47,38 @@ module Sort_order : sig
   val print_sort_order : t -> string
 end
 
-type group_order =
-  [ `None
-  | `Query
-  | `Reference
-  ]
-[@@deriving sexp]
+module Group_order : sig
+  type t =
+    [ `None
+    | `Query
+    | `Reference
+    ]
+  [@@deriving sexp]
+end
 
-(** @HD. A header consists of different types of lines. Confusingly, one of
+module Header_line : sig
+  (** @HD. A header consists of different types of lines. Confusingly, one of
       these types is called {i the} "header line", which is what this
       type refers to. It does not refer generically to any line within a
       header. *)
-type header_line =
-  { version : string (** VN *)
-  ; sort_order : Sort_order.t option (** SO *)
-  ; group_order : group_order option (** GO *)
-  }
-[@@deriving sexp]
-(* FIXME: Make the type private. Removed temporarily to fix build. *)
+  type t =
+    { version : string (** VN *)
+    ; sort_order : Sort_order.t option (** SO *)
+    ; group_order : Group_order.t option (** GO *)
+    }
+  [@@deriving sexp]
+  (* FIXME: Make the type private. Removed temporarily to fix build. *)
+
+  val header_line
+    :  version:string
+    -> ?sort_order:Sort_order.t
+    -> ?group_order:Group_order.t
+    -> unit
+    -> t Or_error.t
+
+  val parse_header_line : Tag_value.t list -> t Or_error.t
+  val print_header_line : t -> string
+end
 
 (** @SQ. Reference sequence. *)
 type ref_seq = private
@@ -118,7 +132,7 @@ type program = private
 
 type header_item =
   private
-  [< `HD of header_line
+  [< `HD of Header_line.t
   | `SQ of ref_seq
   | `RG of read_group
   | `PG of program
@@ -143,7 +157,7 @@ type header_item =
 type header =
   { version : string option
   ; sort_order : Sort_order.t option
-  ; group_order : group_order option
+  ; group_order : Group_order.t option
   ; ref_seqs : ref_seq list
   ; read_groups : read_group list
   ; programs : program list
@@ -238,13 +252,6 @@ type alignment = private
 
 (** {3 Low-level Header Parsers and Constructors} *)
 
-val header_line
-  :  version:string
-  -> ?sort_order:Sort_order.t
-  -> ?group_order:group_order
-  -> unit
-  -> header_line Or_error.t
-
 val ref_seq
   :  name:string
   -> length:int
@@ -277,7 +284,7 @@ val read_group
 val header
   :  ?version:string
   -> ?sort_order:Sort_order.t
-  -> ?group_order:group_order
+  -> ?group_order:Group_order.t
   -> ?ref_seqs:ref_seq list
   -> ?read_groups:read_group list
   -> ?programs:program list
@@ -287,7 +294,6 @@ val header
   -> header Or_error.t
 
 val parse_header_version : string -> string Or_error.t
-val parse_header_line : Tag_value.t list -> header_line Or_error.t
 val parse_ref_seq : Tag_value.t list -> ref_seq Or_error.t
 val parse_platform : string -> platform Or_error.t
 val parse_read_group : Tag_value.t list -> read_group Or_error.t
@@ -359,7 +365,6 @@ val parse_alignment
 (** {3 Low-level Header Printers} *)
 
 val print_header_version : string -> string
-val print_header_line : header_line -> string
 val print_ref_seq : ref_seq -> string
 val print_platform : platform -> string
 val print_read_group : read_group -> string
