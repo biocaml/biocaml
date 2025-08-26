@@ -383,7 +383,7 @@ module Alignment0 = struct
     let field_type = buf.[pos + 2] in
     parse_optional_field_value buf (pos + 3) field_type
     >>= fun (field_value, shift) ->
-    Biocaml.Sam.Optional_field.optional_field tag field_value
+    Biocaml.Sam.Optional_field.make tag field_value
     >>= fun field -> return (field, shift + 3)
   ;;
 
@@ -420,7 +420,7 @@ module Alignment0 = struct
     >>= fun qual ->
     optional_fields al
     >>= fun optional_fields ->
-    Biocaml.Sam.Alignment.alignment
+    Biocaml.Sam.Alignment.make
       ?qname:(qname al)
       ~flags
       ?rname
@@ -626,7 +626,7 @@ let read_one_reference_information iz =
     let (_ : char) = Bgzf.input_char iz in
     (* name is a NULL terminated string *)
     let length = input_s32_as_int iz in
-    Biocaml.Sam.Header.SQ.ref_seq ~name ~length ()
+    Biocaml.Sam.Header.SQ.make ~name ~length ()
   with
   | End_of_file -> error_string "EOF while reading BAM reference information"
 ;;
@@ -736,7 +736,7 @@ let write_plain_SAM_header h oz =
   in
   Option.iter h.Biocaml.Sam.Header.version ~f:(fun version ->
     let hl =
-      Biocaml.Sam.Header.HD.header_line
+      Biocaml.Sam.Header.HD.make
         ~version
         ?sort_order:h.Biocaml.Sam.Header.sort_order
         ()

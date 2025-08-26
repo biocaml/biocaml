@@ -225,7 +225,7 @@ module Header = struct
       }
     [@@deriving sexp]
 
-    let header_line ~version ?sort_order ?group_order () =
+    let make ~version ?sort_order ?group_order () =
       VN.parse version >>| fun version -> { version; sort_order; group_order }
     ;;
 
@@ -239,7 +239,7 @@ module Header = struct
       >>?~ GO.parse
       >>= fun group_order ->
       assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
-      >>= fun () -> header_line ~version ?sort_order ?group_order ()
+      >>= fun () -> make ~version ?sort_order ?group_order ()
     ;;
 
     let print { version; sort_order; group_order } =
@@ -266,7 +266,7 @@ module Header = struct
       }
     [@@deriving sexp]
 
-    let ref_seq ~name ~length ?assembly ?md5 ?species ?uri () =
+    let make ~name ~length ?assembly ?md5 ?species ?uri () =
       let is_name_first_char_ok = function
         | '!' .. ')' | '+' .. '<' | '>' .. '~' -> true
         | _ -> false
@@ -306,7 +306,7 @@ module Header = struct
       find01 `SQ tvl "UR"
       >>= fun uri ->
       assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
-      >>= fun () -> ref_seq ~name ~length ?assembly ?md5 ?species ?uri ()
+      >>= fun () -> make ~name ~length ?assembly ?md5 ?species ?uri ()
     ;;
 
     let print (x : t) =
@@ -380,7 +380,7 @@ module Header = struct
       }
     [@@deriving sexp]
 
-    let read_group
+    let make
           ~id
           ?seq_center
           ?description
@@ -483,7 +483,7 @@ module Header = struct
         tvl
         [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
       >>= fun () ->
-      read_group
+      make
         ~id
         ?seq_center
         ?description
@@ -634,7 +634,7 @@ module Header = struct
     }
   ;;
 
-  let header
+  let make
         ?version
         ?sort_order
         ?group_order
@@ -892,7 +892,7 @@ module Optional_field = struct
 
   let opt_field_tag_re = Re.Perl.compile_pat "^[A-Za-z][A-Za-z0-9]$"
 
-  let optional_field tag value =
+  let make tag value =
     if not (Re.execp opt_field_tag_re tag)
     then Error (Error.create "invalid TAG" tag sexp_of_string)
     else Ok { tag; value }
@@ -901,8 +901,7 @@ module Optional_field = struct
   let parse s =
     match String.lsplit2 s ~on:':' with
     | None -> Error (Error.create "missing TAG in optional field" s sexp_of_string)
-    | Some (tag, s) ->
-      Optional_field_value.parse s >>= fun value -> optional_field tag value
+    | Some (tag, s) -> Optional_field_value.parse s >>= fun value -> make tag value
   ;;
 
   let print (x : t) =
@@ -931,7 +930,7 @@ module Optional_field = struct
     let%expect_test "test_parser" =
       test_parse_optional_field
         "YS:i:-1"
-        (optional_field "YS" (Optional_field_value.optional_field_value_i (-1L)));
+        (make "YS" (Optional_field_value.optional_field_value_i (-1L)));
       [%expect
         {| Optional field value (i type): (Ok ((tag YS) (value (i -1)))) = (Ok ((tag YS) (value (i -1)))): true |}]
     ;;
@@ -981,7 +980,7 @@ module Alignment = struct
     }
   [@@deriving sexp]
 
-  let alignment
+  let make
         ?ref_seqs
         ?qname
         ~flags
@@ -1161,7 +1160,7 @@ module Alignment = struct
       >>= fun qual ->
       Result_list.map optional_fields ~f:Optional_field.parse
       >>= fun optional_fields ->
-      alignment
+      make
         ?ref_seqs
         ?qname
         ~flags

@@ -51,7 +51,7 @@ module MakeIO (Future : Future.S) = struct
       let programs = List.rev x.Biocaml.Sam.Header.programs in
       let comments = List.rev x.Biocaml.Sam.Header.comments in
       let others = List.rev x.Biocaml.Sam.Header.others in
-      Biocaml.Sam.Header.header
+      Biocaml.Sam.Header.make
         ?version
         ?sort_order
         ?group_order

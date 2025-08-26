@@ -76,7 +76,7 @@ module Header : sig
     [@@deriving sexp]
     (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
-    val header_line
+    val make
       :  version:string
       -> ?sort_order:SO.t
       -> ?group_order:GO.t
@@ -99,7 +99,7 @@ module Header : sig
       }
     [@@deriving sexp]
 
-    val ref_seq
+    val make
       :  name:string
       -> length:int
       -> ?assembly:string
@@ -150,7 +150,7 @@ module Header : sig
     (** The [run_date] string will be parsed as a Date.t or Time.t,
     whichever is possible. If it is a time without a timezone, local
     timezone will be assumed. *)
-    val read_group
+    val make
       :  id:string
       -> ?seq_center:string
       -> ?description:string
@@ -230,7 +230,7 @@ module Header : sig
 
   val empty_header : t
 
-  val header
+  val make
     :  ?version:string
     -> ?sort_order:HD.SO.t
     -> ?group_order:HD.GO.t
@@ -327,7 +327,7 @@ module Optional_field : sig
     }
   [@@deriving sexp]
 
-  val optional_field : string -> Optional_field_value.t -> t Or_error.t
+  val make : string -> Optional_field_value.t -> t Or_error.t
   val parse : string -> t Or_error.t
   val print : t -> string
 end
@@ -363,7 +363,7 @@ module Alignment : sig
     }
   [@@deriving sexp]
 
-  val alignment
+  val make
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> ?qname:string
     -> flags:Flags.t
