@@ -70,7 +70,7 @@ module Header : sig
     (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
     val make
-      :  version:string
+      :  version:VN.t
       -> ?sort_order:SO.t
       -> ?group_order:GO.t
       -> unit
