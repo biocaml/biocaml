@@ -213,7 +213,7 @@ module Header = struct
 
   let print_header_version x = Tag_value.print_tag_value' "VN" x
 
-  module Header_line = struct
+  module HD = struct
     type t =
       { version : string
       ; sort_order : Sort_order.t option
@@ -251,7 +251,7 @@ module Header = struct
     ;;
   end
 
-  module Ref_seq = struct
+  module SQ = struct
     type t =
       { name : string
       ; length : int
@@ -359,7 +359,7 @@ module Header = struct
     ;;
   end
 
-  module Read_group = struct
+  module RG = struct
     type t =
       { id : string
       ; seq_center : string option
@@ -518,7 +518,7 @@ module Header = struct
     ;;
   end
 
-  module Program = struct
+  module PG = struct
     type t =
       { id : string
       ; name : string option
@@ -565,10 +565,10 @@ module Header = struct
 
   module Header_item = struct
     type t =
-      [ `HD of Header_line.t
-      | `SQ of Ref_seq.t
-      | `RG of Read_group.t
-      | `PG of Program.t
+      [ `HD of HD.t
+      | `SQ of SQ.t
+      | `RG of RG.t
+      | `PG of PG.t
       | `CO of string
       | `Other of string * Tag_value.t list
       ]
@@ -577,10 +577,10 @@ module Header = struct
     let parse line =
       let parse_data tag tvl =
         match tag with
-        | `HD -> Header_line.parse tvl >>| fun x -> `HD x
-        | `SQ -> Ref_seq.parse tvl >>| fun x -> `SQ x
-        | `RG -> Read_group.parse tvl >>| fun x -> `RG x
-        | `PG -> Program.parse tvl >>| fun x -> `PG x
+        | `HD -> HD.parse tvl >>| fun x -> `HD x
+        | `SQ -> SQ.parse tvl >>| fun x -> `SQ x
+        | `RG -> RG.parse tvl >>| fun x -> `RG x
+        | `PG -> PG.parse tvl >>| fun x -> `PG x
         | `Other tag -> Ok (`Other (tag, tvl))
         | `CO -> assert false
       in
@@ -611,9 +611,9 @@ module Header = struct
     { version : string option
     ; sort_order : Sort_order.t option
     ; group_order : Group_order.t option
-    ; ref_seqs : Ref_seq.t list
-    ; read_groups : Read_group.t list
-    ; programs : Program.t list
+    ; ref_seqs : SQ.t list
+    ; read_groups : RG.t list
+    ; programs : PG.t list
     ; comments : string list
     ; others : (string * Tag_value.t list) list
     }
@@ -655,7 +655,7 @@ module Header = struct
               (sort_order, version)
               [%sexp_of: Sort_order.t option * string option])
        else None)
-    ; List.map ref_seqs ~f:(fun (x : Ref_seq.t) -> x.name)
+    ; List.map ref_seqs ~f:(fun (x : SQ.t) -> x.name)
       |> List.find_a_dup ~compare:String.compare
       |> Option.map ~f:(fun name ->
         Error.create "duplicate ref seq name" name sexp_of_string)

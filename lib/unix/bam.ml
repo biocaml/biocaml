@@ -146,7 +146,7 @@ module Header = struct
      but makes parsing faster because in Bam, the seq name of a read
      is stored as an int index in the ref_seq array. *)
   type t =
-    { ref_seq : Biocaml.Sam.Header.Ref_seq.t array
+    { ref_seq : Biocaml.Sam.Header.SQ.t array
     ; sam_header : Biocaml.Sam.Header.t
     }
 
@@ -626,7 +626,7 @@ let read_one_reference_information iz =
     let (_ : char) = Bgzf.input_char iz in
     (* name is a NULL terminated string *)
     let length = input_s32_as_int iz in
-    Biocaml.Sam.Header.Ref_seq.ref_seq ~name ~length ()
+    Biocaml.Sam.Header.SQ.ref_seq ~name ~length ()
   with
   | End_of_file -> error_string "EOF while reading BAM reference information"
 ;;
@@ -736,20 +736,20 @@ let write_plain_SAM_header h oz =
   in
   Option.iter h.Biocaml.Sam.Header.version ~f:(fun version ->
     let hl =
-      Biocaml.Sam.Header.Header_line.header_line
+      Biocaml.Sam.Header.HD.header_line
         ~version
         ?sort_order:h.Biocaml.Sam.Header.sort_order
         ()
       |> ok_exn
     in
     (* the construction of the header line must be valid since we are building it from a validated header *)
-    add_line (Biocaml.Sam.Header.Header_line.print hl));
+    add_line (Biocaml.Sam.Header.HD.print hl));
   List.iter h.Biocaml.Sam.Header.ref_seqs ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.Ref_seq.print x));
+    add_line (Biocaml.Sam.Header.SQ.print x));
   List.iter h.Biocaml.Sam.Header.read_groups ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.Read_group.print x));
+    add_line (Biocaml.Sam.Header.RG.print x));
   List.iter h.Biocaml.Sam.Header.programs ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.Program.print x));
+    add_line (Biocaml.Sam.Header.PG.print x));
   List.iter h.Biocaml.Sam.Header.comments ~f:(fun x ->
     Buffer.add_string buf "@CO\t";
     add_line x);
@@ -873,17 +873,17 @@ module Test = struct
       h2.sort_order;
     assert_equal
       ~msg:"ref_seqs"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.Ref_seq.t list]
+      ~printer:[%sexp_of: Biocaml.Sam.Header.SQ.t list]
       h1.ref_seqs
       h2.ref_seqs;
     assert_equal
       ~msg:"read_groups"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.Read_group.t list]
+      ~printer:[%sexp_of: Biocaml.Sam.Header.RG.t list]
       h1.read_groups
       h2.read_groups;
     assert_equal
       ~msg:"programs"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.Program.t list]
+      ~printer:[%sexp_of: Biocaml.Sam.Header.PG.t list]
       h1.programs
       h2.programs;
     assert_equal ~msg:"comments" ~printer:[%sexp_of: string list] h1.comments h2.comments;

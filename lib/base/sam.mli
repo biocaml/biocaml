@@ -59,7 +59,7 @@ module Header : sig
   val parse_header_version : string -> string Or_error.t
   val print_header_version : string -> string
 
-  module Header_line : sig
+  module HD : sig
     (** @HD. A header consists of different types of lines. Confusingly, one of
       these types is called {i the} "header line", which is what this
       type refers to. It does not refer generically to any line within a
@@ -83,7 +83,7 @@ module Header : sig
     val print : t -> string
   end
 
-  module Ref_seq : sig
+  module SQ : sig
     (** @SQ. Reference sequence. *)
     type t = private
       { name : string (** SN *)
@@ -125,7 +125,7 @@ module Header : sig
     val print : t -> string
   end
 
-  module Read_group : sig
+  module RG : sig
     (** @RG. *)
     type t = private
       { id : string (** ID *)
@@ -166,7 +166,7 @@ module Header : sig
     val print : t -> string
   end
 
-  module Program : sig
+  module PG : sig
     (** @PG. *)
     type t = private
       { id : string (** ID *)
@@ -185,10 +185,10 @@ module Header : sig
   module Header_item : sig
     type t =
       private
-      [< `HD of Header_line.t
-      | `SQ of Ref_seq.t
-      | `RG of Read_group.t
-      | `PG of Program.t
+      [< `HD of HD.t
+      | `SQ of SQ.t
+      | `RG of RG.t
+      | `PG of PG.t
       | `CO of string
       | `Other of string * Tag_value.t list
       ]
@@ -216,9 +216,9 @@ module Header : sig
     { version : string option
     ; sort_order : Sort_order.t option
     ; group_order : Group_order.t option
-    ; ref_seqs : Ref_seq.t list
-    ; read_groups : Read_group.t list
-    ; programs : Program.t list
+    ; ref_seqs : SQ.t list
+    ; read_groups : RG.t list
+    ; programs : PG.t list
     ; comments : string list
     ; others : (string * Tag_value.t list) list
     }
@@ -230,9 +230,9 @@ module Header : sig
     :  ?version:string
     -> ?sort_order:Sort_order.t
     -> ?group_order:Group_order.t
-    -> ?ref_seqs:Ref_seq.t list
-    -> ?read_groups:Read_group.t list
-    -> ?programs:Program.t list
+    -> ?ref_seqs:SQ.t list
+    -> ?read_groups:RG.t list
+    -> ?programs:PG.t list
     -> ?comments:string list
     -> ?others:(string * Tag_value.t list) list
     -> unit
