@@ -798,104 +798,127 @@ module Cigar_op = struct
   ;;
 end
 
-module Optional_field_value = struct
+module Rnext = struct
   type t =
-    [ `A of char
-    | `i of Int64.t
-    | `f of float
-    | `Z of string
-    | `H of string
-    | `B of char * string list
+    [ `Value of string
+    | `Equal_to_RNAME
     ]
   [@@deriving sexp]
 
-  let opt_field_Z_re = Re.Perl.compile_pat "^[ !-~]+$"
-  let opt_field_H_re = Re.Perl.compile_pat "^[0-9A-F]+$"
-  let opt_field_int_re = Re.Perl.compile_pat "^-?[0-9]+$"
-  let opt_field_float_re = Re.Perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"
-
-  let optional_field_value_err typ value =
-    Error (Error.create "invalid value" (typ, value) [%sexp_of: string * string])
-  ;;
-
-  let optional_field_value_A = function
-    | '!' .. '~' as value -> Ok (`A value)
-    | c -> optional_field_value_err "A" (sprintf "char code %d" (Char.to_int c))
-  ;;
-
-  let optional_field_value_i i = `i i
-  let optional_field_value_f f = `f f
-
-  let optional_field_value_Z value =
-    if Re.execp opt_field_Z_re value
-    then Ok (`Z value)
-    else optional_field_value_err "Z" value
-  ;;
-
-  let optional_field_value_H value =
-    if Re.execp opt_field_H_re value
-    then Ok (`H value)
-    else optional_field_value_err "H" value
-  ;;
-
-  let optional_field_value_B elt_type elts =
-    let valid_args =
-      match elt_type with
-      | 'c' | 'C' | 's' | 'S' | 'i' | 'I' ->
-        List.for_all elts ~f:(Re.execp opt_field_int_re)
-      | 'f' -> List.for_all elts ~f:(Re.execp opt_field_float_re)
-      | _ -> false
-    in
-    if valid_args
-    then Ok (`B (elt_type, elts))
-    else
-      Error
-        (Error.create
-           "invalid value"
-           ("B", elt_type, elts)
-           [%sexp_of: string * char * string list])
-  ;;
+  let rnext_re = Re.Perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
 
   let parse s =
-    match String.lsplit2 s ~on:':' with
-    | None -> Error (Error.create "missing TYPE in optional field" s sexp_of_string)
-    | Some (typ, value) -> (
-      match typ with
-      | "A" ->
-        if String.length value = 1
-        then optional_field_value_A value.[0]
-        else optional_field_value_err typ value
-      | "i" -> (
-        try
-          if not (Re.execp opt_field_int_re value) then failwith "";
-          Ok (optional_field_value_i (Int64.of_string value))
-          (* matching the regular expression is not enough: the number could not fit in 64 bits *)
-        with
-        | _ -> optional_field_value_err typ value)
-      | "f" -> (
-        try
-          if not (Re.execp opt_field_float_re value) then failwith "";
-          Ok (optional_field_value_f (Float.of_string value))
-          (* matching the regular expression is not enough: the number could not fit in native floats *)
-        with
-        | _ -> optional_field_value_err typ value)
-      | "Z" -> optional_field_value_Z value
-      | "H" -> optional_field_value_H value
-      | "B" -> (
-        match String.split ~on:',' value with
-        | num_typ :: values ->
-          if String.length num_typ = 1
-          then optional_field_value_B num_typ.[0] values
-          else Error (Error.create "invalid array type" num_typ sexp_of_string)
-        | _ -> assert false (* [String.split] cannot return an empty list *))
-      | _ -> Error (Error.create "invalid type" typ sexp_of_string))
+    if not (Re.execp rnext_re s)
+    then Error (Error.create "invalid RNEXT" s sexp_of_string)
+    else (
+      match s with
+      | "*" -> Ok None
+      | "=" -> Ok (Some `Equal_to_RNAME)
+      | _ -> Ok (Some (`Value s)))
+  ;;
+
+  let print = function
+    | None -> "*"
+    | Some `Equal_to_RNAME -> "="
+    | Some (`Value x) -> x
   ;;
 end
 
 module Optional_field = struct
+  module Value = struct
+    type t =
+      [ `A of char
+      | `i of Int64.t
+      | `f of float
+      | `Z of string
+      | `H of string
+      | `B of char * string list
+      ]
+    [@@deriving sexp]
+
+    let opt_field_Z_re = Re.Perl.compile_pat "^[ !-~]+$"
+    let opt_field_H_re = Re.Perl.compile_pat "^[0-9A-F]+$"
+    let opt_field_int_re = Re.Perl.compile_pat "^-?[0-9]+$"
+
+    let opt_field_float_re =
+      Re.Perl.compile_pat "^[-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?$"
+    ;;
+
+    let parse_err typ value =
+      Error (Error.create "invalid value" (typ, value) [%sexp_of: string * string])
+    ;;
+
+    let parse_A = function
+      | '!' .. '~' as value -> Ok (`A value)
+      | c -> parse_err "A" (sprintf "char code %d" (Char.to_int c))
+    ;;
+
+    let parse_i i = `i i
+    let parse_f f = `f f
+
+    let parse_Z value =
+      if Re.execp opt_field_Z_re value then Ok (`Z value) else parse_err "Z" value
+    ;;
+
+    let parse_H value =
+      if Re.execp opt_field_H_re value then Ok (`H value) else parse_err "H" value
+    ;;
+
+    let parse_B elt_type elts =
+      let valid_args =
+        match elt_type with
+        | 'c' | 'C' | 's' | 'S' | 'i' | 'I' ->
+          List.for_all elts ~f:(Re.execp opt_field_int_re)
+        | 'f' -> List.for_all elts ~f:(Re.execp opt_field_float_re)
+        | _ -> false
+      in
+      if valid_args
+      then Ok (`B (elt_type, elts))
+      else
+        Error
+          (Error.create
+             "invalid value"
+             ("B", elt_type, elts)
+             [%sexp_of: string * char * string list])
+    ;;
+
+    let parse s =
+      match String.lsplit2 s ~on:':' with
+      | None -> Error (Error.create "missing TYPE in optional field" s sexp_of_string)
+      | Some (typ, value) -> (
+        match typ with
+        | "A" ->
+          if String.length value = 1 then parse_A value.[0] else parse_err typ value
+        | "i" -> (
+          try
+            if not (Re.execp opt_field_int_re value) then failwith "";
+            Ok (parse_i (Int64.of_string value))
+            (* matching the regular expression is not enough: the number could not fit in 64 bits *)
+          with
+          | _ -> parse_err typ value)
+        | "f" -> (
+          try
+            if not (Re.execp opt_field_float_re value) then failwith "";
+            Ok (parse_f (Float.of_string value))
+            (* matching the regular expression is not enough: the number could not fit in native floats *)
+          with
+          | _ -> parse_err typ value)
+        | "Z" -> parse_Z value
+        | "H" -> parse_H value
+        | "B" -> (
+          match String.split ~on:',' value with
+          | num_typ :: values ->
+            if String.length num_typ = 1
+            then parse_B num_typ.[0] values
+            else Error (Error.create "invalid array type" num_typ sexp_of_string)
+          | _ -> assert false (* [String.split] cannot return an empty list *))
+        | _ -> Error (Error.create "invalid type" typ sexp_of_string))
+    ;;
+  end
+
   type t =
     { tag : string
-    ; value : Optional_field_value.t
+    ; value : Value.t
     }
   [@@deriving sexp]
 
@@ -910,7 +933,7 @@ module Optional_field = struct
   let parse s =
     match String.lsplit2 s ~on:':' with
     | None -> Error (Error.create "missing TAG in optional field" s sexp_of_string)
-    | Some (tag, s) -> Optional_field_value.parse s >>= fun value -> make tag value
+    | Some (tag, s) -> Value.parse s >>= fun value -> make tag value
   ;;
 
   let print (x : t) =
@@ -937,39 +960,11 @@ module Optional_field = struct
     ;;
 
     let%expect_test "test_parser" =
-      test_parse_optional_field
-        "YS:i:-1"
-        (make "YS" (Optional_field_value.optional_field_value_i (-1L)));
+      test_parse_optional_field "YS:i:-1" (make "YS" (Value.parse_i (-1L)));
       [%expect
         {| Optional field value (i type): (Ok ((tag YS) (value (i -1)))) = (Ok ((tag YS) (value (i -1)))): true |}]
     ;;
   end
-end
-
-module Rnext = struct
-  type t =
-    [ `Value of string
-    | `Equal_to_RNAME
-    ]
-  [@@deriving sexp]
-
-  let rnext_re = Re.Perl.compile_pat "^\\*|=|[!-()+-<>-~][!-~]*$"
-
-  let parse s =
-    if not (Re.execp rnext_re s)
-    then Error (Error.create "invalid RNEXT" s sexp_of_string)
-    else (
-      match s with
-      | "*" -> Ok None
-      | "=" -> Ok (Some `Equal_to_RNAME)
-      | _ -> Ok (Some (`Value s)))
-  ;;
-
-  let print = function
-    | None -> "*"
-    | Some `Equal_to_RNAME -> "="
-    | Some (`Value x) -> x
-  ;;
 end
 
 module Alignment = struct

@@ -291,43 +291,6 @@ module Cigar_op : sig
   val cigar_op_seq_mismatch : int -> t Or_error.t
 end
 
-module Optional_field_value : sig
-  (** The constructor encodes the TYPE and each carries its
-    corresponding VALUE. *)
-  type t =
-    private
-    [< `A of char
-    | `i of Int64.t
-    | `f of float
-    | `Z of string
-    | `H of string
-    | `B of char * string list
-    ]
-  [@@deriving sexp]
-
-  (** {3 Low-level Optional field Parsers and Constructors} *)
-
-  val optional_field_value_A : char -> t Or_error.t
-  val optional_field_value_i : Int64.t -> t
-  val optional_field_value_f : float -> t
-  val optional_field_value_Z : string -> t Or_error.t
-  val optional_field_value_H : string -> t Or_error.t
-  val optional_field_value_B : char -> string list -> t Or_error.t
-  val parse : string -> t Or_error.t
-end
-
-module Optional_field : sig
-  type t = private
-    { tag : string
-    ; value : Optional_field_value.t
-    }
-  [@@deriving sexp]
-
-  val make : string -> Optional_field_value.t -> t Or_error.t
-  val parse : string -> t Or_error.t
-  val print : t -> string
-end
-
 module Rnext : sig
   type t =
     private
@@ -338,6 +301,41 @@ module Rnext : sig
 
   val parse : string -> t option Or_error.t
   val print : t option -> string
+end
+
+module Optional_field : sig
+  module Value : sig
+    (** The constructor encodes the TYPE and each carries its
+      corresponding VALUE. *)
+    type t =
+      private
+      [< `A of char
+      | `i of Int64.t
+      | `f of float
+      | `Z of string
+      | `H of string
+      | `B of char * string list
+      ]
+    [@@deriving sexp]
+
+    val parse_A : char -> t Or_error.t
+    val parse_i : Int64.t -> t
+    val parse_f : float -> t
+    val parse_Z : string -> t Or_error.t
+    val parse_H : string -> t Or_error.t
+    val parse_B : char -> string list -> t Or_error.t
+    val parse : string -> t Or_error.t
+  end
+
+  type t = private
+    { tag : string
+    ; value : Value.t
+    }
+  [@@deriving sexp]
+
+  val make : string -> Value.t -> t Or_error.t
+  val parse : string -> t Or_error.t
+  val print : t -> string
 end
 
 module Alignment : sig
