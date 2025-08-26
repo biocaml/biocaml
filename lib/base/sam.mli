@@ -176,6 +176,12 @@ module Header : sig
     val print : t -> string
   end
 
+  module Other : sig
+    type t = string * Tag_value.t list [@@deriving sexp]
+
+    val print : t -> string
+  end
+
   module Item : sig
     type t =
       private
@@ -184,14 +190,12 @@ module Header : sig
       | `RG of RG.t
       | `PG of PG.t
       | `CO of string
-      | `Other of string * Tag_value.t list
+      | `Other of Other.t
       ]
     [@@deriving sexp]
 
     val parse : Line.t -> t Or_error.t
   end
-
-  val print_other : string * Tag_value.t list -> string
 
   (**
      - [sort_order]: Guaranteed to be [None] if [version = None].

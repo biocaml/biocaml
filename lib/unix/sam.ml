@@ -111,7 +111,7 @@ module MakeIO (Future : Future.S) = struct
       write w "@CO\t" >>= fun () -> write_line w x)
     >>= fun () ->
     Deferred.List.iter ~how:`Sequential h.Biocaml.Sam.Header.others ~f:(fun x ->
-      write_line w (Biocaml.Sam.Header.print_other x))
+      write_line w (Biocaml.Sam.Header.Other.print x))
   ;;
 
   let write w ?(header = Biocaml.Sam.Header.empty_header) alignments =

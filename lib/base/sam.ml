@@ -567,6 +567,17 @@ module Header = struct
     ;;
   end
 
+  module Other = struct
+    type t = string * Tag_value.t list [@@deriving sexp]
+
+    let print ((tag, l) : t) =
+      sprintf
+        "@%s%s"
+        tag
+        (List.map l ~f:(fun (x, y) -> sprintf "\t%s:%s" x y) |> String.concat ~sep:"")
+    ;;
+  end
+
   module Item = struct
     type t =
       [ `HD of HD.t
@@ -574,7 +585,7 @@ module Header = struct
       | `RG of RG.t
       | `PG of PG.t
       | `CO of string
-      | `Other of string * Tag_value.t list
+      | `Other of Other.t
       ]
     [@@deriving sexp]
 
@@ -602,14 +613,6 @@ module Header = struct
             Result_list.map tvl ~f:Tag_value.parse >>= fun tvl -> parse_data tag tvl))
     ;;
   end
-
-  (** TODO(ashish): This function appears to be unused. Should we delete it? *)
-  let print_other ((tag, l) : string * Tag_value.t list) =
-    sprintf
-      "@%s%s"
-      tag
-      (List.map l ~f:(fun (x, y) -> sprintf "\t%s:%s" x y) |> String.concat ~sep:"")
-  ;;
 
   type t =
     { version : string option

@@ -736,10 +736,7 @@ let write_plain_SAM_header h oz =
   in
   Option.iter h.Biocaml.Sam.Header.version ~f:(fun version ->
     let hl =
-      Biocaml.Sam.Header.HD.make
-        ~version
-        ?sort_order:h.Biocaml.Sam.Header.sort_order
-        ()
+      Biocaml.Sam.Header.HD.make ~version ?sort_order:h.Biocaml.Sam.Header.sort_order ()
       |> ok_exn
     in
     (* the construction of the header line must be valid since we are building it from a validated header *)
@@ -754,7 +751,7 @@ let write_plain_SAM_header h oz =
     Buffer.add_string buf "@CO\t";
     add_line x);
   List.iter h.Biocaml.Sam.Header.others ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.print_other x));
+    add_line (Biocaml.Sam.Header.Other.print x));
   Bgzf.output_s32 oz (Int32.of_int_exn (Buffer.length buf));
   (* safe conversion of int32 to int: SAM headers less than a few KB *)
   Bgzf.output_string oz (Buffer.contents buf)
