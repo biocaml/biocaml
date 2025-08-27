@@ -685,19 +685,46 @@ module Header = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  (* TODO(ashish): Items get added to the beginning of the lists for each field.
-     Should we reverse the lists? *)
-  let add t (item : Item.t) =
-    match item with
-    | `HD { HD.version; sort_order; group_order } -> (
-      match t.version with
-      | Some _ -> Or_error.error_string "multiple @HD lines not allowed"
-      | None -> Ok { t with version = Some version; sort_order; group_order })
-    | `SQ x -> Ok { t with ref_seqs = x :: t.ref_seqs }
-    | `RG x -> Ok { t with read_groups = x :: t.read_groups }
-    | `PG x -> Ok { t with programs = x :: t.programs }
-    | `CO x -> Ok { t with comments = x :: t.comments }
-    | `Other x -> Ok { t with others = x :: t.others }
+  (* [items] are in reverse order. We accumulate them into different fields, which again
+     reverses them. Thus, the items end up in the correct order without calling List.rev. *)
+  let of_item_list_rev (items : Item.t list) =
+    let rec loop t (items : Item.t list) : t Or_error.t =
+      match items with
+      | [] -> Ok t
+      | item :: items -> (
+        match item with
+        | `HD { HD.version; sort_order; group_order } -> (
+          match t.version with
+          | Some _ -> Or_error.error_string "multiple @HD lines not allowed"
+          | None -> loop { t with version = Some version; sort_order; group_order } items)
+        | `SQ x -> loop { t with ref_seqs = x :: t.ref_seqs } items
+        | `RG x -> loop { t with read_groups = x :: t.read_groups } items
+        | `PG x -> loop { t with programs = x :: t.programs } items
+        | `CO x -> loop { t with comments = x :: t.comments } items
+        | `Other x -> loop { t with others = x :: t.others } items)
+    in
+    match loop empty items with
+    | Error _ as e -> e
+    | Ok
+        { version
+        ; sort_order
+        ; group_order
+        ; ref_seqs
+        ; read_groups
+        ; programs
+        ; comments
+        ; others
+        } ->
+      make
+        ?version
+        ?sort_order
+        ?group_order
+        ~ref_seqs
+        ~read_groups
+        ~programs
+        ~comments
+        ~others
+        ()
   ;;
 end
 
@@ -1291,71 +1318,38 @@ module Alignment = struct
   ;;
 end
 
-module Line = struct
-  module Error = struct
-    type t =
-      [ `Invalid_header
-      | `Invalid_alignment
-      | `Empty
-      ]
-    [@@deriving sexp]
-  end
-
-  module Type = struct
-    type t =
-      [ `Header
-      | `Alignment
-      | `Header_or_alignment
-      ]
-    [@@deriving sexp]
-  end
-
+module State = struct
   type t =
-    [ `Header of string
-    | `Alignment of string
+    [ `Header of Header.Item.t list
+    | `Alignment of Header.t * Alignment.t
     ]
   [@@deriving sexp]
 
-  let parse ~(type_ : Type.t) (line : string) : (t * Type.t, Error.t) Result.t =
+  let init = `Header []
+
+  let reduce (state : t) line : t Or_error.t =
     match String.length line with
-    | 0 -> Error `Empty
+    | 0 -> Or_error.error_string "empty line"
     | _ -> (
-      let starts_with_at = Char.equal line.[0] '@' in
-      match type_, starts_with_at with
-      | `Alignment, false -> Ok (`Alignment line, `Alignment)
-      | `Alignment, true -> Error `Invalid_alignment
-      | `Header, true -> Ok (`Header line, `Header_or_alignment)
-      | `Header, false -> Error `Invalid_header
-      | `Header_or_alignment, true -> Ok (`Header line, `Header_or_alignment)
-      | `Header_or_alignment, false -> Ok (`Alignment line, `Alignment))
-  ;;
-end
-
-module State = struct
-  type t =
-    { header : Header.t
-    ; next : Line.Type.t
-    }
-  [@@deriving sexp]
-
-  let init = { header = Header.empty; next = `Header }
-
-  let reduce { header; next } line : (t * Alignment.t option, Base.Error.t) Result.t =
-    match Line.parse ~type_:next line with
-    | Error `Invalid_header -> Or_error.error_string "invalid header line"
-    | Error `Invalid_alignment -> Or_error.error_string "invalid alignment line"
-    | Error `Empty -> Or_error.error_string "empty line"
-    | Ok (`Header line, next) -> (
-      match Header.Item.t_of_string line with
-      | Error _ as e -> e
-      | Ok hdr_item -> (
-        match Header.add header hdr_item with
+      let starts_with_at_char = Char.equal line.[0] '@' in
+      match state, starts_with_at_char with
+      | `Alignment (header, _), false -> (
+        match Alignment.t_of_string line with
         | Error _ as e -> e
-        | Ok header -> Ok ({ header; next }, None)))
-    | Ok (`Alignment line, next) -> (
-      match Alignment.t_of_string line with
-      | Error _ as e -> e
-      | Ok alignment -> Ok ({ header; next }, Some alignment))
+        | Ok alignment -> Ok (`Alignment (header, alignment)))
+      | `Alignment _, true ->
+        Or_error.error_string "encountered header line after alignment"
+      | `Header items, true -> (
+        match Header.Item.t_of_string line with
+        | Error _ as e -> e
+        | Ok item -> Ok (`Header (item :: items)))
+      | `Header items, false -> (
+        match Header.of_item_list_rev items with
+        | Error _ as e -> e
+        | Ok header -> (
+          match Alignment.t_of_string line with
+          | Error _ as e -> e
+          | Ok alignment -> Ok (`Alignment (header, alignment)))))
   ;;
 end
 
