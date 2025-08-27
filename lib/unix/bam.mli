@@ -38,7 +38,7 @@ module Alignment0 : sig
   val pos : t -> int option
 
   val mapq : t -> int option
-  val cigar : t -> Biocaml.Sam.Cigar_op.t list Or_error.t
+  val cigar : t -> Biocaml.Sam.Cigar.t Or_error.t
   val rnext : t -> Header.t -> Biocaml.Sam.Rnext.t option Or_error.t
   val pnext : t -> int option
   val tlen : t -> int option

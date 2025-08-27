@@ -714,38 +714,54 @@ module Flags = struct
   let supplementary_alignment = flag_is_set 0x800
 end
 
-module Cigar_op = struct
-  type t =
-    [ `Alignment_match of int
-    | `Insertion of int
-    | `Deletion of int
-    | `Skipped of int
-    | `Soft_clipping of int
-    | `Hard_clipping of int
-    | `Padding of int
-    | `Seq_match of int
-    | `Seq_mismatch of int
-    ]
-  [@@deriving sexp]
+module Cigar = struct
+  module Op = struct
+    type t =
+      [ `Alignment_match of int
+      | `Insertion of int
+      | `Deletion of int
+      | `Skipped of int
+      | `Soft_clipping of int
+      | `Hard_clipping of int
+      | `Padding of int
+      | `Seq_match of int
+      | `Seq_mismatch of int
+      ]
+    [@@deriving sexp]
 
-  let positive i =
-    let open Or_error in
-    if i > 0
-    then return i
-    else error_string "positive argument expected for cigar operation"
-  ;;
+    let positive i =
+      let open Or_error in
+      if i > 0
+      then return i
+      else error_string "positive argument expected for cigar operation"
+    ;;
 
-  let cigar_op_alignment_match i = Or_error.(positive i >>| fun i -> `Alignment_match i)
-  let cigar_op_insertion i = Or_error.(positive i >>| fun i -> `Insertion i)
-  let cigar_op_deletion i = Or_error.(positive i >>| fun i -> `Deletion i)
-  let cigar_op_skipped i = Or_error.(positive i >>| fun i -> `Skipped i)
-  let cigar_op_soft_clipping i = Or_error.(positive i >>| fun i -> `Soft_clipping i)
-  let cigar_op_hard_clipping i = Or_error.(positive i >>| fun i -> `Hard_clipping i)
-  let cigar_op_padding i = Or_error.(positive i >>| fun i -> `Padding i)
-  let cigar_op_seq_match i = Or_error.(positive i >>| fun i -> `Seq_match i)
-  let cigar_op_seq_mismatch i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
+    let alignment_match_of_int i = Or_error.(positive i >>| fun i -> `Alignment_match i)
+    let insertion_of_int i = Or_error.(positive i >>| fun i -> `Insertion i)
+    let deletion_of_int i = Or_error.(positive i >>| fun i -> `Deletion i)
+    let skipped_of_int i = Or_error.(positive i >>| fun i -> `Skipped i)
+    let soft_clipping_of_int i = Or_error.(positive i >>| fun i -> `Soft_clipping i)
+    let hard_clipping_of_int i = Or_error.(positive i >>| fun i -> `Hard_clipping i)
+    let padding_of_int i = Or_error.(positive i >>| fun i -> `Padding i)
+    let seq_match_of_int i = Or_error.(positive i >>| fun i -> `Seq_match i)
+    let seq_mismatch_of_int i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
 
-  let parse_cigar text =
+    let print = function
+      | `Alignment_match x -> sprintf "%dM" x
+      | `Insertion x -> sprintf "%dI" x
+      | `Deletion x -> sprintf "%dD" x
+      | `Skipped x -> sprintf "%dN" x
+      | `Soft_clipping x -> sprintf "%dS" x
+      | `Hard_clipping x -> sprintf "%dH" x
+      | `Padding x -> sprintf "%dP" x
+      | `Seq_match x -> sprintf "%d=" x
+      | `Seq_mismatch x -> sprintf "%dX" x
+    ;;
+  end
+
+  type t = Op.t list [@@deriving sexp]
+
+  let parse text =
     match text with
     | "*" -> Ok []
     | "" -> Error (Error.create "invalid cigar string" text sexp_of_string)
@@ -760,15 +776,15 @@ module Cigar_op = struct
             let c = Stdlib.Scanf.bscanf ch "%c" Fn.id in
             let x =
               match c with
-              | 'M' -> cigar_op_alignment_match n
-              | 'I' -> cigar_op_insertion n
-              | 'D' -> cigar_op_deletion n
-              | 'N' -> cigar_op_skipped n
-              | 'S' -> cigar_op_soft_clipping n
-              | 'H' -> cigar_op_hard_clipping n
-              | 'P' -> cigar_op_padding n
-              | '=' -> cigar_op_seq_match n
-              | 'X' -> cigar_op_seq_mismatch n
+              | 'M' -> Op.alignment_match_of_int n
+              | 'I' -> Op.insertion_of_int n
+              | 'D' -> Op.deletion_of_int n
+              | 'N' -> Op.skipped_of_int n
+              | 'S' -> Op.soft_clipping_of_int n
+              | 'H' -> Op.hard_clipping_of_int n
+              | 'P' -> Op.padding_of_int n
+              | '=' -> Op.seq_match_of_int n
+              | 'X' -> Op.seq_mismatch_of_int n
               | other ->
                 Or_error.error "invalid cigar operation type" other Char.sexp_of_t
             in
@@ -781,20 +797,8 @@ module Cigar_op = struct
   ;;
 
   let print = function
-    | `Alignment_match x -> sprintf "%dM" x
-    | `Insertion x -> sprintf "%dI" x
-    | `Deletion x -> sprintf "%dD" x
-    | `Skipped x -> sprintf "%dN" x
-    | `Soft_clipping x -> sprintf "%dS" x
-    | `Hard_clipping x -> sprintf "%dH" x
-    | `Padding x -> sprintf "%dP" x
-    | `Seq_match x -> sprintf "%d=" x
-    | `Seq_mismatch x -> sprintf "%dX" x
-  ;;
-
-  let print_cigar = function
     | [] -> "*"
-    | cigar_ops -> List.map cigar_ops ~f:print |> String.concat ~sep:""
+    | cigar_ops -> List.map cigar_ops ~f:Op.print |> String.concat ~sep:""
   ;;
 end
 
@@ -974,7 +978,7 @@ module Alignment = struct
     ; rname : string option
     ; pos : int option
     ; mapq : int option
-    ; cigar : Cigar_op.t list
+    ; cigar : Cigar.t
     ; rnext : Rnext.t option
     ; pnext : int option
     ; tlen : int option
@@ -1144,7 +1148,7 @@ module Alignment = struct
       >>= fun pos ->
       parse_mapq mapq
       >>= fun mapq ->
-      Cigar_op.parse_cigar cigar
+      Cigar.parse cigar
       >>= fun cigar ->
       Rnext.parse rnext
       >>= fun rnext ->
@@ -1227,7 +1231,7 @@ module Alignment = struct
       (print_rname a.rname)
       (print_pos a.pos)
       (print_mapq a.mapq)
-      (Cigar_op.print_cigar a.cigar)
+      (Cigar.print a.cigar)
       (Rnext.print a.rnext)
       (print_pnext a.pnext)
       (print_tlen a.tlen)

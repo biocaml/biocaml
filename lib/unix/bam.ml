@@ -204,18 +204,18 @@ module Alignment0 = struct
   let pos al = option ~none:(-1) al.pos
   let mapq al = option ~none:255 (get_16_8 al.bin_mq_nl)
 
-  let cigar_op_of_s32 x : Biocaml.Sam.Cigar_op.t Or_error.t =
+  let cigar_op_of_s32 x : Biocaml.Sam.Cigar.Op.t Or_error.t =
     let op_len = get_32_4 x in
     match get_4_0 x with
-    | 0 -> Biocaml.Sam.Cigar_op.cigar_op_alignment_match op_len
-    | 1 -> Biocaml.Sam.Cigar_op.cigar_op_insertion op_len
-    | 2 -> Biocaml.Sam.Cigar_op.cigar_op_deletion op_len
-    | 3 -> Biocaml.Sam.Cigar_op.cigar_op_skipped op_len
-    | 4 -> Biocaml.Sam.Cigar_op.cigar_op_soft_clipping op_len
-    | 5 -> Biocaml.Sam.Cigar_op.cigar_op_hard_clipping op_len
-    | 6 -> Biocaml.Sam.Cigar_op.cigar_op_padding op_len
-    | 7 -> Biocaml.Sam.Cigar_op.cigar_op_seq_match op_len
-    | 8 -> Biocaml.Sam.Cigar_op.cigar_op_seq_mismatch op_len
+    | 0 -> Biocaml.Sam.Cigar.Op.alignment_match_of_int op_len
+    | 1 -> Biocaml.Sam.Cigar.Op.insertion_of_int op_len
+    | 2 -> Biocaml.Sam.Cigar.Op.deletion_of_int op_len
+    | 3 -> Biocaml.Sam.Cigar.Op.skipped_of_int op_len
+    | 4 -> Biocaml.Sam.Cigar.Op.soft_clipping_of_int op_len
+    | 5 -> Biocaml.Sam.Cigar.Op.hard_clipping_of_int op_len
+    | 6 -> Biocaml.Sam.Cigar.Op.padding_of_int op_len
+    | 7 -> Biocaml.Sam.Cigar.Op.seq_match_of_int op_len
+    | 8 -> Biocaml.Sam.Cigar.Op.seq_mismatch_of_int op_len
     | _ -> assert false
   ;;
 

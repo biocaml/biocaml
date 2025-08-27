@@ -258,37 +258,39 @@ module Flags : sig
   val supplementary_alignment : t -> bool
 end
 
-module Cigar_op : sig
-  (** CIGAR operations. *)
-  type t =
-    private
-    [< `Alignment_match of int
-    | `Insertion of int
-    | `Deletion of int
-    | `Skipped of int
-    | `Soft_clipping of int
-    | `Hard_clipping of int
-    | `Padding of int
-    | `Seq_match of int
-    | `Seq_mismatch of int
-    ]
-  [@@deriving sexp]
+module Cigar : sig
+  module Op : sig
+    (** CIGAR operations. *)
+    type t =
+      private
+      [< `Alignment_match of int
+      | `Insertion of int
+      | `Deletion of int
+      | `Skipped of int
+      | `Soft_clipping of int
+      | `Hard_clipping of int
+      | `Padding of int
+      | `Seq_match of int
+      | `Seq_mismatch of int
+      ]
+    [@@deriving sexp]
 
-  val parse_cigar : string -> t list Or_error.t
+    val print : t -> string
+    val alignment_match_of_int : int -> t Or_error.t
+    val insertion_of_int : int -> t Or_error.t
+    val deletion_of_int : int -> t Or_error.t
+    val skipped_of_int : int -> t Or_error.t
+    val soft_clipping_of_int : int -> t Or_error.t
+    val hard_clipping_of_int : int -> t Or_error.t
+    val padding_of_int : int -> t Or_error.t
+    val seq_match_of_int : int -> t Or_error.t
+    val seq_mismatch_of_int : int -> t Or_error.t
+  end
+
+  type t = Op.t list [@@deriving sexp]
+
+  val parse : string -> t Or_error.t
   val print : t -> string
-  val print_cigar : t list -> string
-
-  (** {3 Low-level Optional field Parsers and Constructors} *)
-
-  val cigar_op_alignment_match : int -> t Or_error.t
-  val cigar_op_insertion : int -> t Or_error.t
-  val cigar_op_deletion : int -> t Or_error.t
-  val cigar_op_skipped : int -> t Or_error.t
-  val cigar_op_soft_clipping : int -> t Or_error.t
-  val cigar_op_hard_clipping : int -> t Or_error.t
-  val cigar_op_padding : int -> t Or_error.t
-  val cigar_op_seq_match : int -> t Or_error.t
-  val cigar_op_seq_mismatch : int -> t Or_error.t
 end
 
 module Rnext : sig
@@ -347,7 +349,7 @@ module Alignment : sig
     ; rname : string option (** RNAME *)
     ; pos : int option (** POS *)
     ; mapq : int option (** MAPQ *)
-    ; cigar : Cigar_op.t list (** CIGAR *)
+    ; cigar : Cigar.t (** CIGAR *)
     ; rnext : Rnext.t option (** RNEXT *)
     ; pnext : int option (** PNEXT *)
     ; tlen : int option (** TLEN *)
@@ -364,7 +366,7 @@ module Alignment : sig
     -> ?rname:string
     -> ?pos:int
     -> ?mapq:int
-    -> ?cigar:Cigar_op.t list
+    -> ?cigar:Cigar.t
     -> ?rnext:Rnext.t
     -> ?pnext:int
     -> ?tlen:int
