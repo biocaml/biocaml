@@ -589,7 +589,7 @@ module Header = struct
       ]
     [@@deriving sexp]
 
-    let t_of_line line =
+    let t_of_string line =
       let parse_data tag tvl =
         match tag with
         | `HD -> HD.t_of_tag_value_list tvl >>| fun x -> `HD x
@@ -599,8 +599,8 @@ module Header = struct
         | `Other tag -> Ok (`Other (tag, tvl))
         | `CO -> assert false
       in
-      match String.lsplit2 ~on:'\t' (line : Line.t :> string) with
-      | None -> Error (Error.create "header line contains no tabs" line Line.sexp_of_t)
+      match String.lsplit2 ~on:'\t' line with
+      | None -> Error (Error.create "header line contains no tabs" line sexp_of_string)
       | Some (tag, data) -> (
         Type.t_of_string tag
         >>= function
@@ -1201,8 +1201,8 @@ module Alignment = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let t_of_line ?ref_seqs line =
-    match String.split ~on:'\t' (line : Line.t :> string) with
+  let t_of_string ?ref_seqs line =
+    match String.split ~on:'\t' line with
     | qname
       :: flag
       :: rname

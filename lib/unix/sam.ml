@@ -24,7 +24,7 @@ module MakeIO (Future : Future.S) = struct
         else
           Pipe.junk lines
           >>= fun () ->
-          Biocaml.Sam.Header.Item.t_of_line line
+          Biocaml.Sam.Header.Item.t_of_string (line : Biocaml.Line.t :> string)
           |> function
           | Error _ as e -> return e
           | Ok (`HD ({ version; sort_order; group_order } : Biocaml.Sam.Header.HD.t)) -> (
@@ -77,7 +77,7 @@ module MakeIO (Future : Future.S) = struct
       let alignments =
         Pipe.map lines ~f:(fun line ->
           Or_error.tag_arg
-            (Biocaml.Sam.Alignment.t_of_line line)
+            (Biocaml.Sam.Alignment.t_of_string (line : Biocaml.Line.t :> string))
             "position"
             !pos
             Biocaml.Pos.sexp_of_t)

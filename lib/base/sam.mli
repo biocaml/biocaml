@@ -194,7 +194,7 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val t_of_line : Line.t -> t Or_error.t
+    val t_of_string : string -> t Or_error.t
   end
 
   (**
@@ -433,9 +433,9 @@ module Alignment : sig
     -> unit
     -> t Or_error.t
 
-  val t_of_line
+  val t_of_string
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
-    -> Line.t
+    -> string
     -> t Or_error.t
 
   val string_of_t : t -> string
