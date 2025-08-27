@@ -1125,7 +1125,7 @@ module Alignment = struct
     ; flag : Flag.t
     ; rname : Rname.t option
     ; pos : Pos.t option
-    ; mapq : int option
+    ; mapq : Mapq.t option
     ; cigar : Cigar.t
     ; rnext : Rnext.t option
     ; pnext : Pnext.t option

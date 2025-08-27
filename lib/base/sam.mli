@@ -405,7 +405,7 @@ module Alignment : sig
     ; flag : Flag.t (** FLAG *)
     ; rname : Rname.t option (** RNAME *)
     ; pos : Pos.t option (** POS *)
-    ; mapq : int option (** MAPQ *)
+    ; mapq : Mapq.t option (** MAPQ *)
     ; cigar : Cigar.t (** CIGAR *)
     ; rnext : Rnext.t option (** RNEXT *)
     ; pnext : Pnext.t option (** PNEXT *)
@@ -422,11 +422,11 @@ module Alignment : sig
     -> flag:Flag.t
     -> ?rname:Rname.t
     -> ?pos:Pos.t
-    -> ?mapq:int
+    -> ?mapq:Mapq.t
     -> ?cigar:Cigar.t
     -> ?rnext:Rnext.t
     -> ?pnext:Pnext.t
-    -> ?tlen:int
+    -> ?tlen:Tlen.t
     -> ?seq:Seq.t
     -> ?qual:Qual.t
     -> ?optional_fields:Optional_field.t list
