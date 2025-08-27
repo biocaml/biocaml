@@ -625,6 +625,7 @@ module Header = struct
     ; comments : string list
     ; others : Other.t list
     }
+  [@@deriving sexp]
 
   let empty =
     { version = None
@@ -682,6 +683,21 @@ module Header = struct
         ; others
         }
     | errs -> Error (Error.of_list errs)
+  ;;
+
+  (* TODO(ashish): Items get added to the beginning of the lists for each field.
+     Should we reverse the lists? *)
+  let add t (item : Item.t) =
+    match item with
+    | `HD { HD.version; sort_order; group_order } -> (
+      match t.version with
+      | Some _ -> Or_error.error_string "multiple @HD lines not allowed"
+      | None -> Ok { t with version = Some version; sort_order; group_order })
+    | `SQ x -> Ok { t with ref_seqs = x :: t.ref_seqs }
+    | `RG x -> Ok { t with read_groups = x :: t.read_groups }
+    | `PG x -> Ok { t with programs = x :: t.programs }
+    | `CO x -> Ok { t with comments = x :: t.comments }
+    | `Other x -> Ok { t with others = x :: t.others }
   ;;
 end
 
@@ -1272,6 +1288,74 @@ module Alignment = struct
       (Seq.string_of_t_option a.seq)
       (Qual.string_of_t a.qual)
       (List.map a.optional_fields ~f:Optional_field.string_of_t |> String.concat ~sep:"\t")
+  ;;
+end
+
+module Line = struct
+  module Error = struct
+    type t =
+      [ `Invalid_header
+      | `Invalid_alignment
+      | `Empty
+      ]
+    [@@deriving sexp]
+  end
+
+  module Type = struct
+    type t =
+      [ `Header
+      | `Alignment
+      | `Header_or_alignment
+      ]
+    [@@deriving sexp]
+  end
+
+  type t =
+    [ `Header of string
+    | `Alignment of string
+    ]
+  [@@deriving sexp]
+
+  let parse ~(type_ : Type.t) (line : string) : (t * Type.t, Error.t) Result.t =
+    match String.length line with
+    | 0 -> Error `Empty
+    | _ -> (
+      let starts_with_at = Char.equal line.[0] '@' in
+      match type_, starts_with_at with
+      | `Alignment, false -> Ok (`Alignment line, `Alignment)
+      | `Alignment, true -> Error `Invalid_alignment
+      | `Header, true -> Ok (`Header line, `Header_or_alignment)
+      | `Header, false -> Error `Invalid_header
+      | `Header_or_alignment, true -> Ok (`Header line, `Header_or_alignment)
+      | `Header_or_alignment, false -> Ok (`Alignment line, `Alignment))
+  ;;
+end
+
+module State = struct
+  type t =
+    { header : Header.t
+    ; next : Line.Type.t
+    }
+  [@@deriving sexp]
+
+  let init = { header = Header.empty; next = `Header }
+
+  let reduce { header; next } line : (t * Alignment.t option, Base.Error.t) Result.t =
+    match Line.parse ~type_:next line with
+    | Error `Invalid_header -> Or_error.error_string "invalid header line"
+    | Error `Invalid_alignment -> Or_error.error_string "invalid alignment line"
+    | Error `Empty -> Or_error.error_string "empty line"
+    | Ok (`Header line, next) -> (
+      match Header.Item.t_of_string line with
+      | Error _ as e -> e
+      | Ok hdr_item -> (
+        match Header.add header hdr_item with
+        | Error _ as e -> e
+        | Ok header -> Ok ({ header; next }, None)))
+    | Ok (`Alignment line, next) -> (
+      match Alignment.t_of_string line with
+      | Error _ as e -> e
+      | Ok alignment -> Ok ({ header; next }, Some alignment))
   ;;
 end
 

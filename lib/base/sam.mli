@@ -220,6 +220,7 @@ module Header : sig
     ; comments : string list
     ; others : Other.t list
     }
+  [@@deriving sexp]
   (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
   val empty : t
@@ -235,6 +236,8 @@ module Header : sig
     -> ?others:Other.t list
     -> unit
     -> t Or_error.t
+
+  val add : t -> Item.t -> t Or_error.t
 end
 
 module Qname : sig
@@ -439,4 +442,53 @@ module Alignment : sig
     -> t Or_error.t
 
   val string_of_t : t -> string
+end
+
+module Line : sig
+  (** Minimal parsing of a line. This module determines if a line starts
+      with an ['@'] character or not. If it does, the line is marked as
+      a [`Header] line, and otherwise it is marked as an [`Alignment] line.
+
+      The [parse] function returns the expected type of the next line. Thus,
+      you can easily call it iteratively over a stream of lines, being assured
+      to get an error if they are not in the correct order. *)
+
+  module Error : sig
+    type t =
+      [ `Invalid_header
+      | `Invalid_alignment
+      | `Empty
+      ]
+    [@@deriving sexp]
+  end
+
+  module Type : sig
+    type t =
+      [ `Header
+      | `Alignment
+      | `Header_or_alignment
+      ]
+    [@@deriving sexp]
+  end
+
+  type t =
+    [ `Header of string
+    | `Alignment of string
+    ]
+  [@@deriving sexp]
+
+  (** [parse ~type_ line] parses [line] of type [type_]. Returns the parsed line
+      and the expected type of the next line. *)
+  val parse : type_:Type.t -> string -> (t * Type.t, Error.t) Result.t
+end
+
+module State : sig
+  type t =
+    { header : Header.t
+    ; next : Line.Type.t
+    }
+  [@@deriving sexp]
+
+  val init : t
+  val reduce : t -> string -> (t * Alignment.t option, Base.Error.t) Result.t
 end
