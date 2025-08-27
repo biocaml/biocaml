@@ -218,7 +218,7 @@ module Header : sig
     ; read_groups : RG.t list
     ; programs : PG.t list
     ; comments : string list
-    ; others : (string * Tag_value.t list) list
+    ; others : Other.t list
     }
   (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
@@ -232,7 +232,7 @@ module Header : sig
     -> ?read_groups:RG.t list
     -> ?programs:PG.t list
     -> ?comments:string list
-    -> ?others:(string * Tag_value.t list) list
+    -> ?others:Other.t list
     -> unit
     -> t Or_error.t
 end

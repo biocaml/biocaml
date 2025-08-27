@@ -623,7 +623,7 @@ module Header = struct
     ; read_groups : RG.t list
     ; programs : PG.t list
     ; comments : string list
-    ; others : (string * Tag_value.t list) list
+    ; others : Other.t list
     }
 
   let empty =
