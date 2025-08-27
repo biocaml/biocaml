@@ -24,7 +24,7 @@ module MakeIO (Future : Future.S) = struct
         else
           Pipe.junk lines
           >>= fun () ->
-          Biocaml.Sam.Header.Item.parse line
+          Biocaml.Sam.Header.Item.t_of_line line
           |> function
           | Error _ as e -> return e
           | Ok (`HD ({ version; sort_order; group_order } : Biocaml.Sam.Header.HD.t)) -> (
@@ -77,7 +77,7 @@ module MakeIO (Future : Future.S) = struct
       let alignments =
         Pipe.map lines ~f:(fun line ->
           Or_error.tag_arg
-            (Biocaml.Sam.Alignment.parse line)
+            (Biocaml.Sam.Alignment.t_of_line line)
             "position"
             !pos
             Biocaml.Pos.sexp_of_t)
@@ -92,32 +92,33 @@ module MakeIO (Future : Future.S) = struct
      | Some version ->
        write_line
          w
-         (Biocaml.Sam.Header.HD.print
+         (Biocaml.Sam.Header.HD.string_of_t
             { version
             ; sort_order = h.Biocaml.Sam.Header.sort_order
             ; group_order = h.Biocaml.Sam.Header.group_order
             }))
     >>= fun () ->
     Deferred.List.iter ~how:`Sequential h.Biocaml.Sam.Header.ref_seqs ~f:(fun x ->
-      write_line w (Biocaml.Sam.Header.SQ.print x))
+      write_line w (Biocaml.Sam.Header.SQ.string_of_t x))
     >>= fun () ->
     Deferred.List.iter ~how:`Sequential h.Biocaml.Sam.Header.read_groups ~f:(fun x ->
-      write_line w (Biocaml.Sam.Header.RG.print x))
+      write_line w (Biocaml.Sam.Header.RG.string_of_t x))
     >>= fun () ->
     Deferred.List.iter ~how:`Sequential h.Biocaml.Sam.Header.programs ~f:(fun x ->
-      write_line w (Biocaml.Sam.Header.PG.print x))
+      write_line w (Biocaml.Sam.Header.PG.string_of_t x))
     >>= fun () ->
     Deferred.List.iter ~how:`Sequential h.Biocaml.Sam.Header.comments ~f:(fun x ->
       write w "@CO\t" >>= fun () -> write_line w x)
     >>= fun () ->
     Deferred.List.iter ~how:`Sequential h.Biocaml.Sam.Header.others ~f:(fun x ->
-      write_line w (Biocaml.Sam.Header.Other.print x))
+      write_line w (Biocaml.Sam.Header.Other.string_of_t x))
   ;;
 
   let write w ?(header = Biocaml.Sam.Header.empty) alignments =
     write_header w header
     >>= fun () ->
-    Pipe.iter alignments ~f:(fun a -> Writer.write_line w (Biocaml.Sam.Alignment.print a))
+    Pipe.iter alignments ~f:(fun a ->
+      Writer.write_line w (Biocaml.Sam.Alignment.string_of_t a))
   ;;
 
   let write_file ?perm ?append file ?header alignments =

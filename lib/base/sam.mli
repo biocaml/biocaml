@@ -16,7 +16,7 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val print : t -> string
+    val string_of_t : t -> string
   end
 
   module Tag_value : sig
@@ -25,7 +25,7 @@ module Header : sig
       those in the header. *)
     type t = private string * string [@@deriving sexp]
 
-    val print : t -> string
+    val string_of_t : t -> string
   end
 
   module HD : sig
@@ -38,8 +38,8 @@ module Header : sig
         ]
       [@@deriving sexp]
 
-      val parse : string -> t Or_error.t
-      val print : t -> string
+      val t_of_string : string -> t Or_error.t
+      val string_of_t : t -> string
     end
 
     module GO : sig
@@ -50,15 +50,15 @@ module Header : sig
         ]
       [@@deriving sexp]
 
-      val parse : string -> t Or_error.t
-      val print : t -> string
+      val t_of_string : string -> t Or_error.t
+      val string_of_t : t -> string
     end
 
     module VN : sig
       type t = string [@@deriving sexp]
 
-      val parse : string -> string Or_error.t
-      val print : string -> string
+      val t_of_string : string -> t Or_error.t
+      val string_of_t : t -> string
     end
 
     type t =
@@ -76,8 +76,8 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val parse : Tag_value.t list -> t Or_error.t
-    val print : t -> string
+    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val string_of_t : t -> string
   end
 
   module SQ : sig
@@ -101,8 +101,8 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val parse : Tag_value.t list -> t Or_error.t
-    val print : t -> string
+    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val string_of_t : t -> string
   end
 
   module RG : sig
@@ -118,8 +118,8 @@ module Header : sig
         ]
       [@@deriving sexp]
 
-      val parse : string -> t Or_error.t
-      val print : t -> string
+      val t_of_string : string -> t Or_error.t
+      val string_of_t : t -> string
     end
 
     type t = private
@@ -157,8 +157,8 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val parse : Tag_value.t list -> t Or_error.t
-    val print : t -> string
+    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val string_of_t : t -> string
   end
 
   module PG : sig
@@ -172,14 +172,14 @@ module Header : sig
       }
     [@@deriving sexp]
 
-    val parse : Tag_value.t list -> t Or_error.t
-    val print : t -> string
+    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val string_of_t : t -> string
   end
 
   module Other : sig
     type t = string * Tag_value.t list [@@deriving sexp]
 
-    val print : t -> string
+    val string_of_t : t -> string
   end
 
   module Item : sig
@@ -194,7 +194,7 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val parse : Line.t -> t Or_error.t
+    val t_of_line : Line.t -> t Or_error.t
   end
 
   (**
@@ -240,8 +240,8 @@ end
 module Qname : sig
   type t = string [@@deriving sexp]
 
-  val parse : string -> t option Or_error.t
-  val print : t option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Flag : sig
@@ -250,8 +250,8 @@ module Flag : sig
   type t = private int [@@deriving sexp]
 
   val of_int : int -> t Or_error.t
-  val parse : string -> t Or_error.t
-  val print : t -> string
+  val t_of_string : string -> t Or_error.t
+  val string_of_t : t -> string
   val has_multiple_segments : t -> bool
   val each_segment_properly_aligned : t -> bool
   val segment_unmapped : t -> bool
@@ -269,22 +269,22 @@ end
 module Rname : sig
   type t = string [@@deriving sexp]
 
-  val parse : string -> string option Or_error.t
-  val print : string option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Pos : sig
   type t = int [@@deriving sexp]
 
-  val parse : string -> int option Or_error.t
-  val print : int option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Mapq : sig
   type t = int [@@deriving sexp]
 
-  val parse : string -> int option Or_error.t
-  val print : int option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Cigar : sig
@@ -304,7 +304,7 @@ module Cigar : sig
       ]
     [@@deriving sexp]
 
-    val print : t -> string
+    val string_of_t : t -> string
     val alignment_match_of_int : int -> t Or_error.t
     val insertion_of_int : int -> t Or_error.t
     val deletion_of_int : int -> t Or_error.t
@@ -318,8 +318,8 @@ module Cigar : sig
 
   type t = Op.t list [@@deriving sexp]
 
-  val parse : string -> t Or_error.t
-  val print : t -> string
+  val t_of_string : string -> t Or_error.t
+  val string_of_t : t -> string
 end
 
 module Rnext : sig
@@ -330,36 +330,36 @@ module Rnext : sig
     ]
   [@@deriving sexp]
 
-  val parse : string -> t option Or_error.t
-  val print : t option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Pnext : sig
   type t = int [@@deriving sexp]
 
-  val parse : string -> int option Or_error.t
-  val print : int option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Tlen : sig
   type t = int [@@deriving sexp]
 
-  val parse : string -> int option Or_error.t
-  val print : int option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Seq : sig
   type t = string [@@deriving sexp]
 
-  val parse : string -> string option Or_error.t
-  val print : string option -> string
+  val t_option_of_string : string -> t option Or_error.t
+  val string_of_t_option : t option -> string
 end
 
 module Qual : sig
   type t = Phred_score.t list [@@deriving sexp]
 
-  val parse : string -> Phred_score.t list Or_error.t
-  val print : Phred_score.t list -> string
+  val t_of_string : string -> t Or_error.t
+  val string_of_t : t -> string
 end
 
 module Optional_field : sig
@@ -377,13 +377,13 @@ module Optional_field : sig
       ]
     [@@deriving sexp]
 
-    val parse_A : char -> t Or_error.t
-    val parse_i : Int64.t -> t
-    val parse_f : float -> t
-    val parse_Z : string -> t Or_error.t
-    val parse_H : string -> t Or_error.t
-    val parse_B : char -> string list -> t Or_error.t
-    val parse : string -> t Or_error.t
+    val t_of_char_A : char -> t Or_error.t
+    val t_of_int64_i : Int64.t -> t
+    val t_of_float_f : float -> t
+    val t_of_string_Z : string -> t Or_error.t
+    val t_of_string_H : string -> t Or_error.t
+    val t_of_char_string_list_B : char -> string list -> t Or_error.t
+    val t_of_string : string -> t Or_error.t
   end
 
   type t = private
@@ -393,8 +393,8 @@ module Optional_field : sig
   [@@deriving sexp]
 
   val make : string -> Value.t -> t Or_error.t
-  val parse : string -> t Or_error.t
-  val print : t -> string
+  val t_of_string : string -> t Or_error.t
+  val string_of_t : t -> string
 end
 
 module Alignment : sig
@@ -433,10 +433,10 @@ module Alignment : sig
     -> unit
     -> t Or_error.t
 
-  val parse
+  val t_of_line
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> Line.t
     -> t Or_error.t
 
-  val print : t -> string
+  val string_of_t : t -> string
 end
