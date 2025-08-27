@@ -49,65 +49,6 @@ module Header = struct
     ;;
   end
 
-  (** Find all occurrences of [x'] in the association list [l]. *)
-  let find_all l x' =
-    let rec loop accum = function
-      | [] -> accum
-      | (x, y) :: l ->
-        let accum = if Poly.(x = x') then y :: accum else accum in
-        loop accum l
-    in
-    List.rev (loop [] l)
-  ;;
-
-  (** Find exactly 1 occurrence [x] in association list [l]. Return
-    error if [x] is not defined exactly once. *)
-  let find1 header_item_tag l x =
-    match find_all l x with
-    | [] ->
-      Error
-        (Error.create
-           "required tag not found"
-           (header_item_tag, x)
-           [%sexp_of: Type.t * string])
-    | y :: [] -> Ok y
-    | ys ->
-      Error
-        (Error.create
-           "tag found multiple times"
-           (header_item_tag, x, ys)
-           [%sexp_of: Type.t * string * string list])
-  ;;
-
-  (** Find 0 or 1 occurrence [x] in association list [l]. Return
-    error if [x] is defined more than once. *)
-  let find01 header_item_tag l x =
-    match find_all l x with
-    | [] -> Ok None
-    | y :: [] -> Ok (Some y)
-    | ys ->
-      Error
-        (Error.create
-           "tag found multiple times"
-           (header_item_tag, x, ys)
-           [%sexp_of: Type.t * string * string list])
-  ;;
-
-  (** Assert that [tvl] contains at most the given [tags]. *)
-  let assert_tags header_item_tag tvl tags =
-    let expected_tags = Set.of_list (module String) tags in
-    let got_tags = List.map tvl ~f:fst |> Set.of_list (module String) in
-    let unexpected_tags = Set.diff got_tags expected_tags in
-    if Set.length unexpected_tags = 0
-    then Ok ()
-    else
-      Error
-        (Error.create
-           "unexpected tag for given header item type"
-           (header_item_tag, unexpected_tags)
-           [%sexp_of: Type.t * Set.M(String).t])
-  ;;
-
   module Tag_value = struct
     type t = string * string [@@deriving sexp]
 
@@ -144,6 +85,65 @@ module Header = struct
 
     let string_of_t (tag, value) = sprintf "%s:%s" tag value
     let print_tag_value' = sprintf "%s:%s"
+
+    (** Find all occurrences of [x'] in the association list [l]. *)
+    let find_all l x' =
+      let rec loop accum = function
+        | [] -> accum
+        | (x, y) :: l ->
+          let accum = if Poly.(x = x') then y :: accum else accum in
+          loop accum l
+      in
+      List.rev (loop [] l)
+    ;;
+
+    (** Find exactly 1 occurrence [x] in association list [l]. Return
+    error if [x] is not defined exactly once. *)
+    let find1 header_item_tag l x =
+      match find_all l x with
+      | [] ->
+        Error
+          (Error.create
+             "required tag not found"
+             (header_item_tag, x)
+             [%sexp_of: Type.t * string])
+      | y :: [] -> Ok y
+      | ys ->
+        Error
+          (Error.create
+             "tag found multiple times"
+             (header_item_tag, x, ys)
+             [%sexp_of: Type.t * string * string list])
+    ;;
+
+    (** Find 0 or 1 occurrence [x] in association list [l]. Return
+    error if [x] is defined more than once. *)
+    let find01 header_item_tag l x =
+      match find_all l x with
+      | [] -> Ok None
+      | y :: [] -> Ok (Some y)
+      | ys ->
+        Error
+          (Error.create
+             "tag found multiple times"
+             (header_item_tag, x, ys)
+             [%sexp_of: Type.t * string * string list])
+    ;;
+
+    (** Assert that [tvl] contains at most the given [tags]. *)
+    let assert_tags header_item_tag tvl tags =
+      let expected_tags = Set.of_list (module String) tags in
+      let got_tags = List.map tvl ~f:fst |> Set.of_list (module String) in
+      let unexpected_tags = Set.diff got_tags expected_tags in
+      if Set.length unexpected_tags = 0
+      then Ok ()
+      else
+        Error
+          (Error.create
+             "unexpected tag for given header item type"
+             (header_item_tag, unexpected_tags)
+             [%sexp_of: Type.t * Set.M(String).t])
+    ;;
   end
 
   module HD = struct
@@ -230,15 +230,15 @@ module Header = struct
     ;;
 
     let t_of_tag_value_list tvl =
-      find1 `HD tvl "VN"
+      Tag_value.find1 `HD tvl "VN"
       >>= fun version ->
-      find01 `HD tvl "SO"
+      Tag_value.find01 `HD tvl "SO"
       >>?~ SO.t_of_string
       >>= fun sort_order ->
-      find01 `HD tvl "GO"
+      Tag_value.find01 `HD tvl "GO"
       >>?~ GO.t_of_string
       >>= fun group_order ->
-      assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
+      Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
       >>= fun () -> make ~version ?sort_order ?group_order ()
     ;;
 
@@ -290,22 +290,22 @@ module Header = struct
     ;;
 
     let t_of_tag_value_list tvl =
-      find1 `SQ tvl "SN"
+      Tag_value.find1 `SQ tvl "SN"
       >>= fun name ->
-      find1 `SQ tvl "LN"
+      Tag_value.find1 `SQ tvl "LN"
       >>= fun length ->
       (try Ok (Int.of_string length) with
        | _ -> Error (Error.create "invalid ref seq length" length sexp_of_string))
       >>= fun length ->
-      find01 `SQ tvl "AS"
+      Tag_value.find01 `SQ tvl "AS"
       >>= fun assembly ->
-      find01 `SQ tvl "M5"
+      Tag_value.find01 `SQ tvl "M5"
       >>= fun md5 ->
-      find01 `SQ tvl "SP"
+      Tag_value.find01 `SQ tvl "SP"
       >>= fun species ->
-      find01 `SQ tvl "UR"
+      Tag_value.find01 `SQ tvl "UR"
       >>= fun uri ->
-      assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
+      Tag_value.assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
       >>= fun () -> make ~name ~length ?assembly ?md5 ?species ?uri ()
     ;;
 
@@ -445,23 +445,23 @@ module Header = struct
     ;;
 
     let t_of_tag_value_list tvl =
-      find1 `RG tvl "ID"
+      Tag_value.find1 `RG tvl "ID"
       >>= fun id ->
-      find01 `RG tvl "CN"
+      Tag_value.find01 `RG tvl "CN"
       >>= fun seq_center ->
-      find01 `RG tvl "DS"
+      Tag_value.find01 `RG tvl "DS"
       >>= fun description ->
-      find01 `RG tvl "DT"
+      Tag_value.find01 `RG tvl "DT"
       >>= fun run_date ->
-      find01 `RG tvl "FO"
+      Tag_value.find01 `RG tvl "FO"
       >>= fun flow_order ->
-      find01 `RG tvl "KS"
+      Tag_value.find01 `RG tvl "KS"
       >>= fun key_seq ->
-      find01 `RG tvl "LB"
+      Tag_value.find01 `RG tvl "LB"
       >>= fun library ->
-      find01 `RG tvl "PG"
+      Tag_value.find01 `RG tvl "PG"
       >>= fun program ->
-      find01 `RG tvl "PI"
+      Tag_value.find01 `RG tvl "PI"
       >>?~ (fun predicted_median_insert_size ->
       try Ok (Int.of_string predicted_median_insert_size) with
       | _ ->
@@ -471,14 +471,14 @@ module Header = struct
              predicted_median_insert_size
              sexp_of_string))
       >>= fun predicted_median_insert_size ->
-      find01 `RG tvl "PL"
+      Tag_value.find01 `RG tvl "PL"
       >>?~ PL.t_of_string
       >>= fun platform ->
-      find01 `RG tvl "PU"
+      Tag_value.find01 `RG tvl "PU"
       >>= fun platform_unit ->
-      find01 `RG tvl "SM"
+      Tag_value.find01 `RG tvl "SM"
       >>= fun sample ->
-      assert_tags
+      Tag_value.assert_tags
         `RG
         tvl
         [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
@@ -534,19 +534,19 @@ module Header = struct
     [@@deriving sexp]
 
     let t_of_tag_value_list tvl =
-      find1 `PG tvl "ID"
+      Tag_value.find1 `PG tvl "ID"
       >>= fun id ->
-      find01 `PG tvl "PN"
+      Tag_value.find01 `PG tvl "PN"
       >>= fun name ->
-      find01 `PG tvl "CL"
+      Tag_value.find01 `PG tvl "CL"
       >>= fun command_line ->
-      find01 `PG tvl "PP"
+      Tag_value.find01 `PG tvl "PP"
       >>= fun previous_id ->
-      find01 `PG tvl "DS"
+      Tag_value.find01 `PG tvl "DS"
       >>= fun description ->
-      find01 `PG tvl "VN"
+      Tag_value.find01 `PG tvl "VN"
       >>= fun version ->
-      assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
+      Tag_value.assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
       >>| fun () -> { id; name; command_line; previous_id; description; version }
     ;;
 
