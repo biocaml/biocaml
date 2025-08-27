@@ -724,7 +724,7 @@ module Qname = struct
   ;;
 end
 
-module Flags = struct
+module Flag = struct
   type t = int [@@deriving sexp]
 
   let of_int x =
@@ -1121,7 +1121,7 @@ end
 module Alignment = struct
   type t =
     { qname : Qname.t option
-    ; flags : Flags.t
+    ; flag : Flag.t
     ; rname : Rname.t option
     ; pos : Pos.t option
     ; mapq : int option
@@ -1138,7 +1138,7 @@ module Alignment = struct
   let make
         ?ref_seqs
         ?qname
-        ~flags
+        ~flag
         ?rname
         ?pos
         ?mapq
@@ -1185,7 +1185,7 @@ module Alignment = struct
     | [] ->
       Ok
         { qname
-        ; flags
+        ; flag
         ; rname
         ; pos
         ; mapq
@@ -1203,7 +1203,7 @@ module Alignment = struct
   let parse ?ref_seqs line =
     match String.split ~on:'\t' (line : Line.t :> string) with
     | qname
-      :: flags
+      :: flag
       :: rname
       :: pos
       :: mapq
@@ -1216,8 +1216,8 @@ module Alignment = struct
       :: optional_fields ->
       Qname.parse qname
       >>= fun qname ->
-      Flags.parse flags
-      >>= fun flags ->
+      Flag.parse flag
+      >>= fun flag ->
       Rname.parse rname
       >>= fun rname ->
       Pos.parse pos
@@ -1241,7 +1241,7 @@ module Alignment = struct
       make
         ?ref_seqs
         ?qname
-        ~flags
+        ~flag
         ?rname
         ?pos
         ?mapq
@@ -1260,7 +1260,7 @@ module Alignment = struct
     sprintf
       "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
       (Qname.print a.qname)
-      (Flags.print a.flags)
+      (Flag.print a.flag)
       (Rname.print a.rname)
       (Pos.print a.pos)
       (Mapq.print a.mapq)
@@ -1385,7 +1385,7 @@ module Test = struct
   (*          cigar = "9M"; rnext = "*"; pnext = 7; tlen = -39; seq = "CAGCGCCAT"; *)
   (*          qual = "*"; optional = [("NM", 'i', "0")]}) *)
   (*     (`alignment *)
-  (*         {Sam.query_template_name = "r001"; flags = Sam.Flags.of_int 83; *)
+  (*         {Sam.query_template_name = "r001"; flag = Sam.Flag.of_int 83; *)
   (*          reference_sequence = `name "ref"; position = Some 37; *)
   (*          mapping_quality = Some 30; cigar_operations = [|`M 9|]; *)
   (*          next_reference_sequence = `qname; next_position = Some 7; *)
@@ -1396,7 +1396,7 @@ module Test = struct
   (*   assert_bool "last alignment" (Tfxm.next t = *)
   (*       `output (Ok *)
   (*                  (`alignment *)
-  (*                      {Sam.query_template_name = "chr0"; flags = Sam.Flags.of_int 83; *)
+  (*                      {Sam.query_template_name = "chr0"; flag = Sam.Flag.of_int 83; *)
   (*                       reference_sequence = *)
   (*                          `reference_sequence *)
   (*                            {Sam.ref_name = "chr0"; ref_length = 42; *)

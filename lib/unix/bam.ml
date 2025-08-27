@@ -193,7 +193,7 @@ module Alignment0 = struct
     Int32.shift_right al.flag_nc 16
     |> Int32.to_int_exn
        (* because we are shifting right just before, Int32.to_int_exn cannot fail *)
-    |> Biocaml.Sam.Flags.of_int
+    |> Biocaml.Sam.Flag.of_int
   ;;
 
   let rname al header =
@@ -408,7 +408,7 @@ module Alignment0 = struct
   (* Alignement0.t -> Alignment.t conversion *)
   let decode al header =
     flags al
-    >>= fun flags ->
+    >>= fun flag ->
     rname al header
     >>= fun rname ->
     cigar al
@@ -421,7 +421,7 @@ module Alignment0 = struct
     >>= fun optional_fields ->
     Biocaml.Sam.Alignment.make
       ?qname:(qname al)
-      ~flags
+      ~flag
       ?rname
       ?pos:(pos al)
       ?mapq:(mapq al)
@@ -563,7 +563,7 @@ module Alignment0 = struct
     (* NULL terminated string *)
     encode_bin_mq_nl ~bin ~mapq ~l_read_name
     >>= fun bin_mq_nl ->
-    let flags = (al.Biocaml.Sam.Alignment.flags :> int) in
+    let flags = (al.Biocaml.Sam.Alignment.flag :> int) in
     let n_cigar_ops = List.length al.Biocaml.Sam.Alignment.cigar in
     encode_flag_nc ~flags ~n_cigar_ops
     >>= fun flag_nc ->

@@ -244,8 +244,9 @@ module Qname : sig
   val print : t option -> string
 end
 
-module Flags : sig
-  (** Flags are represented as a "bit map". *)
+module Flag : sig
+  (** The FLAG field represents a "bit map" of flags (plural). We use the
+      singular form for consistency with the SAM specification. *)
   type t = private int [@@deriving sexp]
 
   val of_int : int -> t Or_error.t
@@ -401,7 +402,7 @@ module Alignment : sig
     was given. *)
   type t = private
     { qname : Qname.t option (** QNAME *)
-    ; flags : Flags.t (** FLAG *)
+    ; flag : Flag.t (** FLAG *)
     ; rname : Rname.t option (** RNAME *)
     ; pos : Pos.t option (** POS *)
     ; mapq : int option (** MAPQ *)
@@ -418,7 +419,7 @@ module Alignment : sig
   val make
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> ?qname:Qname.t
-    -> flags:Flags.t
+    -> flag:Flag.t
     -> ?rname:Rname.t
     -> ?pos:Pos.t
     -> ?mapq:int

@@ -30,7 +30,7 @@ module Alignment0 : sig
   type t [@@deriving sexp]
 
   val qname : t -> string option
-  val flags : t -> Biocaml.Sam.Flags.t Or_error.t
+  val flags : t -> Biocaml.Sam.Flag.t Or_error.t
   val ref_id : t -> int option
   val rname : t -> Header.t -> string option Or_error.t
 
