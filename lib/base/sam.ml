@@ -616,7 +616,7 @@ module Header = struct
   end
 
   type t =
-    { version : string option
+    { version : HD.VN.t option
     ; sort_order : HD.SO.t option
     ; group_order : HD.GO.t option
     ; ref_seqs : SQ.t list
