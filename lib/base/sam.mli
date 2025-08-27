@@ -265,6 +265,27 @@ module Flags : sig
   val supplementary_alignment : t -> bool
 end
 
+module Rname : sig
+  type t = string [@@deriving sexp]
+
+  val parse : string -> string option Or_error.t
+  val print : string option -> string
+end
+
+module Pos : sig
+  type t = int [@@deriving sexp]
+
+  val parse : string -> int option Or_error.t
+  val print : int option -> string
+end
+
+module Mapq : sig
+  type t = int [@@deriving sexp]
+
+  val parse : string -> int option Or_error.t
+  val print : int option -> string
+end
+
 module Cigar : sig
   module Op : sig
     (** CIGAR operations. *)
@@ -312,6 +333,34 @@ module Rnext : sig
   val print : t option -> string
 end
 
+module Pnext : sig
+  type t = int [@@deriving sexp]
+
+  val parse : string -> int option Or_error.t
+  val print : int option -> string
+end
+
+module Tlen : sig
+  type t = int [@@deriving sexp]
+
+  val parse : string -> int option Or_error.t
+  val print : int option -> string
+end
+
+module Seq : sig
+  type t = string [@@deriving sexp]
+
+  val parse : string -> string option Or_error.t
+  val print : string option -> string
+end
+
+module Qual : sig
+  type t = Phred_score.t list [@@deriving sexp]
+
+  val parse : string -> Phred_score.t list Or_error.t
+  val print : Phred_score.t list -> string
+end
+
 module Optional_field : sig
   module Value : sig
     (** The constructor encodes the TYPE and each carries its
@@ -353,15 +402,15 @@ module Alignment : sig
   type t = private
     { qname : Qname.t option (** QNAME *)
     ; flags : Flags.t (** FLAG *)
-    ; rname : string option (** RNAME *)
-    ; pos : int option (** POS *)
+    ; rname : Rname.t option (** RNAME *)
+    ; pos : Pos.t option (** POS *)
     ; mapq : int option (** MAPQ *)
     ; cigar : Cigar.t (** CIGAR *)
     ; rnext : Rnext.t option (** RNEXT *)
-    ; pnext : int option (** PNEXT *)
-    ; tlen : int option (** TLEN *)
-    ; seq : string option (** SEQ *)
-    ; qual : Phred_score.t list (** QUAL *)
+    ; pnext : Pnext.t option (** PNEXT *)
+    ; tlen : Tlen.t option (** TLEN *)
+    ; seq : Seq.t option (** SEQ *)
+    ; qual : Qual.t (** QUAL *)
     ; optional_fields : Optional_field.t list
     }
   [@@deriving sexp]
@@ -370,38 +419,23 @@ module Alignment : sig
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> ?qname:Qname.t
     -> flags:Flags.t
-    -> ?rname:string
-    -> ?pos:int
+    -> ?rname:Rname.t
+    -> ?pos:Pos.t
     -> ?mapq:int
     -> ?cigar:Cigar.t
     -> ?rnext:Rnext.t
-    -> ?pnext:int
+    -> ?pnext:Pnext.t
     -> ?tlen:int
-    -> ?seq:string
-    -> ?qual:Phred_score.t list
+    -> ?seq:Seq.t
+    -> ?qual:Qual.t
     -> ?optional_fields:Optional_field.t list
     -> unit
     -> t Or_error.t
-
-  val parse_rname : string -> string option Or_error.t
-  val parse_pos : string -> int option Or_error.t
-  val parse_mapq : string -> int option Or_error.t
-  val parse_pnext : string -> int option Or_error.t
-  val parse_tlen : string -> int option Or_error.t
-  val parse_seq : string -> string option Or_error.t
-  val parse_qual : string -> Phred_score.t list Or_error.t
 
   val parse
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> Line.t
     -> t Or_error.t
 
-  val print_rname : string option -> string
-  val print_pos : int option -> string
-  val print_mapq : int option -> string
-  val print_pnext : int option -> string
-  val print_tlen : int option -> string
-  val print_seq : string option -> string
-  val print_qual : Phred_score.t list -> string
   val print : t -> string
 end

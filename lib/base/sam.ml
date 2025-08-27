@@ -754,6 +754,50 @@ module Flags = struct
   let supplementary_alignment = flag_is_set 0x800
 end
 
+module Rname = struct
+  type t = string [@@deriving sexp]
+
+  let regexp = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
+  let parse s = parse_opt_string "RNAME" regexp s
+
+  let print = function
+    | Some x -> x
+    | None -> "*"
+  ;;
+end
+
+module Pos = struct
+  type t = int [@@deriving sexp]
+
+  let parse s =
+    parse_int_range "POS" 0 2147483647 s
+    >>| function
+    | 0 -> None
+    | x -> Some x
+  ;;
+
+  let print = function
+    | Some x -> Int.to_string x
+    | None -> "0"
+  ;;
+end
+
+module Mapq = struct
+  type t = int [@@deriving sexp]
+
+  let parse s =
+    parse_int_range "MAPQ" 0 255 s
+    >>| function
+    | 255 -> None
+    | x -> Some x
+  ;;
+
+  let print = function
+    | Some x -> Int.to_string x
+    | None -> "255"
+  ;;
+end
+
 module Cigar = struct
   module Op = struct
     type t =
@@ -865,6 +909,69 @@ module Rnext = struct
     | None -> "*"
     | Some `Equal_to_RNAME -> "="
     | Some (`Value x) -> x
+  ;;
+end
+
+module Pnext = struct
+  type t = int [@@deriving sexp]
+
+  let parse s =
+    parse_int_range "PNEXT" 0 2147483647 s
+    >>| function
+    | 0 -> None
+    | x -> Some x
+  ;;
+
+  let print = function
+    | Some x -> Int.to_string x
+    | None -> "0"
+  ;;
+end
+
+module Tlen = struct
+  type t = int [@@deriving sexp]
+
+  let parse s =
+    parse_int_range "TLEN" ~-2147483647 2147483647 s
+    >>| function
+    | 0 -> None
+    | x -> Some x
+  ;;
+
+  let print = function
+    | Some x -> Int.to_string x
+    | None -> "0"
+  ;;
+end
+
+module Seq = struct
+  type t = string [@@deriving sexp]
+
+  let regexp = Re.Perl.compile_pat "^\\*|[A-Za-z=.]+$"
+  let parse s = parse_opt_string "SEQ" regexp s
+
+  let print = function
+    | Some x -> x
+    | None -> "*"
+  ;;
+end
+
+module Qual = struct
+  type t = Phred_score.t list [@@deriving sexp]
+
+  let parse s =
+    match s with
+    | "" -> Or_error.error_string "invalid empty QUAL"
+    | "*" -> Ok []
+    | _ -> String.to_list s |> Result_list.map ~f:(Phred_score.of_char ~offset:`Offset33)
+  ;;
+
+  let print = function
+    | [] -> "*"
+    | quals ->
+      List.map quals ~f:(fun x ->
+        Or_error.ok_exn (Phred_score.to_char ~offset:`Offset33 x))
+      |> String.of_char_list
   ;;
 end
 
@@ -1015,15 +1122,15 @@ module Alignment = struct
   type t =
     { qname : Qname.t option
     ; flags : Flags.t
-    ; rname : string option
-    ; pos : int option
+    ; rname : Rname.t option
+    ; pos : Pos.t option
     ; mapq : int option
     ; cigar : Cigar.t
     ; rnext : Rnext.t option
-    ; pnext : int option
-    ; tlen : int option
-    ; seq : string option
-    ; qual : Phred_score.t list
+    ; pnext : Pnext.t option
+    ; tlen : Tlen.t option
+    ; seq : Seq.t option
+    ; qual : Qual.t
     ; optional_fields : Optional_field.t list
     }
   [@@deriving sexp]
@@ -1093,47 +1200,6 @@ module Alignment = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let rname_re = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
-  let parse_rname s = parse_opt_string "RNAME" rname_re s
-
-  let parse_pos s =
-    parse_int_range "POS" 0 2147483647 s
-    >>| function
-    | 0 -> None
-    | x -> Some x
-  ;;
-
-  let parse_mapq s =
-    parse_int_range "MAPQ" 0 255 s
-    >>| function
-    | 255 -> None
-    | x -> Some x
-  ;;
-
-  let parse_pnext s =
-    parse_int_range "PNEXT" 0 2147483647 s
-    >>| function
-    | 0 -> None
-    | x -> Some x
-  ;;
-
-  let parse_tlen s =
-    parse_int_range "TLEN" ~-2147483647 2147483647 s
-    >>| function
-    | 0 -> None
-    | x -> Some x
-  ;;
-
-  let seq_re = Re.Perl.compile_pat "^\\*|[A-Za-z=.]+$"
-  let parse_seq s = parse_opt_string "SEQ" seq_re s
-
-  let parse_qual s =
-    match s with
-    | "" -> Or_error.error_string "invalid empty QUAL"
-    | "*" -> Ok []
-    | _ -> String.to_list s |> Result_list.map ~f:(Phred_score.of_char ~offset:`Offset33)
-  ;;
-
   let parse ?ref_seqs line =
     match String.split ~on:'\t' (line : Line.t :> string) with
     | qname
@@ -1152,23 +1218,23 @@ module Alignment = struct
       >>= fun qname ->
       Flags.parse flags
       >>= fun flags ->
-      parse_rname rname
+      Rname.parse rname
       >>= fun rname ->
-      parse_pos pos
+      Pos.parse pos
       >>= fun pos ->
-      parse_mapq mapq
+      Mapq.parse mapq
       >>= fun mapq ->
       Cigar.parse cigar
       >>= fun cigar ->
       Rnext.parse rnext
       >>= fun rnext ->
-      parse_pnext pnext
+      Pnext.parse pnext
       >>= fun pnext ->
-      parse_tlen tlen
+      Tlen.parse tlen
       >>= fun tlen ->
-      parse_seq seq
+      Seq.parse seq
       >>= fun seq ->
-      parse_qual qual
+      Qual.parse qual
       >>= fun qual ->
       Result_list.map optional_fields ~f:Optional_field.parse
       >>= fun optional_fields ->
@@ -1190,58 +1256,20 @@ module Alignment = struct
     | _ -> Or_error.error_string "alignment line contains < 12 fields"
   ;;
 
-  let print_rname = function
-    | Some x -> x
-    | None -> "*"
-  ;;
-
-  let print_pos = function
-    | Some x -> Int.to_string x
-    | None -> "0"
-  ;;
-
-  let print_mapq = function
-    | Some x -> Int.to_string x
-    | None -> "255"
-  ;;
-
-  let print_pnext = function
-    | Some x -> Int.to_string x
-    | None -> "0"
-  ;;
-
-  let print_tlen = function
-    | Some x -> Int.to_string x
-    | None -> "0"
-  ;;
-
-  let print_seq = function
-    | Some x -> x
-    | None -> "*"
-  ;;
-
-  let print_qual = function
-    | [] -> "*"
-    | quals ->
-      List.map quals ~f:(fun x ->
-        Or_error.ok_exn (Phred_score.to_char ~offset:`Offset33 x))
-      |> String.of_char_list
-  ;;
-
   let print a =
     sprintf
       "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
       (Qname.print a.qname)
       (Flags.print a.flags)
-      (print_rname a.rname)
-      (print_pos a.pos)
-      (print_mapq a.mapq)
+      (Rname.print a.rname)
+      (Pos.print a.pos)
+      (Mapq.print a.mapq)
       (Cigar.print a.cigar)
       (Rnext.print a.rnext)
-      (print_pnext a.pnext)
-      (print_tlen a.tlen)
-      (print_seq a.seq)
-      (print_qual a.qual)
+      (Pnext.print a.pnext)
+      (Tlen.print a.tlen)
+      (Seq.print a.seq)
+      (Qual.print a.qual)
       (List.map a.optional_fields ~f:Optional_field.print |> String.concat ~sep:"\t")
   ;;
 end

@@ -278,7 +278,7 @@ module Alignment0 = struct
   let qual al =
     let shift = String.map ~f:Char.(fun c -> of_int_exn (to_int c + 33)) in
     match shift al.qual with
-    | qual33 -> Biocaml.Sam.Alignment.parse_qual qual33
+    | qual33 -> Biocaml.Sam.Qual.parse qual33
     | exception Failure _ ->
       Or_error.error
         "Bam.Alignement0.qual: incorrect quality score"
