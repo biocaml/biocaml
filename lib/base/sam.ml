@@ -684,6 +684,46 @@ module Header = struct
   ;;
 end
 
+let parse_int_range field lo hi s =
+  let out_of_range = sprintf "%s out of range" field in
+  let not_an_int = sprintf "%s not an int" field in
+  try
+    let n = Int.of_string s in
+    if lo <= n && n <= hi
+    then Ok n
+    else Error (Error.create out_of_range (n, lo, hi) [%sexp_of: int * int * int])
+  with
+  | _ -> Error (Error.create not_an_int s sexp_of_string)
+;;
+
+(** Parse a string that can either by "*" or some other regexp, with
+  "*" denoting [None]. The given regexp [re] should include "*" as
+  one of the alternatives. *)
+let parse_opt_string field re s =
+  if not (Re.execp re s)
+  then Error (Error.create (sprintf "invalid %s" field) s sexp_of_string)
+  else (
+    match s with
+    | "*" -> Ok None
+    | _ -> Ok (Some s))
+;;
+
+module Qname = struct
+  type t = string [@@deriving sexp]
+
+  let regexp =
+    let open Re in
+    alt [ char '*'; repn (alt [ rg '!' '?'; rg 'A' '~' ]) 1 (Some 255) ] |> compile
+  ;;
+
+  let parse s = parse_opt_string "QNAME" regexp s
+
+  let print = function
+    | Some x -> x
+    | None -> "*"
+  ;;
+end
+
 module Flags = struct
   type t = int [@@deriving sexp]
 
@@ -973,7 +1013,7 @@ end
 
 module Alignment = struct
   type t =
-    { qname : string option
+    { qname : Qname.t option
     ; flags : Flags.t
     ; rname : string option
     ; pos : int option
@@ -1053,36 +1093,6 @@ module Alignment = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let parse_int_range field lo hi s =
-    let out_of_range = sprintf "%s out of range" field in
-    let not_an_int = sprintf "%s not an int" field in
-    try
-      let n = Int.of_string s in
-      if lo <= n && n <= hi
-      then Ok n
-      else Error (Error.create out_of_range (n, lo, hi) [%sexp_of: int * int * int])
-    with
-    | _ -> Error (Error.create not_an_int s sexp_of_string)
-  ;;
-
-  (** Parse a string that can either by "*" or some other regexp, with
-    "*" denoting [None]. The given regexp [re] should include "*" as
-    one of the alternatives. *)
-  let parse_opt_string field re s =
-    if not (Re.execp re s)
-    then Error (Error.create (sprintf "invalid %s" field) s sexp_of_string)
-    else (
-      match s with
-      | "*" -> Ok None
-      | _ -> Ok (Some s))
-  ;;
-
-  let qname_re =
-    let open Re in
-    alt [ char '*'; repn (alt [ rg '!' '?'; rg 'A' '~' ]) 1 (Some 255) ] |> compile
-  ;;
-
-  let parse_qname s = parse_opt_string "QNAME" qname_re s
   let rname_re = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
   let parse_rname s = parse_opt_string "RNAME" rname_re s
 
@@ -1138,7 +1148,7 @@ module Alignment = struct
       :: seq
       :: qual
       :: optional_fields ->
-      parse_qname qname
+      Qname.parse qname
       >>= fun qname ->
       Flags.parse flags
       >>= fun flags ->
@@ -1178,11 +1188,6 @@ module Alignment = struct
         ~optional_fields
         ()
     | _ -> Or_error.error_string "alignment line contains < 12 fields"
-  ;;
-
-  let print_qname = function
-    | Some x -> x
-    | None -> "*"
   ;;
 
   let print_rname = function
@@ -1226,7 +1231,7 @@ module Alignment = struct
   let print a =
     sprintf
       "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
-      (print_qname a.qname)
+      (Qname.print a.qname)
       (Flags.print a.flags)
       (print_rname a.rname)
       (print_pos a.pos)

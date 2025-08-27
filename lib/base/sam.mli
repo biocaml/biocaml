@@ -237,6 +237,13 @@ module Header : sig
     -> t Or_error.t
 end
 
+module Qname : sig
+  type t = string [@@deriving sexp]
+
+  val parse : string -> t option Or_error.t
+  val print : t option -> string
+end
+
 module Flags : sig
   (** Flags are represented as a "bit map". *)
   type t = private int [@@deriving sexp]
@@ -344,7 +351,7 @@ module Alignment : sig
   (** For [cigar] and [qual], empty list indicates no value, i.e. '*',
     was given. *)
   type t = private
-    { qname : string option (** QNAME *)
+    { qname : Qname.t option (** QNAME *)
     ; flags : Flags.t (** FLAG *)
     ; rname : string option (** RNAME *)
     ; pos : int option (** POS *)
@@ -361,7 +368,7 @@ module Alignment : sig
 
   val make
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
-    -> ?qname:string
+    -> ?qname:Qname.t
     -> flags:Flags.t
     -> ?rname:string
     -> ?pos:int
@@ -376,7 +383,6 @@ module Alignment : sig
     -> unit
     -> t Or_error.t
 
-  val parse_qname : string -> string option Or_error.t
   val parse_rname : string -> string option Or_error.t
   val parse_pos : string -> int option Or_error.t
   val parse_mapq : string -> int option Or_error.t
@@ -390,7 +396,6 @@ module Alignment : sig
     -> Line.t
     -> t Or_error.t
 
-  val print_qname : string option -> string
   val print_rname : string option -> string
   val print_pos : int option -> string
   val print_mapq : int option -> string
