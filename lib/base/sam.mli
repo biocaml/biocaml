@@ -464,14 +464,19 @@ end
 module State : sig
   (** State-machine based parser. *)
 
-  type t =
-    { parse_line : string -> t Or_error.t
-    ; data : [ `Header of Header.Item_list_rev.t | `Alignment of Header.t * Alignment.t ]
-    }
+  type data =
+    [ `Header of Header.Item_list_rev.t
+    | `Alignment of Header.t * Alignment.t
+    ]
+
+  type t
 
   val init : t
   val reduce : t -> string -> t Or_error.t
   val reduce_exn : t -> string -> t
+
+  (** [data t] returns the data attached to given state [t]. *)
+  val data : t -> data
 
   (** [header t] returns the header parsed thus far given current state [t]. *)
   val header : t -> Header.t Or_error.t

@@ -1341,9 +1341,14 @@ module Alignment = struct
 end
 
 module State = struct
+  type data =
+    [ `Header of Header.Item_list_rev.t
+    | `Alignment of Header.t * Alignment.t
+    ]
+
   type t =
     { parse_line : string -> t Or_error.t
-    ; data : [ `Header of Header.Item_list_rev.t | `Alignment of Header.t * Alignment.t ]
+    ; data : data
     }
 
   let rec header_state items : t =
@@ -1374,6 +1379,7 @@ module State = struct
   let init : t = header_state Header.Item_list_rev.empty
   let reduce { parse_line; data = _ } line = parse_line line
   let reduce_exn state line = reduce state line |> Or_error.ok_exn
+  let data { data; parse_line = _ } = data
 
   let header { data; parse_line = _ } =
     match data with
@@ -1393,7 +1399,7 @@ let of_lines lines =
       | Error _ as e -> e
       | Ok state ->
         let alignments =
-          match state.data with
+          match State.data state with
           | `Alignment (_, aln) -> aln :: alignments
           | `Header _ -> alignments
         in
@@ -1416,7 +1422,7 @@ let of_lines_exn lines =
     List.fold lines ~init:(State.init, []) ~f:(fun (state, alignments) line ->
       let state = State.reduce_exn state line in
       let alignments =
-        match state.data with
+        match State.data state with
         | `Header _ -> alignments
         | `Alignment (_, aln) -> aln :: alignments
       in
