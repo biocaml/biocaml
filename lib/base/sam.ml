@@ -1407,6 +1407,8 @@ module State = struct
   ;;
 
   let header_exn x = header x |> Or_error.ok_exn
+  let phase x = x.phase
+  let data x = x.data
 end
 
 let of_lines lines =
@@ -1422,7 +1424,7 @@ let of_lines lines =
   match loop (State.init ~on_alignment ~data:[]) lines with
   | Error _ as e -> e
   | Ok state -> (
-    let alignments = List.rev state.data in
+    let alignments = List.rev (State.data state) in
     match State.header state with
     | Error _ as e -> e
     | Ok header -> Ok (header, alignments))
@@ -1437,7 +1439,7 @@ let of_lines_exn lines =
     List.fold lines ~init:(State.init ~on_alignment ~data:[]) ~f:State.reduce_exn
   in
   let header = State.header_exn state in
-  let alignments = List.rev state.data in
+  let alignments = List.rev (State.data state) in
   header, alignments
 ;;
 

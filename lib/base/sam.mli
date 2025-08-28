@@ -471,12 +471,7 @@ module State : sig
       ]
   end
 
-  type 'a t =
-    { parse_line : string -> 'a t Or_error.t
-    ; phase : Phase.t
-    ; data : 'a
-    ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
-    }
+  type 'a t
 
   val init : on_alignment:('a -> Header.t -> Alignment.t -> 'a) -> data:'a -> 'a t
   val reduce : 'a t -> string -> 'a t Or_error.t
@@ -486,6 +481,8 @@ module State : sig
   val header : _ t -> Header.t Or_error.t
 
   val header_exn : _ t -> Header.t
+  val phase : _ t -> Phase.t
+  val data : 'a t -> 'a
 end
 
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
