@@ -615,6 +615,18 @@ module Header = struct
     ;;
   end
 
+  module Item_list_rev : sig
+    type t = private Item.t list [@@deriving sexp]
+
+    val empty : t
+    val append : t -> Item.t -> t
+  end = struct
+    type t = Item.t list [@@deriving sexp]
+
+    let empty = []
+    let append t x = x :: t
+  end
+
   type t =
     { version : HD.VN.t option
     ; sort_order : HD.SO.t option
@@ -685,9 +697,7 @@ module Header = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  (* [items] are in reverse order. We accumulate them into different fields, which again
-     reverses them. Thus, the items end up in the correct order without calling List.rev. *)
-  let of_item_list_rev (items : Item.t list) =
+  let of_item_list_rev (items : Item_list_rev.t) =
     let rec loop t (items : Item.t list) : t Or_error.t =
       match items with
       | [] -> Ok t
@@ -703,7 +713,7 @@ module Header = struct
         | `CO x -> loop { t with comments = x :: t.comments } items
         | `Other x -> loop { t with others = x :: t.others } items)
     in
-    match loop empty items with
+    match loop empty (items :> Item.t list) with
     | Error _ as e -> e
     | Ok
         { version
@@ -1320,12 +1330,12 @@ end
 
 module State = struct
   type t =
-    [ `Header of Header.Item.t list
+    [ `Header of Header.Item_list_rev.t
     | `Alignment of Header.t * Alignment.t
     ]
   [@@deriving sexp]
 
-  let init = `Header []
+  let init = `Header Header.Item_list_rev.empty
 
   let reduce (state : t) line : t Or_error.t =
     match String.length line with
@@ -1342,7 +1352,7 @@ module State = struct
       | `Header items, true -> (
         match Header.Item.t_of_string line with
         | Error _ as e -> e
-        | Ok item -> Ok (`Header (item :: items)))
+        | Ok item -> Ok (`Header (Header.Item_list_rev.append items item)))
       | `Header items, false -> (
         match Header.of_item_list_rev items with
         | Error _ as e -> e
