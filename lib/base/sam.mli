@@ -464,7 +464,7 @@ end
 module State : sig
   (** State-machine based parser. *)
 
-  type data =
+  type node =
     [ `Header of Header.Item_list_rev.t
     | `Alignment of Header.t * Alignment.t
     ]
@@ -475,8 +475,8 @@ module State : sig
   val reduce : t -> string -> t Or_error.t
   val reduce_exn : t -> string -> t
 
-  (** [data t] returns the data attached to given state [t]. *)
-  val data : t -> data
+  (** [node t] returns the node attached to given state [t]. *)
+  val node : t -> node
 
   (** [header t] returns the header parsed thus far given current state [t]. *)
   val header : t -> Header.t Or_error.t
