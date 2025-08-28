@@ -1341,48 +1341,67 @@ module Alignment = struct
 end
 
 module State = struct
-  type node =
-    [ `Header of Header.Item_list_rev.t
-    | `Alignment of Header.t * Alignment.t
-    ]
+  module Phase = struct
+    type t =
+      [ `Header of Header.Item_list_rev.t
+      | `Alignment of Header.t * Alignment.t
+      ]
+  end
 
-  type t =
-    { parse_line : string -> t Or_error.t
-    ; node : node
+  type 'a t =
+    { parse_line : string -> 'a t Or_error.t
+    ; phase : Phase.t
+    ; data : 'a
+    ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
     }
 
-  let rec header_state items : t =
-    let parse_line line =
-      match Header.Item.t_of_string line with
-      | Ok item -> Ok (header_state (Header.Item_list_rev.append items item))
-      | Error _ -> (
-        (* If line couldn't be parsed as a header item, assume the header
-           section is complete and try to parse the line as an alignment. *)
-        match Header.of_item_list_rev items with
-        | Error _ as e -> e
-        | Ok header -> (
-          match Alignment.t_of_string line with
-          | Error _ as e -> e
-          | Ok alignment -> Ok (alignment_state header alignment)))
-    in
-    { parse_line; node = `Header items }
-
-  and alignment_state header alignment : t =
-    let parse_line line =
-      match Alignment.t_of_string line with
+  let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
+    match Header.Item.t_of_string line with
+    | Ok item ->
+      Ok (header_state ~on_alignment ~data (Header.Item_list_rev.append items item))
+    | Error _ -> (
+      (* If line couldn't be parsed as a header item, assume the header
+         section is complete and try to parse the line as an alignment. *)
+      match Header.of_item_list_rev items with
       | Error _ as e -> e
-      | Ok aln -> Ok (alignment_state header aln)
-    in
-    { parse_line; node = `Alignment (header, alignment) }
+      | Ok header -> (
+        match Alignment.t_of_string line with
+        | Error _ as e -> e
+        | Ok alignment ->
+          let data = on_alignment data header alignment in
+          Ok (alignment_state ~on_alignment ~data header alignment)))
+
+  and header_state ~on_alignment ~data items : 'a t =
+    { parse_line = parse_header_line ~on_alignment ~data items
+    ; phase = `Header items
+    ; data
+    ; on_alignment
+    }
+
+  and parse_alignment_line ~on_alignment ~data header line =
+    match Alignment.t_of_string line with
+    | Error _ as e -> e
+    | Ok aln ->
+      let data = on_alignment data header aln in
+      Ok (alignment_state ~on_alignment ~data header aln)
+
+  and alignment_state ~on_alignment ~data header alignment : 'a t =
+    { parse_line = parse_alignment_line ~on_alignment ~data header
+    ; phase = `Alignment (header, alignment)
+    ; data
+    ; on_alignment
+    }
   ;;
 
-  let init : t = header_state Header.Item_list_rev.empty
-  let reduce { parse_line; node = _ } line = parse_line line
-  let reduce_exn state line = reduce state line |> Or_error.ok_exn
-  let node { node; parse_line = _ } = node
+  let init ~on_alignment ~data : 'a t =
+    header_state ~on_alignment ~data Header.Item_list_rev.empty
+  ;;
 
-  let header { node; parse_line = _ } =
-    match node with
+  let reduce { parse_line; phase = _; data = _; on_alignment = _ } line = parse_line line
+  let reduce_exn x line = reduce x line |> Or_error.ok_exn
+
+  let header { phase; parse_line = _; data = _; on_alignment = _ } =
+    match phase with
     | `Header items -> Header.of_item_list_rev items
     | `Alignment (header, _) -> Ok header
   ;;
@@ -1391,6 +1410,7 @@ module State = struct
 end
 
 let of_lines lines =
+  let on_alignment _data _header _alignment = () in
   let rec loop ((state, alignments) as accum) lines =
     match lines with
     | [] -> Ok accum
@@ -1399,13 +1419,13 @@ let of_lines lines =
       | Error _ as e -> e
       | Ok state ->
         let alignments =
-          match State.node state with
+          match state.phase with
           | `Alignment (_, aln) -> aln :: alignments
           | `Header _ -> alignments
         in
         loop (state, alignments) lines)
   in
-  match loop (State.init, []) lines with
+  match loop (State.init ~on_alignment ~data:(), []) lines with
   | Error _ as e -> e
   | Ok (state, alignments) -> (
     let alignments = List.rev alignments in
@@ -1418,15 +1438,19 @@ let of_lines lines =
    how to use [reduce_exn] versus [reduce] to contrast with the implementation of
    [of_lines] above. *)
 let of_lines_exn lines =
+  let on_alignment _data _header _alignment = () in
   let state, alignments =
-    List.fold lines ~init:(State.init, []) ~f:(fun (state, alignments) line ->
-      let state = State.reduce_exn state line in
-      let alignments =
-        match State.node state with
-        | `Header _ -> alignments
-        | `Alignment (_, aln) -> aln :: alignments
-      in
-      state, alignments)
+    List.fold
+      lines
+      ~init:(State.init ~on_alignment ~data:(), [])
+      ~f:(fun (state, alignments) line ->
+        let state = State.reduce_exn state line in
+        let alignments =
+          match state.phase with
+          | `Header _ -> alignments
+          | `Alignment (_, aln) -> aln :: alignments
+        in
+        state, alignments)
   in
   let header = State.header_exn state in
   let alignments = List.rev alignments in

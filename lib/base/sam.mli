@@ -464,24 +464,28 @@ end
 module State : sig
   (** State-machine based parser. *)
 
-  type node =
-    [ `Header of Header.Item_list_rev.t
-    | `Alignment of Header.t * Alignment.t
-    ]
+  module Phase : sig
+    type t =
+      [ `Header of Header.Item_list_rev.t
+      | `Alignment of Header.t * Alignment.t
+      ]
+  end
 
-  type t
+  type 'a t =
+    { parse_line : string -> 'a t Or_error.t
+    ; phase : Phase.t
+    ; data : 'a
+    ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
+    }
 
-  val init : t
-  val reduce : t -> string -> t Or_error.t
-  val reduce_exn : t -> string -> t
-
-  (** [node t] returns the node attached to given state [t]. *)
-  val node : t -> node
+  val init : on_alignment:('a -> Header.t -> Alignment.t -> 'a) -> data:'a -> 'a t
+  val reduce : 'a t -> string -> 'a t Or_error.t
+  val reduce_exn : 'a t -> string -> 'a t
 
   (** [header t] returns the header parsed thus far given current state [t]. *)
-  val header : t -> Header.t Or_error.t
+  val header : _ t -> Header.t Or_error.t
 
-  val header_exn : t -> Header.t
+  val header_exn : _ t -> Header.t
 end
 
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
