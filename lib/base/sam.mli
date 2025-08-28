@@ -250,6 +250,11 @@ module Header : sig
 
   (** [of_item_list_rev items] takes a list of header items in reverse order. *)
   val of_item_list_rev : Item_list_rev.t -> t Or_error.t
+
+  (** [num_items t] is the number of header lines that [t] logically
+      consists of, i.e. the number of header lines that it was derived
+      from or that it would print to. *)
+  val num_items : t -> int
 end
 
 module Qname : sig

@@ -736,6 +736,18 @@ module Header = struct
         ~others
         ()
   ;;
+
+  let num_items t =
+    List.length t.ref_seqs
+    + List.length t.read_groups
+    + List.length t.programs
+    + List.length t.comments
+    + List.length t.others
+    +
+    match t.version with
+    | None -> 0
+    | Some _ -> 1
+  ;;
 end
 
 let parse_int_range field lo hi s =
