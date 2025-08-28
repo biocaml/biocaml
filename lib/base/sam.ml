@@ -1342,37 +1342,37 @@ end
 
 module State = struct
   type t =
-    [ `Header of Header.Item_list_rev.t
-    | `Alignment of Header.t * Alignment.t
-    ]
-  [@@deriving sexp]
+    { parse_line : string -> t Or_error.t
+    ; data : [ `Header of Header.Item_list_rev.t | `Alignment of Header.t * Alignment.t ]
+    }
 
-  let init = `Header Header.Item_list_rev.empty
-
-  let reduce (state : t) line : t Or_error.t =
-    match String.length line with
-    | 0 -> Or_error.error_string "empty line"
-    | _ -> (
-      let starts_with_at_char = Char.equal line.[0] '@' in
-      match state, starts_with_at_char with
-      | `Alignment (header, _), false -> (
-        match Alignment.t_of_string line with
-        | Error _ as e -> e
-        | Ok alignment -> Ok (`Alignment (header, alignment)))
-      | `Alignment _, true ->
-        Or_error.error_string "encountered header line after alignment"
-      | `Header items, true -> (
-        match Header.Item.t_of_string line with
-        | Error _ as e -> e
-        | Ok item -> Ok (`Header (Header.Item_list_rev.append items item)))
-      | `Header items, false -> (
+  let rec header_state items : t =
+    let parse_line line =
+      match Header.Item.t_of_string line with
+      | Ok item -> Ok (header_state (Header.Item_list_rev.append items item))
+      | Error _ -> (
+        (* If line couldn't be parsed as a header item, assume the header
+           section is complete and try to parse the line as an alignment. *)
         match Header.of_item_list_rev items with
         | Error _ as e -> e
         | Ok header -> (
           match Alignment.t_of_string line with
           | Error _ as e -> e
-          | Ok alignment -> Ok (`Alignment (header, alignment)))))
+          | Ok alignment -> Ok (alignment_state header alignment)))
+    in
+    { parse_line; data = `Header items }
+
+  and alignment_state header alignment : t =
+    let parse_line line =
+      match Alignment.t_of_string line with
+      | Error _ as e -> e
+      | Ok aln -> Ok (alignment_state header aln)
+    in
+    { parse_line; data = `Alignment (header, alignment) }
   ;;
+
+  let init : t = header_state Header.Item_list_rev.empty
+  let reduce { parse_line; data = _ } line = parse_line line
 end
 
 module Test = struct

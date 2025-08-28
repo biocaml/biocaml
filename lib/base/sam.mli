@@ -463,10 +463,9 @@ end
 
 module State : sig
   type t =
-    [ `Header of Header.Item_list_rev.t
-    | `Alignment of Header.t * Alignment.t
-    ]
-  [@@deriving sexp]
+    { parse_line : string -> t Or_error.t
+    ; data : [ `Header of Header.Item_list_rev.t | `Alignment of Header.t * Alignment.t ]
+    }
 
   val init : t
   val reduce : t -> string -> t Or_error.t
