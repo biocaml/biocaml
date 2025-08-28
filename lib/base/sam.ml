@@ -1410,25 +1410,19 @@ module State = struct
 end
 
 let of_lines lines =
-  let on_alignment _data _header _alignment = () in
-  let rec loop ((state, alignments) as accum) lines =
+  let on_alignment data _header alignment = alignment :: data in
+  let rec loop state lines =
     match lines with
-    | [] -> Ok accum
+    | [] -> Ok state
     | line :: lines -> (
       match State.reduce state line with
       | Error _ as e -> e
-      | Ok state ->
-        let alignments =
-          match state.phase with
-          | `Alignment (_, aln) -> aln :: alignments
-          | `Header _ -> alignments
-        in
-        loop (state, alignments) lines)
+      | Ok state -> loop state lines)
   in
-  match loop (State.init ~on_alignment ~data:(), []) lines with
+  match loop (State.init ~on_alignment ~data:[]) lines with
   | Error _ as e -> e
-  | Ok (state, alignments) -> (
-    let alignments = List.rev alignments in
+  | Ok state -> (
+    let alignments = List.rev state.data in
     match State.header state with
     | Error _ as e -> e
     | Ok header -> Ok (header, alignments))
@@ -1438,22 +1432,12 @@ let of_lines lines =
    how to use [reduce_exn] versus [reduce] to contrast with the implementation of
    [of_lines] above. *)
 let of_lines_exn lines =
-  let on_alignment _data _header _alignment = () in
-  let state, alignments =
-    List.fold
-      lines
-      ~init:(State.init ~on_alignment ~data:(), [])
-      ~f:(fun (state, alignments) line ->
-        let state = State.reduce_exn state line in
-        let alignments =
-          match state.phase with
-          | `Header _ -> alignments
-          | `Alignment (_, aln) -> aln :: alignments
-        in
-        state, alignments)
+  let on_alignment data _header alignment = alignment :: data in
+  let state =
+    List.fold lines ~init:(State.init ~on_alignment ~data:[]) ~f:State.reduce_exn
   in
   let header = State.header_exn state in
-  let alignments = List.rev alignments in
+  let alignments = List.rev state.data in
   header, alignments
 ;;
 
