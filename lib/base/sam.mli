@@ -462,6 +462,8 @@ module Alignment : sig
 end
 
 module State : sig
+  (** State-machine based parser. *)
+
   type t =
     { parse_line : string -> t Or_error.t
     ; data : [ `Header of Header.Item_list_rev.t | `Alignment of Header.t * Alignment.t ]
@@ -469,4 +471,20 @@ module State : sig
 
   val init : t
   val reduce : t -> string -> t Or_error.t
+  val reduce_exn : t -> string -> t
+
+  (** [header t] returns the header parsed thus far given current state [t]. *)
+  val header : t -> Header.t Or_error.t
+
+  val header_exn : t -> Header.t
 end
+
+(** [of_lines lines] parses the given [lines] of a SAM file. *)
+val of_lines : string list -> (Header.t * Alignment.t list) Or_error.t
+
+val of_lines_exn : string list -> Header.t * Alignment.t list
+
+(** [of_string content] parses the given [content] of a SAM file. *)
+val of_string : string -> (Header.t * Alignment.t list) Or_error.t
+
+val of_string_exn : string -> Header.t * Alignment.t list

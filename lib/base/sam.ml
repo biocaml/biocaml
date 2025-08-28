@@ -1373,7 +1373,62 @@ module State = struct
 
   let init : t = header_state Header.Item_list_rev.empty
   let reduce { parse_line; data = _ } line = parse_line line
+  let reduce_exn state line = reduce state line |> Or_error.ok_exn
+
+  let header { data; parse_line = _ } =
+    match data with
+    | `Header items -> Header.of_item_list_rev items
+    | `Alignment (header, _) -> Ok header
+  ;;
+
+  let header_exn x = header x |> Or_error.ok_exn
 end
+
+let of_lines lines =
+  let rec loop ((state, alignments) as accum) lines =
+    match lines with
+    | [] -> Ok accum
+    | line :: lines -> (
+      match State.reduce state line with
+      | Error _ as e -> e
+      | Ok state ->
+        let alignments =
+          match state.data with
+          | `Alignment (_, aln) -> aln :: alignments
+          | `Header _ -> alignments
+        in
+        loop (state, alignments) lines)
+  in
+  match loop (State.init, []) lines with
+  | Error _ as e -> e
+  | Ok (state, alignments) -> (
+    let alignments = List.rev alignments in
+    match State.header state with
+    | Error _ as e -> e
+    | Ok header -> Ok (header, alignments))
+;;
+
+(* We could implement this as [of_lines |> ok_exn], but we also want to demonstrate
+   how to use [reduce_exn] versus [reduce] to contrast with the implementation of
+   [of_lines] above. *)
+let of_lines_exn lines =
+  let state, alignments =
+    List.fold lines ~init:(State.init, []) ~f:(fun (state, alignments) line ->
+      let state = State.reduce_exn state line in
+      let alignments =
+        match state.data with
+        | `Header _ -> alignments
+        | `Alignment (_, aln) -> aln :: alignments
+      in
+      state, alignments)
+  in
+  let header = State.header_exn state in
+  let alignments = List.rev alignments in
+  header, alignments
+;;
+
+let of_string s = s |> String.split_lines |> of_lines
+let of_string_exn s = s |> String.split_lines |> of_lines_exn
 
 module Test = struct
   (* module Sam = Biocaml_unix.Sam_deprecated *)
