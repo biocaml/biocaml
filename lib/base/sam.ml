@@ -1412,7 +1412,6 @@ module State = struct
 end
 
 let of_lines lines =
-  let on_alignment data _header alignment = alignment :: data in
   let rec loop state lines =
     match lines with
     | [] -> Ok state
@@ -1421,7 +1420,9 @@ let of_lines lines =
       | Error _ as e -> e
       | Ok state -> loop state lines)
   in
-  match loop (State.init ~on_alignment ~data:[]) lines with
+  let on_alignment data _header alignment = alignment :: data in
+  let init = State.init ~on_alignment ~data:[] in
+  match loop init lines with
   | Error _ as e -> e
   | Ok state -> (
     let alignments = List.rev (State.data state) in
@@ -1435,9 +1436,8 @@ let of_lines lines =
    [of_lines] above. *)
 let of_lines_exn lines =
   let on_alignment data _header alignment = alignment :: data in
-  let state =
-    List.fold lines ~init:(State.init ~on_alignment ~data:[]) ~f:State.reduce_exn
-  in
+  let init = State.init ~on_alignment ~data:[] in
+  let state = List.fold lines ~init ~f:State.reduce_exn in
   let header = State.header_exn state in
   let alignments = List.rev (State.data state) in
   header, alignments
