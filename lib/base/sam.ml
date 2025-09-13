@@ -1340,7 +1340,7 @@ module Alignment = struct
   ;;
 end
 
-module State = struct
+module Parser = struct
   module Phase = struct
     type t =
       [ `Header of Header.Item_list_rev.t
@@ -1416,17 +1416,17 @@ let of_lines lines =
     match lines with
     | [] -> Ok state
     | line :: lines -> (
-      match State.reduce state line with
+      match Parser.reduce state line with
       | Error _ as e -> e
       | Ok state -> loop state lines)
   in
   let on_alignment data _header alignment = alignment :: data in
-  let init = State.init ~on_alignment ~data:[] in
+  let init = Parser.init ~on_alignment ~data:[] in
   match loop init lines with
   | Error _ as e -> e
   | Ok state -> (
-    let alignments = List.rev (State.data state) in
-    match State.header state with
+    let alignments = List.rev (Parser.data state) in
+    match Parser.header state with
     | Error _ as e -> e
     | Ok header -> Ok (header, alignments))
 ;;
@@ -1436,10 +1436,10 @@ let of_lines lines =
    [of_lines] above. *)
 let of_lines_exn lines =
   let on_alignment data _header alignment = alignment :: data in
-  let init = State.init ~on_alignment ~data:[] in
-  let state = List.fold lines ~init ~f:State.reduce_exn in
-  let header = State.header_exn state in
-  let alignments = List.rev (State.data state) in
+  let init = Parser.init ~on_alignment ~data:[] in
+  let state = List.fold lines ~init ~f:Parser.reduce_exn in
+  let header = Parser.header_exn state in
+  let alignments = List.rev (Parser.data state) in
   header, alignments
 ;;
 

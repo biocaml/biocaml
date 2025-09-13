@@ -461,7 +461,7 @@ module Alignment : sig
   val string_of_t : t -> string
 end
 
-module State : sig
+module Parser : sig
   (** State-machine based parser. *)
 
   module Phase : sig
