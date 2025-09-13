@@ -733,13 +733,14 @@ let write_plain_SAM_header h oz =
     Buffer.add_string buf x;
     Buffer.add_char buf '\n'
   in
-  Option.iter h.Biocaml.Sam.Header.version ~f:(fun version ->
-    let hl =
-      Biocaml.Sam.Header.HD.make ~version ?sort_order:h.Biocaml.Sam.Header.sort_order ()
-      |> ok_exn
-    in
-    (* the construction of the header line must be valid since we are building it from a validated header *)
-    add_line (Biocaml.Sam.Header.HD.to_string hl));
+  Option.iter
+    h.Biocaml.Sam.Header.hd
+    ~f:(fun { Biocaml.Sam.Header.HD.version; sort_order; group_order } ->
+      let hl =
+        Biocaml.Sam.Header.HD.make ~version ?sort_order ?group_order () |> ok_exn
+      in
+      (* the construction of the header line must be valid since we are building it from a validated header *)
+      add_line (Biocaml.Sam.Header.HD.to_string hl));
   List.iter h.Biocaml.Sam.Header.ref_seqs ~f:(fun x ->
     add_line (Biocaml.Sam.Header.SQ.to_string x));
   List.iter h.Biocaml.Sam.Header.read_groups ~f:(fun x ->
@@ -861,12 +862,19 @@ module Test = struct
 
   let assert_headers h1 h2 =
     let h1, h2 = Header.to_sam h1, Header.to_sam h2 in
-    assert_equal ~msg:"version" ~printer:[%sexp_of: string option] h1.version h2.version;
+    let h1_version, h1_sort_order, h2_version, h2_sort_order =
+      match h1.hd, h2.hd with
+      | Some hd1, Some hd2 ->
+        Some hd1.version, hd1.sort_order, Some hd2.version, hd2.sort_order
+      | None, None -> None, None, None, None
+      | _ -> failwith "Headers have different versions"
+    in
+    assert_equal ~msg:"version" ~printer:[%sexp_of: string option] h1_version h2_version;
     assert_equal
       ~msg:"sort_order"
       ~printer:[%sexp_of: Biocaml.Sam.Header.HD.SO.t option]
-      h1.sort_order
-      h2.sort_order;
+      h1_sort_order
+      h2_sort_order;
     assert_equal
       ~msg:"ref_seqs"
       ~printer:[%sexp_of: Biocaml.Sam.Header.SQ.t list]
@@ -959,8 +967,13 @@ module Test = struct
         ~msg:"Sam version"
         ~printer:[%sexp_of: string option]
         (Some "1.0")
-        sh.version;
-      assert_equal ~msg:"Sort order" (Some `Unsorted) sh.sort_order;
+        (sh.hd |> Option.map ~f:(fun x -> x.version));
+      assert_equal
+        ~msg:"Sort order"
+        (Some `Unsorted)
+        (match sh.hd with
+         | None -> None
+         | Some hd -> hd.sort_order);
       assert_equal
         ~msg:"Number of ref sequences"
         ~printer:Int.sexp_of_t

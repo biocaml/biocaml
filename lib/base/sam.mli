@@ -195,6 +195,7 @@ module Header : sig
     [@@deriving sexp]
 
     val of_string : string -> t Or_error.t
+    val to_string : t -> string
   end
 
   module Item_list_rev : sig
@@ -222,9 +223,7 @@ module Header : sig
      - [comments]: Unordered list of @CO lines.
   *)
   type t =
-    { version : HD.VN.t option
-    ; sort_order : HD.SO.t option
-    ; group_order : HD.GO.t option
+    { hd : HD.t option
     ; ref_seqs : SQ.t list
     ; read_groups : RG.t list
     ; programs : PG.t list
@@ -237,9 +236,7 @@ module Header : sig
   val empty : t
 
   val make
-    :  ?version:string
-    -> ?sort_order:HD.SO.t
-    -> ?group_order:HD.GO.t
+    :  ?hd:HD.t
     -> ?ref_seqs:SQ.t list
     -> ?read_groups:RG.t list
     -> ?programs:PG.t list

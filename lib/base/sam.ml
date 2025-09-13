@@ -612,6 +612,15 @@ module Header = struct
           | tvl ->
             Result_list.map tvl ~f:Tag_value.of_string >>= fun tvl -> parse_data tag tvl))
     ;;
+
+    let to_string = function
+      | `HD hd -> HD.to_string hd
+      | `SQ sq -> SQ.to_string sq
+      | `RG rg -> RG.to_string rg
+      | `PG pg -> PG.to_string pg
+      | `CO co -> co
+      | `Other other -> Other.to_string other
+    ;;
   end
 
   module Item_list_rev : sig
@@ -627,9 +636,7 @@ module Header = struct
   end
 
   type t =
-    { version : HD.VN.t option
-    ; sort_order : HD.SO.t option
-    ; group_order : HD.GO.t option
+    { hd : HD.t option
     ; ref_seqs : SQ.t list
     ; read_groups : RG.t list
     ; programs : PG.t list
@@ -639,9 +646,7 @@ module Header = struct
   [@@deriving sexp]
 
   let empty =
-    { version = None
-    ; sort_order = None
-    ; group_order = None
+    { hd = None
     ; ref_seqs = []
     ; read_groups = []
     ; programs = []
@@ -651,9 +656,7 @@ module Header = struct
   ;;
 
   let make
-        ?version
-        ?sort_order
-        ?group_order
+        ?hd
         ?(ref_seqs = [])
         ?(read_groups = [])
         ?(programs = [])
@@ -661,38 +664,14 @@ module Header = struct
         ?(others = [])
         ()
     =
-    [ (match version with
-       | None -> None
-       | Some x -> (
-         match HD.VN.of_string x with
-         | Error e -> Some e
-         | Ok _ -> None))
-    ; (if Option.is_some sort_order && Poly.(version = None)
-       then
-         Some
-           (Error.create
-              "sort order cannot be defined without version"
-              (sort_order, version)
-              [%sexp_of: HD.SO.t option * string option])
-       else None)
-    ; List.map ref_seqs ~f:(fun (x : SQ.t) -> x.name)
+    [ List.map ref_seqs ~f:(fun (x : SQ.t) -> x.name)
       |> List.find_a_dup ~compare:String.compare
       |> Option.map ~f:(fun name ->
         Error.create "duplicate ref seq name" name sexp_of_string)
     ]
     |> List.filter_map ~f:Fn.id
     |> function
-    | [] ->
-      Ok
-        { version
-        ; sort_order
-        ; group_order
-        ; ref_seqs
-        ; read_groups
-        ; programs
-        ; comments
-        ; others
-        }
+    | [] -> Ok { hd; ref_seqs; read_groups; programs; comments; others }
     | errs -> Error (Error.of_list errs)
   ;;
 
@@ -702,10 +681,10 @@ module Header = struct
       | [] -> Ok t
       | item :: items -> (
         match item with
-        | `HD { HD.version; sort_order; group_order } -> (
-          match t.version with
+        | `HD hd -> (
+          match t.hd with
           | Some _ -> Or_error.error_string "multiple @HD lines not allowed"
-          | None -> loop { t with version = Some version; sort_order; group_order } items)
+          | None -> loop { t with hd = Some hd } items)
         | `SQ x -> loop { t with ref_seqs = x :: t.ref_seqs } items
         | `RG x -> loop { t with read_groups = x :: t.read_groups } items
         | `PG x -> loop { t with programs = x :: t.programs } items
@@ -714,46 +693,15 @@ module Header = struct
     in
     match loop empty (items :> Item.t list) with
     | Error _ as e -> e
-    | Ok
-        { version
-        ; sort_order
-        ; group_order
-        ; ref_seqs
-        ; read_groups
-        ; programs
-        ; comments
-        ; others
-        } ->
-      make
-        ?version
-        ?sort_order
-        ?group_order
-        ~ref_seqs
-        ~read_groups
-        ~programs
-        ~comments
-        ~others
-        ()
+    | Ok { hd; ref_seqs; read_groups; programs; comments; others } ->
+      make ?hd ~ref_seqs ~read_groups ~programs ~comments ~others ()
   ;;
 
-  let to_items
-        { version
-        ; sort_order
-        ; group_order
-        ; ref_seqs
-        ; read_groups
-        ; programs
-        ; comments
-        ; others
-        }
-    =
-    let hd =
-      match version with
-      | None -> []
-      | Some version -> [ `HD { HD.version; sort_order; group_order } ]
-    in
+  let to_items { hd; ref_seqs; read_groups; programs; comments; others } =
     List.concat
-      [ hd
+      [ (match hd with
+         | None -> []
+         | Some hd -> [ `HD hd ])
       ; List.map ref_seqs ~f:(fun x -> `SQ x)
       ; List.map read_groups ~f:(fun x -> `RG x)
       ; List.map programs ~f:(fun x -> `PG x)
