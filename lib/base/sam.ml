@@ -1358,7 +1358,7 @@ module Parser = struct
   let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
     match Header.Item.t_of_string line with
     | Ok item ->
-      Ok (header_state ~on_alignment ~data (Header.Item_list_rev.append items item))
+      Ok (make_header_parser ~on_alignment ~data (Header.Item_list_rev.append items item))
     | Error _ -> (
       (* If line couldn't be parsed as a header item, assume the header
          section is complete and try to parse the line as an alignment. *)
@@ -1369,9 +1369,9 @@ module Parser = struct
         | Error _ as e -> e
         | Ok alignment ->
           let data = on_alignment data header alignment in
-          Ok (alignment_state ~on_alignment ~data header alignment)))
+          Ok (make_alignment_parser ~on_alignment ~data header alignment)))
 
-  and header_state ~on_alignment ~data items : 'a t =
+  and make_header_parser ~on_alignment ~data items : 'a t =
     { parse_line = parse_header_line ~on_alignment ~data items
     ; phase = `Header items
     ; data
@@ -1383,9 +1383,9 @@ module Parser = struct
     | Error _ as e -> e
     | Ok aln ->
       let data = on_alignment data header aln in
-      Ok (alignment_state ~on_alignment ~data header aln)
+      Ok (make_alignment_parser ~on_alignment ~data header aln)
 
-  and alignment_state ~on_alignment ~data header alignment : 'a t =
+  and make_alignment_parser ~on_alignment ~data header alignment : 'a t =
     { parse_line = parse_alignment_line ~on_alignment ~data header
     ; phase = `Alignment (header, alignment)
     ; data
@@ -1394,7 +1394,7 @@ module Parser = struct
   ;;
 
   let init ~on_alignment ~data : 'a t =
-    header_state ~on_alignment ~data Header.Item_list_rev.empty
+    make_header_parser ~on_alignment ~data Header.Item_list_rev.empty
   ;;
 
   let reduce { parse_line; phase = _; data = _; on_alignment = _ } line = parse_line line
@@ -1412,21 +1412,21 @@ module Parser = struct
 end
 
 let of_lines lines =
-  let rec loop state lines =
+  let rec loop parser lines =
     match lines with
-    | [] -> Ok state
+    | [] -> Ok parser
     | line :: lines -> (
-      match Parser.reduce state line with
+      match Parser.reduce parser line with
       | Error _ as e -> e
-      | Ok state -> loop state lines)
+      | Ok parser -> loop parser lines)
   in
   let on_alignment data _header alignment = alignment :: data in
   let init = Parser.init ~on_alignment ~data:[] in
   match loop init lines with
   | Error _ as e -> e
-  | Ok state -> (
-    let alignments = List.rev (Parser.data state) in
-    match Parser.header state with
+  | Ok parser -> (
+    let alignments = List.rev (Parser.data parser) in
+    match Parser.header parser with
     | Error _ as e -> e
     | Ok header -> Ok (header, alignments))
 ;;
@@ -1437,9 +1437,9 @@ let of_lines lines =
 let of_lines_exn lines =
   let on_alignment data _header alignment = alignment :: data in
   let init = Parser.init ~on_alignment ~data:[] in
-  let state = List.fold lines ~init ~f:Parser.reduce_exn in
-  let header = Parser.header_exn state in
-  let alignments = List.rev (Parser.data state) in
+  let parser = List.fold lines ~init ~f:Parser.reduce_exn in
+  let header = Parser.header_exn parser in
+  let alignments = List.rev (Parser.data parser) in
   header, alignments
 ;;
 
