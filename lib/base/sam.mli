@@ -464,7 +464,7 @@ end
 module Parser : sig
   (** State-machine based parser. *)
 
-  module Phase : sig
+  module State : sig
     type t =
       [ `Header of Header.Item_list_rev.t
       | `Alignment of Header.t * Alignment.t
@@ -481,7 +481,7 @@ module Parser : sig
   val header : _ t -> Header.t Or_error.t
 
   val header_exn : _ t -> Header.t
-  val phase : _ t -> Phase.t
+  val state : _ t -> State.t
   val data : 'a t -> 'a
 end
 

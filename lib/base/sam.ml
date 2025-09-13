@@ -1341,7 +1341,7 @@ module Alignment = struct
 end
 
 module Parser = struct
-  module Phase = struct
+  module State = struct
     type t =
       [ `Header of Header.Item_list_rev.t
       | `Alignment of Header.t * Alignment.t
@@ -1350,7 +1350,7 @@ module Parser = struct
 
   type 'a t =
     { parse_line : string -> 'a t Or_error.t
-    ; phase : Phase.t
+    ; state : State.t
     ; data : 'a
     ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
     }
@@ -1373,7 +1373,7 @@ module Parser = struct
 
   and make_header_parser ~on_alignment ~data items : 'a t =
     { parse_line = parse_header_line ~on_alignment ~data items
-    ; phase = `Header items
+    ; state = `Header items
     ; data
     ; on_alignment
     }
@@ -1387,7 +1387,7 @@ module Parser = struct
 
   and make_alignment_parser ~on_alignment ~data header alignment : 'a t =
     { parse_line = parse_alignment_line ~on_alignment ~data header
-    ; phase = `Alignment (header, alignment)
+    ; state = `Alignment (header, alignment)
     ; data
     ; on_alignment
     }
@@ -1397,17 +1397,17 @@ module Parser = struct
     make_header_parser ~on_alignment ~data Header.Item_list_rev.empty
   ;;
 
-  let reduce { parse_line; phase = _; data = _; on_alignment = _ } line = parse_line line
+  let reduce { parse_line; state = _; data = _; on_alignment = _ } line = parse_line line
   let reduce_exn x line = reduce x line |> Or_error.ok_exn
 
-  let header { phase; parse_line = _; data = _; on_alignment = _ } =
-    match phase with
+  let header { state; parse_line = _; data = _; on_alignment = _ } =
+    match state with
     | `Header items -> Header.of_item_list_rev items
     | `Alignment (header, _) -> Ok header
   ;;
 
   let header_exn x = header x |> Or_error.ok_exn
-  let phase x = x.phase
+  let state x = x.state
   let data x = x.data
 end
 
