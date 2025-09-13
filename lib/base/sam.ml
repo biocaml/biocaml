@@ -736,16 +736,30 @@ module Header = struct
         ()
   ;;
 
-  let num_items t =
-    List.length t.ref_seqs
-    + List.length t.read_groups
-    + List.length t.programs
-    + List.length t.comments
-    + List.length t.others
-    +
-    match t.version with
-    | None -> 0
-    | Some _ -> 1
+  let to_items
+        { version
+        ; sort_order
+        ; group_order
+        ; ref_seqs
+        ; read_groups
+        ; programs
+        ; comments
+        ; others
+        }
+    =
+    let hd =
+      match version with
+      | None -> []
+      | Some version -> [ `HD { HD.version; sort_order; group_order } ]
+    in
+    List.concat
+      [ hd
+      ; List.map ref_seqs ~f:(fun x -> `SQ x)
+      ; List.map read_groups ~f:(fun x -> `RG x)
+      ; List.map programs ~f:(fun x -> `PG x)
+      ; List.map comments ~f:(fun x -> `CO x)
+      ; List.map others ~f:(fun x -> `Other x)
+      ]
   ;;
 end
 
