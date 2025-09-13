@@ -76,7 +76,7 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val of_tag_value_list : Tag_value.t list -> t Or_error.t
     val to_string : t -> string
   end
 
@@ -101,7 +101,7 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val of_tag_value_list : Tag_value.t list -> t Or_error.t
     val to_string : t -> string
   end
 
@@ -157,7 +157,7 @@ module Header : sig
       -> unit
       -> t Or_error.t
 
-    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val of_tag_value_list : Tag_value.t list -> t Or_error.t
     val to_string : t -> string
   end
 
@@ -172,7 +172,7 @@ module Header : sig
       }
     [@@deriving sexp]
 
-    val t_of_tag_value_list : Tag_value.t list -> t Or_error.t
+    val of_tag_value_list : Tag_value.t list -> t Or_error.t
     val to_string : t -> string
   end
 
@@ -397,12 +397,12 @@ module Optional_field : sig
       ]
     [@@deriving sexp]
 
-    val t_of_char_A : char -> t Or_error.t
-    val t_of_int64_i : Int64.t -> t
-    val t_of_float_f : float -> t
+    val of_char_A : char -> t Or_error.t
+    val of_int64_i : Int64.t -> t
+    val of_float_f : float -> t
     val of_string_Z : string -> t Or_error.t
     val of_string_H : string -> t Or_error.t
-    val t_of_char_string_list_B : char -> string list -> t Or_error.t
+    val of_char_string_list_B : char -> string list -> t Or_error.t
     val of_string : string -> t Or_error.t
   end
 

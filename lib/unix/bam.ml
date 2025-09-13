@@ -278,7 +278,7 @@ module Alignment0 = struct
   let qual al =
     let shift = String.map ~f:Char.(fun c -> of_int_exn (to_int c + 33)) in
     match shift al.qual with
-    | qual33 -> Biocaml.Sam.Qual.t_of_string qual33
+    | qual33 -> Biocaml.Sam.Qual.of_string qual33
     | exception Failure _ ->
       Or_error.error
         "Bam.Alignement0.qual: incorrect quality score"
@@ -314,25 +314,25 @@ module Alignment0 = struct
     match typ with
     | 'c' ->
       let i = Int64.of_int_exn (BP.unpack_signed_8 ~buf ~pos) in
-      return (Biocaml.Sam.Optional_field.Value.t_of_int64_i i, len)
+      return (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'C' ->
       let i = Int64.of_int_exn (BP.unpack_unsigned_8 ~buf ~pos) in
-      return (Biocaml.Sam.Optional_field.Value.t_of_int64_i i, len)
+      return (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 's' ->
       let i = Int64.of_int_exn (BP.unpack_signed_16_little_endian ~buf ~pos) in
-      return (Biocaml.Sam.Optional_field.Value.t_of_int64_i i, len)
+      return (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'S' ->
       let i = Int64.of_int_exn (BP.unpack_unsigned_16_little_endian ~buf ~pos) in
-      return (Biocaml.Sam.Optional_field.Value.t_of_int64_i i, len)
+      return (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'i' ->
       let i = BP.unpack_signed_32_little_endian ~buf ~pos in
-      return (Biocaml.Sam.Optional_field.Value.t_of_int64_i (Int64.of_int32 i), len)
+      return (Biocaml.Sam.Optional_field.Value.of_int64_i (Int64.of_int32 i), len)
     | 'I' ->
       let i = BP.unpack_unsigned_32_little_endian ~buf ~pos in
-      return (Biocaml.Sam.Optional_field.Value.t_of_int64_i i, len)
+      return (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'f' ->
       let f = BP.unpack_float_little_endian ~buf ~pos in
-      return (Biocaml.Sam.Optional_field.Value.t_of_float_f f, len)
+      return (Biocaml.Sam.Optional_field.Value.of_float_f f, len)
     | _ -> error_string "Incorrect numeric optional field type identifier"
   ;;
 
@@ -340,18 +340,18 @@ module Alignment0 = struct
     | 'A' ->
       check_buf ~buf ~pos ~len:1
       >>= fun () ->
-      Biocaml.Sam.Optional_field.Value.t_of_char_A (String.get buf pos)
+      Biocaml.Sam.Optional_field.Value.of_char_A (String.get buf pos)
       >>= fun v -> return (v, 1)
     | ('c' | 'C' | 's' | 'S' | 'i' | 'I' | 'f') as typ -> parse_cCsSiIf buf pos typ
     | 'Z' ->
       parse_cstring buf pos
       >>= fun (s, pos') ->
-      Biocaml.Sam.Optional_field.Value.t_of_string_Z s
+      Biocaml.Sam.Optional_field.Value.of_string_Z s
       >>= fun value -> return (value, pos' - pos)
     | 'H' ->
       parse_cstring buf pos
       >>= fun (s, pos') ->
-      Biocaml.Sam.Optional_field.Value.t_of_string_H s
+      Biocaml.Sam.Optional_field.Value.of_string_H s
       >>= fun value -> return (value, pos' - pos)
     | 'B' -> (
       check_buf ~buf ~pos ~len:5
@@ -369,7 +369,7 @@ module Alignment0 = struct
             String.sub buf ~pos:(pos + 5 + (i * elt_size)) ~len:elt_size)
         in
         let bytes_read = 5 (* array type and size *) + (elt_size * n) in
-        Biocaml.Sam.Optional_field.Value.t_of_char_string_list_B typ elts
+        Biocaml.Sam.Optional_field.Value.of_char_string_list_B typ elts
         >>= fun value -> return (value, bytes_read)
       | None -> error_string "Too many elements in B-type optional field")
     | c -> error "Incorrect optional field type identifier" c [%sexp_of: char]
@@ -739,18 +739,18 @@ let write_plain_SAM_header h oz =
       |> ok_exn
     in
     (* the construction of the header line must be valid since we are building it from a validated header *)
-    add_line (Biocaml.Sam.Header.HD.string_of_t hl));
+    add_line (Biocaml.Sam.Header.HD.to_string hl));
   List.iter h.Biocaml.Sam.Header.ref_seqs ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.SQ.string_of_t x));
+    add_line (Biocaml.Sam.Header.SQ.to_string x));
   List.iter h.Biocaml.Sam.Header.read_groups ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.RG.string_of_t x));
+    add_line (Biocaml.Sam.Header.RG.to_string x));
   List.iter h.Biocaml.Sam.Header.programs ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.PG.string_of_t x));
+    add_line (Biocaml.Sam.Header.PG.to_string x));
   List.iter h.Biocaml.Sam.Header.comments ~f:(fun x ->
     Buffer.add_string buf "@CO\t";
     add_line x);
   List.iter h.Biocaml.Sam.Header.others ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.Other.string_of_t x));
+    add_line (Biocaml.Sam.Header.Other.to_string x));
   Bgzf.output_s32 oz (Int32.of_int_exn (Buffer.length buf));
   (* safe conversion of int32 to int: SAM headers less than a few KB *)
   Bgzf.output_string oz (Buffer.contents buf)

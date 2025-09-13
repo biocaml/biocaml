@@ -229,7 +229,7 @@ module Header = struct
       VN.of_string version >>| fun version -> { version; sort_order; group_order }
     ;;
 
-    let t_of_tag_value_list tvl =
+    let of_tag_value_list tvl =
       Tag_value.find1 `HD tvl "VN"
       >>= fun version ->
       Tag_value.find01 `HD tvl "SO"
@@ -289,7 +289,7 @@ module Header = struct
       >>= fun name -> Ok { name; length; assembly; md5; species; uri }
     ;;
 
-    let t_of_tag_value_list tvl =
+    let of_tag_value_list tvl =
       Tag_value.find1 `SQ tvl "SN"
       >>= fun name ->
       Tag_value.find1 `SQ tvl "LN"
@@ -444,7 +444,7 @@ module Header = struct
       }
     ;;
 
-    let t_of_tag_value_list tvl =
+    let of_tag_value_list tvl =
       Tag_value.find1 `RG tvl "ID"
       >>= fun id ->
       Tag_value.find01 `RG tvl "CN"
@@ -533,7 +533,7 @@ module Header = struct
       }
     [@@deriving sexp]
 
-    let t_of_tag_value_list tvl =
+    let of_tag_value_list tvl =
       Tag_value.find1 `PG tvl "ID"
       >>= fun id ->
       Tag_value.find01 `PG tvl "PN"
@@ -592,10 +592,10 @@ module Header = struct
     let of_string line =
       let parse_data tag tvl =
         match tag with
-        | `HD -> HD.t_of_tag_value_list tvl >>| fun x -> `HD x
-        | `SQ -> SQ.t_of_tag_value_list tvl >>| fun x -> `SQ x
-        | `RG -> RG.t_of_tag_value_list tvl >>| fun x -> `RG x
-        | `PG -> PG.t_of_tag_value_list tvl >>| fun x -> `PG x
+        | `HD -> HD.of_tag_value_list tvl >>| fun x -> `HD x
+        | `SQ -> SQ.of_tag_value_list tvl >>| fun x -> `SQ x
+        | `RG -> RG.of_tag_value_list tvl >>| fun x -> `RG x
+        | `PG -> PG.of_tag_value_list tvl >>| fun x -> `PG x
         | `Other tag -> Ok (`Other (tag, tvl))
         | `CO -> assert false
       in
@@ -1064,13 +1064,13 @@ module Optional_field = struct
       Error (Error.create "invalid value" (typ, value) [%sexp_of: string * string])
     ;;
 
-    let t_of_char_A = function
+    let of_char_A = function
       | '!' .. '~' as value -> Ok (`A value)
       | c -> parse_err "A" (sprintf "char code %d" (Char.to_int c))
     ;;
 
-    let t_of_int64_i i = `i i
-    let t_of_float_f f = `f f
+    let of_int64_i i = `i i
+    let of_float_f f = `f f
 
     let of_string_Z value =
       if Re.execp opt_field_Z_re value then Ok (`Z value) else parse_err "Z" value
@@ -1080,7 +1080,7 @@ module Optional_field = struct
       if Re.execp opt_field_H_re value then Ok (`H value) else parse_err "H" value
     ;;
 
-    let t_of_char_string_list_B elt_type elts =
+    let of_char_string_list_B elt_type elts =
       let valid_args =
         match elt_type with
         | 'c' | 'C' | 's' | 'S' | 'i' | 'I' ->
@@ -1104,18 +1104,18 @@ module Optional_field = struct
       | Some (typ, value) -> (
         match typ with
         | "A" ->
-          if String.length value = 1 then t_of_char_A value.[0] else parse_err typ value
+          if String.length value = 1 then of_char_A value.[0] else parse_err typ value
         | "i" -> (
           try
             if not (Re.execp opt_field_int_re value) then failwith "";
-            Ok (t_of_int64_i (Int64.of_string value))
+            Ok (of_int64_i (Int64.of_string value))
             (* matching the regular expression is not enough: the number could not fit in 64 bits *)
           with
           | _ -> parse_err typ value)
         | "f" -> (
           try
             if not (Re.execp opt_field_float_re value) then failwith "";
-            Ok (t_of_float_f (Float.of_string value))
+            Ok (of_float_f (Float.of_string value))
             (* matching the regular expression is not enough: the number could not fit in native floats *)
           with
           | _ -> parse_err typ value)
@@ -1125,7 +1125,7 @@ module Optional_field = struct
           match String.split ~on:',' value with
           | num_typ :: values ->
             if String.length num_typ = 1
-            then t_of_char_string_list_B num_typ.[0] values
+            then of_char_string_list_B num_typ.[0] values
             else Error (Error.create "invalid array type" num_typ sexp_of_string)
           | _ -> assert false (* [String.split] cannot return an empty list *))
         | _ -> Error (Error.create "invalid type" typ sexp_of_string))
@@ -1176,7 +1176,7 @@ module Optional_field = struct
     ;;
 
     let%expect_test "test_parser" =
-      test_parse_optional_field "YS:i:-1" (make "YS" (Value.t_of_int64_i (-1L)));
+      test_parse_optional_field "YS:i:-1" (make "YS" (Value.of_int64_i (-1L)));
       [%expect
         {| Optional field value (i type): (Ok ((tag YS) (value (i -1)))) = (Ok ((tag YS) (value (i -1)))): true |}]
     ;;
