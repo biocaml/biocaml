@@ -21,7 +21,7 @@ module Header = struct
       ]
     [@@deriving sexp]
 
-    let string_of_t = function
+    let to_string = function
       | `HD -> "@HD"
       | `SQ -> "@SQ"
       | `RG -> "@RG"
@@ -30,7 +30,7 @@ module Header = struct
       | `Other x -> sprintf "@%s" x
     ;;
 
-    let t_of_string s =
+    let of_string s =
       let is_letter = function
         | 'A' .. 'Z' | 'a' .. 'z' -> true
         | _ -> false
@@ -52,7 +52,7 @@ module Header = struct
   module Tag_value = struct
     type t = string * string [@@deriving sexp]
 
-    let t_of_string s =
+    let of_string s =
       let parse_tag s =
         if
           String.length s = 2
@@ -83,7 +83,7 @@ module Header = struct
         parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
     ;;
 
-    let string_of_t (tag, value) = sprintf "%s:%s" tag value
+    let to_string (tag, value) = sprintf "%s:%s" tag value
     let print_tag_value' = sprintf "%s:%s"
 
     (** Find all occurrences of [x'] in the association list [l]. *)
@@ -156,7 +156,7 @@ module Header = struct
         ]
       [@@deriving sexp]
 
-      let t_of_string = function
+      let of_string = function
         | "unknown" -> Ok `Unknown
         | "unsorted" -> Ok `Unsorted
         | "queryname" -> Ok `Query_name
@@ -164,7 +164,7 @@ module Header = struct
         | x -> Error (Error.create "invalid sort order" x sexp_of_string)
       ;;
 
-      let string_of_t x =
+      let to_string x =
         Tag_value.print_tag_value'
           "SO"
           (match x with
@@ -183,14 +183,14 @@ module Header = struct
         ]
       [@@deriving sexp]
 
-      let t_of_string = function
+      let of_string = function
         | "none" -> Ok `None
         | "query" -> Ok `Query
         | "reference" -> Ok `Reference
         | x -> Error (Error.create "invalid group order" x sexp_of_string)
       ;;
 
-      let string_of_t x =
+      let to_string x =
         Tag_value.print_tag_value'
           "GO"
           (match x with
@@ -203,7 +203,7 @@ module Header = struct
     module VN = struct
       type t = string [@@deriving sexp]
 
-      let t_of_string s =
+      let of_string s =
         let err =
           Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
         in
@@ -215,7 +215,7 @@ module Header = struct
           else err
       ;;
 
-      let string_of_t x = Tag_value.print_tag_value' "VN" x
+      let to_string x = Tag_value.print_tag_value' "VN" x
     end
 
     type t =
@@ -226,32 +226,32 @@ module Header = struct
     [@@deriving sexp]
 
     let make ~version ?sort_order ?group_order () =
-      VN.t_of_string version >>| fun version -> { version; sort_order; group_order }
+      VN.of_string version >>| fun version -> { version; sort_order; group_order }
     ;;
 
     let t_of_tag_value_list tvl =
       Tag_value.find1 `HD tvl "VN"
       >>= fun version ->
       Tag_value.find01 `HD tvl "SO"
-      >>?~ SO.t_of_string
+      >>?~ SO.of_string
       >>= fun sort_order ->
       Tag_value.find01 `HD tvl "GO"
-      >>?~ GO.t_of_string
+      >>?~ GO.of_string
       >>= fun group_order ->
       Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
       >>= fun () -> make ~version ?sort_order ?group_order ()
     ;;
 
-    let string_of_t { version; sort_order; group_order } =
+    let to_string { version; sort_order; group_order } =
       sprintf
         "@HD\tVN:%s%s%s"
         version
         (match sort_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (SO.string_of_t x))
+         | Some x -> sprintf "\t%s" (SO.to_string x))
         (match group_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (GO.string_of_t x))
+         | Some x -> sprintf "\t%s" (GO.to_string x))
     ;;
   end
 
@@ -309,7 +309,7 @@ module Header = struct
       >>= fun () -> make ~name ~length ?assembly ?md5 ?species ?uri ()
     ;;
 
-    let string_of_t (x : t) =
+    let to_string (x : t) =
       sprintf
         "@SQ\tSN:%s\tLN:%d%s%s%s%s"
         x.name
@@ -342,7 +342,7 @@ module Header = struct
         ]
       [@@deriving sexp]
 
-      let t_of_string = function
+      let of_string = function
         | "CAPILLARY" -> Ok `Capillary
         | "LS454" -> Ok `LS454
         | "ILLUMINA" -> Ok `Illumina
@@ -353,7 +353,7 @@ module Header = struct
         | x -> Error (Error.create "unknown platform" x sexp_of_string)
       ;;
 
-      let string_of_t = function
+      let to_string = function
         | `Capillary -> "CAPILLARY"
         | `LS454 -> "LS454"
         | `Illumina -> "ILLUMINA"
@@ -472,7 +472,7 @@ module Header = struct
              sexp_of_string))
       >>= fun predicted_median_insert_size ->
       Tag_value.find01 `RG tvl "PL"
-      >>?~ PL.t_of_string
+      >>?~ PL.of_string
       >>= fun platform ->
       Tag_value.find01 `RG tvl "PU"
       >>= fun platform_unit ->
@@ -499,7 +499,7 @@ module Header = struct
         ()
     ;;
 
-    let string_of_t (x : t) =
+    let to_string (x : t) =
       let s tag value =
         match value with
         | None -> ""
@@ -516,7 +516,7 @@ module Header = struct
         (s "LB" x.library)
         (s "PG" x.program)
         (s "PI" (Option.map x.predicted_median_insert_size ~f:Int.to_string))
-        (s "PL" (Option.map x.platform ~f:PL.string_of_t))
+        (s "PL" (Option.map x.platform ~f:PL.to_string))
         (s "PU" x.platform_unit)
         (s "SM" x.sample)
     ;;
@@ -550,7 +550,7 @@ module Header = struct
       >>| fun () -> { id; name; command_line; previous_id; description; version }
     ;;
 
-    let string_of_t (x : t) =
+    let to_string (x : t) =
       let s tag value =
         match value with
         | None -> ""
@@ -570,7 +570,7 @@ module Header = struct
   module Other = struct
     type t = string * Tag_value.t list [@@deriving sexp]
 
-    let string_of_t ((tag, l) : t) =
+    let to_string ((tag, l) : t) =
       sprintf
         "@%s%s"
         tag
@@ -589,7 +589,7 @@ module Header = struct
       ]
     [@@deriving sexp]
 
-    let t_of_string line =
+    let of_string line =
       let parse_data tag tvl =
         match tag with
         | `HD -> HD.t_of_tag_value_list tvl >>| fun x -> `HD x
@@ -602,7 +602,7 @@ module Header = struct
       match String.lsplit2 ~on:'\t' line with
       | None -> Error (Error.create "header line contains no tabs" line sexp_of_string)
       | Some (tag, data) -> (
-        Type.t_of_string tag
+        Type.of_string tag
         >>= function
         | `CO -> Ok (`CO data)
         | tag -> (
@@ -610,8 +610,7 @@ module Header = struct
           | [] -> assert false
           | "" :: [] -> Error (Error.create "header contains no data" tag Type.sexp_of_t)
           | tvl ->
-            Result_list.map tvl ~f:Tag_value.t_of_string >>= fun tvl -> parse_data tag tvl
-          ))
+            Result_list.map tvl ~f:Tag_value.of_string >>= fun tvl -> parse_data tag tvl))
     ;;
   end
 
@@ -665,7 +664,7 @@ module Header = struct
     [ (match version with
        | None -> None
        | Some x -> (
-         match HD.VN.t_of_string x with
+         match HD.VN.of_string x with
          | Error e -> Some e
          | Ok _ -> None))
     ; (if Option.is_some sort_order && Poly.(version = None)
@@ -784,7 +783,7 @@ module Qname = struct
 
   let t_option_of_string s = parse_opt_string "QNAME" regexp s
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> x
     | None -> "*"
   ;;
@@ -799,12 +798,12 @@ module Flag = struct
     else Error (Error.create "flag out of range" x sexp_of_int)
   ;;
 
-  let t_of_string s =
+  let of_string s =
     try of_int (Int.of_string s) with
     | _ -> Error (Error.create "invalid FLAG" s sexp_of_string)
   ;;
 
-  let string_of_t = Int.to_string
+  let to_string = Int.to_string
   let flag_is_set s f = f land s <> 0
   let has_multiple_segments = flag_is_set 0x1
   let each_segment_properly_aligned = flag_is_set 0x2
@@ -826,7 +825,7 @@ module Rname = struct
   let regexp = Re.Perl.compile_pat "^\\*|[!-()+-<>-~][!-~]*$"
   let t_option_of_string s = parse_opt_string "RNAME" regexp s
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> x
     | None -> "*"
   ;;
@@ -842,7 +841,7 @@ module Pos = struct
     | x -> Some x
   ;;
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> Int.to_string x
     | None -> "0"
   ;;
@@ -858,7 +857,7 @@ module Mapq = struct
     | x -> Some x
   ;;
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> Int.to_string x
     | None -> "255"
   ;;
@@ -896,7 +895,7 @@ module Cigar = struct
     let seq_match_of_int i = Or_error.(positive i >>| fun i -> `Seq_match i)
     let seq_mismatch_of_int i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
 
-    let string_of_t = function
+    let to_string = function
       | `Alignment_match x -> sprintf "%dM" x
       | `Insertion x -> sprintf "%dI" x
       | `Deletion x -> sprintf "%dD" x
@@ -911,7 +910,7 @@ module Cigar = struct
 
   type t = Op.t list [@@deriving sexp]
 
-  let t_of_string text =
+  let of_string text =
     match text with
     | "*" -> Ok []
     | "" -> Error (Error.create "invalid cigar string" text sexp_of_string)
@@ -946,9 +945,9 @@ module Cigar = struct
       loop [] >>| List.rev
   ;;
 
-  let string_of_t = function
+  let to_string = function
     | [] -> "*"
-    | cigar_ops -> List.map cigar_ops ~f:Op.string_of_t |> String.concat ~sep:""
+    | cigar_ops -> List.map cigar_ops ~f:Op.to_string |> String.concat ~sep:""
   ;;
 end
 
@@ -971,7 +970,7 @@ module Rnext = struct
       | _ -> Ok (Some (`Value s)))
   ;;
 
-  let string_of_t_option = function
+  let to_string_option = function
     | None -> "*"
     | Some `Equal_to_RNAME -> "="
     | Some (`Value x) -> x
@@ -988,7 +987,7 @@ module Pnext = struct
     | x -> Some x
   ;;
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> Int.to_string x
     | None -> "0"
   ;;
@@ -1004,7 +1003,7 @@ module Tlen = struct
     | x -> Some x
   ;;
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> Int.to_string x
     | None -> "0"
   ;;
@@ -1016,7 +1015,7 @@ module Seq = struct
   let regexp = Re.Perl.compile_pat "^\\*|[A-Za-z=.]+$"
   let t_option_of_string s = parse_opt_string "SEQ" regexp s
 
-  let string_of_t_option = function
+  let to_string_option = function
     | Some x -> x
     | None -> "*"
   ;;
@@ -1025,14 +1024,14 @@ end
 module Qual = struct
   type t = Phred_score.t list [@@deriving sexp]
 
-  let t_of_string s =
+  let of_string s =
     match s with
     | "" -> Or_error.error_string "invalid empty QUAL"
     | "*" -> Ok []
     | _ -> String.to_list s |> Result_list.map ~f:(Phred_score.of_char ~offset:`Offset33)
   ;;
 
-  let string_of_t = function
+  let to_string = function
     | [] -> "*"
     | quals ->
       List.map quals ~f:(fun x ->
@@ -1073,11 +1072,11 @@ module Optional_field = struct
     let t_of_int64_i i = `i i
     let t_of_float_f f = `f f
 
-    let t_of_string_Z value =
+    let of_string_Z value =
       if Re.execp opt_field_Z_re value then Ok (`Z value) else parse_err "Z" value
     ;;
 
-    let t_of_string_H value =
+    let of_string_H value =
       if Re.execp opt_field_H_re value then Ok (`H value) else parse_err "H" value
     ;;
 
@@ -1099,7 +1098,7 @@ module Optional_field = struct
              [%sexp_of: string * char * string list])
     ;;
 
-    let t_of_string s =
+    let of_string s =
       match String.lsplit2 s ~on:':' with
       | None -> Error (Error.create "missing TYPE in optional field" s sexp_of_string)
       | Some (typ, value) -> (
@@ -1120,8 +1119,8 @@ module Optional_field = struct
             (* matching the regular expression is not enough: the number could not fit in native floats *)
           with
           | _ -> parse_err typ value)
-        | "Z" -> t_of_string_Z value
-        | "H" -> t_of_string_H value
+        | "Z" -> of_string_Z value
+        | "H" -> of_string_H value
         | "B" -> (
           match String.split ~on:',' value with
           | num_typ :: values ->
@@ -1147,13 +1146,13 @@ module Optional_field = struct
     else Ok { tag; value }
   ;;
 
-  let t_of_string s =
+  let of_string s =
     match String.lsplit2 s ~on:':' with
     | None -> Error (Error.create "missing TAG in optional field" s sexp_of_string)
-    | Some (tag, s) -> Value.t_of_string s >>= fun value -> make tag value
+    | Some (tag, s) -> Value.of_string s >>= fun value -> make tag value
   ;;
 
-  let string_of_t (x : t) =
+  let to_string (x : t) =
     let typ, value =
       match x.value with
       | `A x -> 'A', Char.to_string x
@@ -1168,7 +1167,7 @@ module Optional_field = struct
 
   module Test = struct
     let test_parse_optional_field (s : string) (v : t Or_error.t) =
-      let f : t Or_error.t = t_of_string s in
+      let f : t Or_error.t = of_string s in
       Stdlib.Printf.printf
         "Optional field value (i type): %s = %s: %b\n"
         (f |> Or_error.sexp_of_t sexp_of_t |> Sexp.to_string_hum)
@@ -1266,7 +1265,7 @@ module Alignment = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let t_of_string ?ref_seqs line =
+  let of_string ?ref_seqs line =
     match String.split ~on:'\t' line with
     | qname
       :: flag
@@ -1282,7 +1281,7 @@ module Alignment = struct
       :: optional_fields ->
       Qname.t_option_of_string qname
       >>= fun qname ->
-      Flag.t_of_string flag
+      Flag.of_string flag
       >>= fun flag ->
       Rname.t_option_of_string rname
       >>= fun rname ->
@@ -1290,7 +1289,7 @@ module Alignment = struct
       >>= fun pos ->
       Mapq.t_option_of_string mapq
       >>= fun mapq ->
-      Cigar.t_of_string cigar
+      Cigar.of_string cigar
       >>= fun cigar ->
       Rnext.t_option_of_string rnext
       >>= fun rnext ->
@@ -1300,9 +1299,9 @@ module Alignment = struct
       >>= fun tlen ->
       Seq.t_option_of_string seq
       >>= fun seq ->
-      Qual.t_of_string qual
+      Qual.of_string qual
       >>= fun qual ->
-      Result_list.map optional_fields ~f:Optional_field.t_of_string
+      Result_list.map optional_fields ~f:Optional_field.of_string
       >>= fun optional_fields ->
       make
         ?ref_seqs
@@ -1322,21 +1321,21 @@ module Alignment = struct
     | _ -> Or_error.error_string "alignment line contains < 12 fields"
   ;;
 
-  let string_of_t a =
+  let to_string a =
     sprintf
       "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
-      (Qname.string_of_t_option a.qname)
-      (Flag.string_of_t a.flag)
-      (Rname.string_of_t_option a.rname)
-      (Pos.string_of_t_option a.pos)
-      (Mapq.string_of_t_option a.mapq)
-      (Cigar.string_of_t a.cigar)
-      (Rnext.string_of_t_option a.rnext)
-      (Pnext.string_of_t_option a.pnext)
-      (Tlen.string_of_t_option a.tlen)
-      (Seq.string_of_t_option a.seq)
-      (Qual.string_of_t a.qual)
-      (List.map a.optional_fields ~f:Optional_field.string_of_t |> String.concat ~sep:"\t")
+      (Qname.to_string_option a.qname)
+      (Flag.to_string a.flag)
+      (Rname.to_string_option a.rname)
+      (Pos.to_string_option a.pos)
+      (Mapq.to_string_option a.mapq)
+      (Cigar.to_string a.cigar)
+      (Rnext.to_string_option a.rnext)
+      (Pnext.to_string_option a.pnext)
+      (Tlen.to_string_option a.tlen)
+      (Seq.to_string_option a.seq)
+      (Qual.to_string a.qual)
+      (List.map a.optional_fields ~f:Optional_field.to_string |> String.concat ~sep:"\t")
   ;;
 end
 
@@ -1356,7 +1355,7 @@ module Parser = struct
     }
 
   let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
-    match Header.Item.t_of_string line with
+    match Header.Item.of_string line with
     | Ok item ->
       Ok (make_header_parser ~on_alignment ~data (Header.Item_list_rev.append items item))
     | Error _ -> (
@@ -1365,7 +1364,7 @@ module Parser = struct
       match Header.of_item_list_rev items with
       | Error _ as e -> e
       | Ok header -> (
-        match Alignment.t_of_string line with
+        match Alignment.of_string line with
         | Error _ as e -> e
         | Ok alignment ->
           let data = on_alignment data header alignment in
@@ -1379,7 +1378,7 @@ module Parser = struct
     }
 
   and parse_alignment_line ~on_alignment ~data header line =
-    match Alignment.t_of_string line with
+    match Alignment.of_string line with
     | Error _ as e -> e
     | Ok aln ->
       let data = on_alignment data header aln in
