@@ -462,7 +462,7 @@ module Alignment : sig
 end
 
 module Parser : sig
-  (** State-machine based parser. *)
+  (** State-machine based line-oriented parser. *)
 
   module State : sig
     type t =
@@ -473,9 +473,14 @@ module Parser : sig
 
   type 'a t
 
+  (** [init ~on_alignment ~data] produces an initial parser, ready to parse the
+      first line of a SAM file with initial data set to [data]. The callback
+      [on_alignment] is called on the result of parsing each alignment line,
+      and updates the data. *)
   val init : on_alignment:('a -> Header.t -> Alignment.t -> 'a) -> data:'a -> 'a t
-  val reduce : 'a t -> string -> 'a t Or_error.t
-  val reduce_exn : 'a t -> string -> 'a t
+
+  val step : 'a t -> string -> 'a t Or_error.t
+  val step_exn : 'a t -> string -> 'a t
 
   (** [header t] returns the header parsed thus far given current state [t]. *)
   val header : _ t -> Header.t Or_error.t

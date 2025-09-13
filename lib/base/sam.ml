@@ -1397,8 +1397,8 @@ module Parser = struct
     make_header_parser ~on_alignment ~data Header.Item_list_rev.empty
   ;;
 
-  let reduce { parse_line; state = _; data = _; on_alignment = _ } line = parse_line line
-  let reduce_exn x line = reduce x line |> Or_error.ok_exn
+  let step { parse_line; state = _; data = _; on_alignment = _ } line = parse_line line
+  let step_exn x line = step x line |> Or_error.ok_exn
 
   let header { state; parse_line = _; data = _; on_alignment = _ } =
     match state with
@@ -1416,7 +1416,7 @@ let of_lines lines =
     match lines with
     | [] -> Ok parser
     | line :: lines -> (
-      match Parser.reduce parser line with
+      match Parser.step parser line with
       | Error _ as e -> e
       | Ok parser -> loop parser lines)
   in
@@ -1432,12 +1432,12 @@ let of_lines lines =
 ;;
 
 (* We could implement this as [of_lines |> ok_exn], but we also want to demonstrate
-   how to use [reduce_exn] versus [reduce] to contrast with the implementation of
+   how to use [step_exn] versus [step] to contrast with the implementation of
    [of_lines] above. *)
 let of_lines_exn lines =
   let on_alignment data _header alignment = alignment :: data in
   let init = Parser.init ~on_alignment ~data:[] in
-  let parser = List.fold lines ~init ~f:Parser.reduce_exn in
+  let parser = List.fold lines ~init ~f:Parser.step_exn in
   let header = Parser.header_exn parser in
   let alignments = List.rev (Parser.data parser) in
   header, alignments
