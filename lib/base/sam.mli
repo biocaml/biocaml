@@ -222,6 +222,19 @@ module Header : sig
   [@@deriving sexp]
   (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
+  (** List of header lines with guarantees:
+     - The @HD line is the first item if it exists.
+     - The SN fields of all @SQ lines (i.e. name field in SQ module
+       above) are unique.
+     - The order of @SQ lines is preserved as given in constructors.
+       This is required by the SAM specification because it dictates
+       alignment sorting order when [sort_order = `Coordinate].
+
+     In addition to the @SQ lines, we preserve the order of all lines.
+     Though not mandated by the SAM specification, this follows the
+     principle of least surprise. *)
+  type t2 = private Item.t list [@@deriving sexp]
+
   val empty : t
 
   val make
@@ -234,12 +247,11 @@ module Header : sig
     -> unit
     -> t Or_error.t
 
-  (** [of_item_list_rev items] takes a list of header items in reverse order. *)
-  val of_item_list_rev : Item.t list -> t Or_error.t
+  val of_items : Item.t list -> t2 Or_error.t
 
   (** [of_lines lines] parses [lines] through all header lines. Returns the
       header and any remaining lines, which are presumably alignment lines. *)
-  val of_lines : string list -> (t * string list) Or_error.t
+  val of_lines : string list -> (t2 * string list) Or_error.t
 
   val to_items : t -> Item.t list
 end
@@ -454,7 +466,7 @@ module Parser : sig
   module State : sig
     type t =
       [ `Header of Header.Item.t list (* items in reverse order *)
-      | `Alignment of Header.t * Alignment.t
+      | `Alignment of Header.t2 * Alignment.t
       ]
   end
 
@@ -464,27 +476,27 @@ module Parser : sig
       first line of a SAM file with initial data set to [data]. The callback
       [on_alignment] is called on the result of parsing each alignment line,
       and updates the data. *)
-  val init : on_alignment:('a -> Header.t -> Alignment.t -> 'a) -> data:'a -> 'a t
+  val init : on_alignment:('a -> Header.t2 -> Alignment.t -> 'a) -> data:'a -> 'a t
 
   val step : 'a t -> string -> 'a t Or_error.t
   val step_exn : 'a t -> string -> 'a t
 
   (** [header t] returns the header parsed thus far given current state [t]. *)
-  val header : _ t -> Header.t Or_error.t
+  val header : _ t -> Header.t2 Or_error.t
 
-  val header_exn : _ t -> Header.t
+  val header_exn : _ t -> Header.t2
   val state : _ t -> State.t
   val data : 'a t -> 'a
 end
 
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
-val of_lines : string list -> (Header.t * Alignment.t list) Or_error.t
+val of_lines : string list -> (Header.t2 * Alignment.t list) Or_error.t
 
-val of_lines2 : string list -> (Header.t * Alignment.t list) Or_error.t
-val of_lines_exn : string list -> Header.t * Alignment.t list
-val of_lines2_exn : string list -> Header.t * Alignment.t list
+val of_lines2 : string list -> (Header.t2 * Alignment.t list) Or_error.t
+val of_lines_exn : string list -> Header.t2 * Alignment.t list
+val of_lines2_exn : string list -> Header.t2 * Alignment.t list
 
 (** [of_string content] parses the given [content] of a SAM file. *)
-val of_string : string -> (Header.t * Alignment.t list) Or_error.t
+val of_string : string -> (Header.t2 * Alignment.t list) Or_error.t
 
-val of_string_exn : string -> Header.t * Alignment.t list
+val of_string_exn : string -> Header.t2 * Alignment.t list

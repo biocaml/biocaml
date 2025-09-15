@@ -633,6 +633,8 @@ module Header = struct
     }
   [@@deriving sexp]
 
+  type t2 = Item.t list [@@deriving sexp]
+
   let empty =
     { hd = None
     ; ref_seqs = []
@@ -663,26 +665,31 @@ module Header = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let of_item_list_rev (items : Item.t list) =
-    let rec loop t (items : Item.t list) : t Or_error.t =
-      match items with
-      | [] -> Ok t
-      | item :: items -> (
+  let of_items (items : Item.t list) =
+    let non_unique_HD : Error.t list =
+      items
+      |> List.foldi ~init:[] ~f:(fun i acc item ->
         match item with
-        | `HD hd -> (
-          match t.hd with
-          | Some _ -> Or_error.error_string "multiple @HD lines not allowed"
-          | None -> loop { t with hd = Some hd } items)
-        | `SQ x -> loop { t with ref_seqs = x :: t.ref_seqs } items
-        | `RG x -> loop { t with read_groups = x :: t.read_groups } items
-        | `PG x -> loop { t with programs = x :: t.programs } items
-        | `CO x -> loop { t with comments = x :: t.comments } items
-        | `Other x -> loop { t with others = x :: t.others } items)
+        | `HD _ -> i :: acc
+        | _ -> acc)
+      |> function
+      | [] | [ 0 ] -> []
+      | _ -> [ Error.of_string "multiple @HD lines not allowed" ]
     in
-    match loop empty (items :> Item.t list) with
-    | Error _ as e -> e
-    | Ok { hd; ref_seqs; read_groups; programs; comments; others } ->
-      make ?hd ~ref_seqs ~read_groups ~programs ~comments ~others ()
+    let non_unique_SQ_names =
+      items
+      |> List.filter_map ~f:(function
+        | `SQ x -> Some x.name
+        | _ -> None)
+      |> List.find_a_dup ~compare:String.compare
+      |> function
+      | None -> []
+      | Some name -> [ Error.of_string (sprintf "duplicate ref seq name: %s" name) ]
+    in
+    let errors = non_unique_HD @ non_unique_SQ_names in
+    match errors with
+    | [] -> Ok items
+    | _ -> Error (Error.of_list errors)
   ;;
 
   let of_lines lines =
@@ -705,7 +712,7 @@ module Header = struct
     match loop [] lines with
     | Error _ as e -> e
     | Ok (items, lines) -> (
-      match of_item_list_rev items with
+      match items |> List.rev |> of_items with
       | Error _ as e -> e
       | Ok header -> Ok (header, lines))
   ;;
@@ -1318,7 +1325,7 @@ module Parser = struct
   module State = struct
     type t =
       [ `Header of Header.Item.t list (* items in reverse order *)
-      | `Alignment of Header.t * Alignment.t
+      | `Alignment of Header.t2 * Alignment.t
       ]
   end
 
@@ -1326,7 +1333,7 @@ module Parser = struct
     { parse_line : string -> 'a t Or_error.t
     ; state : State.t
     ; data : 'a
-    ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
+    ; on_alignment : 'a -> Header.t2 -> Alignment.t -> 'a
     }
 
   let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
@@ -1335,7 +1342,7 @@ module Parser = struct
     | Error _ -> (
       (* If line couldn't be parsed as a header item, assume the header
          section is complete and try to parse the line as an alignment. *)
-      match Header.of_item_list_rev items with
+      match items |> List.rev |> Header.of_items with
       | Error _ as e -> e
       | Ok header -> (
         match Alignment.of_string line with
@@ -1372,7 +1379,7 @@ module Parser = struct
 
   let header { state; parse_line = _; data = _; on_alignment = _ } =
     match state with
-    | `Header items -> Header.of_item_list_rev items
+    | `Header items -> items |> List.rev |> Header.of_items
     | `Alignment (header, _) -> Ok header
   ;;
 
