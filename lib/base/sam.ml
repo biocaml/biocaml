@@ -623,47 +623,7 @@ module Header = struct
     ;;
   end
 
-  type t =
-    { hd : HD.t option
-    ; ref_seqs : SQ.t list
-    ; read_groups : RG.t list
-    ; programs : PG.t list
-    ; comments : string list
-    ; others : Other.t list
-    }
-  [@@deriving sexp]
-
-  type t2 = Item.t list [@@deriving sexp]
-
-  let empty =
-    { hd = None
-    ; ref_seqs = []
-    ; read_groups = []
-    ; programs = []
-    ; comments = []
-    ; others = []
-    }
-  ;;
-
-  let make
-        ?hd
-        ?(ref_seqs = [])
-        ?(read_groups = [])
-        ?(programs = [])
-        ?(comments = [])
-        ?(others = [])
-        ()
-    =
-    [ List.map ref_seqs ~f:(fun (x : SQ.t) -> x.name)
-      |> List.find_a_dup ~compare:String.compare
-      |> Option.map ~f:(fun name ->
-        Error.create "duplicate ref seq name" name sexp_of_string)
-    ]
-    |> List.filter_map ~f:Fn.id
-    |> function
-    | [] -> Ok { hd; ref_seqs; read_groups; programs; comments; others }
-    | errs -> Error (Error.of_list errs)
-  ;;
+  type t = Item.t list [@@deriving sexp]
 
   let of_items (items : Item.t list) =
     let non_unique_HD : Error.t list =
@@ -717,17 +677,74 @@ module Header = struct
       | Ok header -> Ok (header, lines))
   ;;
 
-  let to_items { hd; ref_seqs; read_groups; programs; comments; others } =
-    List.concat
-      [ (match hd with
-         | None -> []
-         | Some hd -> [ `HD hd ])
-      ; List.map ref_seqs ~f:(fun x -> `SQ x)
-      ; List.map read_groups ~f:(fun x -> `RG x)
-      ; List.map programs ~f:(fun x -> `PG x)
-      ; List.map comments ~f:(fun x -> `CO x)
-      ; List.map others ~f:(fun x -> `Other x)
-      ]
+  let hd (items : t) =
+    items
+    |> List.filter_map ~f:(function
+      | `HD x -> Some x
+      | _ -> None)
+    |> function
+    | [] -> None
+    | [ x ] -> Some x
+    | l ->
+      (* If we got here, we must be misusing this function internally.
+         External callers should not be able to get here unless we have
+         an even bigger bug and are not satisfying the mli specification. *)
+      failwithf "BUG: Got %d @HD lines" (List.length l) ()
+  ;;
+
+  let version t = hd t |> Option.map ~f:(fun x -> x.version)
+
+  let sort_order t =
+    match hd t with
+    | None -> None
+    | Some x -> (
+      match x.sort_order with
+      | None -> None
+      | Some x -> Some x)
+  ;;
+
+  let group_order t =
+    match hd t with
+    | None -> None
+    | Some x -> (
+      match x.group_order with
+      | None -> None
+      | Some x -> Some x)
+  ;;
+
+  let ref_seqs t =
+    t
+    |> List.filter_map ~f:(function
+      | `SQ x -> Some x
+      | _ -> None)
+  ;;
+
+  let read_groups t =
+    t
+    |> List.filter_map ~f:(function
+      | `RG x -> Some x
+      | _ -> None)
+  ;;
+
+  let programs t =
+    t
+    |> List.filter_map ~f:(function
+      | `PG x -> Some x
+      | _ -> None)
+  ;;
+
+  let comments t =
+    t
+    |> List.filter_map ~f:(function
+      | `CO x -> Some x
+      | _ -> None)
+  ;;
+
+  let others t =
+    t
+    |> List.filter_map ~f:(function
+      | `Other x -> Some x
+      | _ -> None)
   ;;
 end
 
@@ -1325,7 +1342,7 @@ module Parser = struct
   module State = struct
     type t =
       [ `Header of Header.Item.t list (* items in reverse order *)
-      | `Alignment of Header.t2 * Alignment.t
+      | `Alignment of Header.t * Alignment.t
       ]
   end
 
@@ -1333,7 +1350,7 @@ module Parser = struct
     { parse_line : string -> 'a t Or_error.t
     ; state : State.t
     ; data : 'a
-    ; on_alignment : 'a -> Header.t2 -> Alignment.t -> 'a
+    ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
     }
 
   let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =

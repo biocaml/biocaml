@@ -153,7 +153,7 @@ module Header = struct
   let to_sam h = h.sam_header
 
   let of_sam sam_header =
-    { ref_seq = Array.of_list sam_header.Biocaml.Sam.Header.ref_seqs; sam_header }
+    { ref_seq = Array.of_list (Biocaml.Sam.Header.ref_seqs sam_header); sam_header }
   ;;
 end
 
@@ -713,7 +713,7 @@ let read_alignment_stream iz = Stream.from (fun _ -> read_alignment iz)
 
 let read_header iz =
   read_sam_header iz
-  >>= fun sam_header ->
+  >>= fun (sam_header : Biocaml.Sam.Header.t) ->
   read_reference_information iz >>= fun ref_seq -> Ok { sam_header; ref_seq }
 ;;
 
@@ -727,31 +727,15 @@ let with_file0 fn ~f =
     read0 ic >>= fun (header, alignments) -> f header alignments)
 ;;
 
-let write_plain_SAM_header h oz =
+let write_plain_SAM_header (h : Biocaml.Sam.Header.t) oz =
   let buf = Buffer.create 1024 in
   let add_line x =
     Buffer.add_string buf x;
     Buffer.add_char buf '\n'
   in
-  Option.iter
-    h.Biocaml.Sam.Header.hd
-    ~f:(fun { Biocaml.Sam.Header.HD.version; sort_order; group_order } ->
-      let hl =
-        Biocaml.Sam.Header.HD.make ~version ?sort_order ?group_order () |> ok_exn
-      in
-      (* the construction of the header line must be valid since we are building it from a validated header *)
-      add_line (Biocaml.Sam.Header.HD.to_string hl));
-  List.iter h.Biocaml.Sam.Header.ref_seqs ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.SQ.to_string x));
-  List.iter h.Biocaml.Sam.Header.read_groups ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.RG.to_string x));
-  List.iter h.Biocaml.Sam.Header.programs ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.PG.to_string x));
-  List.iter h.Biocaml.Sam.Header.comments ~f:(fun x ->
-    Buffer.add_string buf "@CO\t";
-    add_line x);
-  List.iter h.Biocaml.Sam.Header.others ~f:(fun x ->
-    add_line (Biocaml.Sam.Header.Other.to_string x));
+  List.iter
+    (h :> Biocaml.Sam.Header.Item.t list)
+    ~f:(fun x -> add_line (Biocaml.Sam.Header.Item.to_string x));
   Bgzf.output_s32 oz (Int32.of_int_exn (Buffer.length buf));
   (* safe conversion of int32 to int: SAM headers less than a few KB *)
   Bgzf.output_string oz (Buffer.contents buf)
@@ -862,40 +846,7 @@ module Test = struct
 
   let assert_headers h1 h2 =
     let h1, h2 = Header.to_sam h1, Header.to_sam h2 in
-    let h1_version, h1_sort_order, h2_version, h2_sort_order =
-      match h1.hd, h2.hd with
-      | Some hd1, Some hd2 ->
-        Some hd1.version, hd1.sort_order, Some hd2.version, hd2.sort_order
-      | None, None -> None, None, None, None
-      | _ -> failwith "Headers have different versions"
-    in
-    assert_equal ~msg:"version" ~printer:[%sexp_of: string option] h1_version h2_version;
-    assert_equal
-      ~msg:"sort_order"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.HD.SO.t option]
-      h1_sort_order
-      h2_sort_order;
-    assert_equal
-      ~msg:"ref_seqs"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.SQ.t list]
-      h1.ref_seqs
-      h2.ref_seqs;
-    assert_equal
-      ~msg:"read_groups"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.RG.t list]
-      h1.read_groups
-      h2.read_groups;
-    assert_equal
-      ~msg:"programs"
-      ~printer:[%sexp_of: Biocaml.Sam.Header.PG.t list]
-      h1.programs
-      h2.programs;
-    assert_equal ~msg:"comments" ~printer:[%sexp_of: string list] h1.comments h2.comments;
-    assert_equal
-      ~msg:"others"
-      ~printer:[%sexp_of: (string * Biocaml.Sam.Header.Tag_value.t list) list]
-      h1.others
-      h2.others;
+    assert_equal ~msg:"header" ~printer:[%sexp_of: Biocaml.Sam.Header.t] h1 h2;
     ()
   ;;
 
@@ -967,18 +918,18 @@ module Test = struct
         ~msg:"Sam version"
         ~printer:[%sexp_of: string option]
         (Some "1.0")
-        (sh.hd |> Option.map ~f:(fun x -> x.version));
+        (sh |> Biocaml.Sam.Header.hd |> Option.map ~f:(fun x -> x.version));
       assert_equal
         ~msg:"Sort order"
         (Some `Unsorted)
-        (match sh.hd with
+        (match sh |> Biocaml.Sam.Header.hd with
          | None -> None
          | Some hd -> hd.sort_order);
       assert_equal
         ~msg:"Number of ref sequences"
         ~printer:Int.sexp_of_t
         22
-        (List.length sh.ref_seqs);
+        (List.length (Biocaml.Sam.Header.ref_seqs sh));
       let al0 = CFStream.next_exn alignments |> ok_exn in
       assert_alignment
         ~qname:(Some "ILLUMINA-D118D2_0040_FC:7:20:2683:16044#0/1")

@@ -11,48 +11,27 @@ module MakeIO (Future : Future.S) = struct
     include MakeIO (Future)
   end
 
-  let read_header lines =
-    let rec loop (hdr : Biocaml.Sam.Header.t) : Biocaml.Sam.Header.t Or_error.t Deferred.t
-      =
+  let read_header lines : Biocaml.Sam.Header.t Or_error.t Deferred.t =
+    let rec loop hdr_items : Biocaml.Sam.Header.Item.t list Or_error.t Deferred.t =
       Pipe.peek_deferred lines
       >>= function
-      | `Eof -> return (Ok hdr)
+      | `Eof -> return (Ok hdr_items)
       | `Ok line -> (
-        if String.length (line : Biocaml.Line.t :> string) = 0
-        then return (Or_error.error_string "invalid empty line")
-        else if Char.((line : Biocaml.Line.t :> string).[0] <> '@')
-        then return (Ok hdr)
+        if
+          String.length (line : Biocaml.Line.t :> string) = 0
+          && Char.((line : Biocaml.Line.t :> string).[0] <> '@')
+        then return (Ok hdr_items)
         else
           Pipe.junk lines
           >>= fun () ->
-          Biocaml.Sam.Header.Item.of_string (line : Biocaml.Line.t :> string)
-          |> function
+          match Biocaml.Sam.Header.Item.of_string (line :> string) with
           | Error _ as e -> return e
-          | Ok (`HD (hd : Biocaml.Sam.Header.HD.t)) -> (
-            match hdr.Biocaml.Sam.Header.hd with
-            | Some _ -> return (Or_error.error_string "multiple @HD lines not allowed")
-            | None -> loop { hdr with hd = Some hd })
-          | Ok (`SQ x) ->
-            loop { hdr with ref_seqs = x :: hdr.Biocaml.Sam.Header.ref_seqs }
-          | Ok (`RG x) ->
-            loop { hdr with read_groups = x :: hdr.Biocaml.Sam.Header.read_groups }
-          | Ok (`PG x) ->
-            loop { hdr with programs = x :: hdr.Biocaml.Sam.Header.programs }
-          | Ok (`CO x) ->
-            loop { hdr with comments = x :: hdr.Biocaml.Sam.Header.comments }
-          | Ok (`Other x) -> loop { hdr with others = x :: hdr.Biocaml.Sam.Header.others }
-        )
+          | Ok item -> loop (item :: hdr_items))
     in
-    loop Biocaml.Sam.Header.empty
+    loop []
     >>| function
     | Error _ as e -> e
-    | Ok ({ hd; _ } as x) ->
-      let ref_seqs = List.rev x.Biocaml.Sam.Header.ref_seqs in
-      let read_groups = List.rev x.Biocaml.Sam.Header.read_groups in
-      let programs = List.rev x.Biocaml.Sam.Header.programs in
-      let comments = List.rev x.Biocaml.Sam.Header.comments in
-      let others = List.rev x.Biocaml.Sam.Header.others in
-      Biocaml.Sam.Header.make ?hd ~ref_seqs ~read_groups ~programs ~comments ~others ()
+    | Ok hdr_items -> hdr_items |> List.rev |> Biocaml.Sam.Header.of_items
   ;;
 
   let read ?(start = Biocaml.Pos.(incr_line unknown)) r =
@@ -78,14 +57,15 @@ module MakeIO (Future : Future.S) = struct
   ;;
 
   let write_header w (header : Biocaml.Sam.Header.t) =
-    header
-    |> Biocaml.Sam.Header.to_items
+    (header :> Biocaml.Sam.Header.Item.t list)
     |> Deferred.List.iter ~how:`Sequential ~f:(fun x ->
       Writer.write_line w (Biocaml.Sam.Header.Item.to_string x))
   ;;
 
-  let write w ?(header = Biocaml.Sam.Header.empty) alignments =
-    write_header w header
+  let write w ?header alignments =
+    (match header with
+     | None -> return ()
+     | Some header -> write_header w header)
     >>= fun () ->
     Pipe.iter alignments ~f:(fun a ->
       Writer.write_line w (Biocaml.Sam.Alignment.to_string a))

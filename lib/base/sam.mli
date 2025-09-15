@@ -198,30 +198,6 @@ module Header : sig
     val to_string : t -> string
   end
 
-  (**
-     - [sort_order]: Guaranteed to be [None] if [version = None].
-
-     - [ref_seqs]: List of @SQ items. Order matters; it dictates
-     alignment sorting order when [sort_order = `Coordinate].
-
-     - [read_groups]: Unordered list of @RG items.
-
-     - [programs]: List of @PG lines. Currently unordered, but we should
-     topologically sort.
-
-     - [comments]: Unordered list of @CO lines.
-  *)
-  type t =
-    { hd : HD.t option
-    ; ref_seqs : SQ.t list
-    ; read_groups : RG.t list
-    ; programs : PG.t list
-    ; comments : string list
-    ; others : Other.t list
-    }
-  [@@deriving sexp]
-  (* FIXME: Make the type private. Removed temporarily to fix build. *)
-
   (** List of header lines with guarantees:
      - The @HD line is the first item if it exists.
      - The SN fields of all @SQ lines (i.e. name field in SQ module
@@ -233,27 +209,23 @@ module Header : sig
      In addition to the @SQ lines, we preserve the order of all lines.
      Though not mandated by the SAM specification, this follows the
      principle of least surprise. *)
-  type t2 = private Item.t list [@@deriving sexp]
+  type t = private Item.t list [@@deriving sexp]
 
-  val empty : t
-
-  val make
-    :  ?hd:HD.t
-    -> ?ref_seqs:SQ.t list
-    -> ?read_groups:RG.t list
-    -> ?programs:PG.t list
-    -> ?comments:string list
-    -> ?others:Other.t list
-    -> unit
-    -> t Or_error.t
-
-  val of_items : Item.t list -> t2 Or_error.t
+  val of_items : Item.t list -> t Or_error.t
 
   (** [of_lines lines] parses [lines] through all header lines. Returns the
       header and any remaining lines, which are presumably alignment lines. *)
-  val of_lines : string list -> (t2 * string list) Or_error.t
+  val of_lines : string list -> (t * string list) Or_error.t
 
-  val to_items : t -> Item.t list
+  val hd : t -> HD.t option
+  val version : t -> HD.VN.t option
+  val sort_order : t -> HD.SO.t option
+  val group_order : t -> HD.GO.t option
+  val ref_seqs : t -> SQ.t list
+  val read_groups : t -> RG.t list
+  val programs : t -> PG.t list
+  val comments : t -> string list
+  val others : t -> Other.t list
 end
 
 module Qname : sig
@@ -466,7 +438,7 @@ module Parser : sig
   module State : sig
     type t =
       [ `Header of Header.Item.t list (* items in reverse order *)
-      | `Alignment of Header.t2 * Alignment.t
+      | `Alignment of Header.t * Alignment.t
       ]
   end
 
@@ -476,27 +448,27 @@ module Parser : sig
       first line of a SAM file with initial data set to [data]. The callback
       [on_alignment] is called on the result of parsing each alignment line,
       and updates the data. *)
-  val init : on_alignment:('a -> Header.t2 -> Alignment.t -> 'a) -> data:'a -> 'a t
+  val init : on_alignment:('a -> Header.t -> Alignment.t -> 'a) -> data:'a -> 'a t
 
   val step : 'a t -> string -> 'a t Or_error.t
   val step_exn : 'a t -> string -> 'a t
 
   (** [header t] returns the header parsed thus far given current state [t]. *)
-  val header : _ t -> Header.t2 Or_error.t
+  val header : _ t -> Header.t Or_error.t
 
-  val header_exn : _ t -> Header.t2
+  val header_exn : _ t -> Header.t
   val state : _ t -> State.t
   val data : 'a t -> 'a
 end
 
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
-val of_lines : string list -> (Header.t2 * Alignment.t list) Or_error.t
+val of_lines : string list -> (Header.t * Alignment.t list) Or_error.t
 
-val of_lines2 : string list -> (Header.t2 * Alignment.t list) Or_error.t
-val of_lines_exn : string list -> Header.t2 * Alignment.t list
-val of_lines2_exn : string list -> Header.t2 * Alignment.t list
+val of_lines2 : string list -> (Header.t * Alignment.t list) Or_error.t
+val of_lines_exn : string list -> Header.t * Alignment.t list
+val of_lines2_exn : string list -> Header.t * Alignment.t list
 
 (** [of_string content] parses the given [content] of a SAM file. *)
-val of_string : string -> (Header.t2 * Alignment.t list) Or_error.t
+val of_string : string -> (Header.t * Alignment.t list) Or_error.t
 
-val of_string_exn : string -> Header.t2 * Alignment.t list
+val of_string_exn : string -> Header.t * Alignment.t list
