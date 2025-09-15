@@ -248,6 +248,10 @@ module Header : sig
   (** [of_item_list_rev items] takes a list of header items in reverse order. *)
   val of_item_list_rev : Item_list_rev.t -> t Or_error.t
 
+  (** [of_lines lines] parses [lines] through all header lines. Returns the
+      header and any remaining lines, which are presumably alignment lines. *)
+  val of_lines : string list -> (t * string list) Or_error.t
+
   val to_items : t -> Item.t list
 end
 
@@ -487,7 +491,9 @@ end
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
 val of_lines : string list -> (Header.t * Alignment.t list) Or_error.t
 
+val of_lines2 : string list -> (Header.t * Alignment.t list) Or_error.t
 val of_lines_exn : string list -> Header.t * Alignment.t list
+val of_lines2_exn : string list -> Header.t * Alignment.t list
 
 (** [of_string content] parses the given [content] of a SAM file. *)
 val of_string : string -> (Header.t * Alignment.t list) Or_error.t

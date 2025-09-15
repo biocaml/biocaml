@@ -697,6 +697,31 @@ module Header = struct
       make ?hd ~ref_seqs ~read_groups ~programs ~comments ~others ()
   ;;
 
+  let of_lines lines =
+    let classify line =
+      match String.length line > 0 && Char.equal line.[0] '@' with
+      | true -> `Header
+      | false -> `Alignment
+    in
+    let rec loop items lines : (Item_list_rev.t * string list) Or_error.t =
+      match lines with
+      | [] -> Ok (items, lines)
+      | line :: rest -> (
+        match Item.of_string line with
+        | Ok item -> loop (Item_list_rev.append items item) rest
+        | Error _ as e -> (
+          match classify line with
+          | `Header -> e
+          | `Alignment -> Ok (items, lines)))
+    in
+    match loop Item_list_rev.empty lines with
+    | Error _ as e -> e
+    | Ok (items, lines) -> (
+      match of_item_list_rev items with
+      | Error _ as e -> e
+      | Ok header -> Ok (header, lines))
+  ;;
+
   let to_items { hd; ref_seqs; read_groups; programs; comments; others } =
     List.concat
       [ (match hd with
@@ -1392,6 +1417,23 @@ let of_lines lines =
     | Ok header -> Ok (header, alignments))
 ;;
 
+let of_lines2 lines =
+  let rec loop_through_alignments alignments lines =
+    match lines with
+    | [] -> Ok alignments
+    | line :: lines -> (
+      match Alignment.of_string line with
+      | Ok alignment -> loop_through_alignments (alignment :: alignments) lines
+      | Error _ as e -> e)
+  in
+  match Header.of_lines lines with
+  | Error _ as e -> e
+  | Ok (header, lines) -> (
+    match loop_through_alignments [] lines with
+    | Error _ as e -> e
+    | Ok alignments -> Ok (header, alignments))
+;;
+
 (* We could implement this as [of_lines |> ok_exn], but we also want to demonstrate
    how to use [step_exn] versus [step] to contrast with the implementation of
    [of_lines] above. *)
@@ -1401,6 +1443,15 @@ let of_lines_exn lines =
   let parser = List.fold lines ~init ~f:Parser.step_exn in
   let header = Parser.header_exn parser in
   let alignments = List.rev (Parser.data parser) in
+  header, alignments
+;;
+
+let of_lines2_exn lines =
+  let header, lines = Header.of_lines lines |> Or_error.ok_exn in
+  let alignments =
+    List.fold lines ~init:[] ~f:(fun acc line ->
+      (Alignment.of_string line |> Or_error.ok_exn) :: acc)
+  in
   header, alignments
 ;;
 
