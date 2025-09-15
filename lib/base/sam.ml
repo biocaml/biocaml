@@ -623,18 +623,6 @@ module Header = struct
     ;;
   end
 
-  module Item_list_rev : sig
-    type t = private Item.t list [@@deriving sexp]
-
-    val empty : t
-    val append : t -> Item.t -> t
-  end = struct
-    type t = Item.t list [@@deriving sexp]
-
-    let empty = []
-    let append t x = x :: t
-  end
-
   type t =
     { hd : HD.t option
     ; ref_seqs : SQ.t list
@@ -675,7 +663,7 @@ module Header = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let of_item_list_rev (items : Item_list_rev.t) =
+  let of_item_list_rev (items : Item.t list) =
     let rec loop t (items : Item.t list) : t Or_error.t =
       match items with
       | [] -> Ok t
@@ -703,18 +691,18 @@ module Header = struct
       | true -> `Header
       | false -> `Alignment
     in
-    let rec loop items lines : (Item_list_rev.t * string list) Or_error.t =
+    let rec loop items lines : (Item.t list * string list) Or_error.t =
       match lines with
       | [] -> Ok (items, lines)
       | line :: rest -> (
         match Item.of_string line with
-        | Ok item -> loop (Item_list_rev.append items item) rest
+        | Ok item -> loop (item :: items) rest
         | Error _ as e -> (
           match classify line with
           | `Header -> e
           | `Alignment -> Ok (items, lines)))
     in
-    match loop Item_list_rev.empty lines with
+    match loop [] lines with
     | Error _ as e -> e
     | Ok (items, lines) -> (
       match of_item_list_rev items with
@@ -1329,7 +1317,7 @@ end
 module Parser = struct
   module State = struct
     type t =
-      [ `Header of Header.Item_list_rev.t
+      [ `Header of Header.Item.t list (* items in reverse order *)
       | `Alignment of Header.t * Alignment.t
       ]
   end
@@ -1343,8 +1331,7 @@ module Parser = struct
 
   let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
     match Header.Item.of_string line with
-    | Ok item ->
-      Ok (make_header_parser ~on_alignment ~data (Header.Item_list_rev.append items item))
+    | Ok item -> Ok (make_header_parser ~on_alignment ~data (item :: items))
     | Error _ -> (
       (* If line couldn't be parsed as a header item, assume the header
          section is complete and try to parse the line as an alignment. *)
@@ -1379,10 +1366,7 @@ module Parser = struct
     }
   ;;
 
-  let init ~on_alignment ~data : 'a t =
-    make_header_parser ~on_alignment ~data Header.Item_list_rev.empty
-  ;;
-
+  let init ~on_alignment ~data : 'a t = make_header_parser ~on_alignment ~data []
   let step { parse_line; state = _; data = _; on_alignment = _ } line = parse_line line
   let step_exn x line = step x line |> Or_error.ok_exn
 

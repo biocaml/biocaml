@@ -198,17 +198,6 @@ module Header : sig
     val to_string : t -> string
   end
 
-  module Item_list_rev : sig
-    (** Header lines stored in a list with items in reverse order. *)
-    type t = private Item.t list [@@deriving sexp]
-
-    val empty : t
-
-    (** [append t x] appends [x] to [t]. It is logically the last item,
-        but stored as the first item in the list underlying [t]. *)
-    val append : t -> Item.t -> t
-  end
-
   (**
      - [sort_order]: Guaranteed to be [None] if [version = None].
 
@@ -246,7 +235,7 @@ module Header : sig
     -> t Or_error.t
 
   (** [of_item_list_rev items] takes a list of header items in reverse order. *)
-  val of_item_list_rev : Item_list_rev.t -> t Or_error.t
+  val of_item_list_rev : Item.t list -> t Or_error.t
 
   (** [of_lines lines] parses [lines] through all header lines. Returns the
       header and any remaining lines, which are presumably alignment lines. *)
@@ -464,7 +453,7 @@ module Parser : sig
 
   module State : sig
     type t =
-      [ `Header of Header.Item_list_rev.t
+      [ `Header of Header.Item.t list (* items in reverse order *)
       | `Alignment of Header.t * Alignment.t
       ]
   end
