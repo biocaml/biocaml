@@ -587,7 +587,7 @@ module Header = struct
       ]
     [@@deriving sexp]
 
-    let of_string line =
+    let of_line line =
       let parse_data tag tvl =
         match tag with
         | `HD -> HD.of_tag_value_list tvl >>| fun x -> `HD x
@@ -611,7 +611,7 @@ module Header = struct
             Result_list.map tvl ~f:Tag_value.of_string >>= fun tvl -> parse_data tag tvl))
     ;;
 
-    let to_string = function
+    let to_line = function
       | `HD hd -> HD.to_string hd
       | `SQ sq -> SQ.to_string sq
       | `RG rg -> RG.to_string rg
@@ -651,7 +651,7 @@ module Header = struct
   ;;
 
   let of_lines lines : t Or_error.t =
-    match lines |> List.map ~f:Item.of_string |> Result.all with
+    match lines |> List.map ~f:Item.of_line |> Result.all with
     | Error _ as e -> e
     | Ok items -> of_items items
   ;;
@@ -1243,7 +1243,7 @@ module Alignment = struct
     | errs -> Error (Error.of_list errs)
   ;;
 
-  let of_string ?ref_seqs line =
+  let of_line ?ref_seqs line =
     match String.split ~on:'\t' line with
     | qname
       :: flag
@@ -1299,7 +1299,7 @@ module Alignment = struct
     | _ -> Or_error.error_string "alignment line contains < 12 fields"
   ;;
 
-  let to_string a =
+  let to_line a =
     sprintf
       "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s"
       (Qname.to_string_option a.qname)
@@ -1333,7 +1333,7 @@ module Parser = struct
     }
 
   let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
-    match Header.Item.of_string line with
+    match Header.Item.of_line line with
     | Ok item -> Ok (make_header_parser ~on_alignment ~data (item :: items))
     | Error _ -> (
       (* If line couldn't be parsed as a header item, assume the header
@@ -1341,7 +1341,7 @@ module Parser = struct
       match items |> List.rev |> Header.of_items with
       | Error _ as e -> e
       | Ok header -> (
-        match Alignment.of_string line with
+        match Alignment.of_line line with
         | Error _ as e -> e
         | Ok alignment ->
           let data = on_alignment data header alignment in
@@ -1355,7 +1355,7 @@ module Parser = struct
     }
 
   and parse_alignment_line ~on_alignment ~data header line =
-    match Alignment.of_string line with
+    match Alignment.of_line line with
     | Error _ as e -> e
     | Ok aln ->
       let data = on_alignment data header aln in
@@ -1410,9 +1410,7 @@ let of_lines2 lines =
   let open Result.Let_syntax in
   let header_lines, alignment_lines = List.split_while lines ~f:must_be_header in
   let%bind header = Header.of_lines header_lines in
-  let%bind alignments =
-    alignment_lines |> List.map ~f:Alignment.of_string |> Result.all
-  in
+  let%bind alignments = alignment_lines |> List.map ~f:Alignment.of_line |> Result.all in
   Ok (header, alignments)
 ;;
 
@@ -1444,7 +1442,7 @@ module Test = struct
       ]
     in
     let test x =
-      let result = Header.Item.of_string x in
+      let result = Header.Item.of_line x in
       print_string
         (sprintf
            "IN: \"%s\"\nSEXP:\n%s\n"
@@ -1502,7 +1500,7 @@ module Test = struct
       ]
     in
     let test x =
-      let result = Alignment.of_string x in
+      let result = Alignment.of_line x in
       print_string
         (sprintf
            "IN: \"%s\"\nSEXP:\n%s\n"

@@ -186,8 +186,13 @@ module Header : sig
       ]
     [@@deriving sexp]
 
-    val of_string : string -> t Or_error.t
-    val to_string : t -> string
+    (** [of_line line] parses the given [line] as a SAM header line.
+        The [line] should not contain the final newline character. *)
+    val of_line : string -> t Or_error.t
+
+    (** [to_line x] converts the header item [x] to a SAM header line.
+        The returned string will not contain the final newline character. *)
+    val to_line : t -> string
   end
 
   (** List of header lines with guarantees:
@@ -411,12 +416,16 @@ module Alignment : sig
     -> unit
     -> t Or_error.t
 
-  val of_string
+  (** [of_line line] parses the given [line] as a SAM alignment line.
+      The [line] should not contain the final newline character. *)
+  val of_line
     :  ?ref_seqs:(string, String.comparator_witness) Set.t
     -> string
     -> t Or_error.t
 
-  val to_string : t -> string
+  (** [to_line x] converts the alignment [x] to a SAM alignment line.
+      The returned string will not contain the final newline character. *)
+  val to_line : t -> string
 end
 
 module Parser : sig

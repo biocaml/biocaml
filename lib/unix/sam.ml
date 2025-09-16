@@ -12,26 +12,20 @@ module MakeIO (Future : Future.S) = struct
   end
 
   let read_header lines : Biocaml.Sam.Header.t Or_error.t Deferred.t =
-    let rec loop hdr_items : Biocaml.Sam.Header.Item.t list Or_error.t Deferred.t =
+    let rec loop hdr_items : Biocaml.Line.t list Or_error.t Deferred.t =
       Pipe.peek_deferred lines
       >>= function
       | `Eof -> return (Ok hdr_items)
-      | `Ok line -> (
-        if
-          String.length (line : Biocaml.Line.t :> string) = 0
-          && Char.((line : Biocaml.Line.t :> string).[0] <> '@')
+      | `Ok line ->
+        if not (Biocaml.Sam.must_be_header (line : Biocaml.Line.t :> string))
         then return (Ok hdr_items)
-        else
-          Pipe.junk lines
-          >>= fun () ->
-          match Biocaml.Sam.Header.Item.of_string (line :> string) with
-          | Error _ as e -> return e
-          | Ok item -> loop (item :: hdr_items))
+        else Pipe.junk lines >>= fun () -> loop (line :: hdr_items)
     in
     loop []
     >>| function
     | Error _ as e -> e
-    | Ok hdr_items -> hdr_items |> List.rev |> Biocaml.Sam.Header.of_items
+    | Ok hdr_lines ->
+      (hdr_lines :> string list) |> List.rev |> Biocaml.Sam.Header.of_lines
   ;;
 
   let read ?(start = Biocaml.Pos.(incr_line unknown)) r =
@@ -48,7 +42,7 @@ module MakeIO (Future : Future.S) = struct
       let alignments =
         Pipe.map lines ~f:(fun line ->
           Or_error.tag_arg
-            (Biocaml.Sam.Alignment.of_string (line : Biocaml.Line.t :> string))
+            (Biocaml.Sam.Alignment.of_line (line : Biocaml.Line.t :> string))
             "position"
             !pos
             Biocaml.Pos.sexp_of_t)
@@ -59,7 +53,7 @@ module MakeIO (Future : Future.S) = struct
   let write_header w (header : Biocaml.Sam.Header.t) =
     (header :> Biocaml.Sam.Header.Item.t list)
     |> Deferred.List.iter ~how:`Sequential ~f:(fun x ->
-      Writer.write_line w (Biocaml.Sam.Header.Item.to_string x))
+      Writer.write_line w (Biocaml.Sam.Header.Item.to_line x))
   ;;
 
   let write w ?header alignments =
@@ -68,7 +62,7 @@ module MakeIO (Future : Future.S) = struct
      | Some header -> write_header w header)
     >>= fun () ->
     Pipe.iter alignments ~f:(fun a ->
-      Writer.write_line w (Biocaml.Sam.Alignment.to_string a))
+      Writer.write_line w (Biocaml.Sam.Alignment.to_line a))
   ;;
 
   let write_file ?perm ?append file ?header alignments =

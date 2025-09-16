@@ -767,7 +767,7 @@ let write_plain_SAM_header (h : Biocaml.Sam.Header.t) oz =
   in
   List.iter
     (h :> Biocaml.Sam.Header.Item.t list)
-    ~f:(fun x -> add_line (Biocaml.Sam.Header.Item.to_string x));
+    ~f:(fun x -> add_line (Biocaml.Sam.Header.Item.to_line x));
   Bgzf.output_s32 oz (Int32.of_int_exn (Buffer.length buf));
   (* safe conversion of int32 to int: SAM headers less than a few KB *)
   Bgzf.output_string oz (Buffer.contents buf)
