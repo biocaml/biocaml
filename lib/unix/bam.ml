@@ -186,7 +186,17 @@ module Alignment0 = struct
      input type (here it is [none]) plays the role of [None] *)
   let option ~none x = if Poly.(x = none) then None else Some x
   let ref_id al = option ~none:(-1) al.ref_id
-  let qname al = option ~none:"*" al.read_name
+
+  let qname al : Biocaml.Sam.Qname.t option Or_error.t =
+    Biocaml.Sam.Qname.t_option_of_string al.read_name
+  ;;
+
+  let qname2 al : string option =
+    match al.read_name with
+    | "*" -> None
+    | x -> Some x
+  ;;
+
   (* default is indicated in note 1 of page 14 of the spec *)
 
   let flags al =
@@ -411,6 +421,8 @@ module Alignment0 = struct
     >>= fun flag ->
     rname al header
     >>= fun rname ->
+    qname al
+    >>= fun qname ->
     cigar al
     >>= fun cigar ->
     rnext al header
@@ -420,7 +432,7 @@ module Alignment0 = struct
     optional_fields al
     >>= fun optional_fields ->
     Biocaml.Sam.Alignment.make
-      ?qname:(qname al)
+      ?qname
       ~flag
       ?rname
       ?pos:(pos al)
@@ -554,7 +566,7 @@ module Alignment0 = struct
      | Some rname -> find_ref_id header rname
      | None -> Ok (-1))
     >>= fun ref_id ->
-    let read_name = Option.value ~default:"*" al.Biocaml.Sam.Alignment.qname in
+    let read_name = Biocaml.Sam.Qname.to_string_option al.Biocaml.Sam.Alignment.qname in
     let seq = Option.value ~default:"*" al.Biocaml.Sam.Alignment.seq in
     let pos = Option.value ~default:0 al.Biocaml.Sam.Alignment.pos - 1 in
     let bin = reg2bin pos (pos + String.(length seq)) in
@@ -870,7 +882,7 @@ module Test = struct
       ~msg:"wrong read_name"
       ~printer:[%sexp_of: string option]
       qname
-      (Alignment0.qname al);
+      (Alignment0.qname2 al);
     assert_equal
       ~msg:"wrong n_cigar_ops"
       ~printer:Int.sexp_of_t
@@ -896,8 +908,8 @@ module Test = struct
     assert_equal
       ~msg:"read_name"
       ~printer:[%sexp_of: string option]
-      (qname al1)
-      (qname al2);
+      (qname2 al1)
+      (qname2 al2);
     assert_equal
       ~msg:"n_cigar_ops"
       ~printer:Int.sexp_of_t
@@ -918,7 +930,7 @@ module Test = struct
         ~msg:"Sam version"
         ~printer:[%sexp_of: string option]
         (Some "1.0")
-        (sh |> Biocaml.Sam.Header.hd |> Option.map ~f:(fun x -> x.version));
+        (sh |> Biocaml.Sam.Header.hd |> Option.map ~f:(fun x -> (x.version :> string)));
       assert_equal
         ~msg:"Sort order"
         (Some `Unsorted)

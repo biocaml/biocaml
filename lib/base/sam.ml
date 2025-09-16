@@ -225,9 +225,7 @@ module Header = struct
       }
     [@@deriving sexp]
 
-    let make ~version ?sort_order ?group_order () =
-      VN.of_string version >>| fun version -> { version; sort_order; group_order }
-    ;;
+    let make ~version ?sort_order ?group_order () = { version; sort_order; group_order }
 
     let of_tag_value_list tvl =
       Tag_value.find1 `HD tvl "VN"
@@ -239,7 +237,7 @@ module Header = struct
       >>?~ GO.of_string
       >>= fun group_order ->
       Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
-      >>= fun () -> make ~version ?sort_order ?group_order ()
+      >>| fun () -> make ~version ?sort_order ?group_order ()
     ;;
 
     let to_string { version; sort_order; group_order } =

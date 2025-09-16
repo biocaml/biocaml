@@ -55,7 +55,7 @@ module Header : sig
     end
 
     module VN : sig
-      type t = string [@@deriving sexp]
+      type t = private string [@@deriving sexp]
 
       val of_string : string -> t Or_error.t
       val to_string : t -> string
@@ -67,15 +67,8 @@ module Header : sig
       ; group_order : GO.t option
       }
     [@@deriving sexp]
-    (* FIXME: Make the type private. Removed temporarily to fix build. *)
 
-    val make
-      :  version:VN.t
-      -> ?sort_order:SO.t
-      -> ?group_order:GO.t
-      -> unit
-      -> t Or_error.t
-
+    val make : version:VN.t -> ?sort_order:SO.t -> ?group_order:GO.t -> unit -> t
     val of_tag_value_list : Tag_value.t list -> t Or_error.t
     val to_string : t -> string
   end
@@ -184,8 +177,7 @@ module Header : sig
 
   module Item : sig
     type t =
-      private
-      [< `HD of HD.t
+      [ `HD of HD.t
       | `SQ of SQ.t
       | `RG of RG.t
       | `PG of PG.t
@@ -229,7 +221,7 @@ module Header : sig
 end
 
 module Qname : sig
-  type t = string [@@deriving sexp]
+  type t = private string [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
