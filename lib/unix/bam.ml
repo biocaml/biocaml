@@ -452,7 +452,6 @@ module Alignment0 = struct
       let pos = ith * 4 in
       Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32
     in
-    let open Int32 in
     List.iteri cigar_ops ~f:(fun idx op ->
       let _, i =
         match op with
@@ -466,7 +465,7 @@ module Alignment0 = struct
         | `Seq_match i -> 7l, i
         | `Seq_mismatch i -> 8l, i
       in
-      write idx (bit_or 0l (of_int_exn Stdlib.(i lsl 4))));
+      write idx (Int32.bit_or 0l (Int32.of_int_exn Stdlib.(i lsl 4))));
     Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
   ;;
 
@@ -512,7 +511,6 @@ module Alignment0 = struct
         Ok ('H', String.concat ~sep:"" (List.rev !r) ^ "\000")
       | `Z s -> Ok ('Z', s ^ "\000")
     in
-    let open Or_error.Monad_infix in
     List.map opt_fields ~f:(fun opt_field ->
       let%bind c, s = field_value_encoding opt_field.Biocaml.Sam.Optional_field.value in
       Ok (sprintf "%s%c%s" opt_field.Biocaml.Sam.Optional_field.tag c s))
@@ -530,18 +528,19 @@ module Alignment0 = struct
   ;;
 
   let encode_bin_mq_nl ~bin ~mapq ~l_read_name =
-    let open Int32 in
     let%bind bin = int32 bin ~ub:65536 "bin" in
     let%bind mapq = int32 mapq ~ub:256 "mapq" in
     let%bind l_read_name = int32 l_read_name ~ub:256 "l_read_name" in
-    Ok (bit_or (shift_left bin 16) (bit_or (shift_left mapq 8) l_read_name))
+    Ok
+      (Int32.bit_or
+         (Int32.shift_left bin 16)
+         (Int32.bit_or (Int32.shift_left mapq 8) l_read_name))
   ;;
 
   let encode_flag_nc ~flags ~n_cigar_ops =
-    let open Int32 in
     let%bind flags = int32 flags ~ub:65536 "flags" in
     let%bind n_cigar_ops = int32 n_cigar_ops ~ub:65536 "n_cigar_ops" in
-    Ok (bit_or (shift_left flags 16) n_cigar_ops)
+    Ok (Int32.bit_or (Int32.shift_left flags 16) n_cigar_ops)
   ;;
 
   let encode al header =
@@ -770,13 +769,12 @@ let write_header header oz =
 ;;
 
 let write_alignment oz al =
-  let open Alignment0 in
-  Bgzf.output_s32 oz (Int32.of_int_exn (sizeof al));
+  Bgzf.output_s32 oz (Int32.of_int_exn (Alignment0.sizeof al));
   Bgzf.output_s32 oz (Int32.of_int_exn al.ref_id);
   Bgzf.output_s32 oz (Int32.of_int_exn al.pos);
   Bgzf.output_s32 oz al.bin_mq_nl;
   Bgzf.output_s32 oz al.flag_nc;
-  Bgzf.output_s32 oz (Int32.of_int_exn (l_seq al));
+  Bgzf.output_s32 oz (Int32.of_int_exn (Alignment0.l_seq al));
   Bgzf.output_s32 oz (Int32.of_int_exn al.next_ref_id);
   Bgzf.output_s32 oz (Int32.of_int_exn al.pnext);
   Bgzf.output_s32 oz (Int32.of_int_exn al.tlen);
@@ -890,29 +888,36 @@ module Test = struct
   ;;
 
   let assert_alignments header al1 al2 =
-    let open Alignment0 in
     assert_equal
       ~msg:"rname"
       ~printer:[%sexp_of: string option Or_error.t]
-      (rname al1 header)
-      (rname al2 header);
-    assert_equal ~msg:"mapq" ~printer:[%sexp_of: int option] (mapq al1) (mapq al2);
-    assert_equal ~msg:"tlen" ~printer:[%sexp_of: int option] (tlen al1) (tlen al2);
+      (Alignment0.rname al1 header)
+      (Alignment0.rname al2 header);
+    assert_equal
+      ~msg:"mapq"
+      ~printer:[%sexp_of: int option]
+      (Alignment0.mapq al1)
+      (Alignment0.mapq al2);
+    assert_equal
+      ~msg:"tlen"
+      ~printer:[%sexp_of: int option]
+      (Alignment0.tlen al1)
+      (Alignment0.tlen al2);
     assert_equal
       ~msg:"read_name"
       ~printer:[%sexp_of: string option]
-      (qname2 al1)
-      (qname2 al2);
+      (Alignment0.qname2 al1)
+      (Alignment0.qname2 al2);
     assert_equal
       ~msg:"n_cigar_ops"
       ~printer:Int.sexp_of_t
-      (List.length (ok_exn (cigar al1)))
-      (List.length (ok_exn (cigar al2)));
+      (List.length (ok_exn (Alignment0.cigar al1)))
+      (List.length (ok_exn (Alignment0.cigar al2)));
     assert_equal
       ~msg:"seq"
       ~printer:String.sexp_of_t
-      (Option.value_exn (seq al1))
-      (Option.value_exn (seq al2));
+      (Option.value_exn (Alignment0.seq al1))
+      (Option.value_exn (Alignment0.seq al2));
     ()
   ;;
 
