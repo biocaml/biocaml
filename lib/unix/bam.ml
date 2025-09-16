@@ -157,8 +157,6 @@ module Header = struct
   ;;
 end
 
-open Header
-
 type alignment = Biocaml.Sam.Alignment.t
 
 module Alignment0 = struct
@@ -207,7 +205,9 @@ module Alignment0 = struct
   ;;
 
   let rname al header =
-    try Ok (Option.map (ref_id al) ~f:(fun id -> (Array.get header.ref_seq id).name)) with
+    try
+      Ok (Option.map (ref_id al) ~f:(fun id -> (Array.get header.Header.ref_seq id).name))
+    with
     | _ -> error_string "Bam.Alignment0.rname: unknown ref_id"
   ;;
 
@@ -240,7 +240,7 @@ module Alignment0 = struct
   let rnext al header =
     match al.next_ref_id with
     | -1 -> return None
-    | i -> Biocaml.Sam.Rnext.t_option_of_string header.ref_seq.(i).name
+    | i -> Biocaml.Sam.Rnext.t_option_of_string header.Header.ref_seq.(i).name
   ;;
 
   let pnext al = option ~none:(-1) al.pnext
@@ -454,7 +454,9 @@ module Alignment0 = struct
   (* Alignment.t -> Alignment0.t conversion *)
   let find_ref_id header ref_name =
     let open Or_error in
-    match Array.findi header.ref_seq ~f:(fun _ rs -> String.(rs.name = ref_name)) with
+    match
+      Array.findi header.Header.ref_seq ~f:(fun _ rs -> String.(rs.name = ref_name))
+    with
     | Some (i, _) -> Ok i
     | None -> error_string "Bam: unknown reference id"
   ;;
@@ -726,7 +728,7 @@ let read_alignment_stream iz = Stream.from (fun _ -> read_alignment iz)
 let read_header iz =
   read_sam_header iz
   >>= fun (sam_header : Biocaml.Sam.Header.t) ->
-  read_reference_information iz >>= fun ref_seq -> Ok { sam_header; ref_seq }
+  read_reference_information iz >>= fun ref_seq -> Ok { Header.sam_header; ref_seq }
 ;;
 
 let read0 ic =
@@ -759,7 +761,7 @@ let output_null_terminated_string oz s =
 ;;
 
 let write_reference_sequences h oz =
-  Bgzf.output_s32 oz (Int32.of_int_exn (Array.length h.ref_seq));
+  Bgzf.output_s32 oz (Int32.of_int_exn (Array.length h.Header.ref_seq));
   (* safe conversion: more than a few million reference sequences cannot happen in practice *)
   Array.iter h.ref_seq ~f:(fun rs ->
     Bgzf.output_s32 oz (Int32.of_int_exn (String.length rs.name + 1));
@@ -771,7 +773,7 @@ let write_reference_sequences h oz =
 
 let write_header header oz =
   Bgzf.output_string oz magic_string;
-  write_plain_SAM_header header.sam_header oz;
+  write_plain_SAM_header header.Header.sam_header oz;
   write_reference_sequences header oz
 ;;
 
