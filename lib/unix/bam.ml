@@ -184,16 +184,7 @@ module Alignment0 = struct
      input type (here it is [none]) plays the role of [None] *)
   let option ~none x = if Poly.(x = none) then None else Some x
   let ref_id al = option ~none:(-1) al.ref_id
-
-  let qname al : Biocaml.Sam.Qname.t option Or_error.t =
-    Biocaml.Sam.Qname.t_option_of_string al.read_name
-  ;;
-
-  let qname2 al : string option =
-    match al.read_name with
-    | "*" -> None
-    | x -> Some x
-  ;;
+  let qname al : string option = option ~none:"*" al.read_name
 
   (* default is indicated in note 1 of page 14 of the spec *)
 
@@ -410,24 +401,58 @@ module Alignment0 = struct
 
   (* Alignement0.t -> Alignment.t conversion *)
   let decode al header =
+    let%bind qname =
+      match qname al with
+      | None -> Ok None
+      | Some qname -> Biocaml.Sam.Qname.t_option_of_string qname
+    in
     let%bind flag = flags al in
-    let%bind rname = rname al header in
-    let%bind qname = qname al in
+    let%bind rname : Biocaml.Sam.Rname.t option Or_error.t =
+      match rname al header with
+      | Error _ as e -> e
+      | Ok None as x -> x
+      | Ok (Some rname) -> Biocaml.Sam.Rname.t_option_of_string rname
+    in
+    let%bind pos =
+      match pos al with
+      | None -> Ok None
+      | Some pos -> Biocaml.Sam.Pos.t_option_of_string (Int.to_string pos)
+    in
+    let%bind mapq =
+      match mapq al with
+      | None -> Ok None
+      | Some mapq -> Biocaml.Sam.Mapq.t_option_of_string (Int.to_string mapq)
+    in
     let%bind cigar = cigar al in
     let%bind rnext = rnext al header in
+    let%bind pnext =
+      match pnext al with
+      | None -> Ok None
+      | Some pnext -> Biocaml.Sam.Pnext.t_option_of_string (Int.to_string pnext)
+    in
+    let%bind tlen =
+      match tlen al with
+      | None -> Ok None
+      | Some tlen -> Biocaml.Sam.Tlen.t_option_of_string (Int.to_string tlen)
+    in
+    let%bind seq =
+      match seq al with
+      | None -> Ok None
+      | Some seq -> Biocaml.Sam.Seq.t_option_of_string seq
+    in
     let%bind qual = qual al in
     let%bind optional_fields = optional_fields al in
     Biocaml.Sam.Alignment.make
       ?qname
       ~flag
       ?rname
-      ?pos:(pos al)
-      ?mapq:(mapq al)
+      ?pos
+      ?mapq
       ~cigar
       ?rnext
-      ?pnext:(pnext al)
-      ?tlen:(tlen al)
-      ?seq:(seq al)
+      ?pnext
+      ?tlen
+      ?seq
       ~qual
       ~optional_fields
       ()
@@ -546,14 +571,14 @@ module Alignment0 = struct
   let encode al header =
     let%bind ref_id =
       match al.Biocaml.Sam.Alignment.rname with
-      | Some rname -> find_ref_id header rname
+      | Some rname -> find_ref_id header (rname :> string)
       | None -> Ok (-1)
     in
     let read_name = Biocaml.Sam.Qname.to_string_option al.Biocaml.Sam.Alignment.qname in
-    let seq = Option.value ~default:"*" al.Biocaml.Sam.Alignment.seq in
-    let pos = Option.value ~default:0 al.Biocaml.Sam.Alignment.pos - 1 in
+    let seq = Option.value ~default:"*" (al.Biocaml.Sam.Alignment.seq :> string option) in
+    let pos = Option.value ~default:0 (al.Biocaml.Sam.Alignment.pos :> int option) - 1 in
     let bin = reg2bin pos (pos + String.(length seq)) in
-    let mapq = Option.value ~default:255 al.Biocaml.Sam.Alignment.mapq in
+    let mapq = Option.value ~default:255 (al.Biocaml.Sam.Alignment.mapq :> int option) in
     let l_read_name = String.length read_name + 1 in
     (* NULL terminated string *)
     let%bind bin_mq_nl = encode_bin_mq_nl ~bin ~mapq ~l_read_name in
@@ -563,11 +588,13 @@ module Alignment0 = struct
     let%bind next_ref_id =
       match al.Biocaml.Sam.Alignment.rnext with
       | Some `Equal_to_RNAME -> Ok ref_id
-      | Some (`Value s) -> find_ref_id header s
+      | Some (`Value s) -> find_ref_id header (s :> string)
       | None -> Ok (-1)
     in
-    let pnext = Option.value ~default:0 al.Biocaml.Sam.Alignment.pnext - 1 in
-    let tlen = Option.value ~default:0 al.Biocaml.Sam.Alignment.tlen in
+    let pnext =
+      Option.value ~default:0 (al.Biocaml.Sam.Alignment.pnext :> int option) - 1
+    in
+    let tlen = Option.value ~default:0 (al.Biocaml.Sam.Alignment.tlen :> int option) in
     let cigar = string_of_cigar_ops al.Biocaml.Sam.Alignment.cigar in
     let%bind qual =
       Result.List.map
@@ -873,7 +900,7 @@ module Test = struct
       ~msg:"wrong read_name"
       ~printer:[%sexp_of: string option]
       qname
-      (Alignment0.qname2 al);
+      (Alignment0.qname al);
     assert_equal
       ~msg:"wrong n_cigar_ops"
       ~printer:Int.sexp_of_t
@@ -906,8 +933,8 @@ module Test = struct
     assert_equal
       ~msg:"read_name"
       ~printer:[%sexp_of: string option]
-      (Alignment0.qname2 al1)
-      (Alignment0.qname2 al2);
+      (Alignment0.qname al1)
+      (Alignment0.qname al2);
     assert_equal
       ~msg:"n_cigar_ops"
       ~printer:Int.sexp_of_t

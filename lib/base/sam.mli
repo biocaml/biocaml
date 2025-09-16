@@ -250,21 +250,21 @@ module Flag : sig
 end
 
 module Rname : sig
-  type t = string [@@deriving sexp]
+  type t = private string [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
 end
 
 module Pos : sig
-  type t = int [@@deriving sexp]
+  type t = private int [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
 end
 
 module Mapq : sig
-  type t = int [@@deriving sexp]
+  type t = private int [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
@@ -272,7 +272,6 @@ end
 
 module Cigar : sig
   module Op : sig
-    (** CIGAR operations. *)
     type t =
       private
       [< `Alignment_match of int
@@ -318,21 +317,21 @@ module Rnext : sig
 end
 
 module Pnext : sig
-  type t = int [@@deriving sexp]
+  type t = private int [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
 end
 
 module Tlen : sig
-  type t = int [@@deriving sexp]
+  type t = private int [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
 end
 
 module Seq : sig
-  type t = string [@@deriving sexp]
+  type t = private string [@@deriving sexp]
 
   val t_option_of_string : string -> t option Or_error.t
   val to_string_option : t option -> string
