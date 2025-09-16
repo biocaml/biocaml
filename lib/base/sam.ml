@@ -1317,93 +1317,9 @@ module Alignment = struct
   ;;
 end
 
-module Parser = struct
-  module State = struct
-    type t =
-      [ `Header of Header.Item.t list (* items in reverse order *)
-      | `Alignment of Header.t * Alignment.t
-      ]
-  end
-
-  type 'a t =
-    { parse_line : string -> 'a t Or_error.t
-    ; state : State.t
-    ; data : 'a
-    ; on_alignment : 'a -> Header.t -> Alignment.t -> 'a
-    }
-
-  let rec parse_header_line ~on_alignment ~data items line : 'a t Or_error.t =
-    match Header.Item.of_line line with
-    | Ok item -> Ok (make_header_parser ~on_alignment ~data (item :: items))
-    | Error _ -> (
-      (* If line couldn't be parsed as a header item, assume the header
-         section is complete and try to parse the line as an alignment. *)
-      match items |> List.rev |> Header.of_items with
-      | Error _ as e -> e
-      | Ok header -> (
-        match Alignment.of_line line with
-        | Error _ as e -> e
-        | Ok alignment ->
-          let data = on_alignment data header alignment in
-          Ok (make_alignment_parser ~on_alignment ~data header alignment)))
-
-  and make_header_parser ~on_alignment ~data items : 'a t =
-    { parse_line = parse_header_line ~on_alignment ~data items
-    ; state = `Header items
-    ; data
-    ; on_alignment
-    }
-
-  and parse_alignment_line ~on_alignment ~data header line =
-    match Alignment.of_line line with
-    | Error _ as e -> e
-    | Ok aln ->
-      let data = on_alignment data header aln in
-      Ok (make_alignment_parser ~on_alignment ~data header aln)
-
-  and make_alignment_parser ~on_alignment ~data header alignment : 'a t =
-    { parse_line = parse_alignment_line ~on_alignment ~data header
-    ; state = `Alignment (header, alignment)
-    ; data
-    ; on_alignment
-    }
-  ;;
-
-  let init ~on_alignment ~data : 'a t = make_header_parser ~on_alignment ~data []
-  let step { parse_line; state = _; data = _; on_alignment = _ } line = parse_line line
-  let step_exn x line = step x line |> Or_error.ok_exn
-
-  let header { state; parse_line = _; data = _; on_alignment = _ } =
-    match state with
-    | `Header items -> items |> List.rev |> Header.of_items
-    | `Alignment (header, _) -> Ok header
-  ;;
-
-  let header_exn x = header x |> Or_error.ok_exn
-  let state x = x.state
-  let data x = x.data
-end
-
 let must_be_header line = String.length line > 0 && Char.equal line.[0] '@'
 
 let of_lines lines =
-  let open Result.Let_syntax in
-  let rec loop parser lines =
-    match lines with
-    | [] -> Ok parser
-    | line :: lines ->
-      let%bind parser = Parser.step parser line in
-      loop parser lines
-  in
-  let on_alignment data _header alignment = alignment :: data in
-  let init = Parser.init ~on_alignment ~data:[] in
-  let%bind parser = loop init lines in
-  let alignments = List.rev (Parser.data parser) in
-  let%bind header = Parser.header parser in
-  Ok (header, alignments)
-;;
-
-let of_lines2 lines =
   let open Result.Let_syntax in
   let header_lines, alignment_lines = List.split_while lines ~f:must_be_header in
   let%bind header = Header.of_lines header_lines in
@@ -1411,20 +1327,7 @@ let of_lines2 lines =
   Ok (header, alignments)
 ;;
 
-(* We could implement this as [of_lines |> ok_exn], but we also want to demonstrate
-   how to use [step_exn] versus [step] to contrast with the implementation of
-   [of_lines] above. *)
-let of_lines_exn lines =
-  let on_alignment data _header alignment = alignment :: data in
-  let init = Parser.init ~on_alignment ~data:[] in
-  let parser = List.fold lines ~init ~f:Parser.step_exn in
-  let header = Parser.header_exn parser in
-  let alignments = List.rev (Parser.data parser) in
-  header, alignments
-;;
-
-let of_string s = s |> String.split_lines |> of_lines
-let of_string_exn s = s |> String.split_lines |> of_lines_exn
+let of_lines_exn lines = lines |> of_lines |> Or_error.ok_exn
 
 module Test = struct
   open Expect_test_helpers_base

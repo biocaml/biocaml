@@ -428,35 +428,6 @@ module Alignment : sig
   val to_line : t -> string
 end
 
-module Parser : sig
-  (** State-machine based line-oriented parser. *)
-
-  module State : sig
-    type t =
-      [ `Header of Header.Item.t list (* items in reverse order *)
-      | `Alignment of Header.t * Alignment.t
-      ]
-  end
-
-  type 'a t
-
-  (** [init ~on_alignment ~data] produces an initial parser, ready to parse the
-      first line of a SAM file with initial data set to [data]. The callback
-      [on_alignment] is called on the result of parsing each alignment line,
-      and updates the data. *)
-  val init : on_alignment:('a -> Header.t -> Alignment.t -> 'a) -> data:'a -> 'a t
-
-  val step : 'a t -> string -> 'a t Or_error.t
-  val step_exn : 'a t -> string -> 'a t
-
-  (** [header t] returns the header parsed thus far given current state [t]. *)
-  val header : _ t -> Header.t Or_error.t
-
-  val header_exn : _ t -> Header.t
-  val state : _ t -> State.t
-  val data : 'a t -> 'a
-end
-
 (** [must_be_header line] returns true if the first character of [line] is '@',
     quickly determining that it must be parsed as a header line. *)
 val must_be_header : string -> bool
@@ -464,10 +435,4 @@ val must_be_header : string -> bool
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
 val of_lines : string list -> (Header.t * Alignment.t list) Or_error.t
 
-val of_lines2 : string list -> (Header.t * Alignment.t list) Or_error.t
 val of_lines_exn : string list -> Header.t * Alignment.t list
-
-(** [of_string content] parses the given [content] of a SAM file. *)
-val of_string : string -> (Header.t * Alignment.t list) Or_error.t
-
-val of_string_exn : string -> Header.t * Alignment.t list
