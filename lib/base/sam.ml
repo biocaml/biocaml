@@ -1387,23 +1387,20 @@ end
 let must_be_header line = String.length line > 0 && Char.equal line.[0] '@'
 
 let of_lines lines =
+  let open Result.Let_syntax in
   let rec loop parser lines =
     match lines with
     | [] -> Ok parser
-    | line :: lines -> (
-      match Parser.step parser line with
-      | Error _ as e -> e
-      | Ok parser -> loop parser lines)
+    | line :: lines ->
+      let%bind parser = Parser.step parser line in
+      loop parser lines
   in
   let on_alignment data _header alignment = alignment :: data in
   let init = Parser.init ~on_alignment ~data:[] in
-  match loop init lines with
-  | Error _ as e -> e
-  | Ok parser -> (
-    let alignments = List.rev (Parser.data parser) in
-    match Parser.header parser with
-    | Error _ as e -> e
-    | Ok header -> Ok (header, alignments))
+  let%bind parser = loop init lines in
+  let alignments = List.rev (Parser.data parser) in
+  let%bind header = Parser.header parser in
+  Ok (header, alignments)
 ;;
 
 let of_lines2 lines =
