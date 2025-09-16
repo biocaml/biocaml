@@ -650,29 +650,10 @@ module Header = struct
     | _ -> Error (Error.of_list errors)
   ;;
 
-  let of_lines lines =
-    let classify line =
-      match String.length line > 0 && Char.equal line.[0] '@' with
-      | true -> `Header
-      | false -> `Alignment
-    in
-    let rec loop items lines : (Item.t list * string list) Or_error.t =
-      match lines with
-      | [] -> Ok (items, lines)
-      | line :: rest -> (
-        match Item.of_string line with
-        | Ok item -> loop (item :: items) rest
-        | Error _ as e -> (
-          match classify line with
-          | `Header -> e
-          | `Alignment -> Ok (items, lines)))
-    in
-    match loop [] lines with
+  let of_lines lines : t Or_error.t =
+    match lines |> List.map ~f:Item.of_string |> Result.all with
     | Error _ as e -> e
-    | Ok (items, lines) -> (
-      match items |> List.rev |> of_items with
-      | Error _ as e -> e
-      | Ok header -> Ok (header, lines))
+    | Ok items -> of_items items
   ;;
 
   let hd (items : t) =
@@ -1403,6 +1384,8 @@ module Parser = struct
   let data x = x.data
 end
 
+let must_be_header line = String.length line > 0 && Char.equal line.[0] '@'
+
 let of_lines lines =
   let rec loop parser lines =
     match lines with
@@ -1424,20 +1407,13 @@ let of_lines lines =
 ;;
 
 let of_lines2 lines =
-  let rec loop_through_alignments alignments lines =
-    match lines with
-    | [] -> Ok alignments
-    | line :: lines -> (
-      match Alignment.of_string line with
-      | Ok alignment -> loop_through_alignments (alignment :: alignments) lines
-      | Error _ as e -> e)
+  let open Result.Let_syntax in
+  let header_lines, alignment_lines = List.split_while lines ~f:must_be_header in
+  let%bind header = Header.of_lines header_lines in
+  let%bind alignments =
+    alignment_lines |> List.map ~f:Alignment.of_string |> Result.all
   in
-  match Header.of_lines lines with
-  | Error _ as e -> e
-  | Ok (header, lines) -> (
-    match loop_through_alignments [] lines with
-    | Error _ as e -> e
-    | Ok alignments -> Ok (header, alignments))
+  Ok (header, alignments)
 ;;
 
 (* We could implement this as [of_lines |> ok_exn], but we also want to demonstrate
@@ -1449,15 +1425,6 @@ let of_lines_exn lines =
   let parser = List.fold lines ~init ~f:Parser.step_exn in
   let header = Parser.header_exn parser in
   let alignments = List.rev (Parser.data parser) in
-  header, alignments
-;;
-
-let of_lines2_exn lines =
-  let header, lines = Header.of_lines lines |> Or_error.ok_exn in
-  let alignments =
-    List.fold lines ~init:[] ~f:(fun acc line ->
-      (Alignment.of_string line |> Or_error.ok_exn) :: acc)
-  in
   header, alignments
 ;;
 

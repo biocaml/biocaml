@@ -204,11 +204,7 @@ module Header : sig
   type t = private Item.t list [@@deriving sexp]
 
   val of_items : Item.t list -> t Or_error.t
-
-  (** [of_lines lines] parses [lines] through all header lines. Returns the
-      header and any remaining lines, which are presumably alignment lines. *)
-  val of_lines : string list -> (t * string list) Or_error.t
-
+  val of_lines : string list -> t Or_error.t
   val hd : t -> HD.t option
   val version : t -> HD.VN.t option
   val sort_order : t -> HD.SO.t option
@@ -452,12 +448,15 @@ module Parser : sig
   val data : 'a t -> 'a
 end
 
+(** [must_be_header line] returns true if the first character of [line] is '@',
+    quickly determining that it must be parsed as a header line. *)
+val must_be_header : string -> bool
+
 (** [of_lines lines] parses the given [lines] of a SAM file. *)
 val of_lines : string list -> (Header.t * Alignment.t list) Or_error.t
 
 val of_lines2 : string list -> (Header.t * Alignment.t list) Or_error.t
 val of_lines_exn : string list -> Header.t * Alignment.t list
-val of_lines2_exn : string list -> Header.t * Alignment.t list
 
 (** [of_string content] parses the given [content] of a SAM file. *)
 val of_string : string -> (Header.t * Alignment.t list) Or_error.t
