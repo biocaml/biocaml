@@ -1,7 +1,7 @@
 module Result = Biocaml_result
-open Or_error
+open Or_error.Let_syntax
 
-let check b msg = if b then Ok () else error_string msg
+let check b msg = if b then Ok () else Or_error.error_string msg
 let checkf b format = Printf.ksprintf (check b) format
 let check_buf ~buf ~pos ~len = check (String.length buf >= pos + len) "Buffer too short"
 
@@ -208,7 +208,7 @@ module Alignment0 = struct
     try
       Ok (Option.map (ref_id al) ~f:(fun id -> (Array.get header.Header.ref_seq id).name))
     with
-    | _ -> error_string "Bam.Alignment0.rname: unknown ref_id"
+    | _ -> Or_error.error_string "Bam.Alignment0.rname: unknown ref_id"
   ;;
 
   let pos al = option ~none:(-1) al.pos
@@ -304,7 +304,7 @@ module Alignment0 = struct
     let rec aux i =
       if i < String.length buf
       then if Char.(String.get buf i = '\000') then return i else aux (i + 1)
-      else error_string "Unfinished NULL terminated string"
+      else Or_error.error_string "Unfinished NULL terminated string"
     in
     aux pos >>= fun pos' -> return (String.sub buf ~pos ~len:(pos' - pos), pos' + 1)
   ;;
@@ -313,7 +313,7 @@ module Alignment0 = struct
     | 'c' | 'C' -> return 1
     | 's' | 'S' -> return 2
     | 'i' | 'I' | 'f' -> return 4
-    | _ -> error_string "Incorrect numeric optional field type identifier"
+    | _ -> Or_error.error_string "Incorrect numeric optional field type identifier"
   ;;
 
   let parse_cCsSiIf buf pos typ =
@@ -343,7 +343,7 @@ module Alignment0 = struct
     | 'f' ->
       let f = BP.unpack_float_little_endian ~buf ~pos in
       return (Biocaml.Sam.Optional_field.Value.of_float_f f, len)
-    | _ -> error_string "Incorrect numeric optional field type identifier"
+    | _ -> Or_error.error_string "Incorrect numeric optional field type identifier"
   ;;
 
   let parse_optional_field_value buf pos = function
@@ -381,7 +381,7 @@ module Alignment0 = struct
         let bytes_read = 5 (* array type and size *) + (elt_size * n) in
         Biocaml.Sam.Optional_field.Value.of_char_string_list_B typ elts
         >>= fun value -> return (value, bytes_read)
-      | None -> error_string "Too many elements in B-type optional field")
+      | None -> Or_error.error_string "Too many elements in B-type optional field")
     | c -> error "Incorrect optional field type identifier" c [%sexp_of: char]
   ;;
 
@@ -408,7 +408,7 @@ module Alignment0 = struct
   ;;
 
   let optional_fields al =
-    tag (parse_optional_fields al.optional) ~tag:"Bam.Alignment0.optional_fields"
+    Or_error.tag (parse_optional_fields al.optional) ~tag:"Bam.Alignment0.optional_fields"
   ;;
 
   (* ============================ *)
@@ -453,12 +453,11 @@ module Alignment0 = struct
 
   (* Alignment.t -> Alignment0.t conversion *)
   let find_ref_id header ref_name =
-    let open Or_error in
     match
       Array.findi header.Header.ref_seq ~f:(fun _ rs -> String.(rs.name = ref_name))
     with
     | Some (i, _) -> Ok i
-    | None -> error_string "Bam: unknown reference id"
+    | None -> Or_error.error_string "Bam: unknown reference id"
   ;;
 
   let string_of_cigar_ops cigar_ops =
@@ -540,8 +539,8 @@ module Alignment0 = struct
     then (
       match Int32.of_int i with
       | Some i -> return i
-      | None -> error_string "invalid conversion to int32")
-    else errorf "invalid conversion to int32 (%s than %d)" var ub
+      | None -> Or_error.error_string "invalid conversion to int32")
+    else Or_error.errorf "invalid conversion to int32 (%s than %d)" var ub
   ;;
 
   let encode_bin_mq_nl ~bin ~mapq ~l_read_name =
@@ -627,7 +626,7 @@ let read_sam_header iz =
     let text = Bgzf.input_string iz l_text in
     Sam.parse_header text
   with
-  | End_of_file -> error_string "EOF while reading BAM header"
+  | End_of_file -> Or_error.error_string "EOF while reading BAM header"
 ;;
 
 let read_one_reference_information iz =
@@ -641,7 +640,7 @@ let read_one_reference_information iz =
     let length = input_s32_as_int iz in
     Biocaml.Sam.Header.SQ.make ~name ~length ()
   with
-  | End_of_file -> error_string "EOF while reading BAM reference information"
+  | End_of_file -> Or_error.error_string "EOF while reading BAM reference information"
 ;;
 
 let read_reference_information iz =
@@ -657,7 +656,7 @@ let read_reference_information iz =
     let n_ref = input_s32_as_int iz in
     loop [] n_ref >>| Array.of_list
   with
-  | End_of_file -> error_string "EOF while reading BAM reference information"
+  | End_of_file -> Or_error.error_string "EOF while reading BAM reference information"
 ;;
 
 let read_alignment_aux iz block_size =
@@ -665,8 +664,9 @@ let read_alignment_aux iz block_size =
     let ref_id = input_s32_as_int iz in
     (match Bgzf.input_s32 iz |> Int32.to_int with
      | Some 2147483647 (* POS in BAM is 0-based *) | None ->
-       error_string "A read has a position greater than 2^31"
-     | Some n -> if n < -1 then errorf "A read has a negative position %d" n else return n)
+       Or_error.error_string "A read has a position greater than 2^31"
+     | Some n ->
+       if n < -1 then Or_error.errorf "A read has a negative position %d" n else return n)
     >>= fun pos ->
     let bin_mq_nl = Bgzf.input_s32 iz in
     let l_read_name = get_8_0 bin_mq_nl in
@@ -679,9 +679,11 @@ let read_alignment_aux iz block_size =
     >>= fun () ->
     let next_ref_id = input_s32_as_int iz in
     (match Bgzf.input_s32 iz |> Int32.to_int with
-     | Some 2147483647 | None -> error_string "A read has a position > than 2^31"
+     | Some 2147483647 | None -> Or_error.error_string "A read has a position > than 2^31"
      | Some n ->
-       if n < -1 then errorf "A read has a negative next position %d" n else return n)
+       if n < -1
+       then Or_error.errorf "A read has a negative next position %d" n
+       else return n)
     >>= fun pnext ->
     let tlen = input_s32_as_int iz in
     let read_name =
@@ -712,7 +714,7 @@ let read_alignment_aux iz block_size =
       ; optional
       }
   with
-  | End_of_file -> error_string "EOF while reading alignment"
+  | End_of_file -> Or_error.error_string "EOF while reading alignment"
 ;;
 
 let read_alignment iz =
@@ -973,8 +975,7 @@ module Test = struct
       wrong n_cigar_ops: : 1 = 1: true
       wrong seq: : TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT = TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT: true
       Number of alignments: : 25 = 25: true
-    |}];
-    Ok () (* FIXME: No idea why this is needed. *)
+    |}]
   ;;
 
   let%expect_test "test_read_write_and_read" =
@@ -1255,7 +1256,6 @@ module Test = struct
       n_cigar_ops: : 1 = 1: true
       seq: : GCTGTCGTGAAGACCACAGTGTTCACCACCTTGCTG = GCTGTCGTGAAGACCACAGTGTTCACCACCTTGCTG: true
       true
-    |}];
-    Ok () (* FIXME: No idea why this is needed. *)
+    |}]
   ;;
 end
