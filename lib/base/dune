@@ -1,7 +1,7 @@
 (library
  (name biocaml)
  (public_name biocaml)
- (libraries base re uri)
+ (libraries base expect_test_helpers_core.expect_test_helpers_base re uri)
  (inline_tests)
  (flags :standard -short-paths -open Base -open Base.Printf)
  (preprocess

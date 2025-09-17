@@ -14,11 +14,11 @@
 module Header : sig
   type t
 
-  val of_sam : Biocaml.Sam.header -> t
-  val to_sam : t -> Biocaml.Sam.header
+  val of_sam : Biocaml.Sam.Header.t -> t
+  val to_sam : t -> Biocaml.Sam.Header.t
 end
 
-type alignment = Biocaml.Sam.alignment
+type alignment = Biocaml.Sam.Alignment.t
 
 (** Representation of partially parsed alignments. When traversing a
     BAM file for a specific calculation, it may be that only some
@@ -30,7 +30,7 @@ module Alignment0 : sig
   type t [@@deriving sexp]
 
   val qname : t -> string option
-  val flags : t -> Biocaml.Sam.Flags.t Or_error.t
+  val flags : t -> Biocaml.Sam.Flag.t Or_error.t
   val ref_id : t -> int option
   val rname : t -> Header.t -> string option Or_error.t
 
@@ -38,13 +38,13 @@ module Alignment0 : sig
   val pos : t -> int option
 
   val mapq : t -> int option
-  val cigar : t -> Biocaml.Sam.cigar_op list Or_error.t
-  val rnext : t -> Header.t -> Biocaml.Sam.rnext option Or_error.t
+  val cigar : t -> Biocaml.Sam.Cigar.t Or_error.t
+  val rnext : t -> Header.t -> Biocaml.Sam.Rnext.t option Or_error.t
   val pnext : t -> int option
   val tlen : t -> int option
   val seq : t -> string option
   val qual : t -> Biocaml.Phred_score.t list Or_error.t
-  val optional_fields : t -> Biocaml.Sam.optional_field list Or_error.t
+  val optional_fields : t -> Biocaml.Sam.Optional_field.t list Or_error.t
   val decode : t -> Header.t -> alignment Or_error.t
   val encode : alignment -> Header.t -> t Or_error.t
 end

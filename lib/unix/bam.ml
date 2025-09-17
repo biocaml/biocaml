@@ -1,7 +1,7 @@
 module Result = Biocaml_result
-open Or_error
+open Or_error.Let_syntax
 
-let check b msg = if b then Ok () else error_string msg
+let check b msg = if b then Ok () else Or_error.error_string msg
 let checkf b format = Printf.ksprintf (check b) format
 let check_buf ~buf ~pos ~len = check (String.length buf >= pos + len) "Buffer too short"
 
@@ -146,20 +146,18 @@ module Header = struct
      but makes parsing faster because in Bam, the seq name of a read
      is stored as an int index in the ref_seq array. *)
   type t =
-    { ref_seq : Biocaml.Sam.ref_seq array
-    ; sam_header : Biocaml.Sam.header
+    { ref_seq : Biocaml.Sam.Header.SQ.t array
+    ; sam_header : Biocaml.Sam.Header.t
     }
 
   let to_sam h = h.sam_header
 
   let of_sam sam_header =
-    { ref_seq = Array.of_list sam_header.Biocaml.Sam.ref_seqs; sam_header }
+    { ref_seq = Array.of_list (Biocaml.Sam.Header.ref_seqs sam_header); sam_header }
   ;;
 end
 
-open Header
-
-type alignment = Biocaml.Sam.alignment
+type alignment = Biocaml.Sam.Alignment.t
 
 module Alignment0 = struct
   type t =
@@ -186,40 +184,39 @@ module Alignment0 = struct
      input type (here it is [none]) plays the role of [None] *)
   let option ~none x = if Poly.(x = none) then None else Some x
   let ref_id al = option ~none:(-1) al.ref_id
-  let qname al = option ~none:"*" al.read_name
+  let qname al : string option = option ~none:"*" al.read_name
+
   (* default is indicated in note 1 of page 14 of the spec *)
 
   let flags al =
     Int32.shift_right al.flag_nc 16
     |> Int32.to_int_exn
        (* because we are shifting right just before, Int32.to_int_exn cannot fail *)
-    |> Biocaml.Sam.Flags.of_int
+    |> Biocaml.Sam.Flag.of_int
   ;;
 
   let rname al header =
     try
-      Ok
-        (Option.map (ref_id al) ~f:(fun id ->
-           (Array.get header.ref_seq id).Biocaml.Sam.name))
+      Ok (Option.map (ref_id al) ~f:(fun id -> (Array.get header.Header.ref_seq id).name))
     with
-    | _ -> error_string "Bam.Alignment0.rname: unknown ref_id"
+    | _ -> Or_error.error_string "Bam.Alignment0.rname: unknown ref_id"
   ;;
 
   let pos al = option ~none:(-1) al.pos
   let mapq al = option ~none:255 (get_16_8 al.bin_mq_nl)
 
-  let cigar_op_of_s32 x : Biocaml.Sam.cigar_op Or_error.t =
+  let cigar_op_of_s32 x : Biocaml.Sam.Cigar.Op.t Or_error.t =
     let op_len = get_32_4 x in
     match get_4_0 x with
-    | 0 -> Biocaml.Sam.cigar_op_alignment_match op_len
-    | 1 -> Biocaml.Sam.cigar_op_insertion op_len
-    | 2 -> Biocaml.Sam.cigar_op_deletion op_len
-    | 3 -> Biocaml.Sam.cigar_op_skipped op_len
-    | 4 -> Biocaml.Sam.cigar_op_soft_clipping op_len
-    | 5 -> Biocaml.Sam.cigar_op_hard_clipping op_len
-    | 6 -> Biocaml.Sam.cigar_op_padding op_len
-    | 7 -> Biocaml.Sam.cigar_op_seq_match op_len
-    | 8 -> Biocaml.Sam.cigar_op_seq_mismatch op_len
+    | 0 -> Biocaml.Sam.Cigar.Op.alignment_match_of_int op_len
+    | 1 -> Biocaml.Sam.Cigar.Op.insertion_of_int op_len
+    | 2 -> Biocaml.Sam.Cigar.Op.deletion_of_int op_len
+    | 3 -> Biocaml.Sam.Cigar.Op.skipped_of_int op_len
+    | 4 -> Biocaml.Sam.Cigar.Op.soft_clipping_of_int op_len
+    | 5 -> Biocaml.Sam.Cigar.Op.hard_clipping_of_int op_len
+    | 6 -> Biocaml.Sam.Cigar.Op.padding_of_int op_len
+    | 7 -> Biocaml.Sam.Cigar.Op.seq_match_of_int op_len
+    | 8 -> Biocaml.Sam.Cigar.Op.seq_mismatch_of_int op_len
     | _ -> assert false
   ;;
 
@@ -233,8 +230,8 @@ module Alignment0 = struct
 
   let rnext al header =
     match al.next_ref_id with
-    | -1 -> return None
-    | i -> Biocaml.Sam.parse_rnext header.ref_seq.(i).Biocaml.Sam.name
+    | -1 -> Ok None
+    | i -> Biocaml.Sam.Rnext.t_option_of_string header.Header.ref_seq.(i).name
   ;;
 
   let pnext al = option ~none:(-1) al.pnext
@@ -282,7 +279,7 @@ module Alignment0 = struct
   let qual al =
     let shift = String.map ~f:Char.(fun c -> of_int_exn (to_int c + 33)) in
     match shift al.qual with
-    | qual33 -> Biocaml.Sam.parse_qual qual33
+    | qual33 -> Biocaml.Sam.Qual.of_string qual33
     | exception Failure _ ->
       Or_error.error
         "Bam.Alignement0.qual: incorrect quality score"
@@ -297,108 +294,105 @@ module Alignment0 = struct
   let parse_cstring buf pos =
     let rec aux i =
       if i < String.length buf
-      then if Char.(String.get buf i = '\000') then return i else aux (i + 1)
-      else error_string "Unfinished NULL terminated string"
+      then if Char.(String.get buf i = '\000') then Ok i else aux (i + 1)
+      else Or_error.error_string "Unfinished NULL terminated string"
     in
-    aux pos >>= fun pos' -> return (String.sub buf ~pos ~len:(pos' - pos), pos' + 1)
+    let%bind pos' = aux pos in
+    Ok (String.sub buf ~pos ~len:(pos' - pos), pos' + 1)
   ;;
 
   let cCsSiIf_size = function
-    | 'c' | 'C' -> return 1
-    | 's' | 'S' -> return 2
-    | 'i' | 'I' | 'f' -> return 4
-    | _ -> error_string "Incorrect numeric optional field type identifier"
+    | 'c' | 'C' -> Ok 1
+    | 's' | 'S' -> Ok 2
+    | 'i' | 'I' | 'f' -> Ok 4
+    | _ -> Or_error.error_string "Incorrect numeric optional field type identifier"
   ;;
 
   let parse_cCsSiIf buf pos typ =
-    cCsSiIf_size typ
-    >>= fun len ->
-    check_buf ~buf ~pos ~len
-    >>= fun () ->
+    let%bind len = cCsSiIf_size typ in
+    let%bind () = check_buf ~buf ~pos ~len in
     match typ with
     | 'c' ->
       let i = Int64.of_int_exn (BP.unpack_signed_8 ~buf ~pos) in
-      return (Biocaml.Sam.optional_field_value_i i, len)
+      Ok (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'C' ->
       let i = Int64.of_int_exn (BP.unpack_unsigned_8 ~buf ~pos) in
-      return (Biocaml.Sam.optional_field_value_i i, len)
+      Ok (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 's' ->
       let i = Int64.of_int_exn (BP.unpack_signed_16_little_endian ~buf ~pos) in
-      return (Biocaml.Sam.optional_field_value_i i, len)
+      Ok (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'S' ->
       let i = Int64.of_int_exn (BP.unpack_unsigned_16_little_endian ~buf ~pos) in
-      return (Biocaml.Sam.optional_field_value_i i, len)
+      Ok (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'i' ->
       let i = BP.unpack_signed_32_little_endian ~buf ~pos in
-      return (Biocaml.Sam.optional_field_value_i (Int64.of_int32 i), len)
+      Ok (Biocaml.Sam.Optional_field.Value.of_int64_i (Int64.of_int32 i), len)
     | 'I' ->
       let i = BP.unpack_unsigned_32_little_endian ~buf ~pos in
-      return (Biocaml.Sam.optional_field_value_i i, len)
+      Ok (Biocaml.Sam.Optional_field.Value.of_int64_i i, len)
     | 'f' ->
       let f = BP.unpack_float_little_endian ~buf ~pos in
-      return (Biocaml.Sam.optional_field_value_f f, len)
-    | _ -> error_string "Incorrect numeric optional field type identifier"
+      Ok (Biocaml.Sam.Optional_field.Value.of_float_f f, len)
+    | _ -> Or_error.error_string "Incorrect numeric optional field type identifier"
   ;;
 
   let parse_optional_field_value buf pos = function
     | 'A' ->
-      check_buf ~buf ~pos ~len:1
-      >>= fun () ->
-      Biocaml.Sam.optional_field_value_A (String.get buf pos) >>= fun v -> return (v, 1)
+      let%bind () = check_buf ~buf ~pos ~len:1 in
+      let%bind v = Biocaml.Sam.Optional_field.Value.of_char_A (String.get buf pos) in
+      Ok (v, 1)
     | ('c' | 'C' | 's' | 'S' | 'i' | 'I' | 'f') as typ -> parse_cCsSiIf buf pos typ
     | 'Z' ->
-      parse_cstring buf pos
-      >>= fun (s, pos') ->
-      Biocaml.Sam.optional_field_value_Z s >>= fun value -> return (value, pos' - pos)
+      let%bind s, pos' = parse_cstring buf pos in
+      let%bind value = Biocaml.Sam.Optional_field.Value.of_string_Z s in
+      Ok (value, pos' - pos)
     | 'H' ->
-      parse_cstring buf pos
-      >>= fun (s, pos') ->
-      Biocaml.Sam.optional_field_value_H s >>= fun value -> return (value, pos' - pos)
+      let%bind s, pos' = parse_cstring buf pos in
+      let%bind value = Biocaml.Sam.Optional_field.Value.of_string_H s in
+      Ok (value, pos' - pos)
     | 'B' -> (
-      check_buf ~buf ~pos ~len:5
-      >>= fun () ->
+      let%bind () = check_buf ~buf ~pos ~len:5 in
       let typ = String.get buf 0 in
       let n = BP.unpack_signed_32_little_endian ~buf ~pos:(pos + 1) in
       match Int32.to_int n with
       | Some n ->
-        cCsSiIf_size typ
-        >>= fun elt_size ->
-        check_buf ~buf ~pos:(pos + 5) ~len:(n * elt_size)
-        >>= fun () ->
+        let%bind elt_size = cCsSiIf_size typ in
+        let%bind () = check_buf ~buf ~pos:(pos + 5) ~len:(n * elt_size) in
         let elts =
           List.init n ~f:(fun i ->
             String.sub buf ~pos:(pos + 5 + (i * elt_size)) ~len:elt_size)
         in
         let bytes_read = 5 (* array type and size *) + (elt_size * n) in
-        Biocaml.Sam.optional_field_value_B typ elts
-        >>= fun value -> return (value, bytes_read)
-      | None -> error_string "Too many elements in B-type optional field")
+        let%bind value =
+          Biocaml.Sam.Optional_field.Value.of_char_string_list_B typ elts
+        in
+        Ok (value, bytes_read)
+      | None -> Or_error.error_string "Too many elements in B-type optional field")
     | c -> error "Incorrect optional field type identifier" c [%sexp_of: char]
   ;;
 
   let parse_optional_field buf pos =
-    check_buf ~buf ~pos ~len:3
-    >>= fun () ->
+    let%bind () = check_buf ~buf ~pos ~len:3 in
     let tag = String.sub buf ~pos ~len:2 in
     let field_type = buf.[pos + 2] in
-    parse_optional_field_value buf (pos + 3) field_type
-    >>= fun (field_value, shift) ->
-    Biocaml.Sam.optional_field tag field_value >>= fun field -> return (field, shift + 3)
+    let%bind field_value, shift = parse_optional_field_value buf (pos + 3) field_type in
+    let%bind field = Biocaml.Sam.Optional_field.make tag field_value in
+    Ok (field, shift + 3)
   ;;
 
   let parse_optional_fields buf =
     let rec loop buf pos accu =
       if pos = String.length buf
-      then return (List.rev accu)
-      else
-        parse_optional_field buf pos
-        >>= fun (field, used_chars) -> loop buf (pos + used_chars) (field :: accu)
+      then Ok (List.rev accu)
+      else (
+        let%bind field, used_chars = parse_optional_field buf pos in
+        loop buf (pos + used_chars) (field :: accu))
     in
     loop buf 0 []
   ;;
 
   let optional_fields al =
-    tag (parse_optional_fields al.optional) ~tag:"Bam.Alignment0.optional_fields"
+    Or_error.tag (parse_optional_fields al.optional) ~tag:"Bam.Alignment0.optional_fields"
   ;;
 
   (* ============================ *)
@@ -407,29 +401,58 @@ module Alignment0 = struct
 
   (* Alignement0.t -> Alignment.t conversion *)
   let decode al header =
-    flags al
-    >>= fun flags ->
-    rname al header
-    >>= fun rname ->
-    cigar al
-    >>= fun cigar ->
-    rnext al header
-    >>= fun rnext ->
-    qual al
-    >>= fun qual ->
-    optional_fields al
-    >>= fun optional_fields ->
-    Biocaml.Sam.alignment
-      ?qname:(qname al)
-      ~flags
+    let%bind qname =
+      match qname al with
+      | None -> Ok None
+      | Some qname -> Biocaml.Sam.Qname.t_option_of_string qname
+    in
+    let%bind flag = flags al in
+    let%bind rname : Biocaml.Sam.Rname.t option Or_error.t =
+      match rname al header with
+      | Error _ as e -> e
+      | Ok None as x -> x
+      | Ok (Some rname) -> Biocaml.Sam.Rname.t_option_of_string rname
+    in
+    let%bind pos =
+      match pos al with
+      | None -> Ok None
+      | Some pos -> Biocaml.Sam.Pos.t_option_of_string (Int.to_string pos)
+    in
+    let%bind mapq =
+      match mapq al with
+      | None -> Ok None
+      | Some mapq -> Biocaml.Sam.Mapq.t_option_of_string (Int.to_string mapq)
+    in
+    let%bind cigar = cigar al in
+    let%bind rnext = rnext al header in
+    let%bind pnext =
+      match pnext al with
+      | None -> Ok None
+      | Some pnext -> Biocaml.Sam.Pnext.t_option_of_string (Int.to_string pnext)
+    in
+    let%bind tlen =
+      match tlen al with
+      | None -> Ok None
+      | Some tlen -> Biocaml.Sam.Tlen.t_option_of_string (Int.to_string tlen)
+    in
+    let%bind seq =
+      match seq al with
+      | None -> Ok None
+      | Some seq -> Biocaml.Sam.Seq.t_option_of_string seq
+    in
+    let%bind qual = qual al in
+    let%bind optional_fields = optional_fields al in
+    Biocaml.Sam.Alignment.make
+      ?qname
+      ~flag
       ?rname
-      ?pos:(pos al)
-      ?mapq:(mapq al)
+      ?pos
+      ?mapq
       ~cigar
       ?rnext
-      ?pnext:(pnext al)
-      ?tlen:(tlen al)
-      ?seq:(seq al)
+      ?pnext
+      ?tlen
+      ?seq
       ~qual
       ~optional_fields
       ()
@@ -441,12 +464,11 @@ module Alignment0 = struct
 
   (* Alignment.t -> Alignment0.t conversion *)
   let find_ref_id header ref_name =
-    let open Or_error in
     match
-      Array.findi header.ref_seq ~f:(fun _ rs -> String.(rs.Biocaml.Sam.name = ref_name))
+      Array.findi header.Header.ref_seq ~f:(fun _ rs -> String.(rs.name = ref_name))
     with
     | Some (i, _) -> Ok i
-    | None -> error_string "Bam: unknown reference id"
+    | None -> Or_error.error_string "Bam: unknown reference id"
   ;;
 
   let string_of_cigar_ops cigar_ops =
@@ -455,7 +477,6 @@ module Alignment0 = struct
       let pos = ith * 4 in
       Binary_packing.pack_signed_32 ~byte_order:`Little_endian ~buf ~pos i32
     in
-    let open Int32 in
     List.iteri cigar_ops ~f:(fun idx op ->
       let _, i =
         match op with
@@ -469,7 +490,7 @@ module Alignment0 = struct
         | `Seq_match i -> 7l, i
         | `Seq_mismatch i -> 8l, i
       in
-      write idx (bit_or 0l (of_int_exn Stdlib.(i lsl 4))));
+      write idx (Int32.bit_or 0l (Int32.of_int_exn Stdlib.(i lsl 4))));
     Bytes.unsafe_to_string ~no_mutation_while_string_reachable:buf
   ;;
 
@@ -515,10 +536,9 @@ module Alignment0 = struct
         Ok ('H', String.concat ~sep:"" (List.rev !r) ^ "\000")
       | `Z s -> Ok ('Z', s ^ "\000")
     in
-    let open Or_error.Monad_infix in
     List.map opt_fields ~f:(fun opt_field ->
-      field_value_encoding opt_field.Biocaml.Sam.value
-      >>= fun (c, s) -> Ok (sprintf "%s%c%s" opt_field.Biocaml.Sam.tag c s))
+      let%bind c, s = field_value_encoding opt_field.Biocaml.Sam.Optional_field.value in
+      Ok (sprintf "%s%c%s" opt_field.Biocaml.Sam.Optional_field.tag c s))
     |> Or_error.all
     >>| String.concat ~sep:""
   ;;
@@ -527,61 +547,64 @@ module Alignment0 = struct
     if i < ub
     then (
       match Int32.of_int i with
-      | Some i -> return i
-      | None -> error_string "invalid conversion to int32")
-    else errorf "invalid conversion to int32 (%s than %d)" var ub
+      | Some i -> Ok i
+      | None -> Or_error.error_string "invalid conversion to int32")
+    else Or_error.errorf "invalid conversion to int32 (%s than %d)" var ub
   ;;
 
   let encode_bin_mq_nl ~bin ~mapq ~l_read_name =
-    let open Int32 in
-    int32 bin ~ub:65536 "bin"
-    >>= fun bin ->
-    int32 mapq ~ub:256 "mapq"
-    >>= fun mapq ->
-    int32 l_read_name ~ub:256 "l_read_name"
-    >>= fun l_read_name ->
-    return (bit_or (shift_left bin 16) (bit_or (shift_left mapq 8) l_read_name))
+    let%bind bin = int32 bin ~ub:65536 "bin" in
+    let%bind mapq = int32 mapq ~ub:256 "mapq" in
+    let%bind l_read_name = int32 l_read_name ~ub:256 "l_read_name" in
+    Ok
+      (Int32.bit_or
+         (Int32.shift_left bin 16)
+         (Int32.bit_or (Int32.shift_left mapq 8) l_read_name))
   ;;
 
   let encode_flag_nc ~flags ~n_cigar_ops =
-    let open Int32 in
-    int32 flags ~ub:65536 "flags"
-    >>= fun flags ->
-    int32 n_cigar_ops ~ub:65536 "n_cigar_ops"
-    >>= fun n_cigar_ops -> return (bit_or (shift_left flags 16) n_cigar_ops)
+    let%bind flags = int32 flags ~ub:65536 "flags" in
+    let%bind n_cigar_ops = int32 n_cigar_ops ~ub:65536 "n_cigar_ops" in
+    Ok (Int32.bit_or (Int32.shift_left flags 16) n_cigar_ops)
   ;;
 
   let encode al header =
-    (match al.Biocaml.Sam.rname with
-     | Some rname -> find_ref_id header rname
-     | None -> Ok (-1))
-    >>= fun ref_id ->
-    let read_name = Option.value ~default:"*" al.Biocaml.Sam.qname in
-    let seq = Option.value ~default:"*" al.Biocaml.Sam.seq in
-    let pos = Option.value ~default:0 al.Biocaml.Sam.pos - 1 in
+    let%bind ref_id =
+      match al.Biocaml.Sam.Alignment.rname with
+      | Some rname -> find_ref_id header (rname :> string)
+      | None -> Ok (-1)
+    in
+    let read_name = Biocaml.Sam.Qname.to_string_option al.Biocaml.Sam.Alignment.qname in
+    let seq = Option.value ~default:"*" (al.Biocaml.Sam.Alignment.seq :> string option) in
+    let pos = Option.value ~default:0 (al.Biocaml.Sam.Alignment.pos :> int option) - 1 in
     let bin = reg2bin pos (pos + String.(length seq)) in
-    let mapq = Option.value ~default:255 al.Biocaml.Sam.mapq in
+    let mapq = Option.value ~default:255 (al.Biocaml.Sam.Alignment.mapq :> int option) in
     let l_read_name = String.length read_name + 1 in
     (* NULL terminated string *)
-    encode_bin_mq_nl ~bin ~mapq ~l_read_name
-    >>= fun bin_mq_nl ->
-    let flags = (al.Biocaml.Sam.flags :> int) in
-    let n_cigar_ops = List.length al.Biocaml.Sam.cigar in
-    encode_flag_nc ~flags ~n_cigar_ops
-    >>= fun flag_nc ->
-    (match al.Biocaml.Sam.rnext with
-     | Some `Equal_to_RNAME -> Ok ref_id
-     | Some (`Value s) -> find_ref_id header s
-     | None -> Ok (-1))
-    >>= fun next_ref_id ->
-    let pnext = Option.value ~default:0 al.Biocaml.Sam.pnext - 1 in
-    let tlen = Option.value ~default:0 al.Biocaml.Sam.tlen in
-    let cigar = string_of_cigar_ops al.Biocaml.Sam.cigar in
-    Result.List.map al.Biocaml.Sam.qual ~f:(Biocaml.Phred_score.to_char ~offset:`Offset33)
-    >>| String.of_char_list
-    >>= fun qual ->
-    string_of_optional_fields al.Biocaml.Sam.optional_fields
-    >>= fun optional ->
+    let%bind bin_mq_nl = encode_bin_mq_nl ~bin ~mapq ~l_read_name in
+    let flags = (al.Biocaml.Sam.Alignment.flag :> int) in
+    let n_cigar_ops = List.length al.Biocaml.Sam.Alignment.cigar in
+    let%bind flag_nc = encode_flag_nc ~flags ~n_cigar_ops in
+    let%bind next_ref_id =
+      match al.Biocaml.Sam.Alignment.rnext with
+      | Some `Equal_to_RNAME -> Ok ref_id
+      | Some (`Value s) -> find_ref_id header (s :> string)
+      | None -> Ok (-1)
+    in
+    let pnext =
+      Option.value ~default:0 (al.Biocaml.Sam.Alignment.pnext :> int option) - 1
+    in
+    let tlen = Option.value ~default:0 (al.Biocaml.Sam.Alignment.tlen :> int option) in
+    let cigar = string_of_cigar_ops al.Biocaml.Sam.Alignment.cigar in
+    let%bind qual =
+      Result.List.map
+        al.Biocaml.Sam.Alignment.qual
+        ~f:(Biocaml.Phred_score.to_char ~offset:`Offset33)
+      >>| String.of_char_list
+    in
+    let%bind optional =
+      string_of_optional_fields al.Biocaml.Sam.Alignment.optional_fields
+    in
     Ok
       { ref_id
       ; pos
@@ -605,29 +628,30 @@ let input_s32_as_int iz = Int32.to_int_exn (Bgzf.input_s32 iz)
 let read_sam_header iz =
   try
     let magic = Bgzf.input_string iz 4 in
-    check String.(magic = magic_string) "Incorrect magic string, not a BAM file"
-    >>= fun () ->
+    let%bind () =
+      check String.(magic = magic_string) "Incorrect magic string, not a BAM file"
+    in
     let l_text = input_s32_as_int iz in
-    check (l_text >= 0) "Incorrect size of plain text in BAM header"
-    >>= fun () ->
+    let%bind () = check (l_text >= 0) "Incorrect size of plain text in BAM header" in
     let text = Bgzf.input_string iz l_text in
     Sam.parse_header text
   with
-  | End_of_file -> error_string "EOF while reading BAM header"
+  | End_of_file -> Or_error.error_string "EOF while reading BAM header"
 ;;
 
 let read_one_reference_information iz =
   try
     let l_name = input_s32_as_int iz in
-    check (l_name > 0) "Incorrect encoding of reference sequence name in BAM header"
-    >>= fun () ->
+    let%bind () =
+      check (l_name > 0) "Incorrect encoding of reference sequence name in BAM header"
+    in
     let name = Bgzf.input_string iz (l_name - 1) in
     let (_ : char) = Bgzf.input_char iz in
     (* name is a NULL terminated string *)
     let length = input_s32_as_int iz in
-    Biocaml.Sam.ref_seq ~name ~length ()
+    Biocaml.Sam.Header.SQ.make ~name ~length ()
   with
-  | End_of_file -> error_string "EOF while reading BAM reference information"
+  | End_of_file -> Or_error.error_string "EOF while reading BAM reference information"
 ;;
 
 let read_reference_information iz =
@@ -643,32 +667,38 @@ let read_reference_information iz =
     let n_ref = input_s32_as_int iz in
     loop [] n_ref >>| Array.of_list
   with
-  | End_of_file -> error_string "EOF while reading BAM reference information"
+  | End_of_file -> Or_error.error_string "EOF while reading BAM reference information"
 ;;
 
 let read_alignment_aux iz block_size =
   try
     let ref_id = input_s32_as_int iz in
-    (match Bgzf.input_s32 iz |> Int32.to_int with
-     | Some 2147483647 (* POS in BAM is 0-based *) | None ->
-       error_string "A read has a position greater than 2^31"
-     | Some n -> if n < -1 then errorf "A read has a negative position %d" n else return n)
-    >>= fun pos ->
+    let%bind pos =
+      match Bgzf.input_s32 iz |> Int32.to_int with
+      | Some 2147483647 (* POS in BAM is 0-based *) | None ->
+        Or_error.error_string "A read has a position greater than 2^31"
+      | Some n ->
+        if n < -1 then Or_error.errorf "A read has a negative position %d" n else Ok n
+    in
     let bin_mq_nl = Bgzf.input_s32 iz in
     let l_read_name = get_8_0 bin_mq_nl in
-    checkf (l_read_name > 0) "Alignment with l_read_name = %d" l_read_name
-    >>= fun () ->
+    let%bind () =
+      checkf (l_read_name > 0) "Alignment with l_read_name = %d" l_read_name
+    in
     let flag_nc = Bgzf.input_s32 iz in
     let n_cigar_ops = get_16_0 flag_nc in
     let l_seq = input_s32_as_int iz in
-    check (l_seq >= 0) "Incorrect sequence length in alignment"
-    >>= fun () ->
+    let%bind () = check (l_seq >= 0) "Incorrect sequence length in alignment" in
     let next_ref_id = input_s32_as_int iz in
-    (match Bgzf.input_s32 iz |> Int32.to_int with
-     | Some 2147483647 | None -> error_string "A read has a position > than 2^31"
-     | Some n ->
-       if n < -1 then errorf "A read has a negative next position %d" n else return n)
-    >>= fun pnext ->
+    let%bind pnext =
+      match Bgzf.input_s32 iz |> Int32.to_int with
+      | Some 2147483647 | None ->
+        Or_error.error_string "A read has a position > than 2^31"
+      | Some n ->
+        if n < -1
+        then Or_error.errorf "A read has a negative next position %d" n
+        else Ok n
+    in
     let tlen = input_s32_as_int iz in
     let read_name =
       let r = Bgzf.input_string iz (l_read_name - 1) in
@@ -683,7 +713,7 @@ let read_alignment_aux iz block_size =
       block_size - 32 - l_read_name - (4 * n_cigar_ops) - ((l_seq + 1) / 2) - l_seq
     in
     let optional = Bgzf.input_string iz remaining in
-    return
+    Ok
       { Alignment0.ref_id
       ; read_name
       ; flag_nc
@@ -698,7 +728,7 @@ let read_alignment_aux iz block_size =
       ; optional
       }
   with
-  | End_of_file -> error_string "EOF while reading alignment"
+  | End_of_file -> Or_error.error_string "EOF while reading alignment"
 ;;
 
 let read_alignment iz =
@@ -712,38 +742,32 @@ let read_alignment iz =
 let read_alignment_stream iz = Stream.from (fun _ -> read_alignment iz)
 
 let read_header iz =
-  read_sam_header iz
-  >>= fun sam_header ->
-  read_reference_information iz >>= fun ref_seq -> Ok { sam_header; ref_seq }
+  let%bind (sam_header : Biocaml.Sam.Header.t) = read_sam_header iz in
+  let%bind ref_seq = read_reference_information iz in
+  Ok { Header.sam_header; ref_seq }
 ;;
 
 let read0 ic =
   let iz = Bgzf.of_in_channel ic in
-  read_header iz >>= fun header -> return (header, read_alignment_stream iz)
+  let%bind header = read_header iz in
+  Ok (header, read_alignment_stream iz)
 ;;
 
 let with_file0 fn ~f =
   In_channel.with_file ~binary:true fn ~f:(fun ic ->
-    read0 ic >>= fun (header, alignments) -> f header alignments)
+    let%bind header, alignments = read0 ic in
+    f header alignments)
 ;;
 
-let write_plain_SAM_header h oz =
+let write_plain_SAM_header (h : Biocaml.Sam.Header.t) oz =
   let buf = Buffer.create 1024 in
   let add_line x =
     Buffer.add_string buf x;
     Buffer.add_char buf '\n'
   in
-  Option.iter h.Biocaml.Sam.version ~f:(fun version ->
-    let hl = Biocaml.Sam.header_line ~version ?sort_order:h.sort_order () |> ok_exn in
-    (* the construction of the header line must be valid since we are building it from a validated header *)
-    add_line (Biocaml.Sam.print_header_line hl));
-  List.iter h.ref_seqs ~f:(fun x -> add_line (Biocaml.Sam.print_ref_seq x));
-  List.iter h.read_groups ~f:(fun x -> add_line (Biocaml.Sam.print_read_group x));
-  List.iter h.programs ~f:(fun x -> add_line (Biocaml.Sam.print_program x));
-  List.iter h.comments ~f:(fun x ->
-    Buffer.add_string buf "@CO\t";
-    add_line x);
-  List.iter h.others ~f:(fun x -> add_line (Biocaml.Sam.print_other x));
+  List.iter
+    (h :> Biocaml.Sam.Header.Item.t list)
+    ~f:(fun x -> add_line (Biocaml.Sam.Header.Item.to_line x));
   Bgzf.output_s32 oz (Int32.of_int_exn (Buffer.length buf));
   (* safe conversion of int32 to int: SAM headers less than a few KB *)
   Bgzf.output_string oz (Buffer.contents buf)
@@ -755,7 +779,7 @@ let output_null_terminated_string oz s =
 ;;
 
 let write_reference_sequences h oz =
-  Bgzf.output_s32 oz (Int32.of_int_exn (Array.length h.ref_seq));
+  Bgzf.output_s32 oz (Int32.of_int_exn (Array.length h.Header.ref_seq));
   (* safe conversion: more than a few million reference sequences cannot happen in practice *)
   Array.iter h.ref_seq ~f:(fun rs ->
     Bgzf.output_s32 oz (Int32.of_int_exn (String.length rs.name + 1));
@@ -767,18 +791,17 @@ let write_reference_sequences h oz =
 
 let write_header header oz =
   Bgzf.output_string oz magic_string;
-  write_plain_SAM_header header.sam_header oz;
+  write_plain_SAM_header header.Header.sam_header oz;
   write_reference_sequences header oz
 ;;
 
 let write_alignment oz al =
-  let open Alignment0 in
-  Bgzf.output_s32 oz (Int32.of_int_exn (sizeof al));
+  Bgzf.output_s32 oz (Int32.of_int_exn (Alignment0.sizeof al));
   Bgzf.output_s32 oz (Int32.of_int_exn al.ref_id);
   Bgzf.output_s32 oz (Int32.of_int_exn al.pos);
   Bgzf.output_s32 oz al.bin_mq_nl;
   Bgzf.output_s32 oz al.flag_nc;
-  Bgzf.output_s32 oz (Int32.of_int_exn (l_seq al));
+  Bgzf.output_s32 oz (Int32.of_int_exn (Alignment0.l_seq al));
   Bgzf.output_s32 oz (Int32.of_int_exn al.next_ref_id);
   Bgzf.output_s32 oz (Int32.of_int_exn al.pnext);
   Bgzf.output_s32 oz (Int32.of_int_exn al.tlen);
@@ -799,8 +822,7 @@ let write0 header alignments oc =
 let bind f x = Or_error.bind x ~f
 
 let read ic =
-  read0 ic
-  >>= fun (header, xs) ->
+  let%bind header, xs = read0 ic in
   Ok (header, CFStream.map xs ~f:(bind (fun r -> Alignment0.decode r header)))
 ;;
 
@@ -854,41 +876,7 @@ module Test = struct
 
   let assert_headers h1 h2 =
     let h1, h2 = Header.to_sam h1, Header.to_sam h2 in
-    assert_equal
-      ~msg:"version"
-      ~printer:[%sexp_of: string option]
-      h1.Biocaml.Sam.version
-      h2.Biocaml.Sam.version;
-    assert_equal
-      ~msg:"sort_order"
-      ~printer:[%sexp_of: Biocaml.Sam.sort_order option]
-      h1.Biocaml.Sam.sort_order
-      h2.Biocaml.Sam.sort_order;
-    assert_equal
-      ~msg:"ref_seqs"
-      ~printer:[%sexp_of: Biocaml.Sam.ref_seq list]
-      h1.Biocaml.Sam.ref_seqs
-      h2.Biocaml.Sam.ref_seqs;
-    assert_equal
-      ~msg:"read_groups"
-      ~printer:[%sexp_of: Biocaml.Sam.read_group list]
-      h1.Biocaml.Sam.read_groups
-      h2.Biocaml.Sam.read_groups;
-    assert_equal
-      ~msg:"programs"
-      ~printer:[%sexp_of: Biocaml.Sam.program list]
-      h1.Biocaml.Sam.programs
-      h2.Biocaml.Sam.programs;
-    assert_equal
-      ~msg:"comments"
-      ~printer:[%sexp_of: string list]
-      h1.Biocaml.Sam.comments
-      h2.Biocaml.Sam.comments;
-    assert_equal
-      ~msg:"others"
-      ~printer:[%sexp_of: (string * Biocaml.Sam.tag_value list) list]
-      h1.Biocaml.Sam.others
-      h2.Biocaml.Sam.others;
+    assert_equal ~msg:"header" ~printer:[%sexp_of: Biocaml.Sam.Header.t] h1 h2;
     ()
   ;;
 
@@ -927,29 +915,36 @@ module Test = struct
   ;;
 
   let assert_alignments header al1 al2 =
-    let open Alignment0 in
     assert_equal
       ~msg:"rname"
       ~printer:[%sexp_of: string option Or_error.t]
-      (rname al1 header)
-      (rname al2 header);
-    assert_equal ~msg:"mapq" ~printer:[%sexp_of: int option] (mapq al1) (mapq al2);
-    assert_equal ~msg:"tlen" ~printer:[%sexp_of: int option] (tlen al1) (tlen al2);
+      (Alignment0.rname al1 header)
+      (Alignment0.rname al2 header);
+    assert_equal
+      ~msg:"mapq"
+      ~printer:[%sexp_of: int option]
+      (Alignment0.mapq al1)
+      (Alignment0.mapq al2);
+    assert_equal
+      ~msg:"tlen"
+      ~printer:[%sexp_of: int option]
+      (Alignment0.tlen al1)
+      (Alignment0.tlen al2);
     assert_equal
       ~msg:"read_name"
       ~printer:[%sexp_of: string option]
-      (qname al1)
-      (qname al2);
+      (Alignment0.qname al1)
+      (Alignment0.qname al2);
     assert_equal
       ~msg:"n_cigar_ops"
       ~printer:Int.sexp_of_t
-      (List.length (ok_exn (cigar al1)))
-      (List.length (ok_exn (cigar al2)));
+      (List.length (ok_exn (Alignment0.cigar al1)))
+      (List.length (ok_exn (Alignment0.cigar al2)));
     assert_equal
       ~msg:"seq"
       ~printer:String.sexp_of_t
-      (Option.value_exn (seq al1))
-      (Option.value_exn (seq al2));
+      (Option.value_exn (Alignment0.seq al1))
+      (Option.value_exn (Alignment0.seq al2));
     ()
   ;;
 
@@ -960,13 +955,18 @@ module Test = struct
         ~msg:"Sam version"
         ~printer:[%sexp_of: string option]
         (Some "1.0")
-        sh.Biocaml.Sam.version;
-      assert_equal ~msg:"Sort order" (Some `Unsorted) sh.Biocaml.Sam.sort_order;
+        (sh |> Biocaml.Sam.Header.hd |> Option.map ~f:(fun x -> (x.version :> string)));
+      assert_equal
+        ~msg:"Sort order"
+        (Some `Unsorted)
+        (match sh |> Biocaml.Sam.Header.hd with
+         | None -> None
+         | Some hd -> hd.sort_order);
       assert_equal
         ~msg:"Number of ref sequences"
         ~printer:Int.sexp_of_t
         22
-        (List.length sh.Biocaml.Sam.ref_seqs);
+        (List.length (Biocaml.Sam.Header.ref_seqs sh));
       let al0 = CFStream.next_exn alignments |> ok_exn in
       assert_alignment
         ~qname:(Some "ILLUMINA-D118D2_0040_FC:7:20:2683:16044#0/1")
@@ -996,8 +996,7 @@ module Test = struct
       wrong n_cigar_ops: : 1 = 1: true
       wrong seq: : TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT = TTTTGTCCTTCTTTTATTCCTATTTTTCTTAGGTTT: true
       Number of alignments: : 25 = 25: true
-    |}];
-    Ok () (* FIXME: No idea why this is needed. *)
+    |}]
   ;;
 
   let%expect_test "test_read_write_and_read" =
@@ -1278,7 +1277,6 @@ module Test = struct
       n_cigar_ops: : 1 = 1: true
       seq: : GCTGTCGTGAAGACCACAGTGTTCACCACCTTGCTG = GCTGTCGTGAAGACCACAGTGTTCACCACCTTGCTG: true
       true
-    |}];
-    Ok () (* FIXME: No idea why this is needed. *)
+    |}]
   ;;
 end
