@@ -10,11 +10,10 @@ let item ~description ~sequence = { description; sequence }
 type fmt =
   { allow_empty_lines : bool
   ; max_line_length : int option
-  ; alphabet : string option
   }
 
-let fmt ?(allow_empty_lines = false) ?max_line_length ?alphabet () =
-  { allow_empty_lines; max_line_length; alphabet }
+let fmt ?(allow_empty_lines = false) ?max_line_length () =
+  { allow_empty_lines; max_line_length }
 ;;
 
 let default_fmt = fmt ()

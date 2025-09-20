@@ -60,16 +60,9 @@ val item : description:string -> sequence:string -> item
 type fmt =
   { allow_empty_lines : bool
   ; max_line_length : int option
-  ; alphabet : string option
   }
 
-val fmt
-  :  ?allow_empty_lines:bool
-  -> ?max_line_length:int
-  -> ?alphabet:string
-  -> unit
-  -> fmt
-
+val fmt : ?allow_empty_lines:bool -> ?max_line_length:int -> unit -> fmt
 val default_fmt : fmt
 
 (** Parse a space separated list of integers. *)
