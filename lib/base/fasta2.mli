@@ -60,5 +60,5 @@ module Parser : sig
   end
 
   val init : t
-  val step : t -> string option -> (t * Item.t list, Error.t) Result.t
+  val step : t -> string -> (t * Item.t list, Error.t) Result.t
 end
