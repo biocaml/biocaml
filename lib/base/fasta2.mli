@@ -57,12 +57,9 @@ val item : description:string -> sequence:string -> item
 (** {2 Parsing} *)
 (******************************************************************************)
 
-type fmt =
-  { allow_empty_lines : bool
-  ; max_line_length : int option
-  }
+type fmt = { max_line_length : int option }
 
-val fmt : ?allow_empty_lines:bool -> ?max_line_length:int -> unit -> fmt
+val fmt : ?max_line_length:int -> unit -> fmt
 val default_fmt : fmt
 
 (** Parse a space separated list of integers. *)
@@ -72,9 +69,6 @@ val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
     with large sequences because you get the sequence in smaller
     pieces.
 
-    - [`Empty_line] - Got a line with only whitespace characters. The
-    contents are not provided.
-
     - [`Description _] - Single description line without the initial
     '>' nor final newline.
 
@@ -82,8 +76,7 @@ val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
     comprise the sequence of a single [item].
 *)
 type item0 =
-  [ `Empty_line
-  | `Description of string
+  [ `Description of string
   | `Partial_sequence of string
   ]
 [@@deriving sexp]

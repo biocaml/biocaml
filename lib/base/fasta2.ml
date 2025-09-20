@@ -7,20 +7,13 @@ type item =
 (* FIXME: should check there is no newline in the arguments *)
 let item ~description ~sequence = { description; sequence }
 
-type fmt =
-  { allow_empty_lines : bool
-  ; max_line_length : int option
-  }
+type fmt = { max_line_length : int option }
 
-let fmt ?(allow_empty_lines = false) ?max_line_length () =
-  { allow_empty_lines; max_line_length }
-;;
-
+let fmt ?max_line_length () = { max_line_length }
 let default_fmt = fmt ()
 
 type item0 =
-  [ `Empty_line
-  | `Description of string
+  [ `Description of string
   | `Partial_sequence of string
   ]
 [@@deriving sexp]
@@ -104,10 +97,7 @@ module Parser0 = struct
               accu
               (j + 1)
               (j + 1)
-          | '\n', true, (Sequence _ | S) ->
-            if st.fmt.allow_empty_lines
-            then loop (newline st) (`Empty_line :: accu) (j + 1) (j + 1)
-            else fail st "Empty line"
+          | '\n', true, (Sequence _ | S) -> fail st "Empty line"
           | c, true, S -> failf st "Unexpected character %c at beginning of line" c
           | '\n', false, Description d ->
             let d' = String.sub buf ~pos:i ~len:(j - i) in
@@ -155,7 +145,6 @@ module Parser0 = struct
 end
 
 let unparser0 = function
-  | `Empty_line -> ""
   | `Description d -> ">" ^ d
   | `Partial_sequence s -> s
 ;;
@@ -179,7 +168,6 @@ module Parser = struct
   let step_aux (sym, accu) item0 =
     match item0, sym with
     | _, Terminal -> Terminal, accu
-    | `Empty_line, _ -> sym, accu
     | `Description d, Init -> Item (d, []), accu
     | `Description _, Item (_, []) ->
       assert false (* should be detected by Parser0.step *)
