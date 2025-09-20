@@ -45,15 +45,20 @@
 *)
 
 module Parser : sig
-  type item =
-    [ `Description of string
-    | `Sequence of string
-    ]
-  [@@deriving sexp]
+  module Item : sig
+    type t =
+      [ `Description of string
+      | `Sequence of string
+      ]
+    [@@deriving sexp]
+  end
 
-  type state
-  type error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
+  type t
 
-  val initial_state : unit -> state
-  val step : state -> string option -> (state * item list, error) Result.t
+  module Error : sig
+    type t = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
+  end
+
+  val init : t
+  val step : t -> string option -> (t * Item.t list, Error.t) Result.t
 end
