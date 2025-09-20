@@ -7,15 +7,24 @@ module Parser = struct
     [@@deriving sexp]
   end
 
+  (* State describes what needs to be done on next step:
+     - Description_start: need to start parsing description
+     - Description: need to continue parsing description
+     - Sequence_start: need to start parsing sequence
+     - Sequence: need to continue parsing sequence
+  *)
   type state =
-    | Start (* start of description *)
-    | Description of string
-    | Sequence of { empty : bool }
+    | Description_start
+    | Description
+    | Sequence_start
+    | Sequence
 
+  (* Parser is defined by:
+     - line: number of the line that will be parsed on next step
+     - state: the current state of the parser
+  *)
   type t =
     { line : int
-    ; line_start : bool
-    ; started_first_item : bool
     ; state : state
     }
 
@@ -30,87 +39,52 @@ module Parser = struct
     Printf.ksprintf k fmt
   ;;
 
-  let init = { line = 0; line_start = true; started_first_item = false; state = Start }
-
-  let newline ?state t =
-    { t with
-      line = t.line + 1
-    ; line_start = true
-    ; state =
-        (match state with
-         | None -> t.state
-         | Some s -> s)
-    }
-  ;;
+  let init = { line = 1; state = Description_start }
 
   let step (parser : t) (buf : string) : (t * Item.t list, Error.t) Result.t =
     let n = String.length buf in
     let rec loop (parser : t) (accu : Item.t list) (i : int) (j : int) =
       match j < n with
       | true -> (
-        match buf.[j], parser.line_start, parser.state with
-        | _, false, Start -> assert false (* unreachable state *)
-        | '>', true, Start ->
-          loop
-            { parser with
-              line_start = false
-            ; started_first_item = true
-            ; state = Description ""
-            }
-            accu
-            (j + 1)
-            (j + 1)
-        | _, true, Description _ -> assert false (* unreachable states *)
-        | '>', true, Sequence { empty = true } ->
-          fail parser "Expected sequence, not description"
-        | '>', true, Sequence { empty = false } ->
-          loop
-            { parser with line_start = false; state = Description "" }
-            accu
-            (j + 1)
-            (j + 1)
-        | '\n', true, (Sequence _ | Start) -> fail parser "Empty line"
-        | c, true, Start -> failf parser "Unexpected character %c at beginning of line" c
-        | '\n', false, Description d ->
-          let d' = String.sub buf ~pos:i ~len:(j - i) in
-          loop
-            (newline parser ~state:(Sequence { empty = true }))
-            (`Description (d ^ d') :: accu)
-            (j + 1)
-            (j + 1)
-        | '\n', false, Sequence _ ->
-          let seq = String.sub buf ~pos:i ~len:(j - i) in
-          loop
-            (newline parser ~state:(Sequence { empty = false }))
-            (`Sequence seq :: accu)
-            (j + 1)
-            (j + 1)
-        | _, false, (Description _ | Sequence { empty = false }) ->
-          loop parser accu i (j + 1)
-        | _, false, Sequence { empty = true } -> assert false (* unreachable state *)
-        | _, true, Sequence { empty = true } ->
-          loop
-            { parser with line_start = false; state = Sequence { empty = false } }
-            accu
-            i
-            (j + 1)
-        | _, true, Sequence { empty = false } ->
-          loop { parser with line_start = false } accu i (j + 1))
+        match parser.state, buf.[j] with
+        | Description_start, '>' ->
+          loop { parser with state = Description } accu (j + 1) (j + 1)
+        | Description_start, c -> failf parser "Expected '>' but got %c" c
+        | Description, '\n' ->
+          let description = String.sub buf ~pos:i ~len:(j - i) in
+          let accu = `Description description :: accu in
+          loop { parser with state = Sequence_start } accu (j + 1) (j + 1)
+        | Description, _ -> loop parser accu i (j + 1)
+        | Sequence_start, '>' -> fail parser "Unexpected '>' at start of sequence"
+        | Sequence_start, '\n' -> fail parser "Unexpected empty line at start of sequence"
+        | Sequence_start, _ -> loop parser accu i (j + 1)
+        | Sequence, '\n' ->
+          let sequence = String.sub buf ~pos:i ~len:(j - i) in
+          let accu = `Sequence sequence :: accu in
+          let parser = { parser with state = Sequence } in
+          loop parser accu (j + 1) (j + 1)
+        | Sequence, '>' ->
+          let sequence = String.sub buf ~pos:i ~len:(j - i) in
+          let accu = `Sequence sequence :: accu in
+          loop { parser with state = Description_start } accu (j + 1) (j + 1)
+        | Sequence, _ ->
+          (* TODO(ashish): If long sequence occurs on a single line, we may
+             be on this state and still builing up the (i,j) window. Should
+             return what we have so far if the window has gotten very large. *)
+          loop parser accu i (j + 1))
       | false -> (
         match parser.state with
-        | Start -> Ok (parser, accu)
-        | Description d ->
-          let d' = String.sub buf ~pos:i ~len:(j - i) in
-          Ok ({ parser with state = Description (d ^ d') }, accu)
-        | Sequence _ as state ->
-          let state, res =
-            match Int.equal i j with
-            | true -> state, accu
-            | false ->
-              let seq = String.sub buf ~pos:i ~len:(j - i) in
-              Sequence { empty = false }, `Sequence seq :: accu
-          in
-          Ok ({ parser with state }, res))
+        | Description_start | Sequence_start ->
+          (* Any prior window was already added to [accu]. *)
+          Ok (parser, accu)
+        | Description ->
+          let description = String.sub buf ~pos:i ~len:(j - i) in
+          let accu = `Description description :: accu in
+          Ok ({ parser with state = Description_start }, accu)
+        | Sequence ->
+          let sequence = String.sub buf ~pos:i ~len:(j - i) in
+          let accu = `Sequence sequence :: accu in
+          Ok ({ parser with state = Sequence_start }, accu))
     in
     loop parser [] 0 0 |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
   ;;
