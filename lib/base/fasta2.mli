@@ -58,17 +58,13 @@ val item : description:string -> sequence:string -> item
 (******************************************************************************)
 
 type fmt =
-  { allow_sharp_comments : bool
-  ; allow_semicolon_comments : bool
-  ; allow_empty_lines : bool
+  { allow_empty_lines : bool
   ; max_line_length : int option
   ; alphabet : string option
   }
 
 val fmt
-  :  ?allow_sharp_comments:bool
-  -> ?allow_semicolon_comments:bool
-  -> ?allow_empty_lines:bool
+  :  ?allow_empty_lines:bool
   -> ?max_line_length:int
   -> ?alphabet:string
   -> unit
@@ -83,9 +79,6 @@ val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
     with large sequences because you get the sequence in smaller
     pieces.
 
-    - [`Comment _] - Single comment line without the final
-    newline. Initial comment char is retained.
-
     - [`Empty_line] - Got a line with only whitespace characters. The
     contents are not provided.
 
@@ -96,8 +89,7 @@ val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
     comprise the sequence of a single [item].
 *)
 type item0 =
-  [ `Comment of string
-  | `Empty_line
+  [ `Empty_line
   | `Description of string
   | `Partial_sequence of string
   ]

@@ -8,34 +8,19 @@ type item =
 let item ~description ~sequence = { description; sequence }
 
 type fmt =
-  { allow_sharp_comments : bool
-  ; allow_semicolon_comments : bool
-  ; allow_empty_lines : bool
+  { allow_empty_lines : bool
   ; max_line_length : int option
   ; alphabet : string option
   }
 
-let fmt
-      ?(allow_sharp_comments = true)
-      ?(allow_semicolon_comments = false)
-      ?(allow_empty_lines = false)
-      ?max_line_length
-      ?alphabet
-      ()
-  =
-  { allow_sharp_comments
-  ; allow_semicolon_comments
-  ; allow_empty_lines
-  ; max_line_length
-  ; alphabet
-  }
+let fmt ?(allow_empty_lines = false) ?max_line_length ?alphabet () =
+  { allow_empty_lines; max_line_length; alphabet }
 ;;
 
 let default_fmt = fmt ()
 
 type item0 =
-  [ `Comment of string
-  | `Empty_line
+  [ `Empty_line
   | `Description of string
   | `Partial_sequence of string
   ]
@@ -58,8 +43,7 @@ module Parser0 = struct
     }
 
   and symbol =
-    | S (* start of comment or description *)
-    | Comment of string
+    | S (* start of description *)
     | Description of string
     | Sequence of { empty : bool }
     | Terminal
@@ -90,19 +74,11 @@ module Parser0 = struct
     | None -> (
       match st.symbol with
       | S -> Ok ({ st with symbol = Terminal }, [])
-      | Comment c ->
-        assert (not st.started_first_item);
-        Ok ({ st with symbol = Terminal }, [ `Comment c ])
       | Description _ -> fail st "Missing sequence in last item"
       | Sequence { empty = true } -> fail st "Missing sequence in last item"
       | Sequence { empty = false } -> Ok ({ st with symbol = Terminal }, [])
       | Terminal -> Ok (st, []))
     | Some buf ->
-      let allowed_comment_char c =
-        let open Char in
-        (c = '#' && st.fmt.allow_sharp_comments)
-        || (c = ';' && st.fmt.allow_semicolon_comments)
-      in
       let n = String.length buf in
       let rec loop st accu i j =
         if j < n
@@ -120,8 +96,7 @@ module Parser0 = struct
               accu
               (j + 1)
               (j + 1)
-          | _, true, Comment _ | _, true, Description _ ->
-            assert false (* unreachable states *)
+          | _, true, Description _ -> assert false (* unreachable states *)
           | '>', true, Sequence { empty = true } ->
             fail st "Expected sequence, not description"
           | '>', true, Sequence { empty = false } ->
@@ -130,21 +105,11 @@ module Parser0 = struct
               accu
               (j + 1)
               (j + 1)
-          | ((';' | '#') as c), true, S ->
-            assert (i = j && i = 0);
-            if allowed_comment_char c
-            then
-              loop { st with line_start = false; symbol = Comment "" } accu (i + 1) (j + 1)
-            else failf st "Character %c not allowed for comments" c
-          | (';' | '#'), true, Sequence _ -> fail st "Comment after first item"
           | '\n', true, (Sequence _ | S) ->
             if st.fmt.allow_empty_lines
             then loop (newline st) (`Empty_line :: accu) (j + 1) (j + 1)
             else fail st "Empty line"
           | c, true, S -> failf st "Unexpected character %c at beginning of line" c
-          | '\n', false, Comment c ->
-            let c' = String.sub buf ~pos:i ~len:(j - i) in
-            loop (newline st ~sym:S) (`Comment (c ^ c') :: accu) (j + 1) (j + 1)
           | '\n', false, Description d ->
             let d' = String.sub buf ~pos:i ~len:(j - i) in
             loop
@@ -159,7 +124,7 @@ module Parser0 = struct
               (`Partial_sequence seq :: accu)
               (j + 1)
               (j + 1)
-          | _, false, (Comment _ | Description _ | Sequence { empty = false }) ->
+          | _, false, (Description _ | Sequence { empty = false }) ->
             loop st accu i (j + 1)
           | _, false, Sequence { empty = true } -> assert false (* unreachable state *)
           | _, true, Sequence { empty = true } ->
@@ -173,9 +138,6 @@ module Parser0 = struct
         else (
           match st.symbol with
           | S | Terminal -> Ok (st, accu)
-          | Comment c ->
-            let c' = String.sub buf ~pos:i ~len:(j - i) in
-            Ok ({ st with symbol = Comment (c ^ c') }, accu)
           | Description d ->
             let d' = String.sub buf ~pos:i ~len:(j - i) in
             Ok ({ st with symbol = Description (d ^ d') }, accu)
@@ -194,7 +156,6 @@ module Parser0 = struct
 end
 
 let unparser0 = function
-  | `Comment c -> "#" ^ c
   | `Empty_line -> ""
   | `Description d -> ">" ^ d
   | `Partial_sequence s -> s
@@ -219,7 +180,7 @@ module Parser = struct
   let step_aux (sym, accu) item0 =
     match item0, sym with
     | _, Terminal -> Terminal, accu
-    | (`Comment _ | `Empty_line), _ -> sym, accu
+    | `Empty_line, _ -> sym, accu
     | `Description d, Init -> Item (d, []), accu
     | `Description _, Item (_, []) ->
       assert false (* should be detected by Parser0.step *)
