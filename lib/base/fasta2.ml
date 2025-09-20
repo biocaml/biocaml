@@ -7,11 +7,6 @@ type item =
 (* FIXME: should check there is no newline in the arguments *)
 let item ~description ~sequence = { description; sequence }
 
-type fmt = { max_line_length : int option }
-
-let fmt ?max_line_length () = { max_line_length }
-let default_fmt = fmt ()
-
 type item0 =
   [ `Description of string
   | `Partial_sequence of string
@@ -27,8 +22,7 @@ type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
 
 module Parser0 = struct
   type state =
-    { fmt : fmt
-    ; line : int
+    { line : int
     ; line_start : bool
     ; started_first_item : bool
     ; symbol : symbol
@@ -40,8 +34,8 @@ module Parser0 = struct
     | Sequence of { empty : bool }
     | Terminal
 
-  let initial_state ?(fmt = default_fmt) () =
-    { fmt; line = 0; line_start = true; started_first_item = false; symbol = S }
+  let initial_state () =
+    { line = 0; line_start = true; started_first_item = false; symbol = S }
   ;;
 
   let fail st msg = Error (`Fasta_parser_error (st.line, msg))
@@ -163,7 +157,7 @@ module Parser = struct
     | Item of string * string list
     | Terminal
 
-  let initial_state ?fmt () = { state0 = Parser0.initial_state ?fmt (); symbol = Init }
+  let initial_state () = { state0 = Parser0.initial_state (); symbol = Init }
 
   let step_aux (sym, accu) item0 =
     match item0, sym with

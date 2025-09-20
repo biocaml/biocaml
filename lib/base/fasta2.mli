@@ -53,15 +53,6 @@ type item = private
 
 val item : description:string -> sequence:string -> item
 
-(******************************************************************************)
-(** {2 Parsing} *)
-(******************************************************************************)
-
-type fmt = { max_line_length : int option }
-
-val fmt : ?max_line_length:int -> unit -> fmt
-val default_fmt : fmt
-
 (** Parse a space separated list of integers. *)
 val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
 
@@ -94,7 +85,7 @@ type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
 module Parser0 : sig
   type state
 
-  val initial_state : ?fmt:fmt -> unit -> state
+  val initial_state : unit -> state
   val step : state -> string option -> (state * item0 list, [> parser_error ]) Result.t
 end
 
@@ -109,7 +100,7 @@ val unparser0 : item0 -> string
 module Parser : sig
   type state
 
-  val initial_state : ?fmt:fmt -> unit -> state
+  val initial_state : unit -> state
   val step : state -> string option -> (state * item list, [> parser_error ]) Result.t
 end
 
