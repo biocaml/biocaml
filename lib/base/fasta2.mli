@@ -53,9 +53,6 @@ type item = private
 
 val item : description:string -> sequence:string -> item
 
-(** Parse a space separated list of integers. *)
-val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
-
 (** An [item0] is more raw than [item]. It is useful for parsing files
     with large sequences because you get the sequence in smaller
     pieces.

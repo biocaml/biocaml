@@ -13,11 +13,6 @@ type item0 =
   ]
 [@@deriving sexp]
 
-let sequence_to_int_list s =
-  try String.split s ~on:' ' |> List.map ~f:Int.of_string |> Result.return with
-  | Failure msg -> Error (`Msg msg)
-;;
-
 type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
 
 module Parser0 = struct
