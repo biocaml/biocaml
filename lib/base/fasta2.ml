@@ -1,21 +1,10 @@
-type item =
-  { description : string
-  ; sequence : string
-  }
-[@@deriving sexp]
+module Parser = struct
+  type item =
+    [ `Description of string
+    | `Sequence of string
+    ]
+  [@@deriving sexp]
 
-(* FIXME: should check there is no newline in the arguments *)
-let item ~description ~sequence = { description; sequence }
-
-type item0 =
-  [ `Description of string
-  | `Partial_sequence of string
-  ]
-[@@deriving sexp]
-
-type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
-
-module Parser0 = struct
   type state =
     { line : int
     ; line_start : bool
@@ -28,6 +17,8 @@ module Parser0 = struct
     | Description of string
     | Sequence of { empty : bool }
     | Terminal
+
+  type error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
 
   let initial_state () =
     { line = 0; line_start = true; started_first_item = false; symbol = Start }
@@ -51,7 +42,8 @@ module Parser0 = struct
     }
   ;;
 
-  let step st = function
+  let step (st : state) (buf : string option) : (state * item list, error) Result.t =
+    match buf with
     | None -> (
       match st.symbol with
       | Start -> Ok ({ st with symbol = Terminal }, [])
@@ -61,9 +53,9 @@ module Parser0 = struct
       | Terminal -> Ok (st, []))
     | Some buf ->
       let n = String.length buf in
-      let rec loop st accu i j =
-        if j < n
-        then (
+      let rec loop (st : state) (accu : item list) (i : int) (j : int) =
+        match j < n with
+        | true -> (
           match buf.[j], st.line_start, st.symbol with
           | _, _, Terminal -> Ok (st, [])
           | _, false, Start -> assert false (* unreachable state *)
@@ -99,7 +91,7 @@ module Parser0 = struct
             let seq = String.sub buf ~pos:i ~len:(j - i) in
             loop
               (newline st ~sym:(Sequence { empty = false }))
-              (`Partial_sequence seq :: accu)
+              (`Sequence seq :: accu)
               (j + 1)
               (j + 1)
           | _, false, (Description _ | Sequence { empty = false }) ->
@@ -113,7 +105,7 @@ module Parser0 = struct
               (j + 1)
           | _, true, Sequence { empty = false } ->
             loop { st with line_start = false } accu i (j + 1))
-        else (
+        | false -> (
           match st.symbol with
           | Start | Terminal -> Ok (st, accu)
           | Description d ->
@@ -121,66 +113,14 @@ module Parser0 = struct
             Ok ({ st with symbol = Description (d ^ d') }, accu)
           | Sequence _ as sym ->
             let symbol, res =
-              if i = j
-              then sym, accu
-              else (
+              match Int.equal i j with
+              | true -> sym, accu
+              | false ->
                 let seq = String.sub buf ~pos:i ~len:(j - i) in
-                Sequence { empty = false }, `Partial_sequence seq :: accu)
+                Sequence { empty = false }, `Sequence seq :: accu
             in
             Ok ({ st with symbol }, res))
       in
       loop st [] 0 0 |> Result.map ~f:(fun (st, res) -> st, List.rev res)
   ;;
 end
-
-let unparser0 = function
-  | `Description d -> ">" ^ d
-  | `Partial_sequence s -> s
-;;
-
-(* This could probably be optimized *)
-let rev_concat xs = String.concat ~sep:"" (List.rev xs)
-
-module Parser = struct
-  type state =
-    { state0 : Parser0.state
-    ; symbol : symbol
-    }
-
-  and symbol =
-    | Init
-    | Item of string * string list
-    | Terminal
-
-  let initial_state () = { state0 = Parser0.initial_state (); symbol = Init }
-
-  let step_aux (sym, accu) item0 =
-    match item0, sym with
-    | _, Terminal -> Terminal, accu
-    | `Description d, Init -> Item (d, []), accu
-    | `Description _, Item (_, []) ->
-      assert false (* should be detected by Parser0.step *)
-    | `Description d', Item (d, xs) ->
-      let item = item ~description:d ~sequence:(rev_concat xs) in
-      Item (d', []), item :: accu
-    | `Partial_sequence _, Init -> assert false (* should be detected by Parser0.step *)
-    | `Partial_sequence s, Item (d, xs) -> Item (d, s :: xs), accu
-  ;;
-
-  let step_final input ((symbol, items) as res) =
-    match input, symbol with
-    | Some _, _ | None, (Init | Terminal) -> res
-    | None, Item (d, xs) ->
-      Terminal, item ~description:d ~sequence:(rev_concat xs) :: items
-  ;;
-
-  let step st input =
-    Parser0.step st.state0 input
-    |> Result.map ~f:(fun (state0, items0) ->
-      let init = st.symbol, [] in
-      let symbol, items = List.fold_left items0 ~init ~f:step_aux |> step_final input in
-      { state0; symbol }, List.rev items)
-  ;;
-end
-
-let unparser item = Printf.sprintf ">%s\n%s\n" item.description item.sequence

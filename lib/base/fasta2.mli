@@ -1,8 +1,7 @@
 (** FASTA files. Support for the FASTA file format.
 
     The FASTA format is not standardized. Our aim here is to support the format
-    that is in common use in recent times. We define FASTA files as being in
-    the format:
+    that is in common use in recent times as follows:
 
     {v
     >description
@@ -45,60 +44,16 @@
     recommendation).
 *)
 
-type item = private
-  { description : string
-  ; sequence : string
-  }
-[@@deriving sexp]
-
-val item : description:string -> sequence:string -> item
-
-(** An [item0] is more raw than [item]. It is useful for parsing files
-    with large sequences because you get the sequence in smaller
-    pieces.
-
-    - [`Description _] - Single description line without the initial
-    '>' nor final newline.
-
-    - [`Partial_sequence _] - Multiple sequential partial sequences
-    comprise the sequence of a single [item].
-*)
-type item0 =
-  [ `Description of string
-  | `Partial_sequence of string
-  ]
-[@@deriving sexp]
-
-type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
-
-(** Low-level parsing
-
-    This module provides a function that can be used to convert a
-    stream of strings (representing consecutive chunks of a FASTA
-    file) into a valid sequence of low-level items ({!items0}). This
-    representation is especially relevant to deal with very long
-    sequences (like chromosome) in constant memory.
-*)
-module Parser0 : sig
-  type state
-
-  val initial_state : unit -> state
-  val step : state -> string option -> (state * item0 list, [> parser_error ]) Result.t
-end
-
-val unparser0 : item0 -> string
-
-(** High-level parsing
-
-    This module provides a function that can be used to convert a
-    stream of strings (representing consecutive chunks of a FASTA
-    file) into a sequence of FASTA items.
-*)
 module Parser : sig
+  type item =
+    [ `Description of string
+    | `Sequence of string
+    ]
+  [@@deriving sexp]
+
   type state
+  type error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
 
   val initial_state : unit -> state
-  val step : state -> string option -> (state * item list, [> parser_error ]) Result.t
+  val step : state -> string option -> (state * item list, error) Result.t
 end
-
-val unparser : item -> string
