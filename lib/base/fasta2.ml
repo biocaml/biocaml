@@ -29,13 +29,13 @@ module Parser0 = struct
     }
 
   and symbol =
-    | S (* start of description *)
+    | Start (* start of description *)
     | Description of string
     | Sequence of { empty : bool }
     | Terminal
 
   let initial_state () =
-    { line = 0; line_start = true; started_first_item = false; symbol = S }
+    { line = 0; line_start = true; started_first_item = false; symbol = Start }
   ;;
 
   let fail st msg = Error (`Fasta_parser_error (st.line, msg))
@@ -59,7 +59,7 @@ module Parser0 = struct
   let step st = function
     | None -> (
       match st.symbol with
-      | S -> Ok ({ st with symbol = Terminal }, [])
+      | Start -> Ok ({ st with symbol = Terminal }, [])
       | Description _ -> fail st "Missing sequence in last item"
       | Sequence { empty = true } -> fail st "Missing sequence in last item"
       | Sequence { empty = false } -> Ok ({ st with symbol = Terminal }, [])
@@ -71,8 +71,8 @@ module Parser0 = struct
         then (
           match buf.[j], st.line_start, st.symbol with
           | _, _, Terminal -> Ok (st, [])
-          | _, false, S -> assert false (* unreachable state *)
-          | '>', true, S ->
+          | _, false, Start -> assert false (* unreachable state *)
+          | '>', true, Start ->
             loop
               { st with
                 line_start = false
@@ -91,8 +91,8 @@ module Parser0 = struct
               accu
               (j + 1)
               (j + 1)
-          | '\n', true, (Sequence _ | S) -> fail st "Empty line"
-          | c, true, S -> failf st "Unexpected character %c at beginning of line" c
+          | '\n', true, (Sequence _ | Start) -> fail st "Empty line"
+          | c, true, Start -> failf st "Unexpected character %c at beginning of line" c
           | '\n', false, Description d ->
             let d' = String.sub buf ~pos:i ~len:(j - i) in
             loop
@@ -120,7 +120,7 @@ module Parser0 = struct
             loop { st with line_start = false } accu i (j + 1))
         else (
           match st.symbol with
-          | S | Terminal -> Ok (st, accu)
+          | Start | Terminal -> Ok (st, accu)
           | Description d ->
             let d' = String.sub buf ~pos:i ~len:(j - i) in
             Ok ({ st with symbol = Description (d ^ d') }, accu)
