@@ -42,23 +42,44 @@
     very long lines (though the recommendation is that lines should not
     be longer than 80 characters, and most FASTA files follow this
     recommendation).
-*)
 
+    The functions {!of_string} and {!of_lines} parse a full file in-memory
+    and are a good choice for small files since they are easy to use. They
+    may also be the right choice for large files if you have sufficient
+    memory.
+*)
+open! Import
+
+module Item : sig
+  type t =
+    { description : string
+    ; sequence : string
+    }
+  [@@deriving sexp]
+end
+
+type t = Item.t list
+
+module Error : sig
+  type t = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
+end
+
+(* [of_string content] parses the full [content] of a FASTA file in-memory. *)
+val of_string : string -> (t, Error.t) Result.t
+
+(** The [Parser] interface is harder to use but allows processing large files
+    in a streaming fashion. *)
 module Parser : sig
   module Item : sig
     type t =
       [ `Description of string
-      | `Sequence of string
+      | `Partial_sequence of string
       ]
     [@@deriving sexp]
   end
 
   type t
 
-  module Error : sig
-    type t = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
-  end
-
   val init : t
-  val step : t -> string -> (t * Item.t list, Error.t) Result.t
+  val step : t -> [ `Some of string | `Eof ] -> (t * Item.t list, Error.t) Result.t
 end
