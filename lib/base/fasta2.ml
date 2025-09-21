@@ -467,7 +467,7 @@ module Test = struct
 
 
       RESULT:
-      (Fasta_parser_error (1 "Empty file"))
+      (Parse_error 1 "Empty file")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: missing description
@@ -476,7 +476,7 @@ module Test = struct
       ACGT
 
       RESULT:
-      (Fasta_parser_error (1 "Description is empty"))
+      (Parse_error 1 "Description is empty")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: missing description
@@ -484,7 +484,7 @@ module Test = struct
       ACGT
 
       RESULT:
-      (Fasta_parser_error (1 "Expected '>' but got A"))
+      (Parse_error 1 "Expected '>' but got A")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: missing '>' at start of description
@@ -493,7 +493,7 @@ module Test = struct
       ACGT
 
       RESULT:
-      (Fasta_parser_error (1 "Expected '>' but got s"))
+      (Parse_error 1 "Expected '>' but got s")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '>' within description
@@ -502,7 +502,7 @@ module Test = struct
       ACGT
 
       RESULT:
-      (Fasta_parser_error (1 "Unexpected '>' within description"))
+      (Parse_error 1 "Unexpected '>' within description")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: empty line at start of sequence
@@ -512,7 +512,7 @@ module Test = struct
       ACGT
 
       RESULT:
-      (Fasta_parser_error (2 "Unexpected empty line at start of sequence"))
+      (Parse_error 2 "Unexpected empty line at start of sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: empty line between sequence
@@ -523,7 +523,7 @@ module Test = struct
       ACGT
 
       RESULT:
-      (Fasta_parser_error (3 "Unexpected empty line within sequence"))
+      (Parse_error 3 "Unexpected empty line within sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: extra empty line at end of file
@@ -534,7 +534,7 @@ module Test = struct
 
 
       RESULT:
-      (Fasta_parser_error (3 "Unexpected empty line within sequence"))
+      (Parse_error 3 "Unexpected empty line within sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '>' at start of sequence
@@ -543,7 +543,7 @@ module Test = struct
       >
 
       RESULT:
-      (Fasta_parser_error (2 "Unexpected '>' at start of sequence"))
+      (Parse_error 2 "Unexpected '>' at start of sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '>' within sequence
@@ -552,7 +552,7 @@ module Test = struct
       A>CGT
 
       RESULT:
-      (Fasta_parser_error (2 "Unexpected '>' within sequence"))
+      (Parse_error 2 "Unexpected '>' within sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '>' in middle of sequence shouldn't start new description
@@ -562,7 +562,7 @@ module Test = struct
       GGG
 
       RESULT:
-      (Fasta_parser_error (2 "Unexpected '>' within sequence"))
+      (Parse_error 2 "Unexpected '>' within sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '>' at end of file
@@ -572,8 +572,7 @@ module Test = struct
       >
 
       RESULT:
-      (Fasta_parser_error (
-        3 "Final line contains description without subsequent sequence"))
+      (Parse_error 3 "Final line contains description without subsequent sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: missing sequence at end of file
@@ -583,8 +582,7 @@ module Test = struct
       >seq2
 
       RESULT:
-      (Fasta_parser_error (
-        3 "Final line contains description without subsequent sequence"))
+      (Parse_error 3 "Final line contains description without subsequent sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '\r\n' line ending
@@ -595,7 +593,7 @@ module Test = struct
 
 
       RESULT:
-      (Fasta_parser_error (2 "Unexpected '\r' within sequence"))
+      (Parse_error 2 "Unexpected '\r' within sequence")
 
       ✅ SUCCESS - parsing failed as expected
       TEST: final '\r'
@@ -605,7 +603,7 @@ module Test = struct
       GGG
 
       RESULT:
-      (Fasta_parser_error (3 "Unexpected '\r' within sequence"))
+      (Parse_error 3 "Unexpected '\r' within sequence")
       |}]
   ;;
 end
