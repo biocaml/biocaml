@@ -9,7 +9,7 @@ let parse_errorf (line_num : int) fmt =
   Printf.ksprintf k fmt
 ;;
 
-module Parser = struct
+module Parser0 = struct
   module Item = struct
     type t =
       [ `Description of string
@@ -170,13 +170,83 @@ module Item = struct
   [@@deriving sexp]
 end
 
+module Parser = struct
+  module Item = Item
+
+  type state =
+    { parser0_state : Parser0.state
+    ; parser0_items : Parser0.Item.t list
+    }
+  [@@deriving sexp]
+
+  let init = { parser0_state = Parser0.init; parser0_items = [] }
+
+  let get_initial_seq_items (item0s : Parser0.Item.t list)
+    : string list * Parser0.Item.t list
+    =
+    let rec loop accu item0s =
+      match item0s with
+      | [] | `Description _ :: _ -> List.rev accu, item0s
+      | `Partial_sequence seq :: rest -> loop (seq :: accu) rest
+    in
+    loop [] item0s
+  ;;
+
+  let get_complete_items (item0s : Parser0.Item.t list)
+    : Item.t list * Parser0.Item.t list
+    =
+    let rec loop accu item0s =
+      match item0s with
+      | [] | `Partial_sequence _ :: _ -> accu, item0s
+      | `Description description :: rest -> (
+        let sequences, remaining = get_initial_seq_items rest in
+        match remaining with
+        | [] ->
+          (* If no items remaining, we don't know if the sequence is complete. *)
+          accu, item0s
+        | `Partial_sequence _ :: _ ->
+          failwith "BUG: get_initial_seq_items failed to consume Partial_sequence"
+        | `Description _ :: _ ->
+          (* If the first remaining item is a description, we know the sequence is complete. *)
+          let sequence = String.concat ~sep:"" sequences in
+          loop ({ Item.description; sequence } :: accu) remaining)
+    in
+    let accu, item0s = loop [] item0s in
+    List.rev accu, item0s
+  ;;
+
+  let step ({ parser0_state; parser0_items } : state) (buf : string)
+    : (state * Item.t list, error) Result.t
+    =
+    match Parser0.step parser0_state buf with
+    | Error _ as e -> e
+    | Ok (parser0_state, new_items) ->
+      let parser0_items = parser0_items @ new_items in
+      let completed, parser0_items = get_complete_items parser0_items in
+      let state = { parser0_state; parser0_items } in
+      Ok (state, completed)
+  ;;
+
+  let eof ({ parser0_state; parser0_items } : state) : (Item.t list, error) Result.t =
+    match Parser0.eof parser0_state with
+    | Error e -> Error e
+    | Ok () -> (
+      match get_complete_items parser0_items with
+      | items, [] -> Ok items
+      | _, _ :: _ ->
+        failwith
+          "BUG: Parser0.eof returned Ok but final Parser0.Item.t list not fully \
+           consumable to produce an Item.t list")
+  ;;
+end
+
 type t = Item.t list [@@deriving sexp]
 
 (* We don't expose this function because it means you have all the parser
    items in memory. If you did that, probably should should have called
    [of_string] in the first place. Also we assume this function
    is called on the result of [Parser.step]. See comment within body. *)
-let of_parser_items (items : Parser.Item.t list) : t =
+let of_parser_items (items : Parser0.Item.t list) : t =
   let rec loop accu items =
     match items with
     | `Description description :: items ->
@@ -205,10 +275,10 @@ let of_parser_items (items : Parser.Item.t list) : t =
 ;;
 
 let of_string content =
-  match Parser.step Parser.init content with
+  match Parser0.step Parser0.init content with
   | Error e -> Error e
   | Ok (parser, items) -> (
-    match Parser.eof parser with
+    match Parser0.eof parser with
     | Error e -> Error e
     | Ok () -> Ok (of_parser_items items))
 ;;

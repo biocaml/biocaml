@@ -39,16 +39,25 @@
     semicolon characters, empty lines between items, arbitrary spaces in
     sequences, or comment lines anywhere.
 
-    The main {!Parser} operates in a streaming fashion so minimal memory is
-    required to traverse a file. This is true even for FASTA files with
-    very long lines (though the recommendation is that lines should not
-    be longer than 80 characters, and most FASTA files follow this
-    recommendation).
+    The function {!of_string} is the easiest interface to use. Simply provide
+    it the full content of a FASTA file and you will get all the items. It is
+    a good choice for small files since it is easy to use. It may also be the
+    right choice for large files if you have sufficient memory and need to
+    access the sequences repeatedly.
 
-    The function {!of_string} is built on top of {!Parser} and parses a
-    full file in-memory and is a good choice for small files since it is
-    easy to use. It may also be the right choice for large files if you
-    have sufficient memory and need to access the sequences repeatedly.
+    If you need to use less memory, you can use the lower-level {!Parser}
+    interface. It is harder to use but allows memory usage proportional to the
+    size of each individual sequence.
+
+    If you need even lower memory usage, use {!Parser0}. You provide chunks
+    of your file in a size of your choosing, and memory usage is proportional
+    to that. This comes at the expense of an even harder to use interface. This
+    parser returns partial sequences. That is not a problem if say you simply
+    want to count the number of base pairs in a sequence. However, if you want
+    to do something on the whole sequence you will have to concatenate the pieces
+    together yourself. [Parser] is built on [Parser0] and does exactly this, so
+    see the implementation as a reference. On the other hand, if that is what you
+    need, then perhaps [Parser] is the right choice in the first place.
 *)
 open! Import
 
@@ -64,15 +73,15 @@ end
 
 type t = Item.t list
 
-(* [of_string content] parses the full [content] of a FASTA file in-memory. *)
+(* [of_string content] parses the full [content] of a FASTA file and returns
+   all items in memory. *)
 val of_string : string -> (t, error) Result.t
 
-(** The [Parser] interface is harder to use but allows processing large files
-    in a streaming fashion.
+(** The [Parser0] interface allows parsing in a streaming fashion.
 
     [step st chunk] should be called repeatedly on sequential [chunk]s of an
     input file. It parses the input [chunk] and returns the items parsed from
-    it. You can then use those items as desired and discard them to avoid to
+    it. You can then use those items as desired and discard them to avoid
     retaining the data in memory. Each call also returns an updated parser
     state that must be fed back to the next call to [step].
 
@@ -83,7 +92,7 @@ val of_string : string -> (t, error) Result.t
     example, a description line has been parsed but EOF is reached without
     a subsequent sequence line.
  *)
-module Parser : sig
+module Parser0 : sig
   module Item : sig
     type t =
       [ `Description of string
@@ -97,4 +106,29 @@ module Parser : sig
   val init : state
   val step : state -> string -> (state * Item.t list, error) Result.t
   val eof : state -> (unit, error) Result.t
+end
+
+(** The [Parser] interface provides a higher-level streaming parser that
+    returns complete FASTA items (description + full sequence) rather than
+    the partial items returned by [Parser0].
+
+    Like [Parser0], [step st chunk] should be called repeatedly on sequential
+    [chunk]s of an input file. However, unlike [Parser0], it accumulates
+    partial sequences internally and only returns complete items when a full
+    sequence has been concatenated. Thus, you get an easier to use interface at
+    the expense of more memory usage.
+
+    Use {!init} as the [state] argument for the first call to [step].
+
+    Your last call to [step] should be followed by a call to {!eof} to get
+    any final items.
+*)
+module Parser : sig
+  module Item = Item
+
+  type state
+
+  val init : state
+  val step : state -> string -> (state * Item.t list, error) Result.t
+  val eof : state -> (Item.t list, error) Result.t
 end
