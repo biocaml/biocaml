@@ -27,85 +27,89 @@ module Parser = struct
   [@@deriving sexp]
 
   (* Parser is defined by:
-     - line: number of the line currently being parsed
      - state: the current state of the parser
+     - line: number of the line currently being parsed
+     - line_start: true if starting a new line
   *)
   type t =
-    { line : int
-    ; state : state
+    { state : state
+    ; line_start : bool
+    ; line : int
     }
   [@@deriving sexp]
 
-  let fail st msg = Error (`Fasta_parser_error (st.line, msg))
+  let fail (line_num : int) msg = Error (`Fasta_parser_error (line_num, msg))
 
-  let failf st fmt =
-    let k x = fail st x in
+  let failf (line_num : int) fmt =
+    let k x = fail line_num x in
     Printf.ksprintf k fmt
   ;;
 
-  let init = { line = 1; state = Description_start }
+  let init = { state = Description_start; line_start = true; line = 1 }
 
-  let step_some (parser : t) (buf : string) : (t * Item.t list, Error.t) Result.t =
-    let n = String.length buf in
-    let rec loop (parser : t) (accu : Item.t list) (i : int) (j : int) =
-      match j < n with
-      | true -> (
-        match parser.state, buf.[j] with
-        | Description_start, '>' ->
-          loop { parser with state = Description "" } accu (j + 1) (j + 1)
-        | Description_start, c -> failf parser "Expected '>' but got %c" c
-        | Description d, '\n' ->
-          let d' = String.sub buf ~pos:i ~len:(j - i) in
-          let accu = `Description (d ^ d') :: accu in
-          loop { state = Sequence_start; line = parser.line + 1 } accu (j + 1) (j + 1)
-        | Description _, _ -> loop parser accu i (j + 1)
-        | Sequence_start, '>' -> fail parser "Unexpected '>' at start of sequence"
-        | Sequence_start, '\n' -> fail parser "Unexpected empty line at start of sequence"
-        | Sequence_start, _ -> loop parser accu i (j + 1)
-        | Sequence, '\n' ->
-          let sequence = String.sub buf ~pos:i ~len:(j - i) in
-          let accu = `Partial_sequence sequence :: accu in
-          let parser = { state = Sequence; line = parser.line + 1 } in
-          loop parser accu (j + 1) (j + 1)
-        | Sequence, '>' ->
-          let sequence = String.sub buf ~pos:i ~len:(j - i) in
-          let accu = `Partial_sequence sequence :: accu in
-          loop { parser with state = Description_start } accu (j + 1) (j + 1)
-        | Sequence, _ ->
-          (* TODO(ashish): If long sequence occurs on a single line, we may
-             be on this state and still builing up the (i,j) window. Should
-             return what we have so far if the window has gotten very large. *)
-          loop parser accu i (j + 1))
-      | false -> (
-        match parser.state with
-        | Description_start | Sequence_start ->
-          (* Any prior window was already added to [accu]. *)
-          Ok (parser, accu)
-        | Description d ->
-          let d' = String.sub buf ~pos:i ~len:(j - i) in
-          Ok ({ parser with state = Description (d ^ d') }, accu)
-        | Sequence ->
-          let sequence = String.sub buf ~pos:i ~len:(j - i) in
-          let accu = `Partial_sequence sequence :: accu in
-          Ok ({ parser with state = Sequence }, accu))
-    in
-    loop parser [] 0 0 |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
-  ;;
-
-  let step_eof (parser : t) : (unit, Error.t) Result.t =
-    match parser.state with
-    | Description_start | Sequence_start -> Ok ()
-    | Description _ -> fail parser "Input ended on description, missing sequence"
-    | Sequence -> Ok ()
-  ;;
-
-  let step parser buf =
+  let step ({ state; line_start; line } : t) (buf : [ `Some of string | `Eof ]) =
     match buf with
-    | `Some buf -> step_some parser buf
     | `Eof -> (
-      match step_eof parser with
-      | Ok () -> Ok (parser, [])
-      | Error e -> Error e)
+      match state with
+      | Description_start | Sequence -> Ok ({ state; line_start; line }, [])
+      | Sequence_start | Description _ ->
+        fail line "Final line contains description without subsequent sequence")
+    | `Some buf ->
+      let n = String.length buf in
+      let rec loop
+                ({ state; line_start; line } : t)
+                (accu : Item.t list)
+                (i : int)
+                (j : int)
+        =
+        match j < n with
+        | true -> (
+          match state, line_start, buf.[j] with
+          | Description_start, _, '>' ->
+            loop { state = Description ""; line_start = false; line } accu (j + 1) (j + 1)
+          | Description_start, _, c -> failf line "Expected '>' but got %c" c
+          | Description d, _, '\n' ->
+            let d' = String.sub buf ~pos:i ~len:(j - i) in
+            let accu = `Description (d ^ d') :: accu in
+            loop
+              { state = Sequence_start; line_start = true; line = line + 1 }
+              accu
+              (j + 1)
+              (j + 1)
+          | Description _, _, _ -> loop { state; line_start = false; line } accu i (j + 1)
+          | Sequence_start, _, '>' -> fail line "Unexpected '>' at start of sequence"
+          | Sequence_start, _, '\n' ->
+            fail line "Unexpected empty line at start of sequence"
+          | Sequence_start, _, _ ->
+            loop { state = Sequence; line_start; line } accu i (j + 1)
+          | Sequence, _, '\n' ->
+            let sequence = String.sub buf ~pos:i ~len:(j - i) in
+            loop
+              { state = Sequence; line_start = true; line = line + 1 }
+              (`Partial_sequence sequence :: accu)
+              (j + 1)
+              (j + 1)
+          | Sequence, false, '>' -> loop { state; line_start; line } accu i (j + 1)
+          | Sequence, true, '>' ->
+            (* Since [line_start] is true, the previous char was '\n'. Thus,
+               prior sequence was already added to [accu]. *)
+            loop { state = Description ""; line_start; line } accu (j + 1) (j + 1)
+          | Sequence, _, _ -> loop { state; line_start; line } accu i (j + 1))
+        | false -> (
+          match state with
+          | Description_start | Sequence_start ->
+            (* Any prior window was already added to [accu]. *)
+            Ok ({ state; line_start; line }, accu)
+          | Description d ->
+            let d' = String.sub buf ~pos:i ~len:(j - i) in
+            Ok ({ state = Description (d ^ d'); line_start; line }, accu)
+          | Sequence ->
+            let sequence = String.sub buf ~pos:i ~len:(j - i) in
+            let accu = `Partial_sequence sequence :: accu in
+            Ok ({ state = Sequence; line_start; line }, accu))
+      in
+      loop { state; line_start; line } [] 0 0
+      |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
   ;;
 end
 
@@ -186,7 +190,7 @@ module Test = struct
       SEXP:
       (Ok ((
         (description seq1)
-        (sequence    ""))))
+        (sequence    ACGT))))
 
       IN:
       >seq1 description
@@ -195,7 +199,7 @@ module Test = struct
       SEXP:
       (Ok ((
         (description "seq1 description")
-        (sequence    ""))))
+        (sequence    ACGTACGT))))
 
       IN:
       >seq1
@@ -203,7 +207,9 @@ module Test = struct
       TGCA
 
       SEXP:
-      (Error (Fasta_parser_error (2 "Unexpected empty line at start of sequence")))
+      (Ok ((
+        (description seq1)
+        (sequence    ACGTTGCA))))
 
       IN:
       >seq1
@@ -212,7 +218,9 @@ module Test = struct
       TGCA
 
       SEXP:
-      (Error (Fasta_parser_error (2 "Unexpected empty line at start of sequence")))
+      (Ok (
+        ((description seq1) (sequence ACGT))
+        ((description seq2) (sequence TGCA))))
       |}]
   ;;
 
@@ -262,11 +270,15 @@ module Test = struct
       {|
       IN: ">seq1\nACGT\nTGCA\nAAA"
       SEXP:
-      (Error (Fasta_parser_error (2 "Unexpected empty line at start of sequence")))
+      (Ok ((
+        (description seq1)
+        (sequence    ACGTTGCAAAA))))
 
       IN: ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
       SEXP:
-      (Error (Fasta_parser_error (2 "Unexpected empty line at start of sequence")))
+      (Ok (
+        ((description seq1) (sequence ACGTTGCA))
+        ((description seq2) (sequence GGGCCC))))
       |}]
   ;;
 
@@ -299,16 +311,18 @@ module Test = struct
       Step 1 - IN: ">seq1 human chromosome 1\n"
       SEXP:
       (Ok (
-        ((line  2)
-         (state Sequence_start))
+        ((state      Sequence_start)
+         (line_start true)
+         (line       2))
         ((Description "seq1 human chromosome 1"))))
 
       Step 2 - IN: "ACGTACGTACGT"
       SEXP:
       (Ok (
-        ((line  2)
-         (state Sequence_start))
-        ()))
+        ((state      Sequence)
+         (line_start true)
+         (line       2))
+        ((Partial_sequence ACGTACGTACGT))))
       |}]
   ;;
 end
