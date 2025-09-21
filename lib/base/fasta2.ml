@@ -85,7 +85,11 @@ module Parser = struct
         | Start_sequence, _, '\n' ->
           fail line "Unexpected empty line at start of sequence"
         | Start_sequence, _, _ ->
-          loop { action = Continue_sequence; line_start; num_items; line } accu i (j + 1)
+          loop
+            { action = Continue_sequence; line_start = false; num_items; line }
+            accu
+            i
+            (j + 1)
         | Continue_sequence, _, '\n' ->
           let sequence = String.sub buf ~pos:i ~len:(j - i) in
           loop
@@ -97,11 +101,10 @@ module Parser = struct
             (`Partial_sequence sequence :: accu)
             (j + 1)
             (j + 1)
-        | Continue_sequence, false, '>' ->
-          loop { action; line_start; num_items; line } accu i (j + 1)
+        | Continue_sequence, false, '>' -> fail line "Unexpected '>' within sequence"
         | Continue_sequence, true, '>' ->
           (* Since [line_start] is true, the previous char was '\n'. Thus,
-               prior sequence was already added to [accu]. *)
+             prior sequence was already added to [accu]. *)
           loop
             { action = Continue_description ""; line_start; num_items; line }
             accu
@@ -303,34 +306,45 @@ module Test = struct
 
   let%expect_test "of_string on invalid file contents" =
     let data =
-      [ "" (* empty file *)
-      ; ">\nACGT" (* missing description *)
-      ; "ACGT" (* missing description *)
-      ; "seq1\nACGT" (* missing '>' at start of description *)
-      ; ">seq1\n\nACGT" (* empty line at start of sequence *)
-      ; ">seq1\nGGG\n\nACGT" (* empty line between sequence *)
-      ; ">seq1\nGGG\n\n" (* empty line at end of file *)
-      ; ">seq1\n>" (* '>' at start of sequence *)
-      ; ">seq1\nA>CGT" (* '>' within sequence *)
-      ; ">seq1\nA>CGT\nGGG"
-        (* '>' in middle of sequence shouldn't start new description *)
-      ; ">seq1\nACGT\n>" (* '>' at end of file *)
-      ; ">seq1\nACGT\n>seq2" (* missing sequence at end of file *)
+      [ "", "empty file"
+      ; ">\nACGT", "missing description"
+      ; "ACGT", "missing description"
+      ; "seq1\nACGT", "missing '>' at start of description"
+      ; ">seq1\n\nACGT", "empty line at start of sequence"
+      ; ">seq1\nGGG\n\nACGT", "empty line between sequence"
+      ; ">seq1\nGGG\n\n", "exrtra empty line at end of file"
+      ; ">seq1\n>", "'>' at start of sequence"
+      ; ">seq1\nA>CGT", "'>' within sequence"
+      ; ">seq1\nA>CGT\nGGG", "'>' in middle of sequence shouldn't start new description"
+      ; ">seq1\nACGT\n>", "'>' at end of file"
+      ; ">seq1\nACGT\n>seq2", "missing sequence at end of file"
       ]
     in
-    let test x =
+    let test (x, msg) =
       let result = of_string x in
       match result with
       | Error e ->
         print_string
           (sprintf
-             "✅ SUCCESS - parsing failed as expected\nINPUT:\n%s\n\nRESULT:\n%s\n"
+             "✅ SUCCESS - parsing failed as expected\n\
+              TEST: %s\n\
+              INPUT:\n\
+              %s\n\n\
+              RESULT:\n\
+              %s\n"
+             msg
              x
              (e |> Error.sexp_of_t |> sexp_to_string))
       | Ok result ->
         print_string
           (sprintf
-             "❌ FIXME - should have failed but passed\nINPUT:\n%s\n\nRESULT:\n%s\n"
+             "❌ FIXME - should have failed but passed\n\
+              TEST: %s\n\
+              INPUT:\n\
+              %s\n\n\
+              RESULT:\n\
+              %s\n"
+             msg
              x
              (result |> sexp_of_t |> sexp_to_string))
     in
@@ -338,6 +352,7 @@ module Test = struct
     [%expect
       {|
       ✅ SUCCESS - parsing failed as expected
+      TEST: empty file
       INPUT:
 
 
@@ -345,6 +360,7 @@ module Test = struct
       (Fasta_parser_error (1 "Empty file"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: missing description
       INPUT:
       >
       ACGT
@@ -353,6 +369,7 @@ module Test = struct
       (Fasta_parser_error (1 "Description is empty"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: missing description
       INPUT:
       ACGT
 
@@ -360,6 +377,7 @@ module Test = struct
       (Fasta_parser_error (1 "Expected '>' but got A"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: missing '>' at start of description
       INPUT:
       seq1
       ACGT
@@ -368,6 +386,7 @@ module Test = struct
       (Fasta_parser_error (1 "Expected '>' but got s"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: empty line at start of sequence
       INPUT:
       >seq1
 
@@ -377,6 +396,7 @@ module Test = struct
       (Fasta_parser_error (2 "Unexpected empty line at start of sequence"))
 
       ❌ FIXME - should have failed but passed
+      TEST: empty line between sequence
       INPUT:
       >seq1
       GGG
@@ -389,6 +409,7 @@ module Test = struct
         (sequence    GGGACGT)))
 
       ❌ FIXME - should have failed but passed
+      TEST: exrtra empty line at end of file
       INPUT:
       >seq1
       GGG
@@ -401,6 +422,7 @@ module Test = struct
         (sequence    GGG)))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: '>' at start of sequence
       INPUT:
       >seq1
       >
@@ -409,25 +431,26 @@ module Test = struct
       (Fasta_parser_error (2 "Unexpected '>' at start of sequence"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: '>' within sequence
       INPUT:
       >seq1
       A>CGT
 
       RESULT:
-      (Fasta_parser_error (
-        2 "Final line contains description without subsequent sequence"))
+      (Fasta_parser_error (2 "Unexpected '>' within sequence"))
 
-      ❌ FIXME - should have failed but passed
+      ✅ SUCCESS - parsing failed as expected
+      TEST: '>' in middle of sequence shouldn't start new description
       INPUT:
       >seq1
       A>CGT
       GGG
 
       RESULT:
-      (((description seq1) (sequence ""))
-       ((description CGT)  (sequence GGG)))
+      (Fasta_parser_error (2 "Unexpected '>' within sequence"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: '>' at end of file
       INPUT:
       >seq1
       ACGT
@@ -438,6 +461,7 @@ module Test = struct
         3 "Final line contains description without subsequent sequence"))
 
       ✅ SUCCESS - parsing failed as expected
+      TEST: missing sequence at end of file
       INPUT:
       >seq1
       ACGT
