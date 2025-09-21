@@ -60,13 +60,17 @@ module Parser = struct
       match j < n with
       | true -> (
         match action, line_start, buf.[j] with
-        | Start_description, _, '>' ->
+        | Start_description, false, _ ->
+          failwith "BUG: Start_description with line_start = false"
+        | Start_description, true, '>' ->
           loop
             { action = Continue_description ""; line_start = false; num_items; line }
             accu
             (j + 1)
             (j + 1)
-        | Start_description, _, c -> failf line "Expected '>' but got %c" c
+        | Start_description, true, c -> failf line "Expected '>' but got %c" c
+        | Continue_description _, true, _ ->
+          failwith "BUG: Continue_description with line_start = true"
         | Continue_description d, _, '\n' -> (
           let d' = String.sub buf ~pos:i ~len:(j - i) in
           let description = d ^ d' in
@@ -75,21 +79,29 @@ module Parser = struct
           | _ ->
             let accu = `Description description :: accu in
             loop
-              { action = Start_sequence; line_start = true; num_items; line = line + 1 }
+              { action = Start_sequence
+              ; line_start = true
+              ; num_items = num_items + 1
+              ; line = line + 1
+              }
               accu
               (j + 1)
               (j + 1))
-        | Continue_description _, _, _ ->
-          loop { action; line_start = false; num_items; line } accu i (j + 1)
-        | Start_sequence, _, '>' -> fail line "Unexpected '>' at start of sequence"
-        | Start_sequence, _, '\n' ->
+        | Continue_description _, false, _ ->
+          loop { action; line_start; num_items; line } accu i (j + 1)
+        | Start_sequence, false, _ ->
+          failwith "BUG: Start_sequence with line_start = false"
+        | Start_sequence, true, '>' -> fail line "Unexpected '>' at start of sequence"
+        | Start_sequence, true, '\n' ->
           fail line "Unexpected empty line at start of sequence"
-        | Start_sequence, _, _ ->
+        | Start_sequence, true, _ ->
           loop
             { action = Continue_sequence; line_start = false; num_items; line }
             accu
             i
             (j + 1)
+        | Continue_sequence, true, '\n' ->
+          fail line "Unexpected empty line within sequence"
         | Continue_sequence, _, '\n' ->
           let sequence = String.sub buf ~pos:i ~len:(j - i) in
           loop
@@ -106,12 +118,12 @@ module Parser = struct
           (* Since [line_start] is true, the previous char was '\n'. Thus,
              prior sequence was already added to [accu]. *)
           loop
-            { action = Continue_description ""; line_start; num_items; line }
+            { action = Continue_description ""; line_start = false; num_items; line }
             accu
             (j + 1)
             (j + 1)
         | Continue_sequence, _, _ ->
-          loop { action; line_start; num_items; line } accu i (j + 1))
+          loop { action; line_start = false; num_items; line } accu i (j + 1))
       | false -> (
         match action with
         | Start_description | Start_sequence ->
@@ -312,7 +324,7 @@ module Test = struct
       ; "seq1\nACGT", "missing '>' at start of description"
       ; ">seq1\n\nACGT", "empty line at start of sequence"
       ; ">seq1\nGGG\n\nACGT", "empty line between sequence"
-      ; ">seq1\nGGG\n\n", "exrtra empty line at end of file"
+      ; ">seq1\nGGG\n\n", "extra empty line at end of file"
       ; ">seq1\n>", "'>' at start of sequence"
       ; ">seq1\nA>CGT", "'>' within sequence"
       ; ">seq1\nA>CGT\nGGG", "'>' in middle of sequence shouldn't start new description"
@@ -395,7 +407,7 @@ module Test = struct
       RESULT:
       (Fasta_parser_error (2 "Unexpected empty line at start of sequence"))
 
-      ❌ FIXME - should have failed but passed
+      ✅ SUCCESS - parsing failed as expected
       TEST: empty line between sequence
       INPUT:
       >seq1
@@ -404,12 +416,10 @@ module Test = struct
       ACGT
 
       RESULT:
-      ((
-        (description seq1)
-        (sequence    GGGACGT)))
+      (Fasta_parser_error (3 "Unexpected empty line within sequence"))
 
-      ❌ FIXME - should have failed but passed
-      TEST: exrtra empty line at end of file
+      ✅ SUCCESS - parsing failed as expected
+      TEST: extra empty line at end of file
       INPUT:
       >seq1
       GGG
@@ -417,9 +427,7 @@ module Test = struct
 
 
       RESULT:
-      ((
-        (description seq1)
-        (sequence    GGG)))
+      (Fasta_parser_error (3 "Unexpected empty line within sequence"))
 
       ✅ SUCCESS - parsing failed as expected
       TEST: '>' at start of sequence
