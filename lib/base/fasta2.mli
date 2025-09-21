@@ -52,6 +52,8 @@
 *)
 open! Import
 
+type error = Parse_error of int * string [@@deriving sexp]
+
 module Item : sig
   type t =
     { description : string
@@ -62,15 +64,25 @@ end
 
 type t = Item.t list
 
-module Error : sig
-  type t = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
-end
-
 (* [of_string content] parses the full [content] of a FASTA file in-memory. *)
-val of_string : string -> (t, Error.t) Result.t
+val of_string : string -> (t, error) Result.t
 
 (** The [Parser] interface is harder to use but allows processing large files
-    in a streaming fashion. *)
+    in a streaming fashion.
+
+    [step st chunk] should be called repeatedly on sequential [chunk]s of an
+    input file. It parses the input [chunk] and returns the items parsed from
+    it. You can then use those items as desired and discard them to avoid to
+    retaining the data in memory. Each call also returns an updated parser
+    state that must be fed back to the next call to [step].
+
+    Use {!init} as the [state] argument for the first call to [step].
+
+    Your last call to [step] should be followed by a call to {!eof} to confirm
+    that the final parser state is valid. [eof st] will return an error if, for
+    example, a description line has been parsed but EOF is reached without
+    a subsequent sequence line.
+ *)
 module Parser : sig
   module Item : sig
     type t =
@@ -83,16 +95,6 @@ module Parser : sig
   type state
 
   val init : state
-
-  (** [step st buf] parses the input [buf] and returns the items parsed from it.
-      It also returns an updated parser state that must be fed back to the
-      next call to [step]. Your last call to [step] must be followed by a call
-      to {!eof}. See below. *)
-  val step : state -> string -> (state * Item.t list, Error.t) Result.t
-
-  (** [eof st] must be called on the parser state returned from your final call
-      to {!step}. This checks whether the final state is valid for the end of a
-      file. For example, this function will return an error if a description line
-      has been parsed, but EOF is reached without a subsequent sequence line. *)
-  val eof : state -> (unit, Error.t) Result.t
+  val step : state -> string -> (state * Item.t list, error) Result.t
+  val eof : state -> (unit, error) Result.t
 end

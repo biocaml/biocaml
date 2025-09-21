@@ -1,8 +1,13 @@
 open! Import
 
-module Error = struct
-  type t = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
-end
+type error = Parse_error of int * string [@@deriving sexp]
+
+let parse_error (line_num : int) msg = Error (Parse_error (line_num, msg))
+
+let parse_errorf (line_num : int) fmt =
+  let k x = parse_error line_num x in
+  Printf.ksprintf k fmt
+;;
 
 module Parser = struct
   module Item = struct
@@ -49,13 +54,6 @@ module Parser = struct
     }
   [@@deriving sexp]
 
-  let fail (line_num : int) msg = Error (`Fasta_parser_error (line_num, msg))
-
-  let failf (line_num : int) fmt =
-    let k x = fail line_num x in
-    Printf.ksprintf k fmt
-  ;;
-
   let init = { action = Start_description; line_start = true; num_items = 0; line = 1 }
 
   let step state (buf : string) =
@@ -77,15 +75,16 @@ module Parser = struct
             accu
             (j + 1)
             (j + 1)
-        | Start_description, true, c -> failf line "Expected '>' but got %c" c
-        | Continue_description _, _, '>' -> fail line "Unexpected '>' within description"
+        | Start_description, true, c -> parse_errorf line "Expected '>' but got %c" c
+        | Continue_description _, _, '>' ->
+          parse_error line "Unexpected '>' within description"
         | Continue_description _, true, _ ->
           failwith "BUG: Continue_description with line_start = true"
         | Continue_description d, _, '\n' -> (
           let d' = String.sub buf ~pos:i ~len:(j - i) in
           let description = d ^ d' in
           match description with
-          | "" -> fail line "Description is empty"
+          | "" -> parse_error line "Description is empty"
           | _ ->
             let accu = `Description description :: accu in
             loop
@@ -100,9 +99,10 @@ module Parser = struct
         | Continue_description _, false, _ -> loop state accu i (j + 1)
         | Start_sequence, false, _ ->
           failwith "BUG: Start_sequence with line_start = false"
-        | Start_sequence, true, '>' -> fail line "Unexpected '>' at start of sequence"
+        | Start_sequence, true, '>' ->
+          parse_error line "Unexpected '>' at start of sequence"
         | Start_sequence, true, '\n' ->
-          fail line "Unexpected empty line at start of sequence"
+          parse_error line "Unexpected empty line at start of sequence"
         | Start_sequence, true, _ ->
           loop
             { action = Continue_sequence; line_start = false; num_items; line }
@@ -110,7 +110,7 @@ module Parser = struct
             i
             (j + 1)
         | Continue_sequence, true, '\n' ->
-          fail line "Unexpected empty line within sequence"
+          parse_error line "Unexpected empty line within sequence"
         | Continue_sequence, _, '\n' ->
           let sequence = String.sub buf ~pos:i ~len:(j - i) in
           loop
@@ -122,8 +122,10 @@ module Parser = struct
             (`Partial_sequence sequence :: accu)
             (j + 1)
             (j + 1)
-        | Continue_sequence, false, '>' -> fail line "Unexpected '>' within sequence"
-        | Continue_sequence, false, '\r' -> fail line "Unexpected '\r' within sequence"
+        | Continue_sequence, false, '>' ->
+          parse_error line "Unexpected '>' within sequence"
+        | Continue_sequence, false, '\r' ->
+          parse_error line "Unexpected '\r' within sequence"
         | Continue_sequence, true, '>' ->
           (* Since [line_start] is true, the previous char was '\n'. Thus,
              prior sequence was already added to [accu]. *)
@@ -153,10 +155,10 @@ module Parser = struct
 
   let eof { action; line_start = _; num_items; line } =
     match action, num_items with
-    | Start_description, 0 -> fail line "Empty file"
+    | Start_description, 0 -> parse_error line "Empty file"
     | (Start_description | Continue_sequence), _ -> Ok ()
     | Start_sequence, _ | Continue_description _, _ ->
-      fail line "Final line contains description without subsequent sequence"
+      parse_error line "Final line contains description without subsequent sequence"
   ;;
 end
 
@@ -247,7 +249,7 @@ module Test = struct
               %s\n"
              msg
              x
-             (e |> Error.sexp_of_t |> sexp_to_string))
+             (e |> sexp_of_error |> sexp_to_string))
     in
     List.iter data ~f:test;
     [%expect
@@ -372,7 +374,7 @@ module Test = struct
               %s\n"
              (String.escaped msg)
              x
-             (e |> Error.sexp_of_t |> sexp_to_string))
+             (e |> sexp_of_error |> sexp_to_string))
       | Ok result ->
         print_string
           (sprintf
