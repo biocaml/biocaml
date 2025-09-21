@@ -69,6 +69,7 @@ module Parser = struct
             (j + 1)
             (j + 1)
         | Start_description, true, c -> failf line "Expected '>' but got %c" c
+        | Continue_description _, _, '>' -> fail line "Unexpected '>' within description"
         | Continue_description _, true, _ ->
           failwith "BUG: Continue_description with line_start = true"
         | Continue_description d, _, '\n' -> (
@@ -114,6 +115,7 @@ module Parser = struct
             (j + 1)
             (j + 1)
         | Continue_sequence, false, '>' -> fail line "Unexpected '>' within sequence"
+        | Continue_sequence, false, '\r' -> fail line "Unexpected '\r' within sequence"
         | Continue_sequence, true, '>' ->
           (* Since [line_start] is true, the previous char was '\n'. Thus,
              prior sequence was already added to [accu]. *)
@@ -207,29 +209,36 @@ module Test = struct
 
   let%expect_test "of_string on valid file contents" =
     let data =
-      [ ">seq1\nACGT" (* single item *)
-      ; ">seq1 description\nACGTACGT" (* description with spaces *)
-      ; ">seq1\nACGT\n>seq2\nTGCA" (* multiple items *)
-      ; ">seq1\nACGT\nTGCA" (* sequence on 2 lines *)
-      ; ">seq1\nACGT\nTGCA\nGGG" (* sequence on 3 lines *)
-      ; ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
-        (* multiple items with sequences on multiple lines *)
-      ; ">seq1\nACGT\n" (* newline at end of file *)
+      [ ">seq1\nACGT", "single item"
+      ; ">seq1 description\nACGTACGT", "description with spaces"
+      ; ">seq1\nACGT\n>seq2\nTGCA", "multiple items"
+      ; ">seq1\nACGT\nTGCA", "sequence on 2 lines"
+      ; ">seq1\nACGT\nTGCA\nGGG", "sequence on 3 lines"
+      ; ( ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
+        , "multiple items with sequences on multiple lines" )
+      ; ">seq1\nACGT\n", "newline at end of file"
       ]
     in
-    let test x =
+    let test (x, msg) =
       let result = of_string x in
       match result with
       | Ok result ->
         print_string
           (sprintf
-             "✅ SUCCESS - parsing passed\nINPUT: \n%s\n\nRESULT:\n%s\n"
+             "✅ SUCCESS - parsing passed\nTEST: %s\nINPUT: \n%s\n\nRESULT:\n%s\n"
+             msg
              x
              (result |> sexp_of_t |> sexp_to_string))
       | Error e ->
         print_string
           (sprintf
-             "❌ FIXME - should have passed but got error\nINPUT: \n%s\n\nRESULT:\n%s\n"
+             "❌ FIXME - should have passed but got error\n\
+              TEST: %s\n\
+              INPUT: \n\
+              %s\n\n\
+              RESULT:\n\
+              %s\n"
+             msg
              x
              (e |> Error.sexp_of_t |> sexp_to_string))
     in
@@ -237,6 +246,7 @@ module Test = struct
     [%expect
       {|
       ✅ SUCCESS - parsing passed
+      TEST: single item
       INPUT:
       >seq1
       ACGT
@@ -247,6 +257,7 @@ module Test = struct
         (sequence    ACGT)))
 
       ✅ SUCCESS - parsing passed
+      TEST: description with spaces
       INPUT:
       >seq1 description
       ACGTACGT
@@ -257,6 +268,7 @@ module Test = struct
         (sequence    ACGTACGT)))
 
       ✅ SUCCESS - parsing passed
+      TEST: multiple items
       INPUT:
       >seq1
       ACGT
@@ -268,6 +280,7 @@ module Test = struct
        ((description seq2) (sequence TGCA)))
 
       ✅ SUCCESS - parsing passed
+      TEST: sequence on 2 lines
       INPUT:
       >seq1
       ACGT
@@ -279,6 +292,7 @@ module Test = struct
         (sequence    ACGTTGCA)))
 
       ✅ SUCCESS - parsing passed
+      TEST: sequence on 3 lines
       INPUT:
       >seq1
       ACGT
@@ -291,6 +305,7 @@ module Test = struct
         (sequence    ACGTTGCAGGG)))
 
       ✅ SUCCESS - parsing passed
+      TEST: multiple items with sequences on multiple lines
       INPUT:
       >seq1
       ACGT
@@ -304,6 +319,7 @@ module Test = struct
        ((description seq2) (sequence GGGCCC)))
 
       ✅ SUCCESS - parsing passed
+      TEST: newline at end of file
       INPUT:
       >seq1
       ACGT
@@ -322,6 +338,7 @@ module Test = struct
       ; ">\nACGT", "missing description"
       ; "ACGT", "missing description"
       ; "seq1\nACGT", "missing '>' at start of description"
+      ; ">seq1>abc\nACGT", "'>' within description"
       ; ">seq1\n\nACGT", "empty line at start of sequence"
       ; ">seq1\nGGG\n\nACGT", "empty line between sequence"
       ; ">seq1\nGGG\n\n", "extra empty line at end of file"
@@ -330,6 +347,8 @@ module Test = struct
       ; ">seq1\nA>CGT\nGGG", "'>' in middle of sequence shouldn't start new description"
       ; ">seq1\nACGT\n>", "'>' at end of file"
       ; ">seq1\nACGT\n>seq2", "missing sequence at end of file"
+      ; ">seq1\nACGT\r\nGGG\n", "'\r\n' line ending"
+      ; ">seq1\nACGT\nGGG\r", "final '\r'"
       ]
     in
     let test (x, msg) =
@@ -344,7 +363,7 @@ module Test = struct
               %s\n\n\
               RESULT:\n\
               %s\n"
-             msg
+             (String.escaped msg)
              x
              (e |> Error.sexp_of_t |> sexp_to_string))
       | Ok result ->
@@ -356,7 +375,7 @@ module Test = struct
               %s\n\n\
               RESULT:\n\
               %s\n"
-             msg
+             (String.escaped msg)
              x
              (result |> sexp_of_t |> sexp_to_string))
     in
@@ -396,6 +415,15 @@ module Test = struct
 
       RESULT:
       (Fasta_parser_error (1 "Expected '>' but got s"))
+
+      ✅ SUCCESS - parsing failed as expected
+      TEST: '>' within description
+      INPUT:
+      >seq1>abc
+      ACGT
+
+      RESULT:
+      (Fasta_parser_error (1 "Unexpected '>' within description"))
 
       ✅ SUCCESS - parsing failed as expected
       TEST: empty line at start of sequence
@@ -478,6 +506,27 @@ module Test = struct
       RESULT:
       (Fasta_parser_error (
         3 "Final line contains description without subsequent sequence"))
+
+      ✅ SUCCESS - parsing failed as expected
+      TEST: '\r\n' line ending
+      INPUT:
+      >seq1
+      ACGT
+      GGG
+
+
+      RESULT:
+      (Fasta_parser_error (2 "Unexpected '\r' within sequence"))
+
+      ✅ SUCCESS - parsing failed as expected
+      TEST: final '\r'
+      INPUT:
+      >seq1
+      ACGT
+      GGG
+
+      RESULT:
+      (Fasta_parser_error (3 "Unexpected '\r' within sequence"))
       |}]
   ;;
 end

@@ -18,7 +18,8 @@
     specifications exist for formats of the description itself, but we
     simply return the raw string, allowing users to call additional
     functions to further parse as needed for their use case. We do require
-    the [description] to be non-empty.
+    the [description] to be non-empty and disallow '>' characters within the
+    description.
 
     The line following the [description] is the start of the [sequence],
     which can span multiple lines. Generally the [sequence] should contain
@@ -26,6 +27,8 @@
     specific characters are allowed that we do not attempt to define or
     enforce any such rules. We simply return the raw string, with the newline
     characters omitted. We do disallow '>' characters within the sequence.
+    We do not support "\r\n" line endings and so disallow '\r' characters
+    to avoid accidentally including them in the sequence.
 
     The end of the sequence is marked by a new line that begins with a '>',
     indicating the start of a new [description], or end-of-file
