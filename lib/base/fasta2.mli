@@ -77,19 +77,19 @@ module Parser : sig
     [@@deriving sexp]
   end
 
-  type t
+  type state
 
-  val init : t
+  val init : state
 
   (** [step st buf] parses the input [buf] and returns the items parsed from it.
-      It also returns an updated parser state [t] that must be fed back to the
-      next call of [step]. Your last call to [step] must be followed by a call
+      It also returns an updated parser state that must be fed back to the
+      next call to [step]. Your last call to [step] must be followed by a call
       to {!eof}. See below. *)
-  val step : t -> string -> (t * Item.t list, Error.t) Result.t
+  val step : state -> string -> (state * Item.t list, Error.t) Result.t
 
-  (** [eof t] must be called on the parser state [t] returned from your final call
+  (** [eof st] must be called on the parser state returned from your final call
       to {!step}. This checks whether the final state is valid for the end of a
       file. For example, this function will return an error if a description line
       has been parsed, but EOF is reached without a subsequent sequence line. *)
-  val eof : t -> (unit, Error.t) Result.t
+  val eof : state -> (unit, Error.t) Result.t
 end

@@ -13,27 +13,27 @@ module Parser = struct
     [@@deriving sexp]
   end
 
-  (* State describes what needs to be done on next step:
-     - Description_start: need to start parsing description
-     - Description: need to continue parsing description, carries the description so far
-     - Sequence_start: need to start parsing sequence
-     - Sequence: need to continue parsing sequence
+  (* The action that needs to be taken by the parser:
+     - Start_description: need to start parsing description
+     - Continue_description: need to continue parsing description, carries the description so far
+     - Start_sequence: need to start parsing sequence
+     - Continue_sequence: need to continue parsing sequence
   *)
-  type state =
-    | Description_start
-    | Description of string
-    | Sequence_start
-    | Sequence
+  type action =
+    | Start_description
+    | Continue_description of string
+    | Start_sequence
+    | Continue_sequence
   [@@deriving sexp]
 
-  (* Parser is defined by:
-     - state: the current state of the parser
+  (* The parser's state is defined by:
+     - action: the current action the parser needs to take
      - line_start: true if starting a new line
      - num_items: number of items parsed so far
      - line: number of the line currently being parsed
   *)
-  type t =
-    { state : state
+  type state =
+    { action : action
     ; line_start : bool
     ; num_items : int
     ; line : int
@@ -47,27 +47,27 @@ module Parser = struct
     Printf.ksprintf k fmt
   ;;
 
-  let init = { state = Description_start; line_start = true; num_items = 0; line = 1 }
+  let init = { action = Start_description; line_start = true; num_items = 0; line = 1 }
 
-  let step ({ state; line_start; num_items; line } : t) (buf : string) =
+  let step ({ action; line_start; num_items; line } : state) (buf : string) =
     let n = String.length buf in
     let rec loop
-              ({ state; line_start; num_items; line } : t)
+              ({ action; line_start; num_items; line } : state)
               (accu : Item.t list)
               (i : int)
               (j : int)
       =
       match j < n with
       | true -> (
-        match state, line_start, buf.[j] with
-        | Description_start, _, '>' ->
+        match action, line_start, buf.[j] with
+        | Start_description, _, '>' ->
           loop
-            { state = Description ""; line_start = false; num_items; line }
+            { action = Continue_description ""; line_start = false; num_items; line }
             accu
             (j + 1)
             (j + 1)
-        | Description_start, _, c -> failf line "Expected '>' but got %c" c
-        | Description d, _, '\n' -> (
+        | Start_description, _, c -> failf line "Expected '>' but got %c" c
+        | Continue_description d, _, '\n' -> (
           let d' = String.sub buf ~pos:i ~len:(j - i) in
           let description = d ^ d' in
           match description with
@@ -75,21 +75,21 @@ module Parser = struct
           | _ ->
             let accu = `Description description :: accu in
             loop
-              { state = Sequence_start; line_start = true; num_items; line = line + 1 }
+              { action = Start_sequence; line_start = true; num_items; line = line + 1 }
               accu
               (j + 1)
               (j + 1))
-        | Description _, _, _ ->
-          loop { state; line_start = false; num_items; line } accu i (j + 1)
-        | Sequence_start, _, '>' -> fail line "Unexpected '>' at start of sequence"
-        | Sequence_start, _, '\n' ->
+        | Continue_description _, _, _ ->
+          loop { action; line_start = false; num_items; line } accu i (j + 1)
+        | Start_sequence, _, '>' -> fail line "Unexpected '>' at start of sequence"
+        | Start_sequence, _, '\n' ->
           fail line "Unexpected empty line at start of sequence"
-        | Sequence_start, _, _ ->
-          loop { state = Sequence; line_start; num_items; line } accu i (j + 1)
-        | Sequence, _, '\n' ->
+        | Start_sequence, _, _ ->
+          loop { action = Continue_sequence; line_start; num_items; line } accu i (j + 1)
+        | Continue_sequence, _, '\n' ->
           let sequence = String.sub buf ~pos:i ~len:(j - i) in
           loop
-            { state = Sequence
+            { action = Continue_sequence
             ; line_start = true
             ; num_items = num_items + 1
             ; line = line + 1
@@ -97,35 +97,41 @@ module Parser = struct
             (`Partial_sequence sequence :: accu)
             (j + 1)
             (j + 1)
-        | Sequence, false, '>' ->
-          loop { state; line_start; num_items; line } accu i (j + 1)
-        | Sequence, true, '>' ->
+        | Continue_sequence, false, '>' ->
+          loop { action; line_start; num_items; line } accu i (j + 1)
+        | Continue_sequence, true, '>' ->
           (* Since [line_start] is true, the previous char was '\n'. Thus,
                prior sequence was already added to [accu]. *)
-          loop { state = Description ""; line_start; num_items; line } accu (j + 1) (j + 1)
-        | Sequence, _, _ -> loop { state; line_start; num_items; line } accu i (j + 1))
+          loop
+            { action = Continue_description ""; line_start; num_items; line }
+            accu
+            (j + 1)
+            (j + 1)
+        | Continue_sequence, _, _ ->
+          loop { action; line_start; num_items; line } accu i (j + 1))
       | false -> (
-        match state with
-        | Description_start | Sequence_start ->
+        match action with
+        | Start_description | Start_sequence ->
           (* Any prior window was already added to [accu]. *)
-          Ok ({ state; line_start; num_items; line }, accu)
-        | Description d ->
+          Ok ({ action; line_start; num_items; line }, accu)
+        | Continue_description d ->
           let d' = String.sub buf ~pos:i ~len:(j - i) in
-          Ok ({ state = Description (d ^ d'); line_start; num_items; line }, accu)
-        | Sequence ->
+          Ok
+            ({ action = Continue_description (d ^ d'); line_start; num_items; line }, accu)
+        | Continue_sequence ->
           let sequence = String.sub buf ~pos:i ~len:(j - i) in
           let accu = `Partial_sequence sequence :: accu in
-          Ok ({ state = Sequence; line_start; num_items; line }, accu))
+          Ok ({ action = Continue_sequence; line_start; num_items; line }, accu))
     in
-    loop { state; line_start; num_items; line } [] 0 0
+    loop { action; line_start; num_items; line } [] 0 0
     |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
   ;;
 
-  let eof { state; line_start = _; num_items; line } =
-    match state, num_items with
-    | Description_start, 0 -> fail line "Empty file"
-    | (Description_start | Sequence), _ -> Ok ()
-    | Sequence_start, _ | Description _, _ ->
+  let eof { action; line_start = _; num_items; line } =
+    match action, num_items with
+    | Start_description, 0 -> fail line "Empty file"
+    | (Start_description | Continue_sequence), _ -> Ok ()
+    | Start_sequence, _ | Continue_description _, _ ->
       fail line "Final line contains description without subsequent sequence"
   ;;
 end
