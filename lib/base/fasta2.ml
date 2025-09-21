@@ -68,14 +68,18 @@ module Parser = struct
           | Description_start, _, '>' ->
             loop { state = Description ""; line_start = false; line } accu (j + 1) (j + 1)
           | Description_start, _, c -> failf line "Expected '>' but got %c" c
-          | Description d, _, '\n' ->
+          | Description d, _, '\n' -> (
             let d' = String.sub buf ~pos:i ~len:(j - i) in
-            let accu = `Description (d ^ d') :: accu in
-            loop
-              { state = Sequence_start; line_start = true; line = line + 1 }
-              accu
-              (j + 1)
-              (j + 1)
+            let description = d ^ d' in
+            match description with
+            | "" -> fail line "Description is empty"
+            | _ ->
+              let accu = `Description description :: accu in
+              loop
+                { state = Sequence_start; line_start = true; line = line + 1 }
+                accu
+                (j + 1)
+                (j + 1))
           | Description _, _, _ -> loop { state; line_start = false; line } accu i (j + 1)
           | Sequence_start, _, '>' -> fail line "Unexpected '>' at start of sequence"
           | Sequence_start, _, '\n' ->
@@ -314,15 +318,13 @@ module Test = struct
       RESULT:
       ()
 
-      ❌ FIXME - should have failed but passed
+      ✅ SUCCESS - parsing failed as expected
       INPUT:
       >
       ACGT
 
       RESULT:
-      ((
-        (description "")
-        (sequence    ACGT)))
+      (Fasta_parser_error (1 "Description is empty"))
 
       ✅ SUCCESS - parsing failed as expected
       INPUT:
