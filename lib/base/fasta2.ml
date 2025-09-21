@@ -164,12 +164,16 @@ let of_string content =
 module Test = struct
   open Expect_test_helpers_base
 
-  let%expect_test "Parser.step single sequence" =
+  let%expect_test "of_string on valid file contents" =
     let data =
-      [ ">seq1\nACGT"
-      ; ">seq1 description\nACGTACGT"
-      ; ">seq1\nACGT\nTGCA"
-      ; ">seq1\nACGT\n>seq2\nTGCA"
+      [ ">seq1\nACGT" (* single item *)
+      ; ">seq1 description\nACGTACGT" (* description with spaces *)
+      ; ">seq1\nACGT\n>seq2\nTGCA" (* multiple items *)
+      ; ">seq1\nACGT\nTGCA" (* sequence on 2 lines *)
+      ; ">seq1\nACGT\nTGCA\nGGG" (* sequence on 3 lines *)
+      ; ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
+        (* multiple items with sequences on multiple lines *)
+      ; ">seq1\nACGT\n" (* newline at end of file *)
       ]
     in
     let test x =
@@ -204,6 +208,17 @@ module Test = struct
       IN:
       >seq1
       ACGT
+      >seq2
+      TGCA
+
+      SEXP:
+      (Ok (
+        ((description seq1) (sequence ACGT))
+        ((description seq2) (sequence TGCA))))
+
+      IN:
+      >seq1
+      ACGT
       TGCA
 
       SEXP:
@@ -214,17 +229,40 @@ module Test = struct
       IN:
       >seq1
       ACGT
-      >seq2
       TGCA
+      GGG
+
+      SEXP:
+      (Ok ((
+        (description seq1)
+        (sequence    ACGTTGCAGGG))))
+
+      IN:
+      >seq1
+      ACGT
+      TGCA
+      >seq2
+      GGG
+      CCC
 
       SEXP:
       (Ok (
-        ((description seq1) (sequence ACGT))
-        ((description seq2) (sequence TGCA))))
+        ((description seq1) (sequence ACGTTGCA))
+        ((description seq2) (sequence GGGCCC))))
+
+      IN:
+      >seq1
+      ACGT
+
+
+      SEXP:
+      (Ok ((
+        (description seq1)
+        (sequence    ACGT))))
       |}]
   ;;
 
-  let%expect_test "Parser.step error cases" =
+  let%expect_test "of_string on invalid file contents" =
     let data = [ "ACGT"; "seq1\nACGT"; ">seq1\n\nACGT"; ">seq1\n>" ] in
     let test x =
       let result = of_string x in
@@ -252,77 +290,6 @@ module Test = struct
       IN: ">seq1\n>"
       SEXP:
       (Error (Fasta_parser_error (2 "Unexpected '>' at start of sequence")))
-      |}]
-  ;;
-
-  let%expect_test "Parser.step multi-line sequences" =
-    let data = [ ">seq1\nACGT\nTGCA\nAAA"; ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC" ] in
-    let test x =
-      let result = of_string x in
-      print_string
-        (sprintf
-           "IN: \"%s\"\nSEXP:\n%s\n"
-           (String.escaped x)
-           ([%sexp_of: (t, Error.t) Result.t] result |> sexp_to_string))
-    in
-    List.iter data ~f:test;
-    [%expect
-      {|
-      IN: ">seq1\nACGT\nTGCA\nAAA"
-      SEXP:
-      (Ok ((
-        (description seq1)
-        (sequence    ACGTTGCAAAA))))
-
-      IN: ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
-      SEXP:
-      (Ok (
-        ((description seq1) (sequence ACGTTGCA))
-        ((description seq2) (sequence GGGCCC))))
-      |}]
-  ;;
-
-  let%expect_test "Parser.step partial parsing" =
-    let parser = Parser.init in
-    let result1 = Parser.step parser (`Some ">seq1 human chromosome 1\n") in
-    let () =
-      print_string
-        (sprintf
-           "Step 1 - IN: \"%s\"\nSEXP:\n%s\n"
-           (String.escaped ">seq1 human chromosome 1\n")
-           ([%sexp_of: (Parser.t * Parser.Item.t list, Error.t) Result.t] result1
-            |> sexp_to_string))
-    in
-    let () =
-      match result1 with
-      | Ok (parser2, _) ->
-        let result2 = Parser.step parser2 (`Some "ACGTACGTACGT") in
-        print_string
-          (sprintf
-             "Step 2 - IN: \"%s\"\nSEXP:\n%s\n"
-             (String.escaped "ACGTACGTACGT")
-             ([%sexp_of: (Parser.t * Parser.Item.t list, Error.t) Result.t] result2
-              |> sexp_to_string))
-      | Error _ -> print_string "Step 2 can't be called due to error in step 1\n"
-    in
-    ();
-    [%expect
-      {|
-      Step 1 - IN: ">seq1 human chromosome 1\n"
-      SEXP:
-      (Ok (
-        ((state      Sequence_start)
-         (line_start true)
-         (line       2))
-        ((Description "seq1 human chromosome 1"))))
-
-      Step 2 - IN: "ACGTACGTACGT"
-      SEXP:
-      (Ok (
-        ((state      Sequence)
-         (line_start true)
-         (line       2))
-        ((Partial_sequence ACGTACGTACGT))))
       |}]
   ;;
 end
