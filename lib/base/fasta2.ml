@@ -49,10 +49,10 @@ module Parser = struct
 
   let init = { action = Start_description; line_start = true; num_items = 0; line = 1 }
 
-  let step ({ action; line_start; num_items; line } : state) (buf : string) =
+  let step state (buf : string) =
     let n = String.length buf in
     let rec loop
-              ({ action; line_start; num_items; line } : state)
+              ({ action; line_start; num_items; line } as state : state)
               (accu : Item.t list)
               (i : int)
               (j : int)
@@ -88,8 +88,7 @@ module Parser = struct
               accu
               (j + 1)
               (j + 1))
-        | Continue_description _, false, _ ->
-          loop { action; line_start; num_items; line } accu i (j + 1)
+        | Continue_description _, false, _ -> loop state accu i (j + 1)
         | Start_sequence, false, _ ->
           failwith "BUG: Start_sequence with line_start = false"
         | Start_sequence, true, '>' -> fail line "Unexpected '>' at start of sequence"
@@ -130,7 +129,7 @@ module Parser = struct
         match action with
         | Start_description | Start_sequence ->
           (* Any prior window was already added to [accu]. *)
-          Ok ({ action; line_start; num_items; line }, accu)
+          Ok (state, accu)
         | Continue_description d ->
           let d' = String.sub buf ~pos:i ~len:(j - i) in
           Ok
@@ -140,8 +139,7 @@ module Parser = struct
           let accu = `Partial_sequence sequence :: accu in
           Ok ({ action = Continue_sequence; line_start; num_items; line }, accu))
     in
-    loop { action; line_start; num_items; line } [] 0 0
-    |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
+    loop state [] 0 0 |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
   ;;
 
   let eof { action; line_start = _; num_items; line } =
