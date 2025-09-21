@@ -227,60 +227,43 @@ module Parser = struct
       Ok (state, completed)
   ;;
 
+  let get_complete_items_at_eof (item0s : Parser0.Item.t list) : Item.t list =
+    let rec loop accu item0s =
+      match item0s with
+      | [] -> accu
+      | `Partial_sequence _ :: _ ->
+        failwith
+          "BUG: get_complete_items_at_eof found Partial_sequence without Description"
+      | `Description description :: rest ->
+        let sequences, remaining = get_initial_seq_items rest in
+        let sequence = String.concat ~sep:"" sequences in
+        loop ({ Item.description; sequence } :: accu) remaining
+    in
+    loop [] item0s |> List.rev
+  ;;
+
   let eof ({ parser0_state; parser0_items } : state) : (Item.t list, error) Result.t =
     match Parser0.eof parser0_state with
     | Error e -> Error e
     | Ok () -> (
       match get_complete_items parser0_items with
       | items, [] -> Ok items
-      | _, _ :: _ ->
-        failwith
-          "BUG: Parser0.eof returned Ok but final Parser0.Item.t list not fully \
-           consumable to produce an Item.t list")
+      | items, remaining_items ->
+        (* At EOF, any remaining items should be convertible to complete items *)
+        let final_items = get_complete_items_at_eof remaining_items in
+        Ok (items @ final_items))
   ;;
 end
 
 type t = Item.t list [@@deriving sexp]
 
-(* We don't expose this function because it means you have all the parser
-   items in memory. If you did that, probably should should have called
-   [of_string] in the first place. Also we assume this function
-   is called on the result of [Parser.step]. See comment within body. *)
-let of_parser_items (items : Parser0.Item.t list) : t =
-  let rec loop accu items =
-    match items with
-    | `Description description :: items ->
-      let sequences, items =
-        List.split_while items ~f:(function
-          | `Partial_sequence _ -> true
-          | `Description _ -> false)
-      in
-      let sequences =
-        sequences
-        |> List.map ~f:(function
-          | `Partial_sequence sequence -> sequence
-          | `Description _ -> assert false)
-      in
-      let sequence = String.concat ~sep:"" sequences in
-      loop ({ Item.description; sequence } :: accu) items
-    | `Partial_sequence _ :: _ ->
-      (* Either [Parser.step] has a bug because we only call this
-         function internally by creating the original [items] from
-         [Parser.step], or we have a bug above where we recursively
-         call [loop]. *)
-      failwith "BUG: Partial_sequence shouldn't be first in items"
-    | [] -> List.rev accu
-  in
-  loop [] items
-;;
-
 let of_string content =
-  match Parser0.step Parser0.init content with
-  | Error e -> Error e
+  match Parser.step Parser.init content with
+  | Error _ as e -> e
   | Ok (parser, items) -> (
-    match Parser0.eof parser with
-    | Error e -> Error e
-    | Ok () -> Ok (of_parser_items items))
+    match Parser.eof parser with
+    | Error _ as e -> e
+    | Ok final_items -> Ok (items @ final_items))
 ;;
 
 module Test = struct
