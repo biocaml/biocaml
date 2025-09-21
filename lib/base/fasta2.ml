@@ -178,66 +178,79 @@ module Test = struct
     in
     let test x =
       let result = of_string x in
-      print_string
-        (sprintf
-           "IN: \n%s\n\nSEXP:\n%s\n"
-           x
-           ([%sexp_of: (t, Error.t) Result.t] result |> sexp_to_string))
+      match result with
+      | Ok result ->
+        print_string
+          (sprintf
+             "✅ SUCCESS - parsing passed\nINPUT: \n%s\n\nRESULT:\n%s\n"
+             x
+             (result |> sexp_of_t |> sexp_to_string))
+      | Error e ->
+        print_string
+          (sprintf
+             "❌ FIXME - should have passed but got error\nINPUT: \n%s\n\nRESULT:\n%s\n"
+             x
+             (e |> Error.sexp_of_t |> sexp_to_string))
     in
     List.iter data ~f:test;
     [%expect
       {|
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1
       ACGT
 
-      SEXP:
-      (Ok ((
+      RESULT:
+      ((
         (description seq1)
-        (sequence    ACGT))))
+        (sequence    ACGT)))
 
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1 description
       ACGTACGT
 
-      SEXP:
-      (Ok ((
+      RESULT:
+      ((
         (description "seq1 description")
-        (sequence    ACGTACGT))))
+        (sequence    ACGTACGT)))
 
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1
       ACGT
       >seq2
       TGCA
 
-      SEXP:
-      (Ok (
-        ((description seq1) (sequence ACGT))
-        ((description seq2) (sequence TGCA))))
+      RESULT:
+      (((description seq1) (sequence ACGT))
+       ((description seq2) (sequence TGCA)))
 
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1
       ACGT
       TGCA
 
-      SEXP:
-      (Ok ((
+      RESULT:
+      ((
         (description seq1)
-        (sequence    ACGTTGCA))))
+        (sequence    ACGTTGCA)))
 
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1
       ACGT
       TGCA
       GGG
 
-      SEXP:
-      (Ok ((
+      RESULT:
+      ((
         (description seq1)
-        (sequence    ACGTTGCAGGG))))
+        (sequence    ACGTTGCAGGG)))
 
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1
       ACGT
       TGCA
@@ -245,51 +258,135 @@ module Test = struct
       GGG
       CCC
 
-      SEXP:
-      (Ok (
-        ((description seq1) (sequence ACGTTGCA))
-        ((description seq2) (sequence GGGCCC))))
+      RESULT:
+      (((description seq1) (sequence ACGTTGCA))
+       ((description seq2) (sequence GGGCCC)))
 
-      IN:
+      ✅ SUCCESS - parsing passed
+      INPUT:
       >seq1
       ACGT
 
 
-      SEXP:
-      (Ok ((
+      RESULT:
+      ((
         (description seq1)
-        (sequence    ACGT))))
+        (sequence    ACGT)))
       |}]
   ;;
 
   let%expect_test "of_string on invalid file contents" =
-    let data = [ "ACGT"; "seq1\nACGT"; ">seq1\n\nACGT"; ">seq1\n>" ] in
+    let data =
+      [ "" (* empty file *)
+      ; ">\nACGT" (* missing description *)
+      ; "ACGT" (* missing description *)
+      ; "seq1\nACGT" (* missing '>' at start of description *)
+      ; ">seq1\n\nACGT" (* empty line at start of sequence *)
+      ; ">seq1\n>" (* '>' at start of sequence *)
+      ; ">seq1\nA>CGT" (* '>' within sequence *)
+      ; ">seq1\nACGT\n>" (* '>' at end of file *)
+      ; ">seq1\nACGT\n>seq2" (* missing sequence at end of file *)
+      ]
+    in
     let test x =
       let result = of_string x in
-      print_string
-        (sprintf
-           "IN: \"%s\"\nSEXP:\n%s\n"
-           (String.escaped x)
-           ([%sexp_of: (t, Error.t) Result.t] result |> sexp_to_string))
+      match result with
+      | Error e ->
+        print_string
+          (sprintf
+             "✅ SUCCESS - parsing failed as expected\nINPUT:\n%s\n\nRESULT:\n%s\n"
+             x
+             (e |> Error.sexp_of_t |> sexp_to_string))
+      | Ok result ->
+        print_string
+          (sprintf
+             "❌ FIXME - should have failed but passed\nINPUT:\n%s\n\nRESULT:\n%s\n"
+             x
+             (result |> sexp_of_t |> sexp_to_string))
     in
     List.iter data ~f:test;
     [%expect
       {|
-      IN: "ACGT"
-      SEXP:
-      (Error (Fasta_parser_error (1 "Expected '>' but got A")))
+      ❌ FIXME - should have failed but passed
+      INPUT:
 
-      IN: "seq1\nACGT"
-      SEXP:
-      (Error (Fasta_parser_error (1 "Expected '>' but got s")))
 
-      IN: ">seq1\n\nACGT"
-      SEXP:
-      (Error (Fasta_parser_error (2 "Unexpected empty line at start of sequence")))
+      RESULT:
+      ()
 
-      IN: ">seq1\n>"
-      SEXP:
-      (Error (Fasta_parser_error (2 "Unexpected '>' at start of sequence")))
+      ❌ FIXME - should have failed but passed
+      INPUT:
+      >
+      ACGT
+
+      RESULT:
+      ((
+        (description "")
+        (sequence    ACGT)))
+
+      ✅ SUCCESS - parsing failed as expected
+      INPUT:
+      ACGT
+
+      RESULT:
+      (Fasta_parser_error (1 "Expected '>' but got A"))
+
+      ✅ SUCCESS - parsing failed as expected
+      INPUT:
+      seq1
+      ACGT
+
+      RESULT:
+      (Fasta_parser_error (1 "Expected '>' but got s"))
+
+      ✅ SUCCESS - parsing failed as expected
+      INPUT:
+      >seq1
+
+      ACGT
+
+      RESULT:
+      (Fasta_parser_error (2 "Unexpected empty line at start of sequence"))
+
+      ✅ SUCCESS - parsing failed as expected
+      INPUT:
+      >seq1
+      >
+
+      RESULT:
+      (Fasta_parser_error (2 "Unexpected '>' at start of sequence"))
+
+      ❌ FIXME - should have failed but passed
+      INPUT:
+      >seq1
+      A>CGT
+
+      RESULT:
+      ((
+        (description seq1)
+        (sequence    "")))
+
+      ❌ FIXME - should have failed but passed
+      INPUT:
+      >seq1
+      ACGT
+      >
+
+      RESULT:
+      ((
+        (description seq1)
+        (sequence    ACGT)))
+
+      ❌ FIXME - should have failed but passed
+      INPUT:
+      >seq1
+      ACGT
+      >seq2
+
+      RESULT:
+      ((
+        (description seq1)
+        (sequence    ACGT)))
       |}]
   ;;
 end
