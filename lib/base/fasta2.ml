@@ -14,10 +14,19 @@ module Parser = struct
   end
 
   (* The action that needs to be taken by the parser:
-     - Start_description: need to start parsing description
-     - Continue_description: need to continue parsing description, carries the description so far
-     - Start_sequence: need to start parsing sequence
-     - Continue_sequence: need to continue parsing sequence
+     - Start_description: Start parsing a new description.
+     - Continue_description: Continue parsing a description. The
+       payload carries the description parsed thus far. For
+       sequences, we return `Partial_sequence but since descriptions
+       are small we keep them in the state until the full description
+       can be returned.
+     - Start_sequence: Start parsing a new sequence. This state is
+       entered after a description is complete. In other words it
+       indicates the start of a whole new sequence, not the start of
+       of a new `Partial_sequence.
+     - Continue_sequence: Continue parsing a sequence. There is no
+       payload. Instead, whenever some sequence has been accumulated,
+       we return it as a `Partial_sequence.
   *)
   type action =
     | Start_description
