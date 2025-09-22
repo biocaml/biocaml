@@ -18,148 +18,197 @@ module Parser0 = struct
     [@@deriving sexp]
   end
 
-  (* The action that needs to be taken by the parser:
-     - Start_description: Start parsing a new description.
-     - Continue_description: Continue parsing a description. The
-       payload carries the description parsed thus far. For
-       sequences, we return `Partial_sequence but since descriptions
-       are small we keep them in the state until the full description
-       can be returned.
-     - Start_sequence: Start parsing a new sequence. This state is
-       entered after a description is complete. In other words it
-       indicates the start of a whole new sequence, not the start of
-       of a new `Partial_sequence.
-     - Continue_sequence: Continue parsing a sequence. There is no
-       payload. Instead, whenever some sequence has been accumulated,
-       we return it as a `Partial_sequence.
-  *)
-  type action =
-    | Start_description
-    | Continue_description of string
-    | Start_sequence
-    | Continue_sequence
-  [@@deriving sexp]
-
   (* The parser's state is defined by:
-     - action: the current action the parser needs to take
+     - parse: function to parse the buffer with arguments:
+       * state: current parser state
+       * ~buf: string buffer to parse
+       * ~start: start index of the current window being accumulated
+       * ~pos: current parsing position in the buffer
+       * ~len: total length of the buffer
+       * ~accum: list of items that have been parsed (in reverse order)
+     - eof: function to validate the final state at EOF
      - line_start: true if starting a new line
      - num_items: number of items parsed so far
-     - line: number of the line currently being parsed
+     - line_num: number of the line currently being parsed
+     - description_buffer: accumulated description (only used in continue_description state)
   *)
   type state =
-    { action : action
+    { parse :
+        state
+        -> buf:string
+        -> start:int
+        -> pos:int
+        -> len:int
+        -> accum:Item.t list
+        -> (state * Item.t list, error) Result.t
+    ; eof : state -> (unit, error) Result.t
     ; line_start : bool
     ; num_items : int
-    ; line : int
+    ; line_num : int
+    ; description_buffer : string
     }
-  [@@deriving sexp]
 
-  let init = { action = Start_description; line_start = true; num_items = 0; line = 1 }
+  let rec start_description state ~buf ~start:_ ~pos ~len ~accum =
+    match pos < len with
+    | true -> (
+      match state.line_start, buf.[pos] with
+      | false, _ -> failwith "BUG: Start_description with line_start = false"
+      | true, '>' ->
+        let new_state =
+          { state with
+            parse = continue_description
+          ; eof = continue_description_eof
+          ; line_start = false
+          ; description_buffer = ""
+          }
+        in
+        continue_description new_state ~buf ~start:(pos + 1) ~pos:(pos + 1) ~len ~accum
+      | true, c -> parse_errorf state.line_num "Expected '>' but got %c" c)
+    | false ->
+      (* End of buffer *)
+      Ok (state, accum)
+
+  and start_description_eof state =
+    match state.num_items with
+    | 0 -> parse_error state.line_num "Empty file"
+    | _ -> Ok ()
+
+  and continue_description state ~buf ~start ~pos ~len ~accum =
+    match pos < len with
+    | true -> (
+      match state.line_start, buf.[pos] with
+      | _, '>' -> parse_error state.line_num "Unexpected '>' within description"
+      | true, _ -> failwith "BUG: Continue_description with line_start = true"
+      | false, '\n' -> (
+        let d' = String.sub buf ~pos:start ~len:(pos - start) in
+        let description = state.description_buffer ^ d' in
+        match description with
+        | "" -> parse_error state.line_num "Description is empty"
+        | _ ->
+          let new_accum = `Description description :: accum in
+          let new_state =
+            { parse = start_sequence
+            ; eof = start_sequence_eof
+            ; line_start = true
+            ; num_items = state.num_items + 1
+            ; line_num = state.line_num + 1
+            ; description_buffer = ""
+            }
+          in
+          start_sequence
+            new_state
+            ~buf
+            ~start:(pos + 1)
+            ~pos:(pos + 1)
+            ~len
+            ~accum:new_accum)
+      | false, _ -> continue_description state ~buf ~start ~pos:(pos + 1) ~len ~accum)
+    | false ->
+      (* End of buffer - accumulate partial description *)
+      let d' = String.sub buf ~pos:start ~len:(pos - start) in
+      let new_state = { state with description_buffer = state.description_buffer ^ d' } in
+      Ok (new_state, accum)
+
+  and continue_description_eof state =
+    parse_error
+      state.line_num
+      "Final line contains description without subsequent sequence"
+
+  and start_sequence state ~buf ~start ~pos ~len ~accum =
+    match pos < len with
+    | true -> (
+      match state.line_start, buf.[pos] with
+      | false, _ ->
+        Error
+          (Parse_error (state.line_num, "BUG: Start_sequence with line_start = false"))
+      | true, '>' -> parse_error state.line_num "Unexpected '>' at start of sequence"
+      | true, '\n' ->
+        parse_error state.line_num "Unexpected empty line at start of sequence"
+      | true, _ ->
+        let new_state =
+          { state with
+            parse = continue_sequence
+          ; eof = continue_sequence_eof
+          ; line_start = false
+          }
+        in
+        continue_sequence new_state ~buf ~start ~pos:(pos + 1) ~len ~accum)
+    | false ->
+      (* End of buffer *)
+      Ok (state, accum)
+
+  and start_sequence_eof state =
+    parse_error
+      state.line_num
+      "Final line contains description without subsequent sequence"
+
+  and continue_sequence state ~buf ~start ~pos ~len ~accum =
+    match pos < len with
+    | true -> (
+      match state.line_start, buf.[pos] with
+      | true, '\n' -> parse_error state.line_num "Unexpected empty line within sequence"
+      | false, '\n' ->
+        let sequence = String.sub buf ~pos:start ~len:(pos - start) in
+        let new_accum = `Partial_sequence sequence :: accum in
+        let new_state =
+          { parse = continue_sequence
+          ; eof = continue_sequence_eof
+          ; line_start = true
+          ; num_items = state.num_items + 1
+          ; line_num = state.line_num + 1
+          ; description_buffer = state.description_buffer
+          }
+        in
+        continue_sequence
+          new_state
+          ~buf
+          ~start:(pos + 1)
+          ~pos:(pos + 1)
+          ~len
+          ~accum:new_accum
+      | false, '>' -> parse_error state.line_num "Unexpected '>' within sequence"
+      | false, '\r' -> parse_error state.line_num "Unexpected '\r' within sequence"
+      | true, '>' ->
+        (* Since line_start is true, the previous char was '\n'. Thus,
+           prior sequence was already added to accum. *)
+        let new_state =
+          { state with
+            parse = continue_description
+          ; eof = continue_description_eof
+          ; line_start = false
+          ; description_buffer = ""
+          }
+        in
+        continue_description new_state ~buf ~start:(pos + 1) ~pos:(pos + 1) ~len ~accum
+      | _, _ ->
+        let new_state = { state with line_start = false } in
+        continue_sequence new_state ~buf ~start ~pos:(pos + 1) ~len ~accum)
+    | false ->
+      (* End of buffer - emit partial sequence *)
+      let sequence = String.sub buf ~pos:start ~len:(pos - start) in
+      let new_accum = `Partial_sequence sequence :: accum in
+      Ok (state, new_accum)
+
+  and continue_sequence_eof _state = Ok ()
+
+  let init =
+    { parse = start_description
+    ; eof = start_description_eof
+    ; line_start = true
+    ; num_items = 0
+    ; line_num = 1
+    ; description_buffer = ""
+    }
+  ;;
 
   let step state (buf : string) =
-    let n = String.length buf in
-    let rec loop
-              ({ action; line_start; num_items; line } as state : state)
-              (accu : Item.t list)
-              (i : int)
-              (j : int)
-      =
-      match j < n with
-      | true -> (
-        match action, line_start, buf.[j] with
-        | Start_description, false, _ ->
-          failwith "BUG: Start_description with line_start = false"
-        | Start_description, true, '>' ->
-          loop
-            { action = Continue_description ""; line_start = false; num_items; line }
-            accu
-            (j + 1)
-            (j + 1)
-        | Start_description, true, c -> parse_errorf line "Expected '>' but got %c" c
-        | Continue_description _, _, '>' ->
-          parse_error line "Unexpected '>' within description"
-        | Continue_description _, true, _ ->
-          failwith "BUG: Continue_description with line_start = true"
-        | Continue_description d, _, '\n' -> (
-          let d' = String.sub buf ~pos:i ~len:(j - i) in
-          let description = d ^ d' in
-          match description with
-          | "" -> parse_error line "Description is empty"
-          | _ ->
-            let accu = `Description description :: accu in
-            loop
-              { action = Start_sequence
-              ; line_start = true
-              ; num_items = num_items + 1
-              ; line = line + 1
-              }
-              accu
-              (j + 1)
-              (j + 1))
-        | Continue_description _, false, _ -> loop state accu i (j + 1)
-        | Start_sequence, false, _ ->
-          failwith "BUG: Start_sequence with line_start = false"
-        | Start_sequence, true, '>' ->
-          parse_error line "Unexpected '>' at start of sequence"
-        | Start_sequence, true, '\n' ->
-          parse_error line "Unexpected empty line at start of sequence"
-        | Start_sequence, true, _ ->
-          loop
-            { action = Continue_sequence; line_start = false; num_items; line }
-            accu
-            i
-            (j + 1)
-        | Continue_sequence, true, '\n' ->
-          parse_error line "Unexpected empty line within sequence"
-        | Continue_sequence, _, '\n' ->
-          let sequence = String.sub buf ~pos:i ~len:(j - i) in
-          loop
-            { action = Continue_sequence
-            ; line_start = true
-            ; num_items = num_items + 1
-            ; line = line + 1
-            }
-            (`Partial_sequence sequence :: accu)
-            (j + 1)
-            (j + 1)
-        | Continue_sequence, false, '>' ->
-          parse_error line "Unexpected '>' within sequence"
-        | Continue_sequence, false, '\r' ->
-          parse_error line "Unexpected '\r' within sequence"
-        | Continue_sequence, true, '>' ->
-          (* Since [line_start] is true, the previous char was '\n'. Thus,
-             prior sequence was already added to [accu]. *)
-          loop
-            { action = Continue_description ""; line_start = false; num_items; line }
-            accu
-            (j + 1)
-            (j + 1)
-        | Continue_sequence, _, _ ->
-          loop { action; line_start = false; num_items; line } accu i (j + 1))
-      | false -> (
-        match action with
-        | Start_description | Start_sequence ->
-          (* Any prior window was already added to [accu]. *)
-          Ok (state, accu)
-        | Continue_description d ->
-          let d' = String.sub buf ~pos:i ~len:(j - i) in
-          Ok
-            ({ action = Continue_description (d ^ d'); line_start; num_items; line }, accu)
-        | Continue_sequence ->
-          let sequence = String.sub buf ~pos:i ~len:(j - i) in
-          let accu = `Partial_sequence sequence :: accu in
-          Ok ({ action = Continue_sequence; line_start; num_items; line }, accu))
-    in
-    loop state [] 0 0 |> Result.map ~f:(fun (parser, res) -> parser, List.rev res)
+    let len = String.length buf in
+    match state.parse state ~buf ~start:0 ~pos:0 ~len ~accum:[] with
+    | Error _ as e -> e
+    | Ok (state, items) -> Ok (state, List.rev items)
   ;;
 
-  let eof { action; line_start = _; num_items; line } =
-    match action, num_items with
-    | Start_description, 0 -> parse_error line "Empty file"
-    | (Start_description | Continue_sequence), _ -> Ok ()
-    | Start_sequence, _ | Continue_description _, _ ->
-      parse_error line "Final line contains description without subsequent sequence"
-  ;;
+  let eof state = state.eof state
 end
 
 module Item = struct
@@ -177,7 +226,6 @@ module Parser = struct
     { parser0_state : Parser0.state
     ; parser0_items : Parser0.Item.t list
     }
-  [@@deriving sexp]
 
   let init = { parser0_state = Parser0.init; parser0_items = [] }
 
