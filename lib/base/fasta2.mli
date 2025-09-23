@@ -69,6 +69,11 @@ module Item : sig
     ; sequence : string
     }
   [@@deriving sexp]
+
+  (** [to_string x] returns the string representation of item [x],
+      including any necessary newline characters. The default value
+      of [max_line_length] is 70. *)
+  val to_string : ?max_line_length:int -> t -> string
 end
 
 type t = Item.t list
@@ -99,6 +104,10 @@ module Parser0 : sig
       | `Partial_sequence of string
       ]
     [@@deriving sexp]
+
+    (** [to_string x] returns the string representation of item [x].
+        Any necessary newline characters are included. *)
+    val to_string : t -> string
   end
 
   type state

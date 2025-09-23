@@ -16,6 +16,11 @@ module Parser0 = struct
       | `Partial_sequence of string
       ]
     [@@deriving sexp]
+
+    let to_string = function
+      | `Description description -> description ^ "\n"
+      | `Partial_sequence sequence -> sequence ^ "\n"
+    ;;
   end
 
   (* The parser's state is defined by:
@@ -217,6 +222,21 @@ module Item = struct
     ; sequence : string
     }
   [@@deriving sexp]
+
+  let to_string ?(max_line_length = 70) { description; sequence } =
+    let max_line_length =
+      match max_line_length <= 0 with
+      | true -> 70
+      | false -> max_line_length
+    in
+    let description = ">" ^ description in
+    (* Add empty string to the beginning, which becomes last after List.rev,
+       to get a final newline in String.concat below. *)
+    let sequence =
+      "" :: String2.chunks_of_rev ~max_length:max_line_length sequence |> List.rev
+    in
+    description :: sequence |> String.concat ~sep:"\n"
+  ;;
 end
 
 module Parser = struct
@@ -317,18 +337,39 @@ let of_string content =
 module Test = struct
   open Expect_test_helpers_base
 
+  (* Samples of valid FASTA file contents.*)
+  let valid_contents =
+    [ ">seq1\nACGT", "single item"
+    ; ">seq1 description\nACGTACGT", "description with spaces"
+    ; ">seq1\nACGT\n>seq2\nTGCA", "multiple items"
+    ; ">seq1\nACGT\nTGCA", "sequence on 2 lines"
+    ; ">seq1\nACGT\nTGCA\nGGG", "sequence on 3 lines"
+    ; ( ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
+      , "multiple items with sequences on multiple lines" )
+    ; ">seq1\nACGT\n", "newline at end of file"
+    ]
+  ;;
+
+  let invalid_contents =
+    [ "", "empty file"
+    ; ">\nACGT", "missing description"
+    ; "ACGT", "missing description"
+    ; "seq1\nACGT", "missing '>' at start of description"
+    ; ">seq1>abc\nACGT", "'>' within description"
+    ; ">seq1\n\nACGT", "empty line at start of sequence"
+    ; ">seq1\nGGG\n\nACGT", "empty line between sequence"
+    ; ">seq1\nGGG\n\n", "extra empty line at end of file"
+    ; ">seq1\n>", "'>' at start of sequence"
+    ; ">seq1\nA>CGT", "'>' within sequence"
+    ; ">seq1\nA>CGT\nGGG", "'>' in middle of sequence shouldn't start new description"
+    ; ">seq1\nACGT\n>", "'>' at end of file"
+    ; ">seq1\nACGT\n>seq2", "missing sequence at end of file"
+    ; ">seq1\nACGT\r\nGGG\n", "'\r\n' line ending"
+    ; ">seq1\nACGT\nGGG\r", "final '\r'"
+    ]
+  ;;
+
   let%expect_test "of_string on valid file contents" =
-    let data =
-      [ ">seq1\nACGT", "single item"
-      ; ">seq1 description\nACGTACGT", "description with spaces"
-      ; ">seq1\nACGT\n>seq2\nTGCA", "multiple items"
-      ; ">seq1\nACGT\nTGCA", "sequence on 2 lines"
-      ; ">seq1\nACGT\nTGCA\nGGG", "sequence on 3 lines"
-      ; ( ">seq1\nACGT\nTGCA\n>seq2\nGGG\nCCC"
-        , "multiple items with sequences on multiple lines" )
-      ; ">seq1\nACGT\n", "newline at end of file"
-      ]
-    in
     let test (x, msg) =
       let result = of_string x in
       match result with
@@ -352,7 +393,7 @@ module Test = struct
              x
              (e |> sexp_of_error |> sexp_to_string))
     in
-    List.iter data ~f:test;
+    List.iter valid_contents ~f:test;
     [%expect
       {|
       ✅ SUCCESS - parsing passed
@@ -443,24 +484,6 @@ module Test = struct
   ;;
 
   let%expect_test "of_string on invalid file contents" =
-    let data =
-      [ "", "empty file"
-      ; ">\nACGT", "missing description"
-      ; "ACGT", "missing description"
-      ; "seq1\nACGT", "missing '>' at start of description"
-      ; ">seq1>abc\nACGT", "'>' within description"
-      ; ">seq1\n\nACGT", "empty line at start of sequence"
-      ; ">seq1\nGGG\n\nACGT", "empty line between sequence"
-      ; ">seq1\nGGG\n\n", "extra empty line at end of file"
-      ; ">seq1\n>", "'>' at start of sequence"
-      ; ">seq1\nA>CGT", "'>' within sequence"
-      ; ">seq1\nA>CGT\nGGG", "'>' in middle of sequence shouldn't start new description"
-      ; ">seq1\nACGT\n>", "'>' at end of file"
-      ; ">seq1\nACGT\n>seq2", "missing sequence at end of file"
-      ; ">seq1\nACGT\r\nGGG\n", "'\r\n' line ending"
-      ; ">seq1\nACGT\nGGG\r", "final '\r'"
-      ]
-    in
     let test (x, msg) =
       let result = of_string x in
       match result with
@@ -489,7 +512,7 @@ module Test = struct
              x
              (result |> sexp_of_t |> sexp_to_string))
     in
-    List.iter data ~f:test;
+    List.iter invalid_contents ~f:test;
     [%expect
       {|
       ✅ SUCCESS - parsing failed as expected
@@ -635,6 +658,128 @@ module Test = struct
 
       RESULT:
       (Parse_error 3 "Unexpected '\r' within sequence")
+      |}]
+  ;;
+
+  let%expect_test "to_string on valid file contents" =
+    let test (x, msg) =
+      match of_string x with
+      | Error _ -> failwith (sprintf "of_string tested above, should succeed here")
+      | Ok parsed ->
+        let result =
+          parsed
+          |> List.map ~f:(Item.to_string ~max_line_length:2)
+          |> String.concat ~sep:""
+        in
+        print_string
+          (sprintf "✅ SUCCESS\nTEST: %s\nINPUT: \n%s\n\nRESULT:\n%s\n" msg x result)
+    in
+    List.iter valid_contents ~f:test;
+    [%expect
+      {|
+      ✅ SUCCESS
+      TEST: single item
+      INPUT:
+      >seq1
+      ACGT
+
+      RESULT:
+      >seq1
+      AC
+      GT
+
+      ✅ SUCCESS
+      TEST: description with spaces
+      INPUT:
+      >seq1 description
+      ACGTACGT
+
+      RESULT:
+      >seq1 description
+      AC
+      GT
+      AC
+      GT
+
+      ✅ SUCCESS
+      TEST: multiple items
+      INPUT:
+      >seq1
+      ACGT
+      >seq2
+      TGCA
+
+      RESULT:
+      >seq1
+      AC
+      GT
+      >seq2
+      TG
+      CA
+
+      ✅ SUCCESS
+      TEST: sequence on 2 lines
+      INPUT:
+      >seq1
+      ACGT
+      TGCA
+
+      RESULT:
+      >seq1
+      AC
+      GT
+      TG
+      CA
+
+      ✅ SUCCESS
+      TEST: sequence on 3 lines
+      INPUT:
+      >seq1
+      ACGT
+      TGCA
+      GGG
+
+      RESULT:
+      >seq1
+      AC
+      GT
+      TG
+      CA
+      GG
+      G
+
+      ✅ SUCCESS
+      TEST: multiple items with sequences on multiple lines
+      INPUT:
+      >seq1
+      ACGT
+      TGCA
+      >seq2
+      GGG
+      CCC
+
+      RESULT:
+      >seq1
+      AC
+      GT
+      TG
+      CA
+      >seq2
+      GG
+      GC
+      CC
+
+      ✅ SUCCESS
+      TEST: newline at end of file
+      INPUT:
+      >seq1
+      ACGT
+
+
+      RESULT:
+      >seq1
+      AC
+      GT
       |}]
   ;;
 end
