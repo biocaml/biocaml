@@ -1,8 +1,0 @@
-# with comments
-# at the beginning
->sequence 1|sid=4
-42 42 224354 54325543 54354544 543554
-42 43
->sequence 2|sid=42
-32    32    32  
-24 44 error
