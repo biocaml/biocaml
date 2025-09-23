@@ -1,15 +1,9 @@
-(** FASTA files. The FASTA family of file formats has different
-    incompatible descriptions
-    ({{:https://www.proteomecommons.org/tranche/examples/proteomecommons-fasta/fasta.jsp
-    }1}, {{:http://zhanglab.ccmb.med.umich.edu/FASTA/}2},
-    {{:http://en.wikipedia.org/wiki/FASTA_format}3},
-    {{:http://blast.ncbi.nlm.nih.gov/blastcgihelp.shtml}4},
-    etc.). Roughly FASTA files are in the format:
+(** FASTA files. Support for the FASTA file format.
+
+    The FASTA format has evolved over time. Our aim here is to support
+    the format that is in common use in recent times as follows:
 
     {v
-    # comment
-    # comment
-    ...
     >description
     sequence
     >description
@@ -17,154 +11,133 @@
     ...
     v}
 
-    Comment lines are allowed at the top of the file. Usually comments
-    start with a '#' but sometimes with a ';' character. The {!fmt}
-    properties allow configuring which is allowed during parsing and
-    printing.
+    The first character in the file must be a '>' character (empty files
+    are not valid). Everything following the '>' up until the end of the
+    line is the [description], which the main parser returns as is (the
+    initial '>' and final newline characters are excluded). Various
+    specifications exist for formats of the description itself, but we
+    simply return the raw string, allowing users to call additional
+    functions to further parse as needed for their use case. We do require
+    the [description] to be non-empty and disallow '>' characters within the
+    description.
 
-    Description lines begin with the '>' character. Various
-    conventions are used for the content but there is no
-    requirement. We simply return the string following the '>'
-    character.
+    The line following the [description] is the start of the [sequence],
+    which can span multiple lines. Generally the [sequence] should contain
+    nucleotides or amino acids, but there are so many variations on what
+    specific characters are allowed that we do not attempt to define or
+    enforce any such rules. We simply return the raw string, with the newline
+    characters omitted. We do disallow '>' characters within the sequence.
+    We do not support "\r\n" line endings and so disallow '\r' characters
+    to avoid accidentally including them in the sequence.
 
-    Sequences are most often a sequence of characters denoting
-    nucleotides or amino acids, and thus an [item]'s [sequence] field
-    is set to a string. Sequences may span multiple lines.
+    The end of the sequence is marked by a new line that begins with a '>',
+    indicating the start of a new [description], or end-of-file
+    for the last sequence. Thus, a FASTA file is logically a non-empty list
+    of items, where each item is a pair of a [description] and a [sequence].
 
-    However, sequence lines sometimes are used to provide quality
-    scores, either as space separated integers or as ASCII encoded
-    scores. To support the former case, we provide the
-    {!sequence_to_int_list} function. For the latter case, see modules
-    [Phred_score] and [Solexa_score].
+    We do not support several legacy features: initial lines starting with
+    semicolon characters, empty lines between items, arbitrary spaces in
+    sequences, or comment lines anywhere.
 
-    FASTA files are used to provide both short sequences and very big
-    sequences, e.g. a genome. In the latter case, the main API of this
-    module, which returns each sequence as an in-memory string, might
-    be too costly. Consider using instead the {!Parser0} module which
-    does not merge multiple sequence lines into one string. This API
-    is slightly more difficult to use but perhaps a worthwhile
-    trade-off.
+    The function {!of_string} is the easiest interface to use. Simply provide
+    it the full content of a FASTA file and you will get all the items. It is
+    a good choice for small files since it is easy to use. It may also be the
+    right choice for large files if you have sufficient memory and need to
+    access the sequences repeatedly.
 
-    Format Specifiers:
+    If you need to use less memory, you can use the lower-level {!Parser}
+    interface. It is harder to use but allows memory usage proportional to the
+    size of each individual sequence.
 
-    Variations in the format are controlled by the following settings,
-    all of which have a default value. These properties are combined
-    into the {!fmt} type for convenience and the defaults into
-    {!default_fmt}.
-
-    - [allow_sharp_comments]: Allow comment lines beginning with a '#'
-    character. Default: true.
-
-    - [allow_semicolon_comments]: Allow comment lines beginning with a
-    ';' character. Default: false.
-
-    Setting both [allow_sharp_comments] and [allow_semicolon_comments]
-    allows both. Setting both to false disallows comment
-    lines.
-
-    - [allow_empty_lines]: Allow lines with only whitespace anywhere in
-    the file. Default: false.
-
-    - [max_line_length]: Require sequence lines to be shorter than given
-    length. None means there is no restriction. Note this does not
-    restrict the length of an [item]'s [sequence] field because this
-    can span multiple lines. Default: None.
-
-    - [alphabet]: Require sequence characters to be at most those in
-    given string. None means any character is allowed. Default: None.
+    If you need even lower memory usage, use {!Parser0}. You provide chunks
+    of your file in a size of your choosing, and memory usage is proportional
+    to that. This comes at the expense of an even harder to use interface. This
+    parser returns partial sequences. That is not a problem if say you simply
+    want to count the number of base pairs in a sequence. However, if you want
+    to do something on the whole sequence you will have to concatenate the pieces
+    together yourself. [Parser] is built on [Parser0] and does exactly this, so
+    see the implementation as a reference. On the other hand, if that is what you
+    need, then perhaps [Parser] is the right choice in the first place.
 *)
+open! Import
 
-(** A header is a list of comment lines. *)
-type header = private string list
+type error = Parse_error of int * string [@@deriving sexp]
 
-type item = private
-  { description : string
-  ; sequence : string
-  }
-[@@deriving sexp]
+module Item : sig
+  type t =
+    { description : string
+    ; sequence : string
+    }
+  [@@deriving sexp]
 
-val item : description:string -> sequence:string -> item
-
-(******************************************************************************)
-(** {2 Parsing} *)
-(******************************************************************************)
-
-type fmt =
-  { allow_sharp_comments : bool
-  ; allow_semicolon_comments : bool
-  ; allow_empty_lines : bool
-  ; max_line_length : int option
-  ; alphabet : string option
-  }
-
-val fmt
-  :  ?allow_sharp_comments:bool
-  -> ?allow_semicolon_comments:bool
-  -> ?allow_empty_lines:bool
-  -> ?max_line_length:int
-  -> ?alphabet:string
-  -> unit
-  -> fmt
-
-val default_fmt : fmt
-
-(** Parse a space separated list of integers. *)
-val sequence_to_int_list : string -> (int list, [> `Msg of string ]) Result.t
-
-(** An [item0] is more raw than [item]. It is useful for parsing files
-    with large sequences because you get the sequence in smaller
-    pieces.
-
-    - [`Comment _] - Single comment line without the final
-    newline. Initial comment char is retained.
-
-    - [`Empty_line] - Got a line with only whitespace characters. The
-    contents are not provided.
-
-    - [`Description _] - Single description line without the initial
-    '>' nor final newline.
-
-    - [`Partial_sequence _] - Multiple sequential partial sequences
-    comprise the sequence of a single [item].
-*)
-type item0 =
-  [ `Comment of string
-  | `Empty_line
-  | `Description of string
-  | `Partial_sequence of string
-  ]
-[@@deriving sexp]
-
-type parser_error = [ `Fasta_parser_error of int * string ] [@@deriving sexp]
-
-(** Low-level parsing
-
-    This module provides a function that can be used to convert a
-    stream of strings (representing consecutive chunks of a FASTA
-    file) into a valid sequence of low-level items ({!items0}). This
-    representation is especially relevant to deal with very long
-    sequences (like chromosome) in constant memory.
-*)
-module Parser0 : sig
-  type state
-
-  val initial_state : ?fmt:fmt -> unit -> state
-  val step : state -> string option -> (state * item0 list, [> parser_error ]) Result.t
+  (** [to_string x] returns the string representation of item [x],
+      including any necessary newline characters. The default value
+      of [max_line_length] is 70. *)
+  val to_string : ?max_line_length:int -> t -> string
 end
 
-val unparser0 : item0 -> string
+type t = Item.t list
 
-(** High-level parsing
+(* [of_string content] parses the full [content] of a FASTA file and returns
+   all items in memory. *)
+val of_string : string -> (t, error) Result.t
 
-    This module provides a function that can be used to convert a
-    stream of strings (representing consecutive chunks of a FASTA
-    file) into a sequence of FASTA items.
+(** The [Parser0] interface allows parsing in a streaming fashion.
+
+    [step st chunk] should be called repeatedly on sequential [chunk]s of an
+    input file. It parses the input [chunk] and returns the items parsed from
+    it. You can then use those items as desired and discard them to avoid
+    retaining the data in memory. Each call also returns an updated parser
+    state that must be fed back to the next call to [step].
+
+    Use {!init} as the [state] argument for the first call to [step].
+
+    Your last call to [step] should be followed by a call to {!eof} to confirm
+    that the final parser state is valid. [eof st] will return an error if, for
+    example, a description line has been parsed but EOF is reached without
+    a subsequent sequence line.
+ *)
+module Parser0 : sig
+  module Item : sig
+    type t =
+      [ `Description of string
+      | `Partial_sequence of string
+      ]
+    [@@deriving sexp]
+
+    (** [to_string x] returns the string representation of item [x].
+        Any necessary newline characters are included. *)
+    val to_string : t -> string
+  end
+
+  type state
+
+  val init : state
+  val step : state -> string -> (state * Item.t list, error) Result.t
+  val eof : state -> (unit, error) Result.t
+end
+
+(** The [Parser] interface provides a higher-level streaming parser that
+    returns complete FASTA items (description + full sequence) rather than
+    the partial items returned by [Parser0].
+
+    Like [Parser0], [step st chunk] should be called repeatedly on sequential
+    [chunk]s of an input file. However, unlike [Parser0], it accumulates
+    partial sequences internally and only returns complete items when a full
+    sequence has been concatenated. Thus, you get an easier to use interface at
+    the expense of more memory usage.
+
+    Use {!init} as the [state] argument for the first call to [step].
+
+    Your last call to [step] should be followed by a call to {!eof} to get
+    any final items.
 *)
 module Parser : sig
+  module Item = Item
+
   type state
 
-  val initial_state : ?fmt:fmt -> unit -> state
-  val step : state -> string option -> (state * item list, [> parser_error ]) Result.t
+  val init : state
+  val step : state -> string -> (state * Item.t list, error) Result.t
+  val eof : state -> (Item.t list, error) Result.t
 end
-
-val unparser : item -> string

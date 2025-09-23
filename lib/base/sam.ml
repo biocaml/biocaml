@@ -1646,7 +1646,6 @@ module Test = struct
           (qual ())
           (optional_fields (((tag RG) (value (Z sample1)))))))))
 
-      FIXME: The error message is incorrect.
       IN:
       @SQ	SN:chr1	LN:249250621
       @HD	VN:1.3	SO:coordinate
