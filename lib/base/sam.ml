@@ -330,36 +330,51 @@ module Header = struct
   module RG = struct
     module PL = struct
       type t =
-        [ `Capillary
+        [ `CAPILLARY
+        | `DNBSEQ
+        | `ELEMENT
+        | `HELICOS
+        | `ILLUMINA
+        | `IONTORRENT
         | `LS454
-        | `Illumina
-        | `Solid
-        | `Helicos
-        | `Ion_Torrent
-        | `Pac_Bio
+        | `ONT
+        | `PACBIO
+        | `SINGULAR
+        | `SOLID
+        | `ULTIMA
         ]
       [@@deriving sexp]
 
       let of_string x =
         match String.uppercase x with
-        | "CAPILLARY" -> Ok `Capillary
+        | "CAPILLARY" -> Ok `CAPILLARY
+        | "DNBSEQ" -> Ok `DNBSEQ
+        | "ELEMENT" -> Ok `ELEMENT
+        | "HELICOS" -> Ok `HELICOS
+        | "ILLUMINA" -> Ok `ILLUMINA
+        | "IONTORRENT" -> Ok `IONTORRENT
         | "LS454" -> Ok `LS454
-        | "ILLUMINA" -> Ok `Illumina
-        | "SOLID" -> Ok `Solid
-        | "HELICOS" -> Ok `Helicos
-        | "IONTORRENT" -> Ok `Ion_Torrent
-        | "PACBIO" -> Ok `Pac_Bio
+        | "ONT" -> Ok `ONT
+        | "PACBIO" -> Ok `PACBIO
+        | "SINGULAR" -> Ok `SINGULAR
+        | "SOLID" -> Ok `SOLID
+        | "ULTIMA" -> Ok `ULTIMA
         | x -> Error (Error.create "unknown platform" x sexp_of_string)
       ;;
 
       let to_string = function
-        | `Capillary -> "CAPILLARY"
+        | `CAPILLARY -> "CAPILLARY"
+        | `DNBSEQ -> "DNBSEQ"
+        | `ELEMENT -> "ELEMENT"
+        | `HELICOS -> "HELICOS"
         | `LS454 -> "LS454"
-        | `Illumina -> "ILLUMINA"
-        | `Solid -> "SOLID"
-        | `Helicos -> "HELICOS"
-        | `Ion_Torrent -> "IONTORRENT"
-        | `Pac_Bio -> "PACBIO"
+        | `ILLUMINA -> "ILLUMINA"
+        | `IONTORRENT -> "IONTORRENT"
+        | `ONT -> "ONT"
+        | `PACBIO -> "PACBIO"
+        | `SINGULAR -> "SINGULAR"
+        | `SOLID -> "SOLID"
+        | `ULTIMA -> "ULTIMA"
       ;;
     end
 

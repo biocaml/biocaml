@@ -101,13 +101,18 @@ module Header : sig
   module RG : sig
     module PL : sig
       type t =
-        [ `Capillary
+        [ `CAPILLARY
+        | `DNBSEQ
+        | `ELEMENT
+        | `HELICOS
+        | `ILLUMINA
+        | `IONTORRENT
         | `LS454
-        | `Illumina
-        | `Solid
-        | `Helicos
-        | `Ion_Torrent
-        | `Pac_Bio
+        | `ONT
+        | `PACBIO
+        | `SINGULAR
+        | `SOLID
+        | `ULTIMA
         ]
       [@@deriving sexp]
 
