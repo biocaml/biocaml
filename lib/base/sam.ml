@@ -340,7 +340,8 @@ module Header = struct
         ]
       [@@deriving sexp]
 
-      let of_string = function
+      let of_string x =
+        match String.uppercase x with
         | "CAPILLARY" -> Ok `Capillary
         | "LS454" -> Ok `LS454
         | "ILLUMINA" -> Ok `Illumina
