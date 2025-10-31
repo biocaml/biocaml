@@ -958,7 +958,7 @@ module Test = struct
         (sh |> Biocaml.Sam.Header.hd |> Option.map ~f:(fun x -> (x.version :> string)));
       assert_equal
         ~msg:"Sort order"
-        (Some `Unsorted)
+        (Some `unsorted)
         (match sh |> Biocaml.Sam.Header.hd with
          | None -> None
          | Some hd -> hd.sort_order);

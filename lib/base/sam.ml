@@ -167,18 +167,18 @@ module Header = struct
 
     module SO = struct
       type t =
-        [ `Unknown
-        | `Unsorted
-        | `Query_name
-        | `Coordinate
+        [ `unknown
+        | `unsorted
+        | `queryname
+        | `coordinate
         ]
       [@@deriving sexp]
 
       let of_string = function
-        | "unknown" -> Ok `Unknown
-        | "unsorted" -> Ok `Unsorted
-        | "queryname" -> Ok `Query_name
-        | "coordinate" -> Ok `Coordinate
+        | "unknown" -> Ok `unknown
+        | "unsorted" -> Ok `unsorted
+        | "queryname" -> Ok `queryname
+        | "coordinate" -> Ok `coordinate
         | x -> Error (Error.create "invalid sort order" x sexp_of_string)
       ;;
 
@@ -186,10 +186,10 @@ module Header = struct
         Tag_value.print_tag_value'
           "SO"
           (match x with
-           | `Unknown -> "unknown"
-           | `Unsorted -> "unsorted"
-           | `Query_name -> "queryname"
-           | `Coordinate -> "coordinate")
+           | `unknown -> "unknown"
+           | `unsorted -> "unsorted"
+           | `queryname -> "queryname"
+           | `coordinate -> "coordinate")
       ;;
     end
 
@@ -1430,7 +1430,7 @@ module Test = struct
       (Ok (
         HD (
           (version 1.3)
-          (sort_order (Coordinate))
+          (sort_order (coordinate))
           (group_order ())
           (sub_sort_order ((coordinate (queryname)))))))
 
@@ -1688,7 +1688,7 @@ module Test = struct
       (Ok (
         ((HD (
            (version 1.3)
-           (sort_order (Coordinate))
+           (sort_order (coordinate))
            (group_order    ())
            (sub_sort_order ())))
          (SQ (

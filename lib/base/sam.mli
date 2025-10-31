@@ -38,10 +38,10 @@ module Header : sig
 
     module SO : sig
       type t =
-        [ `Unknown
-        | `Unsorted
-        | `Query_name
-        | `Coordinate
+        [ `unknown
+        | `unsorted
+        | `queryname
+        | `coordinate
         ]
       [@@deriving sexp]
 
