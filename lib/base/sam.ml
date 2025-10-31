@@ -147,6 +147,24 @@ module Header = struct
   end
 
   module HD = struct
+    module VN = struct
+      type t = string [@@deriving sexp]
+
+      let of_string s =
+        let err =
+          Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
+        in
+        match String.lsplit2 ~on:'.' s with
+        | None -> err
+        | Some (a, b) ->
+          if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
+          then Ok s
+          else err
+      ;;
+
+      let to_string x = Tag_value.print_tag_value' "VN" x
+    end
+
     module SO = struct
       type t =
         [ `Unknown
@@ -200,32 +218,61 @@ module Header = struct
       ;;
     end
 
-    module VN = struct
-      type t = string [@@deriving sexp]
+    module SS = struct
+      type t = [ `coordinate | `queryname | `unsorted ] * string list [@@deriving sexp]
 
-      let of_string s =
-        let err =
-          Error (Error.create "invalid version" (`HD, s) [%sexp_of: Type.t * string])
-        in
-        match String.lsplit2 ~on:'.' s with
-        | None -> err
-        | Some (a, b) ->
-          if String.for_all a ~f:Char.is_digit && String.for_all b ~f:Char.is_digit
-          then Ok s
-          else err
+      let regexp_str = "^[A-Za-z0-9_-]+$"
+      let regexp = Re.Posix.compile_pat regexp_str
+
+      let of_string s : t Or_error.t =
+        let open Or_error.Let_syntax in
+        match String.split ~on:':' s with
+        | [] -> Or_error.errorf "invalid empty SS value"
+        | first :: rest ->
+          let%bind first =
+            match first with
+            | "coordinate" -> Ok `coordinate
+            | "queryname" -> Ok `queryname
+            | "unsorted" -> Ok `unsorted
+            | _ ->
+              Or_error.errorf
+                "initial SS value must be coordinate, queryname, or unsorted, but got %s"
+                first
+          in
+          let%bind rest =
+            rest
+            |> List.map ~f:(fun x ->
+              match Re.execp regexp x with
+              | true -> Ok x
+              | false ->
+                Or_error.errorf "SS element must match regex '%s' but got %s" regexp_str x)
+            |> Or_error.all
+          in
+          Ok (first, rest)
       ;;
 
-      let to_string x = Tag_value.print_tag_value' "VN" x
+      let to_string (x, y) =
+        let x =
+          match x with
+          | `coordinate -> "coordinate"
+          | `queryname -> "queryname"
+          | `unsorted -> "unsorted"
+        in
+        Tag_value.print_tag_value' "SS" (String.concat ~sep:":" (x :: y))
+      ;;
     end
 
     type t =
       { version : VN.t
       ; sort_order : SO.t option
       ; group_order : GO.t option
+      ; sub_sort_order : SS.t option
       }
     [@@deriving sexp]
 
-    let make ~version ?sort_order ?group_order () = { version; sort_order; group_order }
+    let make ~version ?sort_order ?group_order ?sub_sort_order () =
+      { version; sort_order; group_order; sub_sort_order }
+    ;;
 
     let of_tag_value_list tvl =
       Tag_value.find1 `HD tvl "VN"
@@ -236,13 +283,16 @@ module Header = struct
       Tag_value.find01 `HD tvl "GO"
       >>?~ GO.of_string
       >>= fun group_order ->
-      Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO" ]
-      >>| fun () -> make ~version ?sort_order ?group_order ()
+      Tag_value.find01 `HD tvl "SS"
+      >>?~ SS.of_string
+      >>= fun sub_sort_order ->
+      Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO"; "SS" ]
+      >>| fun () -> make ~version ?sort_order ?group_order ?sub_sort_order ()
     ;;
 
-    let to_string { version; sort_order; group_order } =
+    let to_string { version; sort_order; group_order; sub_sort_order } =
       sprintf
-        "@HD\tVN:%s%s%s"
+        "@HD\tVN:%s%s%s%s"
         version
         (match sort_order with
          | None -> ""
@@ -250,6 +300,9 @@ module Header = struct
         (match group_order with
          | None -> ""
          | Some x -> sprintf "\t%s" (GO.to_string x))
+        (match sub_sort_order with
+         | None -> ""
+         | Some x -> sprintf "\t%s" (SS.to_string x))
     ;;
   end
 
@@ -1351,7 +1404,7 @@ module Test = struct
   let%expect_test "Header.Item.of_string" =
     let data =
       [ "@CO\tsome comment"
-      ; "@HD\tVN:1.3\tSO:coordinate"
+      ; "@HD\tVN:1.3\tSO:coordinate\tSS:coordinate:queryname"
       ; "@SQ\tSN:chr0\tLN:42"
       ; "@SQ\tSN:chr1\tLN:42\tM5:abd34f90"
       ; "@HD\tT"
@@ -1372,9 +1425,14 @@ module Test = struct
       SEXP:
       (Ok (CO "some comment"))
 
-      IN: "@HD	VN:1.3	SO:coordinate"
+      IN: "@HD	VN:1.3	SO:coordinate	SS:coordinate:queryname"
       SEXP:
-      (Ok (HD ((version 1.3) (sort_order (Coordinate)) (group_order ()))))
+      (Ok (
+        HD (
+          (version 1.3)
+          (sort_order (Coordinate))
+          (group_order ())
+          (sub_sort_order ((coordinate (queryname)))))))
 
       IN: "@SQ	SN:chr0	LN:42"
       SEXP:
@@ -1628,7 +1686,11 @@ module Test = struct
       r002	0	chr1	100	30	10M	*	0	0	ACGTACGTAC	*	RG:Z:sample1
       SEXP:
       (Ok (
-        ((HD ((version 1.3) (sort_order (Coordinate)) (group_order ())))
+        ((HD (
+           (version 1.3)
+           (sort_order (Coordinate))
+           (group_order    ())
+           (sub_sort_order ())))
          (SQ (
            (name   chr1)
            (length 249250621)

@@ -29,6 +29,13 @@ module Header : sig
   end
 
   module HD : sig
+    module VN : sig
+      type t = private string [@@deriving sexp]
+
+      val of_string : string -> t Or_error.t
+      val to_string : t -> string
+    end
+
     module SO : sig
       type t =
         [ `Unknown
@@ -54,8 +61,9 @@ module Header : sig
       val to_string : t -> string
     end
 
-    module VN : sig
-      type t = private string [@@deriving sexp]
+    module SS : sig
+      type t = private [ `coordinate | `queryname | `unsorted ] * string list
+      [@@deriving sexp]
 
       val of_string : string -> t Or_error.t
       val to_string : t -> string
@@ -65,10 +73,18 @@ module Header : sig
       { version : VN.t
       ; sort_order : SO.t option
       ; group_order : GO.t option
+      ; sub_sort_order : SS.t option
       }
     [@@deriving sexp]
 
-    val make : version:VN.t -> ?sort_order:SO.t -> ?group_order:GO.t -> unit -> t
+    val make
+      :  version:VN.t
+      -> ?sort_order:SO.t
+      -> ?group_order:GO.t
+      -> ?sub_sort_order:SS.t
+      -> unit
+      -> t
+
     val of_tag_value_list : Tag_value.t list -> t Or_error.t
     val to_string : t -> string
   end
