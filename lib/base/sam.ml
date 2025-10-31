@@ -162,7 +162,7 @@ module Header = struct
           else err
       ;;
 
-      let to_string x = Tag_value.print_tag_value' "VN" x
+      let to_string x = x
     end
 
     module SO = struct
@@ -183,13 +183,11 @@ module Header = struct
       ;;
 
       let to_string x =
-        Tag_value.print_tag_value'
-          "SO"
-          (match x with
-           | `unknown -> "unknown"
-           | `unsorted -> "unsorted"
-           | `queryname -> "queryname"
-           | `coordinate -> "coordinate")
+        match x with
+        | `unknown -> "unknown"
+        | `unsorted -> "unsorted"
+        | `queryname -> "queryname"
+        | `coordinate -> "coordinate"
       ;;
     end
 
@@ -209,12 +207,10 @@ module Header = struct
       ;;
 
       let to_string x =
-        Tag_value.print_tag_value'
-          "GO"
-          (match x with
-           | `None -> "none"
-           | `Query -> "query"
-           | `Reference -> "reference")
+        match x with
+        | `None -> "none"
+        | `Query -> "query"
+        | `Reference -> "reference"
       ;;
     end
 
@@ -258,7 +254,7 @@ module Header = struct
           | `queryname -> "queryname"
           | `unsorted -> "unsorted"
         in
-        Tag_value.print_tag_value' "SS" (String.concat ~sep:":" (x :: y))
+        String.concat ~sep:":" (x :: y)
       ;;
     end
 
@@ -292,17 +288,17 @@ module Header = struct
 
     let to_string { version; sort_order; group_order; sub_sort_order } =
       sprintf
-        "@HD\tVN:%s%s%s%s"
-        version
+        "@HD\t%s%s%s%s"
+        (Tag_value.print_tag_value' "VN" version)
         (match sort_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (SO.to_string x))
+         | Some x -> sprintf "\t%s" (Tag_value.print_tag_value' "SO" (SO.to_string x)))
         (match group_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (GO.to_string x))
+         | Some x -> sprintf "\t%s" (Tag_value.print_tag_value' "GO" (GO.to_string x)))
         (match sub_sort_order with
          | None -> ""
-         | Some x -> sprintf "\t%s" (SS.to_string x))
+         | Some x -> sprintf "\t%s" (Tag_value.print_tag_value' "SS" (SS.to_string x)))
     ;;
   end
 
