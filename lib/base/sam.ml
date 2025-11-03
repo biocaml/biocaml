@@ -77,8 +77,15 @@ module Header = struct
         Ok (tag, value)
     ;;
 
+    let list_of_string s : t list Or_error.t =
+      match String.split ~on:'\t' s with
+      | [] -> assert false
+      | "" :: [] -> Ok []
+      | l -> l |> List.map ~f:of_string |> Or_error.all
+    ;;
+
     let to_string (tag, value) = sprintf "%s:%s" tag value
-    let print_tag_value' = sprintf "%s:%s"
+    let list_to_string ts = ts |> List.map ~f:to_string |> String.concat ~sep:"\t"
 
     (** Find all occurrences of [x'] in the association list [l]. *)
     let find_all l x' =
@@ -264,7 +271,8 @@ module Header = struct
       { version; sort_order; group_order; sub_sort_order }
     ;;
 
-    let of_tag_value_list tvl =
+    let of_string s =
+      let%bind tvl = Tag_value.list_of_string s in
       let%bind version = Tag_value.find1 `HD tvl "VN" in
       let%bind sort_order =
         match%bind Tag_value.find01 `HD tvl "SO" with
@@ -286,18 +294,13 @@ module Header = struct
     ;;
 
     let to_string { version; sort_order; group_order; sub_sort_order } =
-      sprintf
-        "@HD\t%s%s%s%s"
-        (Tag_value.print_tag_value' "VN" version)
-        (match sort_order with
-         | None -> ""
-         | Some x -> sprintf "\t%s" (Tag_value.print_tag_value' "SO" (SO.to_string x)))
-        (match group_order with
-         | None -> ""
-         | Some x -> sprintf "\t%s" (Tag_value.print_tag_value' "GO" (GO.to_string x)))
-        (match sub_sort_order with
-         | None -> ""
-         | Some x -> sprintf "\t%s" (Tag_value.print_tag_value' "SS" (SS.to_string x)))
+      [ Some ("VN", version)
+      ; Option.map sort_order ~f:(fun x -> "SO", SO.to_string x)
+      ; Option.map group_order ~f:(fun x -> "GO", GO.to_string x)
+      ; Option.map sub_sort_order ~f:(fun x -> "SS", SS.to_string x)
+      ]
+      |> List.filter_map ~f:Fn.id
+      |> Tag_value.list_to_string
     ;;
   end
 
@@ -339,7 +342,8 @@ module Header = struct
       Ok { name; length; assembly; md5; species; uri }
     ;;
 
-    let of_tag_value_list tvl =
+    let of_string s =
+      let%bind tvl = Tag_value.list_of_string s in
       let%bind name = Tag_value.find1 `SQ tvl "SN" in
       let%bind length = Tag_value.find1 `SQ tvl "LN" in
       let%bind length =
@@ -356,23 +360,16 @@ module Header = struct
       make ~name ~length ?assembly ?md5 ?species ?uri ()
     ;;
 
-    let to_string (x : t) =
-      sprintf
-        "@SQ\tSN:%s\tLN:%d%s%s%s%s"
-        x.name
-        x.length
-        (match x.assembly with
-         | None -> ""
-         | Some x -> sprintf "\tAS:%s" x)
-        (match x.md5 with
-         | None -> ""
-         | Some x -> sprintf "\tM5:%s" x)
-        (match x.species with
-         | None -> ""
-         | Some x -> sprintf "\tSP:%s" x)
-        (match x.uri with
-         | None -> ""
-         | Some x -> sprintf "\tUR:%s" x)
+    let to_string { name; length; assembly; md5; species; uri } =
+      [ Some ("SN", name)
+      ; Some ("LN", Int.to_string length)
+      ; Option.map assembly ~f:(fun x -> "AS", x)
+      ; Option.map md5 ~f:(fun x -> "M5", x)
+      ; Option.map species ~f:(fun x -> "SP", x)
+      ; Option.map uri ~f:(fun x -> "UR", x)
+      ]
+      |> List.filter_map ~f:Fn.id
+      |> Tag_value.list_to_string
     ;;
   end
 
@@ -509,7 +506,8 @@ module Header = struct
       }
     ;;
 
-    let of_tag_value_list tvl =
+    let of_string s =
+      let%bind tvl = Tag_value.list_of_string s in
       let%bind id = Tag_value.find1 `RG tvl "ID" in
       let%bind seq_center = Tag_value.find01 `RG tvl "CN" in
       let%bind description = Tag_value.find01 `RG tvl "DS" in
@@ -560,26 +558,41 @@ module Header = struct
         ()
     ;;
 
-    let to_string (x : t) =
-      let s tag value =
-        match value with
-        | None -> ""
-        | Some x -> sprintf "\t%s:%s" tag x
-      in
-      sprintf
-        "@RG\tID:%s%s%s%s%s%s%s%s%s%s%s%s"
-        x.id
-        (s "CN" x.seq_center)
-        (s "DS" x.description)
-        (s "DT" (Option.map x.run_date ~f:(function `Date x | `Time x -> x)))
-        (s "FO" x.flow_order)
-        (s "KS" x.key_seq)
-        (s "LB" x.library)
-        (s "PG" x.program)
-        (s "PI" (Option.map x.predicted_median_insert_size ~f:Int.to_string))
-        (s "PL" (Option.map x.platform ~f:PL.to_string))
-        (s "PU" x.platform_unit)
-        (s "SM" x.sample)
+    let to_string
+          { id
+          ; seq_center
+          ; description
+          ; run_date
+          ; flow_order
+          ; key_seq
+          ; library
+          ; program
+          ; predicted_median_insert_size
+          ; platform
+          ; platform_unit
+          ; sample
+          }
+      =
+      [ Some ("ID", id)
+      ; Option.map seq_center ~f:(fun x -> "CN", x)
+      ; Option.map description ~f:(fun x -> "DS", x)
+      ; Option.map run_date ~f:(fun x ->
+          let x =
+            match x with
+            | `Date x | `Time x -> x
+          in
+          "DT", x)
+      ; Option.map flow_order ~f:(fun x -> "FO", x)
+      ; Option.map key_seq ~f:(fun x -> "KS", x)
+      ; Option.map library ~f:(fun x -> "LB", x)
+      ; Option.map program ~f:(fun x -> "PG", x)
+      ; Option.map predicted_median_insert_size ~f:(fun x -> "PI", Int.to_string x)
+      ; Option.map platform ~f:(fun x -> "PL", PL.to_string x)
+      ; Option.map platform_unit ~f:(fun x -> "PU", x)
+      ; Option.map sample ~f:(fun x -> "SM", x)
+      ]
+      |> List.filter_map ~f:Fn.id
+      |> Tag_value.list_to_string
     ;;
   end
 
@@ -594,7 +607,8 @@ module Header = struct
       }
     [@@deriving sexp]
 
-    let of_tag_value_list tvl =
+    let of_string s =
+      let%bind tvl = Tag_value.list_of_string s in
       let%bind id = Tag_value.find1 `PG tvl "ID" in
       let%bind name = Tag_value.find01 `PG tvl "PN" in
       let%bind command_line = Tag_value.find01 `PG tvl "CL" in
@@ -607,25 +621,26 @@ module Header = struct
       Ok { id; name; command_line; previous_id; description; version }
     ;;
 
-    let to_string (x : t) =
-      let s tag value =
-        match value with
-        | None -> ""
-        | Some x -> sprintf "\t%s:%s" tag x
-      in
-      sprintf
-        "@PG\tID:%s%s%s%s%s%s"
-        x.id
-        (s "PN" x.name)
-        (s "CL" x.command_line)
-        (s "PP" x.previous_id)
-        (s "DS" x.description)
-        (s "VN" x.version)
+    let to_string { id; name; command_line; previous_id; description; version } =
+      [ Some ("ID", id)
+      ; Option.map name ~f:(fun x -> "PN", x)
+      ; Option.map command_line ~f:(fun x -> "CL", x)
+      ; Option.map previous_id ~f:(fun x -> "PP", x)
+      ; Option.map description ~f:(fun x -> "DS", x)
+      ; Option.map version ~f:(fun x -> "VN", x)
+      ]
+      |> List.filter_map ~f:Fn.id
+      |> Tag_value.list_to_string
     ;;
   end
 
   module Other = struct
     type t = string * Tag_value.t list [@@deriving sexp]
+
+    let of_string tag s =
+      let%bind tvl = Tag_value.list_of_string s in
+      Ok (tag, tvl)
+    ;;
 
     let to_string ((tag, l) : t) =
       sprintf
@@ -647,43 +662,34 @@ module Header = struct
     [@@deriving sexp]
 
     let of_line line =
-      let parse_data tag tvl =
-        match tag with
-        | `HD ->
-          let%map x = HD.of_tag_value_list tvl in
-          `HD x
-        | `SQ ->
-          let%map x = SQ.of_tag_value_list tvl in
-          `SQ x
-        | `RG ->
-          let%map x = RG.of_tag_value_list tvl in
-          `RG x
-        | `PG ->
-          let%map x = PG.of_tag_value_list tvl in
-          `PG x
-        | `Other tag -> Ok (`Other (tag, tvl))
-        | `CO -> assert false
-      in
       match String.lsplit2 ~on:'\t' line with
       | None -> Error (Error.create "header line contains no tabs" line sexp_of_string)
       | Some (tag, data) -> (
         match%bind Type.of_string tag with
+        | `HD ->
+          let%bind x = HD.of_string data in
+          Ok (`HD x)
+        | `SQ ->
+          let%bind x = SQ.of_string data in
+          Ok (`SQ x)
+        | `RG ->
+          let%bind x = RG.of_string data in
+          Ok (`RG x)
+        | `PG ->
+          let%bind x = PG.of_string data in
+          Ok (`PG x)
         | `CO -> Ok (`CO data)
-        | tag -> (
-          match String.split ~on:'\t' data with
-          | [] -> assert false
-          | "" :: [] -> Error (Error.create "header contains no data" tag Type.sexp_of_t)
-          | tvl ->
-            let%bind tvl = Result_list.map tvl ~f:Tag_value.of_string in
-            parse_data tag tvl))
+        | `Other tag ->
+          let%bind x = Other.of_string tag data in
+          Ok (`Other x))
     ;;
 
     let to_line = function
-      | `HD hd -> HD.to_string hd
-      | `SQ sq -> SQ.to_string sq
-      | `RG rg -> RG.to_string rg
-      | `PG pg -> PG.to_string pg
-      | `CO co -> co
+      | `HD hd -> sprintf "@HD\t%s" (HD.to_string hd)
+      | `SQ sq -> sprintf "@SQ\t%s" (SQ.to_string sq)
+      | `RG rg -> sprintf "@RG\t%s" (RG.to_string rg)
+      | `PG pg -> sprintf "@PG\t%s" (PG.to_string pg)
+      | `CO co -> sprintf "@CO\t%s" co
       | `Other other -> Other.to_string other
     ;;
   end

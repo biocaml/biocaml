@@ -69,7 +69,7 @@ module Header : sig
       val to_string : t -> string
     end
 
-    type t =
+    type t = private
       { version : VN.t
       ; sort_order : SO.t option
       ; group_order : GO.t option
@@ -84,9 +84,6 @@ module Header : sig
       -> ?sub_sort_order:SS.t
       -> unit
       -> t
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
   end
 
   module SQ : sig
@@ -109,9 +106,6 @@ module Header : sig
       -> ?uri:string
       -> unit
       -> t Or_error.t
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
   end
 
   module RG : sig
@@ -170,9 +164,6 @@ module Header : sig
       -> ?sample:string
       -> unit
       -> t Or_error.t
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
   end
 
   module PG : sig
@@ -185,15 +176,10 @@ module Header : sig
       ; version : string option (** VN *)
       }
     [@@deriving sexp]
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
   end
 
   module Other : sig
-    type t = string * Tag_value.t list [@@deriving sexp]
-
-    val to_string : t -> string
+    type t = private string * Tag_value.t list [@@deriving sexp]
   end
 
   module Item : sig
@@ -222,7 +208,7 @@ module Header : sig
        above) are unique.
      - The order of @SQ lines is preserved as given in constructors.
        This is required by the SAM specification because it dictates
-       alignment sorting order when [sort_order = `Coordinate].
+       alignment sorting order when [sort_order = `coordinate].
 
      In addition to the @SQ lines, we preserve the order of all lines.
      Though not mandated by the SAM specification, this follows the
