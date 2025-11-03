@@ -1,13 +1,5 @@
 open! Import
-open Result.Monad_infix
-
-let ( >>?~ ) (x : 'a option Or_error.t) (f : 'a -> 'b Or_error.t) : 'b option Or_error.t =
-  let open Result.Monad_infix in
-  x
-  >>= function
-  | None -> Ok None
-  | Some x -> f x >>| Option.some
-;;
+open Or_error.Let_syntax
 
 module Header = struct
   module Type = struct
@@ -80,7 +72,9 @@ module Header = struct
       match String.lsplit2 s ~on:':' with
       | None -> Error (Error.create "tag-value not colon separated" s sexp_of_string)
       | Some (tag, value) ->
-        parse_tag tag >>= fun tag -> parse_value tag value >>= fun value -> Ok (tag, value)
+        let%bind tag = parse_tag tag in
+        let%bind value = parse_value tag value in
+        Ok (tag, value)
     ;;
 
     let to_string (tag, value) = sprintf "%s:%s" tag value
@@ -271,19 +265,24 @@ module Header = struct
     ;;
 
     let of_tag_value_list tvl =
-      Tag_value.find1 `HD tvl "VN"
-      >>= fun version ->
-      Tag_value.find01 `HD tvl "SO"
-      >>?~ SO.of_string
-      >>= fun sort_order ->
-      Tag_value.find01 `HD tvl "GO"
-      >>?~ GO.of_string
-      >>= fun group_order ->
-      Tag_value.find01 `HD tvl "SS"
-      >>?~ SS.of_string
-      >>= fun sub_sort_order ->
-      Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO"; "SS" ]
-      >>| fun () -> make ~version ?sort_order ?group_order ?sub_sort_order ()
+      let%bind version = Tag_value.find1 `HD tvl "VN" in
+      let%bind sort_order =
+        match%bind Tag_value.find01 `HD tvl "SO" with
+        | None -> Ok None
+        | Some x -> SO.of_string x >>| Option.some
+      in
+      let%bind group_order =
+        match%bind Tag_value.find01 `HD tvl "GO" with
+        | None -> Ok None
+        | Some x -> GO.of_string x >>| Option.some
+      in
+      let%bind sub_sort_order =
+        match%bind Tag_value.find01 `HD tvl "SS" with
+        | None -> Ok None
+        | Some x -> SS.of_string x >>| Option.some
+      in
+      let%bind () = Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO"; "SS" ] in
+      Ok (make ~version ?sort_order ?group_order ?sub_sort_order ())
     ;;
 
     let to_string { version; sort_order; group_order; sub_sort_order } =
@@ -322,38 +321,39 @@ module Header = struct
         | '!' .. '~' -> true
         | _ -> false
       in
-      (if 1 <= length && length <= 2147483647
-       then Ok length
-       else
-         Error (Error.create "invalid reference sequence length" length [%sexp_of: int]))
-      >>= fun length ->
-      (if
-         String.length name > 0
-         && String.foldi name ~init:true ~f:(fun i accum c ->
-           accum && if i = 0 then is_name_first_char_ok c else is_name_other_char_ok c)
-       then Ok name
-       else Error (Error.create "invalid ref seq name" name [%sexp_of: string]))
-      >>= fun name -> Ok { name; length; assembly; md5; species; uri }
+      let%bind length =
+        match 1 <= length && length <= 2147483647 with
+        | true -> Ok length
+        | false ->
+          Error (Error.create "invalid reference sequence length" length [%sexp_of: int])
+      in
+      let%bind name =
+        match
+          String.length name > 0
+          && String.foldi name ~init:true ~f:(fun i accum c ->
+            accum && if i = 0 then is_name_first_char_ok c else is_name_other_char_ok c)
+        with
+        | true -> Ok name
+        | false -> Error (Error.create "invalid ref seq name" name [%sexp_of: string])
+      in
+      Ok { name; length; assembly; md5; species; uri }
     ;;
 
     let of_tag_value_list tvl =
-      Tag_value.find1 `SQ tvl "SN"
-      >>= fun name ->
-      Tag_value.find1 `SQ tvl "LN"
-      >>= fun length ->
-      (try Ok (Int.of_string length) with
-       | _ -> Error (Error.create "invalid ref seq length" length sexp_of_string))
-      >>= fun length ->
-      Tag_value.find01 `SQ tvl "AS"
-      >>= fun assembly ->
-      Tag_value.find01 `SQ tvl "M5"
-      >>= fun md5 ->
-      Tag_value.find01 `SQ tvl "SP"
-      >>= fun species ->
-      Tag_value.find01 `SQ tvl "UR"
-      >>= fun uri ->
-      Tag_value.assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
-      >>= fun () -> make ~name ~length ?assembly ?md5 ?species ?uri ()
+      let%bind name = Tag_value.find1 `SQ tvl "SN" in
+      let%bind length = Tag_value.find1 `SQ tvl "LN" in
+      let%bind length =
+        try Ok (Int.of_string length) with
+        | _ -> Error (Error.create "invalid ref seq length" length sexp_of_string)
+      in
+      let%bind assembly = Tag_value.find01 `SQ tvl "AS" in
+      let%bind md5 = Tag_value.find01 `SQ tvl "M5" in
+      let%bind species = Tag_value.find01 `SQ tvl "SP" in
+      let%bind uri = Tag_value.find01 `SQ tvl "UR" in
+      let%bind () =
+        Tag_value.assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
+      in
+      make ~name ~length ?assembly ?md5 ?species ?uri ()
     ;;
 
     let to_string (x : t) =
@@ -458,40 +458,42 @@ module Header = struct
           ?sample
           ()
       =
-      (match run_date with
-       | None -> Ok None
-       | Some run_date -> (
-         try Ok (Some (`Date run_date)) with
-         | _ -> (
-           try Ok (Some (`Time run_date)) with
-           | _ -> Error (Error.create "invalid run date/time" run_date sexp_of_string))))
-      >>= fun run_date ->
-      (match flow_order with
-       | None -> Ok None
-       | Some "" -> Or_error.error_string "invalid empty flow order"
-       | Some "*" -> Ok flow_order
-       | Some x ->
-         if
-           String.for_all x ~f:(function
-             | 'A'
-             | 'C'
-             | 'M'
-             | 'G'
-             | 'R'
-             | 'S'
-             | 'V'
-             | 'T'
-             | 'W'
-             | 'Y'
-             | 'H'
-             | 'K'
-             | 'D'
-             | 'B'
-             | 'N' -> true
-             | _ -> false)
-         then Ok flow_order
-         else Error (Error.create "invalid flow order" x sexp_of_string))
-      >>| fun flow_order ->
+      let%bind run_date =
+        match run_date with
+        | None -> Ok None
+        | Some run_date -> (
+          try Ok (Some (`Date run_date)) with
+          | _ -> (
+            try Ok (Some (`Time run_date)) with
+            | _ -> Error (Error.create "invalid run date/time" run_date sexp_of_string)))
+      in
+      let%map flow_order =
+        match flow_order with
+        | None -> Ok None
+        | Some "" -> Or_error.error_string "invalid empty flow order"
+        | Some "*" -> Ok flow_order
+        | Some x ->
+          if
+            String.for_all x ~f:(function
+              | 'A'
+              | 'C'
+              | 'M'
+              | 'G'
+              | 'R'
+              | 'S'
+              | 'V'
+              | 'T'
+              | 'W'
+              | 'Y'
+              | 'H'
+              | 'K'
+              | 'D'
+              | 'B'
+              | 'N' -> true
+              | _ -> false)
+          then Ok flow_order
+          else Error (Error.create "invalid flow order" x sexp_of_string)
+      in
       { id
       ; seq_center
       ; description
@@ -508,44 +510,40 @@ module Header = struct
     ;;
 
     let of_tag_value_list tvl =
-      Tag_value.find1 `RG tvl "ID"
-      >>= fun id ->
-      Tag_value.find01 `RG tvl "CN"
-      >>= fun seq_center ->
-      Tag_value.find01 `RG tvl "DS"
-      >>= fun description ->
-      Tag_value.find01 `RG tvl "DT"
-      >>= fun run_date ->
-      Tag_value.find01 `RG tvl "FO"
-      >>= fun flow_order ->
-      Tag_value.find01 `RG tvl "KS"
-      >>= fun key_seq ->
-      Tag_value.find01 `RG tvl "LB"
-      >>= fun library ->
-      Tag_value.find01 `RG tvl "PG"
-      >>= fun program ->
-      Tag_value.find01 `RG tvl "PI"
-      >>?~ (fun predicted_median_insert_size ->
-      try Ok (Int.of_string predicted_median_insert_size) with
-      | _ ->
-        Error
-          (Error.create
-             "invalid predicted median insert size"
-             predicted_median_insert_size
-             sexp_of_string))
-      >>= fun predicted_median_insert_size ->
-      Tag_value.find01 `RG tvl "PL"
-      >>?~ PL.of_string
-      >>= fun platform ->
-      Tag_value.find01 `RG tvl "PU"
-      >>= fun platform_unit ->
-      Tag_value.find01 `RG tvl "SM"
-      >>= fun sample ->
-      Tag_value.assert_tags
-        `RG
-        tvl
-        [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
-      >>= fun () ->
+      let%bind id = Tag_value.find1 `RG tvl "ID" in
+      let%bind seq_center = Tag_value.find01 `RG tvl "CN" in
+      let%bind description = Tag_value.find01 `RG tvl "DS" in
+      let%bind run_date = Tag_value.find01 `RG tvl "DT" in
+      let%bind flow_order = Tag_value.find01 `RG tvl "FO" in
+      let%bind key_seq = Tag_value.find01 `RG tvl "KS" in
+      let%bind library = Tag_value.find01 `RG tvl "LB" in
+      let%bind program = Tag_value.find01 `RG tvl "PG" in
+      let%bind predicted_median_insert_size =
+        match%bind Tag_value.find01 `RG tvl "PI" with
+        | None -> Ok None
+        | Some predicted_median_insert_size -> (
+          match Int.of_string predicted_median_insert_size with
+          | x -> Ok (Some x)
+          | exception _ ->
+            Error
+              (Error.create
+                 "invalid predicted median insert size"
+                 predicted_median_insert_size
+                 sexp_of_string))
+      in
+      let%bind platform =
+        match%bind Tag_value.find01 `RG tvl "PL" with
+        | None -> Ok None
+        | Some x -> PL.of_string x >>| Option.some
+      in
+      let%bind platform_unit = Tag_value.find01 `RG tvl "PU" in
+      let%bind sample = Tag_value.find01 `RG tvl "SM" in
+      let%bind () =
+        Tag_value.assert_tags
+          `RG
+          tvl
+          [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
+      in
       make
         ~id
         ?seq_center
@@ -597,20 +595,16 @@ module Header = struct
     [@@deriving sexp]
 
     let of_tag_value_list tvl =
-      Tag_value.find1 `PG tvl "ID"
-      >>= fun id ->
-      Tag_value.find01 `PG tvl "PN"
-      >>= fun name ->
-      Tag_value.find01 `PG tvl "CL"
-      >>= fun command_line ->
-      Tag_value.find01 `PG tvl "PP"
-      >>= fun previous_id ->
-      Tag_value.find01 `PG tvl "DS"
-      >>= fun description ->
-      Tag_value.find01 `PG tvl "VN"
-      >>= fun version ->
-      Tag_value.assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
-      >>| fun () -> { id; name; command_line; previous_id; description; version }
+      let%bind id = Tag_value.find1 `PG tvl "ID" in
+      let%bind name = Tag_value.find01 `PG tvl "PN" in
+      let%bind command_line = Tag_value.find01 `PG tvl "CL" in
+      let%bind previous_id = Tag_value.find01 `PG tvl "PP" in
+      let%bind description = Tag_value.find01 `PG tvl "DS" in
+      let%bind version = Tag_value.find01 `PG tvl "VN" in
+      let%bind () =
+        Tag_value.assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
+      in
+      Ok { id; name; command_line; previous_id; description; version }
     ;;
 
     let to_string (x : t) =
@@ -655,25 +649,33 @@ module Header = struct
     let of_line line =
       let parse_data tag tvl =
         match tag with
-        | `HD -> HD.of_tag_value_list tvl >>| fun x -> `HD x
-        | `SQ -> SQ.of_tag_value_list tvl >>| fun x -> `SQ x
-        | `RG -> RG.of_tag_value_list tvl >>| fun x -> `RG x
-        | `PG -> PG.of_tag_value_list tvl >>| fun x -> `PG x
+        | `HD ->
+          let%map x = HD.of_tag_value_list tvl in
+          `HD x
+        | `SQ ->
+          let%map x = SQ.of_tag_value_list tvl in
+          `SQ x
+        | `RG ->
+          let%map x = RG.of_tag_value_list tvl in
+          `RG x
+        | `PG ->
+          let%map x = PG.of_tag_value_list tvl in
+          `PG x
         | `Other tag -> Ok (`Other (tag, tvl))
         | `CO -> assert false
       in
       match String.lsplit2 ~on:'\t' line with
       | None -> Error (Error.create "header line contains no tabs" line sexp_of_string)
       | Some (tag, data) -> (
-        Type.of_string tag
-        >>= function
+        match%bind Type.of_string tag with
         | `CO -> Ok (`CO data)
         | tag -> (
           match String.split ~on:'\t' data with
           | [] -> assert false
           | "" :: [] -> Error (Error.create "header contains no data" tag Type.sexp_of_t)
           | tvl ->
-            Result_list.map tvl ~f:Tag_value.of_string >>= fun tvl -> parse_data tag tvl))
+            let%bind tvl = Result_list.map tvl ~f:Tag_value.of_string in
+            parse_data tag tvl))
     ;;
 
     let to_line = function
@@ -878,8 +880,7 @@ module Pos = struct
   type t = int [@@deriving sexp]
 
   let t_option_of_string s =
-    parse_int_range "POS" 0 2147483647 s
-    >>| function
+    match%map parse_int_range "POS" 0 2147483647 s with
     | 0 -> None
     | x -> Some x
   ;;
@@ -894,8 +895,7 @@ module Mapq = struct
   type t = int [@@deriving sexp]
 
   let t_option_of_string s =
-    parse_int_range "MAPQ" 0 255 s
-    >>| function
+    match%map parse_int_range "MAPQ" 0 255 s with
     | 255 -> None
     | x -> Some x
   ;;
@@ -923,20 +923,55 @@ module Cigar = struct
 
     let positive i =
       let open Or_error in
-      if i > 0
-      then return i
-      else error_string "positive argument expected for cigar operation"
+      match i > 0 with
+      | true -> Ok i
+      | false -> error_string "positive argument expected for cigar operation"
     ;;
 
-    let alignment_match_of_int i = Or_error.(positive i >>| fun i -> `Alignment_match i)
-    let insertion_of_int i = Or_error.(positive i >>| fun i -> `Insertion i)
-    let deletion_of_int i = Or_error.(positive i >>| fun i -> `Deletion i)
-    let skipped_of_int i = Or_error.(positive i >>| fun i -> `Skipped i)
-    let soft_clipping_of_int i = Or_error.(positive i >>| fun i -> `Soft_clipping i)
-    let hard_clipping_of_int i = Or_error.(positive i >>| fun i -> `Hard_clipping i)
-    let padding_of_int i = Or_error.(positive i >>| fun i -> `Padding i)
-    let seq_match_of_int i = Or_error.(positive i >>| fun i -> `Seq_match i)
-    let seq_mismatch_of_int i = Or_error.(positive i >>| fun i -> `Seq_mismatch i)
+    let alignment_match_of_int i =
+      let%map i = positive i in
+      `Alignment_match i
+    ;;
+
+    let insertion_of_int i =
+      let%map i = positive i in
+      `Insertion i
+    ;;
+
+    let deletion_of_int i =
+      let%map i = positive i in
+      `Deletion i
+    ;;
+
+    let skipped_of_int i =
+      let%map i = positive i in
+      `Skipped i
+    ;;
+
+    let soft_clipping_of_int i =
+      let%map i = positive i in
+      `Soft_clipping i
+    ;;
+
+    let hard_clipping_of_int i =
+      let%map i = positive i in
+      `Hard_clipping i
+    ;;
+
+    let padding_of_int i =
+      let%map i = positive i in
+      `Padding i
+    ;;
+
+    let seq_match_of_int i =
+      let%map i = positive i in
+      `Seq_match i
+    ;;
+
+    let seq_mismatch_of_int i =
+      let%map i = positive i in
+      `Seq_mismatch i
+    ;;
 
     let to_string = function
       | `Alignment_match x -> sprintf "%dM" x
@@ -960,9 +995,9 @@ module Cigar = struct
     | _ ->
       let ch = Stdlib.Scanf.Scanning.from_string text in
       let rec loop accum =
-        if Stdlib.Scanf.Scanning.end_of_input ch
-        then Ok accum
-        else (
+        match Stdlib.Scanf.Scanning.end_of_input ch with
+        | true -> Ok accum
+        | false -> (
           try
             let n = Stdlib.Scanf.bscanf ch "%d" Fn.id in
             let c = Stdlib.Scanf.bscanf ch "%c" Fn.id in
@@ -980,8 +1015,8 @@ module Cigar = struct
               | other ->
                 Or_error.error "invalid cigar operation type" other Char.sexp_of_t
             in
-            Or_error.tag x ~tag:"Sam.parse_cigar: invalid cigar string"
-            >>= fun x -> loop (x :: accum)
+            let%bind x = Or_error.tag x ~tag:"Sam.parse_cigar: invalid cigar string" in
+            loop (x :: accum)
           with
           | _ -> Error (Error.create "invalid cigar string" text sexp_of_string))
       in
@@ -1024,8 +1059,7 @@ module Pnext = struct
   type t = int [@@deriving sexp]
 
   let t_option_of_string s =
-    parse_int_range "PNEXT" 0 2147483647 s
-    >>| function
+    match%map parse_int_range "PNEXT" 0 2147483647 s with
     | 0 -> None
     | x -> Some x
   ;;
@@ -1040,8 +1074,7 @@ module Tlen = struct
   type t = int [@@deriving sexp]
 
   let t_option_of_string s =
-    parse_int_range "TLEN" ~-2147483647 2147483647 s
-    >>| function
+    match%map parse_int_range "TLEN" ~-2147483647 2147483647 s with
     | 0 -> None
     | x -> Some x
   ;;
@@ -1192,7 +1225,9 @@ module Optional_field = struct
   let of_string s =
     match String.lsplit2 s ~on:':' with
     | None -> Error (Error.create "missing TAG in optional field" s sexp_of_string)
-    | Some (tag, s) -> Value.of_string s >>= fun value -> make tag value
+    | Some (tag, s) ->
+      let%bind value = Value.of_string s in
+      make tag value
   ;;
 
   let to_string (x : t) =
@@ -1322,30 +1357,20 @@ module Alignment = struct
       :: seq
       :: qual
       :: optional_fields ->
-      Qname.t_option_of_string qname
-      >>= fun qname ->
-      Flag.of_string flag
-      >>= fun flag ->
-      Rname.t_option_of_string rname
-      >>= fun rname ->
-      Pos.t_option_of_string pos
-      >>= fun pos ->
-      Mapq.t_option_of_string mapq
-      >>= fun mapq ->
-      Cigar.of_string cigar
-      >>= fun cigar ->
-      Rnext.t_option_of_string rnext
-      >>= fun rnext ->
-      Pnext.t_option_of_string pnext
-      >>= fun pnext ->
-      Tlen.t_option_of_string tlen
-      >>= fun tlen ->
-      Seq.t_option_of_string seq
-      >>= fun seq ->
-      Qual.of_string qual
-      >>= fun qual ->
-      Result_list.map optional_fields ~f:Optional_field.of_string
-      >>= fun optional_fields ->
+      let%bind qname = Qname.t_option_of_string qname in
+      let%bind flag = Flag.of_string flag in
+      let%bind rname = Rname.t_option_of_string rname in
+      let%bind pos = Pos.t_option_of_string pos in
+      let%bind mapq = Mapq.t_option_of_string mapq in
+      let%bind cigar = Cigar.of_string cigar in
+      let%bind rnext = Rnext.t_option_of_string rnext in
+      let%bind pnext = Pnext.t_option_of_string pnext in
+      let%bind tlen = Tlen.t_option_of_string tlen in
+      let%bind seq = Seq.t_option_of_string seq in
+      let%bind qual = Qual.of_string qual in
+      let%bind optional_fields =
+        Result_list.map optional_fields ~f:Optional_field.of_string
+      in
       make
         ?ref_seqs
         ?qname
@@ -1385,7 +1410,6 @@ end
 let must_be_header line = String.length line > 0 && Char.equal line.[0] '@'
 
 let of_lines lines =
-  let open Result.Let_syntax in
   let header_lines, alignment_lines = List.split_while lines ~f:must_be_header in
   let%bind header = Header.of_lines header_lines in
   let%bind alignments = alignment_lines |> List.map ~f:Alignment.of_line |> Result.all in
