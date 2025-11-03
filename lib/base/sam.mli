@@ -182,10 +182,6 @@ module Header : sig
     [@@deriving sexp]
   end
 
-  module Other : sig
-    type t = private string * Data.t [@@deriving sexp]
-  end
-
   module Item : sig
     type t =
       [ `HD of HD.t
@@ -193,7 +189,6 @@ module Header : sig
       | `RG of RG.t
       | `PG of PG.t
       | `CO of string
-      | `Other of Other.t
       ]
     [@@deriving sexp]
 
@@ -229,7 +224,6 @@ module Header : sig
   val read_groups : t -> RG.t list
   val programs : t -> PG.t list
   val comments : t -> string list
-  val others : t -> Other.t list
 end
 
 module Qname : sig

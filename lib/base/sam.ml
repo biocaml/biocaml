@@ -9,7 +9,6 @@ module Header = struct
       | `RG
       | `PG
       | `CO
-      | `Other of string
       ]
     [@@deriving sexp]
 
@@ -19,25 +18,17 @@ module Header = struct
       | `RG -> "@RG"
       | `PG -> "@PG"
       | `CO -> "@CO"
-      | `Other x -> sprintf "@%s" x
     ;;
 
     let of_string s =
-      let is_letter = function
-        | 'A' .. 'Z' | 'a' .. 'z' -> true
-        | _ -> false
-      in
       match String.chop_prefix s ~prefix:"@" with
-      | None -> Error (Error.create "header item tag must begin with @" s sexp_of_string)
       | Some "HD" -> Ok `HD
       | Some "SQ" -> Ok `SQ
       | Some "RG" -> Ok `RG
       | Some "PG" -> Ok `PG
       | Some "CO" -> Ok `CO
-      | Some x ->
-        if String.length x = 2 && String.for_all x ~f:is_letter
-        then Ok (`Other x)
-        else Error (Error.create "invalid header item tag" s sexp_of_string)
+      | Some _ -> Or_error.errorf "invalid header record type %s" s
+      | None -> Or_error.errorf "header record type %s does not begind with @" s
     ;;
   end
 
@@ -638,22 +629,6 @@ module Header = struct
     ;;
   end
 
-  module Other = struct
-    type t = string * Data.t [@@deriving sexp]
-
-    let of_string tag s =
-      let%bind tvl = Data.of_string s in
-      Ok (tag, tvl)
-    ;;
-
-    let to_string ((tag, l) : t) =
-      sprintf
-        "@%s%s"
-        tag
-        (List.map l ~f:(fun (x, y) -> sprintf "\t%s:%s" x y) |> String.concat ~sep:"")
-    ;;
-  end
-
   module Item = struct
     type t =
       [ `HD of HD.t
@@ -661,7 +636,6 @@ module Header = struct
       | `RG of RG.t
       | `PG of PG.t
       | `CO of string
-      | `Other of Other.t
       ]
     [@@deriving sexp]
 
@@ -682,10 +656,7 @@ module Header = struct
         | `PG ->
           let%bind x = PG.of_string data in
           Ok (`PG x)
-        | `CO -> Ok (`CO data)
-        | `Other tag ->
-          let%bind x = Other.of_string tag data in
-          Ok (`Other x))
+        | `CO -> Ok (`CO data))
     ;;
 
     let to_line = function
@@ -694,7 +665,6 @@ module Header = struct
       | `RG rg -> sprintf "@RG\t%s" (RG.to_string rg)
       | `PG pg -> sprintf "@PG\t%s" (PG.to_string pg)
       | `CO co -> sprintf "@CO\t%s" co
-      | `Other other -> Other.to_string other
     ;;
   end
 
@@ -793,13 +763,6 @@ module Header = struct
     t
     |> List.filter_map ~f:(function
       | `CO x -> Some x
-      | _ -> None)
-  ;;
-
-  let others t =
-    t
-    |> List.filter_map ~f:(function
-      | `Other x -> Some x
       | _ -> None)
   ;;
 end
