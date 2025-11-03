@@ -41,51 +41,59 @@ module Header = struct
     ;;
   end
 
-  module Tag_value = struct
-    type t = string * string [@@deriving sexp]
+  module Data = struct
+    module Field = struct
+      module Tag = struct
+        type t = string [@@deriving sexp]
 
-    let of_string s =
-      let parse_tag s =
-        if
-          String.length s = 2
-          && (match s.[0] with
-              | 'A' .. 'Z' | 'a' .. 'z' -> true
-              | _ -> false)
-          &&
-          match s.[1] with
-          | 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' -> true
-          | _ -> false
-        then Ok s
-        else Error (Error.create "invalid tag" s sexp_of_string)
-      in
-      let parse_value tag s =
-        if
-          String.(s <> "")
-          && String.for_all s ~f:(function
-            | ' ' .. '~' -> true
-            | _ -> false)
-        then Ok s
-        else
-          Error
-            (Error.create "tag has invalid value" (tag, s) [%sexp_of: string * string])
-      in
-      match String.lsplit2 s ~on:':' with
-      | None -> Error (Error.create "tag-value not colon separated" s sexp_of_string)
-      | Some (tag, value) ->
-        let%bind tag = parse_tag tag in
-        let%bind value = parse_value tag value in
-        Ok (tag, value)
-    ;;
+        let regexp_str = "^[A-Za-z][A-Za-z0-9]$"
+        let regexp = Re.Posix.compile_pat regexp_str
 
-    let list_of_string s : t list Or_error.t =
+        let of_string s =
+          match Re.execp regexp s with
+          | true -> Ok s
+          | false -> Or_error.errorf "tag %s does not match regex %s" s regexp_str
+        ;;
+      end
+
+      module Value = struct
+        type t = string [@@deriving sexp]
+
+        let regexp_str = "^[ -~]+$"
+        let regexp = Re.Posix.compile_pat regexp_str
+
+        let of_string tag s =
+          match Re.execp regexp s with
+          | true -> Ok s
+          | false ->
+            Or_error.errorf "tag %s's value %s does not match regex %s" tag s regexp_str
+        ;;
+      end
+
+      type t = Tag.t * Value.t [@@deriving sexp]
+
+      let of_string s =
+        match String.lsplit2 s ~on:':' with
+        | None -> Or_error.errorf "tag-value %s is not colon separated" s
+        | Some (tag, value) ->
+          let%bind tag = Tag.of_string tag in
+          let%bind value = Value.of_string tag value in
+          Ok (tag, value)
+      ;;
+
+      let to_string (tag, value) = sprintf "%s:%s" tag value
+    end
+
+    type t = Field.t list [@@deriving sexp]
+
+    let of_string s : t Or_error.t =
       match String.split ~on:'\t' s with
       | [] -> assert false
       | "" :: [] -> Ok []
-      | l -> l |> List.map ~f:of_string |> Or_error.all
+      | l -> l |> List.map ~f:Field.of_string |> Or_error.all
     ;;
 
-    let to_string (tag, value) = sprintf "%s:%s" tag value
-    let list_to_string ts = ts |> List.map ~f:to_string |> String.concat ~sep:"\t"
+    let to_string t = t |> List.map ~f:Field.to_string |> String.concat ~sep:"\t"
 
     (** Find all occurrences of [x'] in the association list [l]. *)
     let find_all l x' =
@@ -272,24 +280,24 @@ module Header = struct
     ;;
 
     let of_string s =
-      let%bind tvl = Tag_value.list_of_string s in
-      let%bind version = Tag_value.find1 `HD tvl "VN" in
+      let%bind tvl = Data.of_string s in
+      let%bind version = Data.find1 `HD tvl "VN" in
       let%bind sort_order =
-        match%bind Tag_value.find01 `HD tvl "SO" with
+        match%bind Data.find01 `HD tvl "SO" with
         | None -> Ok None
         | Some x -> SO.of_string x >>| Option.some
       in
       let%bind group_order =
-        match%bind Tag_value.find01 `HD tvl "GO" with
+        match%bind Data.find01 `HD tvl "GO" with
         | None -> Ok None
         | Some x -> GO.of_string x >>| Option.some
       in
       let%bind sub_sort_order =
-        match%bind Tag_value.find01 `HD tvl "SS" with
+        match%bind Data.find01 `HD tvl "SS" with
         | None -> Ok None
         | Some x -> SS.of_string x >>| Option.some
       in
-      let%bind () = Tag_value.assert_tags `HD tvl [ "VN"; "SO"; "GO"; "SS" ] in
+      let%bind () = Data.assert_tags `HD tvl [ "VN"; "SO"; "GO"; "SS" ] in
       Ok (make ~version ?sort_order ?group_order ?sub_sort_order ())
     ;;
 
@@ -300,7 +308,7 @@ module Header = struct
       ; Option.map sub_sort_order ~f:(fun x -> "SS", SS.to_string x)
       ]
       |> List.filter_map ~f:Fn.id
-      |> Tag_value.list_to_string
+      |> Data.to_string
     ;;
   end
 
@@ -343,20 +351,18 @@ module Header = struct
     ;;
 
     let of_string s =
-      let%bind tvl = Tag_value.list_of_string s in
-      let%bind name = Tag_value.find1 `SQ tvl "SN" in
-      let%bind length = Tag_value.find1 `SQ tvl "LN" in
+      let%bind tvl = Data.of_string s in
+      let%bind name = Data.find1 `SQ tvl "SN" in
+      let%bind length = Data.find1 `SQ tvl "LN" in
       let%bind length =
         try Ok (Int.of_string length) with
         | _ -> Error (Error.create "invalid ref seq length" length sexp_of_string)
       in
-      let%bind assembly = Tag_value.find01 `SQ tvl "AS" in
-      let%bind md5 = Tag_value.find01 `SQ tvl "M5" in
-      let%bind species = Tag_value.find01 `SQ tvl "SP" in
-      let%bind uri = Tag_value.find01 `SQ tvl "UR" in
-      let%bind () =
-        Tag_value.assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ]
-      in
+      let%bind assembly = Data.find01 `SQ tvl "AS" in
+      let%bind md5 = Data.find01 `SQ tvl "M5" in
+      let%bind species = Data.find01 `SQ tvl "SP" in
+      let%bind uri = Data.find01 `SQ tvl "UR" in
+      let%bind () = Data.assert_tags `SQ tvl [ "SN"; "LN"; "AS"; "M5"; "SP"; "UR" ] in
       make ~name ~length ?assembly ?md5 ?species ?uri ()
     ;;
 
@@ -369,7 +375,7 @@ module Header = struct
       ; Option.map uri ~f:(fun x -> "UR", x)
       ]
       |> List.filter_map ~f:Fn.id
-      |> Tag_value.list_to_string
+      |> Data.to_string
     ;;
   end
 
@@ -507,17 +513,17 @@ module Header = struct
     ;;
 
     let of_string s =
-      let%bind tvl = Tag_value.list_of_string s in
-      let%bind id = Tag_value.find1 `RG tvl "ID" in
-      let%bind seq_center = Tag_value.find01 `RG tvl "CN" in
-      let%bind description = Tag_value.find01 `RG tvl "DS" in
-      let%bind run_date = Tag_value.find01 `RG tvl "DT" in
-      let%bind flow_order = Tag_value.find01 `RG tvl "FO" in
-      let%bind key_seq = Tag_value.find01 `RG tvl "KS" in
-      let%bind library = Tag_value.find01 `RG tvl "LB" in
-      let%bind program = Tag_value.find01 `RG tvl "PG" in
+      let%bind tvl = Data.of_string s in
+      let%bind id = Data.find1 `RG tvl "ID" in
+      let%bind seq_center = Data.find01 `RG tvl "CN" in
+      let%bind description = Data.find01 `RG tvl "DS" in
+      let%bind run_date = Data.find01 `RG tvl "DT" in
+      let%bind flow_order = Data.find01 `RG tvl "FO" in
+      let%bind key_seq = Data.find01 `RG tvl "KS" in
+      let%bind library = Data.find01 `RG tvl "LB" in
+      let%bind program = Data.find01 `RG tvl "PG" in
       let%bind predicted_median_insert_size =
-        match%bind Tag_value.find01 `RG tvl "PI" with
+        match%bind Data.find01 `RG tvl "PI" with
         | None -> Ok None
         | Some predicted_median_insert_size -> (
           match Int.of_string predicted_median_insert_size with
@@ -530,14 +536,14 @@ module Header = struct
                  sexp_of_string))
       in
       let%bind platform =
-        match%bind Tag_value.find01 `RG tvl "PL" with
+        match%bind Data.find01 `RG tvl "PL" with
         | None -> Ok None
         | Some x -> PL.of_string x >>| Option.some
       in
-      let%bind platform_unit = Tag_value.find01 `RG tvl "PU" in
-      let%bind sample = Tag_value.find01 `RG tvl "SM" in
+      let%bind platform_unit = Data.find01 `RG tvl "PU" in
+      let%bind sample = Data.find01 `RG tvl "SM" in
       let%bind () =
-        Tag_value.assert_tags
+        Data.assert_tags
           `RG
           tvl
           [ "ID"; "CN"; "DS"; "DT"; "FO"; "KS"; "LB"; "PG"; "PI"; "PL"; "PU"; "SM" ]
@@ -592,7 +598,7 @@ module Header = struct
       ; Option.map sample ~f:(fun x -> "SM", x)
       ]
       |> List.filter_map ~f:Fn.id
-      |> Tag_value.list_to_string
+      |> Data.to_string
     ;;
   end
 
@@ -608,16 +614,14 @@ module Header = struct
     [@@deriving sexp]
 
     let of_string s =
-      let%bind tvl = Tag_value.list_of_string s in
-      let%bind id = Tag_value.find1 `PG tvl "ID" in
-      let%bind name = Tag_value.find01 `PG tvl "PN" in
-      let%bind command_line = Tag_value.find01 `PG tvl "CL" in
-      let%bind previous_id = Tag_value.find01 `PG tvl "PP" in
-      let%bind description = Tag_value.find01 `PG tvl "DS" in
-      let%bind version = Tag_value.find01 `PG tvl "VN" in
-      let%bind () =
-        Tag_value.assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ]
-      in
+      let%bind tvl = Data.of_string s in
+      let%bind id = Data.find1 `PG tvl "ID" in
+      let%bind name = Data.find01 `PG tvl "PN" in
+      let%bind command_line = Data.find01 `PG tvl "CL" in
+      let%bind previous_id = Data.find01 `PG tvl "PP" in
+      let%bind description = Data.find01 `PG tvl "DS" in
+      let%bind version = Data.find01 `PG tvl "VN" in
+      let%bind () = Data.assert_tags `PG tvl [ "ID"; "PN"; "CL"; "PP"; "DS"; "VN" ] in
       Ok { id; name; command_line; previous_id; description; version }
     ;;
 
@@ -630,15 +634,15 @@ module Header = struct
       ; Option.map version ~f:(fun x -> "VN", x)
       ]
       |> List.filter_map ~f:Fn.id
-      |> Tag_value.list_to_string
+      |> Data.to_string
     ;;
   end
 
   module Other = struct
-    type t = string * Tag_value.t list [@@deriving sexp]
+    type t = string * Data.t [@@deriving sexp]
 
     let of_string tag s =
-      let%bind tvl = Tag_value.list_of_string s in
+      let%bind tvl = Data.of_string s in
       Ok (tag, tvl)
     ;;
 
@@ -1484,7 +1488,7 @@ module Test = struct
 
       IN: "@HD	T"
       SEXP:
-      (Error ("tag-value not colon separated" T))
+      (Error "tag-value T is not colon separated")
       |}]
   ;;
 

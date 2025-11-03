@@ -19,13 +19,17 @@ module Header : sig
     val to_string : t -> string
   end
 
-  module Tag_value : sig
-    (** A tag-value pair comprising the content of header items. Tag-value
-      pairs occur in other places too, but this type is specifically for
-      those in the header. *)
-    type t = private string * string [@@deriving sexp]
+  module Data : sig
+    (** Data is the content of header lines, the colon separated fields after
+        the initial @HD, @SQ, @RG, or @PG lines. *)
 
-    val to_string : t -> string
+    module Field : sig
+      type t = private string * string [@@deriving sexp]
+
+      val to_string : t -> string
+    end
+
+    type t = Field.t list [@@deriving sexp]
   end
 
   module HD : sig
@@ -179,7 +183,7 @@ module Header : sig
   end
 
   module Other : sig
-    type t = private string * Tag_value.t list [@@deriving sexp]
+    type t = private string * Data.t [@@deriving sexp]
   end
 
   module Item : sig
