@@ -241,18 +241,45 @@ module Flag : sig
   val of_int : int -> t Or_error.t
   val of_string : string -> t Or_error.t
   val to_string : t -> string
+
+  (** 0x1 is set *)
   val has_multiple_segments : t -> bool
-  val each_segment_properly_aligned : t -> bool
-  val segment_unmapped : t -> bool
-  val next_segment_unmapped : t -> bool
-  val seq_is_reverse_complemented : t -> bool
-  val next_seq_is_reverse_complemented : t -> bool
-  val first_segment : t -> bool
-  val last_segment : t -> bool
-  val secondary_alignment : t -> bool
+
+  (** 0x2 is set *)
+  val each_segment_is_properly_aligned : t -> bool
+
+  (** 0x4 is set *)
+  val is_unmapped : t -> bool
+
+  (** 0x8 is set *)
+  val next_segment_is_unmapped : t -> bool
+
+  (** 0x10 is set *)
+  val is_reverse_complemented : t -> bool
+
+  (** 0x20 is set *)
+  val next_is_reverse_complemented : t -> bool
+
+  (** 0x40 is set *)
+  val is_first : t -> bool
+
+  (** 0x80 is set *)
+  val is_last : t -> bool
+
+  (** 0x100 is set *)
+  val is_secondary : t -> bool
+
+  (** 0x200 is set *)
   val not_passing_quality_controls : t -> bool
-  val pcr_or_optical_duplicate : t -> bool
-  val supplementary_alignment : t -> bool
+
+  (** 0x400 is set *)
+  val is_pcr_or_optical_duplicate : t -> bool
+
+  (** 0x800 is set *)
+  val is_supplementary : t -> bool
+
+  (** 0x900 is not set, i.e. [not (is_secondary t || is_supplementary t)] *)
+  val is_primary : t -> bool
 end
 
 module Rname : sig
