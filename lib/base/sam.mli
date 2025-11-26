@@ -19,22 +19,33 @@ module Header : sig
     val to_string : t -> string
   end
 
-  module Tag_value : sig
-    (** A tag-value pair comprising the content of header items. Tag-value
-      pairs occur in other places too, but this type is specifically for
-      those in the header. *)
-    type t = private string * string [@@deriving sexp]
+  module Data : sig
+    (** Data is the content of header lines, the colon separated fields after
+        the initial @HD, @SQ, @RG, or @PG lines. *)
 
-    val to_string : t -> string
+    module Field : sig
+      type t = private string * string [@@deriving sexp]
+
+      val to_string : t -> string
+    end
+
+    type t = Field.t list [@@deriving sexp]
   end
 
   module HD : sig
+    module VN : sig
+      type t = private string [@@deriving sexp]
+
+      val of_string : string -> t Or_error.t
+      val to_string : t -> string
+    end
+
     module SO : sig
       type t =
-        [ `Unknown
-        | `Unsorted
-        | `Query_name
-        | `Coordinate
+        [ `unknown
+        | `unsorted
+        | `queryname
+        | `coordinate
         ]
       [@@deriving sexp]
 
@@ -54,23 +65,29 @@ module Header : sig
       val to_string : t -> string
     end
 
-    module VN : sig
-      type t = private string [@@deriving sexp]
+    module SS : sig
+      type t = private [ `coordinate | `queryname | `unsorted ] * string list
+      [@@deriving sexp]
 
       val of_string : string -> t Or_error.t
       val to_string : t -> string
     end
 
-    type t =
+    type t = private
       { version : VN.t
       ; sort_order : SO.t option
       ; group_order : GO.t option
+      ; sub_sort_order : SS.t option
       }
     [@@deriving sexp]
 
-    val make : version:VN.t -> ?sort_order:SO.t -> ?group_order:GO.t -> unit -> t
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
+    val make
+      :  version:VN.t
+      -> ?sort_order:SO.t
+      -> ?group_order:GO.t
+      -> ?sub_sort_order:SS.t
+      -> unit
+      -> t
   end
 
   module SQ : sig
@@ -93,21 +110,23 @@ module Header : sig
       -> ?uri:string
       -> unit
       -> t Or_error.t
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
   end
 
   module RG : sig
     module PL : sig
       type t =
-        [ `Capillary
+        [ `CAPILLARY
+        | `DNBSEQ
+        | `ELEMENT
+        | `HELICOS
+        | `ILLUMINA
+        | `IONTORRENT
         | `LS454
-        | `Illumina
-        | `Solid
-        | `Helicos
-        | `Ion_Torrent
-        | `Pac_Bio
+        | `ONT
+        | `PACBIO
+        | `SINGULAR
+        | `SOLID
+        | `ULTIMA
         ]
       [@@deriving sexp]
 
@@ -149,9 +168,6 @@ module Header : sig
       -> ?sample:string
       -> unit
       -> t Or_error.t
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
   end
 
   module PG : sig
@@ -164,15 +180,6 @@ module Header : sig
       ; version : string option (** VN *)
       }
     [@@deriving sexp]
-
-    val of_tag_value_list : Tag_value.t list -> t Or_error.t
-    val to_string : t -> string
-  end
-
-  module Other : sig
-    type t = string * Tag_value.t list [@@deriving sexp]
-
-    val to_string : t -> string
   end
 
   module Item : sig
@@ -182,7 +189,6 @@ module Header : sig
       | `RG of RG.t
       | `PG of PG.t
       | `CO of string
-      | `Other of Other.t
       ]
     [@@deriving sexp]
 
@@ -201,7 +207,7 @@ module Header : sig
        above) are unique.
      - The order of @SQ lines is preserved as given in constructors.
        This is required by the SAM specification because it dictates
-       alignment sorting order when [sort_order = `Coordinate].
+       alignment sorting order when [sort_order = `coordinate].
 
      In addition to the @SQ lines, we preserve the order of all lines.
      Though not mandated by the SAM specification, this follows the
@@ -218,7 +224,6 @@ module Header : sig
   val read_groups : t -> RG.t list
   val programs : t -> PG.t list
   val comments : t -> string list
-  val others : t -> Other.t list
 end
 
 module Qname : sig
@@ -236,18 +241,45 @@ module Flag : sig
   val of_int : int -> t Or_error.t
   val of_string : string -> t Or_error.t
   val to_string : t -> string
+
+  (** 0x1 is set *)
   val has_multiple_segments : t -> bool
-  val each_segment_properly_aligned : t -> bool
-  val segment_unmapped : t -> bool
-  val next_segment_unmapped : t -> bool
-  val seq_is_reverse_complemented : t -> bool
-  val next_seq_is_reverse_complemented : t -> bool
-  val first_segment : t -> bool
-  val last_segment : t -> bool
-  val secondary_alignment : t -> bool
+
+  (** 0x2 is set *)
+  val each_segment_is_properly_aligned : t -> bool
+
+  (** 0x4 is set *)
+  val is_unmapped : t -> bool
+
+  (** 0x8 is set *)
+  val next_segment_is_unmapped : t -> bool
+
+  (** 0x10 is set *)
+  val is_reverse_complemented : t -> bool
+
+  (** 0x20 is set *)
+  val next_is_reverse_complemented : t -> bool
+
+  (** 0x40 is set *)
+  val is_first : t -> bool
+
+  (** 0x80 is set *)
+  val is_last : t -> bool
+
+  (** 0x100 is set *)
+  val is_secondary : t -> bool
+
+  (** 0x200 is set *)
   val not_passing_quality_controls : t -> bool
-  val pcr_or_optical_duplicate : t -> bool
-  val supplementary_alignment : t -> bool
+
+  (** 0x400 is set *)
+  val is_pcr_or_optical_duplicate : t -> bool
+
+  (** 0x800 is set *)
+  val is_supplementary : t -> bool
+
+  (** 0x900 is not set, i.e. [not (is_secondary t || is_supplementary t)] *)
+  val is_primary : t -> bool
 end
 
 module Rname : sig
