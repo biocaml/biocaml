@@ -21,7 +21,7 @@ module Header : sig
 
   module Data : sig
     (** Data is the content of header lines, the colon separated fields after
-        the initial @HD, @SQ, @RG, or @PG lines. *)
+        the initial [@HD], [@SQ], [@RG], or [@PG] lines. *)
 
     module Field : sig
       type t = private string * string [@@deriving sexp]
@@ -202,14 +202,14 @@ module Header : sig
   end
 
   (** List of header lines with guarantees:
-     - The @HD line is the first item if it exists.
-     - The SN fields of all @SQ lines (i.e. name field in SQ module
+     - The [@HD] line is the first item if it exists.
+     - The SN fields of all [@SQ] lines (i.e. name field in SQ module
        above) are unique.
-     - The order of @SQ lines is preserved as given in constructors.
+     - The order of [@SQ] lines is preserved as given in constructors.
        This is required by the SAM specification because it dictates
        alignment sorting order when [sort_order = `coordinate].
 
-     In addition to the @SQ lines, we preserve the order of all lines.
+     In addition to the [@SQ] lines, we preserve the order of all lines.
      Though not mandated by the SAM specification, this follows the
      principle of least surprise. *)
   type t = private Item.t list [@@deriving sexp]

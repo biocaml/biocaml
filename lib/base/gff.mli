@@ -7,7 +7,9 @@
     ontology term, but these are not checked.
 
 
-    More information: {ul
+    More information:
+
+    {ul
       {- Version 2:
          {{:http://www.sanger.ac.uk/resources/software/gff/spec.html
             }www.sanger.ac.uk/resources/software/gff/spec.html},
