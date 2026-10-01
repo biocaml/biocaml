@@ -37,7 +37,7 @@ val split : t -> on:char -> string list
 val for_all : string -> f:(char -> bool) -> bool
 val append : t -> t -> t
 
-(** @raise [Invalid_arg _] if [sep = '\n'] *)
+(** Raises [Invalid_arg] if [sep = '\n']. *)
 val concat : ?sep:char -> t list -> t
 
 (** {2 S-Expressions } *)
